@@ -213,7 +213,7 @@ object build extends Build {
       name := "ivory-storage"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2 ++ depend.saws)
   )
-  .dependsOn(core, data, scoobi, alien_hdfs, core % "test->test",  scoobi % "test->test")
+  .dependsOn(core, data, scoobi, alien_hdfs, mr, core % "test->test",  scoobi % "test->test")
 
   lazy val tools = Project(
     id = "tools"

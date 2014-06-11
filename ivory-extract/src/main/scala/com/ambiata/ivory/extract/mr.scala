@@ -3,6 +3,7 @@ package com.ambiata.ivory.extract
 import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
+import com.ambiata.ivory.lookup.FactsetLookup
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.parse._
 import com.ambiata.ivory.storage.legacy._
@@ -14,7 +15,7 @@ import java.nio.ByteBuffer
 
 import scalaz.{Reducer => _, _}, Scalaz._
 
-import org.apache.hadoop.fs.{Path, FileSystem};
+import org.apache.hadoop.fs.{Path, FileSystem}
 import org.apache.hadoop.conf._
 import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
@@ -41,8 +42,8 @@ object SnapshotJob {
     job.setJobName(ctx.id.value)
 
     /* map */
-    job.setMapOutputKeyClass(classOf[BytesWritable]);
-    job.setMapOutputValueClass(classOf[BytesWritable]);
+    job.setMapOutputKeyClass(classOf[BytesWritable])
+    job.setMapOutputValueClass(classOf[BytesWritable])
 
     /* partiton & sort */
     job.setGroupingComparatorClass(classOf[Text.Comparator])
@@ -51,8 +52,8 @@ object SnapshotJob {
     /* reducer */
     job.setNumReduceTasks(reducers)
     job.setReducerClass(classOf[SnapshotReducer])
-    job.setOutputKeyClass(classOf[NullWritable]);
-    job.setOutputValueClass(classOf[BytesWritable]);
+    job.setOutputKeyClass(classOf[NullWritable])
+    job.setOutputValueClass(classOf[BytesWritable])
 
     /* input */
     val mappers = inputs.map({
@@ -163,7 +164,7 @@ object SnapshotMapper {
  * factset/namespace/year/month/day, and a factset priority is pull out of a lookup
  * table in the distributes cache.
  *
- * The output key is a sting of entity|namespace|attribute
+ * The output key is a string of entity|namespace|attribute
  *
  * The output value is expected (can not be typed checked because its all bytes) to be
  * a thrift serialized PriorityTag object. This is a container that holds a
@@ -291,7 +292,8 @@ object SnapshotFactsetThriftMapper {
 class SnapshotFactsetVersionOneMapper extends SnapshotFactsetThiftMapper[ThriftFact] {
   val thrift = new ThriftFact
   val version = "v1"
-  val parseFact = PartitionFactThriftStorageV1.parseFact _
+  val parseFact: (String, ThriftFact) => ParseError \/ Fact =
+    PartitionFactThriftStorageV1.parseFact _
 }
 
 /*
@@ -300,7 +302,8 @@ class SnapshotFactsetVersionOneMapper extends SnapshotFactsetThiftMapper[ThriftF
 class SnapshotFactsetVersionTwoMapper extends SnapshotFactsetThiftMapper[ThriftFact] {
   val thrift = new ThriftFact
   val version = "v2"
-  val parseFact = PartitionFactThriftStorageV2.parseFact _
+  val parseFact: (String, ThriftFact) => ParseError \/ Fact =
+    PartitionFactThriftStorageV2.parseFact _
 }
 
 /*

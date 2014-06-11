@@ -20,17 +20,24 @@ import java.net.URI
 object PartitionFactThriftStorageV1 {
 
   def parseFact(partition: String, tfact: ThriftFact): ParseError \/ Fact =
-    parseFactWith(partition, tfact, (_, f) => f.right)
+    parseFactWith(partition, tfact, (_: Factset, f: Fact) => f.right)
 
-  def parseFactWith[A](partition: String, tfact: ThriftFact, f: (Factset, Fact) => ParseError \/ A): ParseError \/ A = for {
-    p    <- Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
-    fact  = FatThriftFact(p.namespace, p.date, tfact)
-    a    <- f(p.factset, fact)
-  } yield a
+  val parsePartition: String => ParseError \/ Partition = scalaz.Memo.mutableHashMapMemo { partition: String =>
+    Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
+  }
+
+  def parseFactWith[A](partition: String, tfact: ThriftFact, f: (Factset, Fact) => ParseError \/ A): ParseError \/ A =
+    parsePartition(partition).flatMap(p => parseFactWith(p, tfact, f))
+
+  def parseFact(partition: Partition)(tfact: ThriftFact): ParseError \/ Fact =
+    parseFactWith(partition, tfact, (_: Factset, f: Fact) => f.right)
+
+  def parseFactWith[A](partition: Partition, tfact: ThriftFact, f: (Factset, Fact) => ParseError \/ A): ParseError \/ A =
+    f(partition.factset, FatThriftFact(partition.namespace, partition.date, tfact))
 
   def loadScoobiWith[A : WireFormat](paths: List[String], f: (Factset, Fact) => ParseError \/ A, from: Option[Date] = None, to: Option[Date] = None)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
-    val filtered = PartitionExpantion.filterGlob(paths, from, to).toSeq
-    if(!filtered.isEmpty)
+    val filtered = PartitionExpansion.filterGlob(paths, from, to).toSeq
+    if(filtered.nonEmpty)
       valueFromSequenceFileWithPaths[ThriftFact](filtered.toSeq).map({ case (partition, tfact) => parseFactWith(partition, tfact, f) })
     else
       DList[ParseError \/ A]()
@@ -63,17 +70,24 @@ object PartitionFactThriftStorageV1 {
 object PartitionFactThriftStorageV2 {
 
   def parseFact(partition: String, tfact: ThriftFact): ParseError \/ Fact =
-    parseFactWith(partition, tfact, (_, f) => f.right)
+    parseFactWith(partition, tfact, (_: Factset, f: Fact) => f.right)
 
-  def parseFactWith[A](partition: String, tfact: ThriftFact, f: (Factset, Fact) => ParseError \/ A): ParseError \/ A = for {
-    p    <- Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
-    fact  = FatThriftFact(p.namespace, p.date, tfact)
-    a    <- f(p.factset, fact)
-  } yield a
+  val parsePartition: String => ParseError \/ Partition = scalaz.Memo.mutableHashMapMemo { partition: String =>
+    Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
+  }
+
+  def parseFactWith[A](partition: String, tfact: ThriftFact, f: (Factset, Fact) => ParseError \/ A): ParseError \/ A =
+    parsePartition(partition).flatMap(p => parseFactWith(p, tfact, f))
+
+  def parseFact(partition: Partition)(tfact: ThriftFact): ParseError \/ Fact =
+    parseFactWith(partition, tfact, (_: Factset, f: Fact) => f.right)
+
+  def parseFactWith[A](partition: Partition, tfact: ThriftFact, f: (Factset, Fact) => ParseError \/ A): ParseError \/ A =
+    f(partition.factset, FatThriftFact(partition.namespace, partition.date, tfact))
 
   def loadScoobiWith[A : WireFormat](paths: List[String], f: (Factset, Fact) => ParseError \/ A, from: Option[Date] = None, to: Option[Date] = None)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
-    val filtered = PartitionExpantion.filterGlob(paths, from, to).toSeq
-    if(!filtered.isEmpty)
+    val filtered = PartitionExpansion.filterGlob(paths, from, to).toSeq
+    if(filtered.nonEmpty)
       valueFromSequenceFileWithPaths[ThriftFact](filtered.toSeq).map({ case (partition, tfact) => parseFactWith(partition, tfact, f) })
     else
       DList[ParseError \/ A]()
@@ -82,6 +96,7 @@ object PartitionFactThriftStorageV2 {
   case class PartitionedFactThriftLoader(paths: List[String], from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[Fact] {
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ Fact] =
       loadScoobiWith(paths.map(_+"/*/*/*/*"), (_, fact) => fact.right, from, to)
+
   }
 
   case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[PrioritizedFactset], from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[(Priority, Factset, Fact)] {
@@ -93,9 +108,13 @@ object PartitionFactThriftStorageV2 {
     }
   }
 
+  val partitionPath: ((String, Date)) => String = scalaz.Memo.mutableHashMapMemo { nsd =>
+    Partition.path(nsd._1, nsd._2)
+  }
+
   case class PartitionedFactThriftStorer(base: String, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
-      val partitioned = dlist.by(f => Partition.path(f.namespace, f.date))
+      val partitioned = dlist.by(f => partitionPath((f.namespace, f.date)))
                              .mapValues((f: Fact) => f.toThrift)
                              .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](base, identity, overwrite = true)
       codec.map(partitioned.compressWith(_)).getOrElse(partitioned)
@@ -103,8 +122,7 @@ object PartitionFactThriftStorageV2 {
   }
 }
 
-// FIX delete this, should be using storage.fact.Partitions and/or storage.fact.StoreGlob
-object PartitionExpantion {
+object PartitionExpansion {
   def filterGlob(paths: List[String], from: Option[Date], to: Option[Date])(implicit sc: ScoobiConfiguration): List[String] =
     (from, to) match {
       case (None, None)         => paths.map(_+"/*")

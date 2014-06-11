@@ -23,12 +23,13 @@ import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 import com.nicta.scoobi.Scoobi.WireFormat
 import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.hadoop.io.SequenceFile.CompressionType
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
+import MemoryConversions._
 
 import scalaz._, Scalaz._
 import scala.collection.JavaConverters._
+import com.ambiata.ivory.scoobi.WireFormats.BytesQuantityWireFormat
 
-case class Stat(in: String, out: String, size: Long, seq: Boolean) {
+case class Stat(in: String, out: String, size: BytesQuantity, seq: Boolean) {
   def path = new Path(in)
   def target = new Path(out)
 }
@@ -114,15 +115,15 @@ object Recompress {
   }
 
   // naive greedy partitioning strategy /co Eric.
-  def partition[A](items: List[A], n: Int, sizeOf: A => Long): List[List[A]] =
+  def partition[A](items: List[A], n: Int, sizeOf: A => BytesQuantity): List[List[A]] =
     items.sortWith(maxSize(sizeOf)).foldLeft(Vector.fill(n)(Vector[A]())) { (res, cur) =>
-      res.sortBy(_.map(sizeOf).map(l => BigInt(l)).sum) match {
+      res.sortBy(_.map(sizeOf).map(l => BigInt(l.toBytes.value)).sum) match {
         case head +: rest => (cur +: head) +: rest
         case empty        => Vector(Vector(cur))
       }
     }.map(_.toList).toList
 
-  def maxSize[A](sizeOf: A => Long): (A, A) => Boolean =
+  def maxSize[A](sizeOf: A => BytesQuantity): (A, A) => Boolean =
     (a, b) => sizeOf(a) > sizeOf(b)
 }
 
@@ -149,7 +150,7 @@ class PathSource(val paths: List[Stat], val mappersNumber: Int, val inputFormat:
     job.getConfiguration.set(MAPPERS_NUMBER, mappersNumber)
   }
 
-  def inputSize(implicit sc: ScoobiConfiguration): Long = paths.map(_.size).sum
+  def inputSize(implicit sc: ScoobiConfiguration): Long = paths.map(_.size).sum.toBytes.value
 }
 
 class PathInputFormat extends InputFormat[NullWritable, Stat] {
@@ -192,7 +193,7 @@ case class FilesSplit(var paths: List[Stat]) extends InputSplit with Writable {
   def this() = this(List())
   def apply(i: Int) = paths(i)
   def size = paths.size
-  def getLength: Long = paths.map(_.size).sum
+  def getLength: Long = paths.map(_.size).sum.toBytes.value
   def getLocations: Array[String] = Array()
 
   def write(out: DataOutput) = {
@@ -207,6 +208,9 @@ case class FilesSplit(var paths: List[Stat]) extends InputSplit with Writable {
 }
 
 object FilesSplit {
+  implicit def BytesQuantityWireFormat: WireFormat[BytesQuantity] =
+    WireFormat.LongFmt.xmap(l => l.bytes, _.toBytes.value)
+
   def wireFormat: WireFormat[FilesSplit] =
     mkCaseWireFormat(FilesSplit.apply _, FilesSplit.unapply _)
 }

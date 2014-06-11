@@ -24,6 +24,7 @@ import com.ambiata.ivory.scoobi.TestConfigurations
 import com.ambiata.mundane.io._
 import org.specs2.specification.{Fixture, FixtureExample}
 import org.specs2.execute.{Result, AsResult}
+import MemoryConversions._
 
 class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2"""
 
@@ -39,7 +40,7 @@ class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2
 
     val errors = new Path(directory, "errors")
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onHdfs(repository, dictionary, Factset("factset1"), List("ns1"), new Path(input), errors, DateTimeZone.getDefault, List("ns1" -> 1), 1024 * 1024 * 128, None).run(sc) must beOk
+    EavtTextImporter.onHdfs(repository, dictionary, Factset("factset1"), List("ns1"), new Path(input), errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None).run(sc) must beOk
 
     val expected = List(
       StringFact("pid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1),  Time(10), "v1"),
@@ -57,7 +58,7 @@ class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2
     val errors = new Path(directory, "errors")
 
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onHdfs(repository, dictionary, Factset("factset1"), List("ns1"), new Path(input), errors, DateTimeZone.getDefault, List("ns1" -> 1), 1024 * 1024 * 128, None).run(sc) must beOk
+    EavtTextImporter.onHdfs(repository, dictionary, Factset("factset1"), List("ns1"), new Path(input), errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None).run(sc) must beOk
     valueFromSequenceFile[ParseError](errors.toString).run must not(beEmpty)
   }
 

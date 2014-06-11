@@ -1,6 +1,7 @@
 package com.ambiata.ivory
 package ingest
 
+import com.ambiata.ivory.lookup.{ReducerLookup, NamespaceLookup, FeatureIdLookup}
 import org.apache.hadoop.fs.Path
 import com.nicta.scoobi.Scoobi._
 import com.ambiata.ivory.core._, IvorySyntax._
@@ -13,7 +14,7 @@ import alien.hdfs._
 import ScoobiAction._
 import WireFormats._, FactFormats._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.FilePath
+import com.ambiata.mundane.io.{BytesQuantity, FilePath}
 import com.ambiata.saws.emr._
 import org.joda.time.DateTimeZone
 import org.apache.hadoop.io.compress._
@@ -34,8 +35,8 @@ object EavtTextImporter {
     path: Path,
     errorPath: Path,
     timezone: DateTimeZone,
-    partitions: List[(String, Long)],
-    optimal: Long,
+    partitions: List[(String, BytesQuantity)],
+    optimal: BytesQuantity,
     codec: Option[CompressionCodec]
   ): ScoobiAction[Unit] = for {
     sc <- ScoobiAction.scoobiConfiguration

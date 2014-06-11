@@ -7,7 +7,8 @@ import java.io._
 import java.util.UUID
 
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.Streams
+import com.ambiata.mundane.io.{BytesQuantity, MemoryConversions, Streams}
+import MemoryConversions._
 
 case class Hdfs[+A](action: ActionT[IO, Unit, Configuration, A]) {
   def run(conf: Configuration): ResultTIO[A] =
@@ -30,6 +31,9 @@ case class Hdfs[+A](action: ActionT[IO, Unit, Configuration, A]) {
 
   def filterHidden(implicit ev: A <:< List[Path]): Hdfs[List[Path]] =
     map(_.filter(p => !p.getName.startsWith("_") && !p.getName.startsWith(".")))
+
+  def unless(condition: Boolean): Hdfs[Unit] =
+    Hdfs.unless(condition)(this)
 }
 
 object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
@@ -72,10 +76,18 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
   def exists(p: Path): Hdfs[Boolean] =
     filesystem.map(fs => fs.exists(p))
 
-  def size(p: Path): Hdfs[Long] = for {
+  /** @return the size of a directory not including all directories */
+  def size(p: Path): Hdfs[BytesQuantity] = for {
     fs    <- filesystem
-    files <- if(fs.isFile(p)) Hdfs.value(List(p)) else globFiles(p)
-  } yield files.map(f => fs.getFileStatus(f).getLen).sum
+    files <- if (fs.isFile(p)) Hdfs.value(List(p)) else globFiles(p)
+  } yield files.map(f => fs.getFileStatus(f).getLen.bytes).sum
+
+  /** @return the size of a directory, recursively including all directories */
+  def totalSize(path: Path): Hdfs[BytesQuantity] =
+    for {
+      all <- Hdfs.globPathsRecursively(path)
+      sizes <- all.traverse(Hdfs.size)
+    } yield sizes.sum
 
   def isDirectory(p: Path): Hdfs[Boolean] =
     filesystem.map(fs => fs.isDirectory(p))
@@ -83,10 +95,14 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
   def mustexist(p: Path): Hdfs[Unit] =
     exists(p).flatMap(e => if(e) Hdfs.ok(()) else Hdfs.fail(s"$p doesn't exist!"))
 
+  def globDirs(p: Path, glob: String = "*"): Hdfs[List[Path]] =
+    filesystem.map(fs =>
+      if (fs.isFile(p)) List() else fs.globStatus(new Path(p, glob)).toList.filter(_.isDirectory).map(_.getPath)
+    )
+
   def globPaths(p: Path, glob: String = "*"): Hdfs[List[Path]] =
     filesystem.map(fs =>
-      if(fs.isFile(p)) List(p) else fs.globStatus(new Path(p, glob)).toList.map(_.getPath)
-    )
+      if(fs.isFile(p)) List(p) else fs.globStatus(new Path(p, glob)).toList.map(_.getPath))
 
   def globPathsRecursively(p: Path, glob: String = "*"): Hdfs[List[Path]] = {
     def getPaths(path: Path): FileSystem => List[Path] = { fs: FileSystem =>
@@ -196,6 +212,21 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
 
   def deleteAll(p: Path): Hdfs[Unit] =
     filesystem.map(fs => fs.delete(p, true))
+
+  def log(message: String) =
+    fromIO(IO(println(message)))
+
+  def unless[A](condition: Boolean)(action: Hdfs[A]): Hdfs[Unit] =
+    if (!condition) action.map(_ => ()) else Hdfs.ok(())
+
+  /**
+   * @return a list of all subdirectories names (from path) with their total size
+   */
+  def childrenSizes(path: Path, glob: String = "*"): Hdfs[List[(Path, BytesQuantity)]] =
+    for {
+      children <- Hdfs.globPaths(path, glob)
+      sizes    <- children.traverse(c => totalSize(c).map((c, _)))
+    } yield sizes
 
   implicit def HdfsMonad: Monad[Hdfs] = new Monad[Hdfs] {
     def point[A](v: => A) = ok(v)

@@ -1,5 +1,8 @@
 package com.ambiata.ivory.storage.legacy
 
+import com.ambiata.ivory.storage.metadata.FeatureStoreTextStorage
+import com.ambiata.saws.s3.S3
+
 import scalaz.{DList => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
@@ -75,7 +78,7 @@ object IvoryStorage {
     factsets <- ScoobiAction.fromHdfs(store.factsets.traverse(factset => for {
                   ve <- Hdfs.exists(repo.version(factset.set).toHdfs)
                   s  <- Hdfs.size(repo.factset(factset.set).toHdfs)
-                } yield (factset, ve && s != 0))).map(_.collect({ case (factset, true) => factset }))
+                } yield (factset, ve && s.toBytes.value != 0))).map(_.collect({ case (factset, true) => factset }))
     versions <- ScoobiAction.fromResultTIO(factsets.traverseU(factset =>
       Versions.read(repo, factset.set).map(factset -> _)))
     combined: List[(FactsetVersion, List[PrioritizedFactset])] = versions.groupBy(_._2).toList.map({ case (k, vs) => (k, vs.map(_._1)) })
@@ -99,4 +102,5 @@ object IvoryStorage {
     v  <- ScoobiAction.fromResultTIO(Versions.read(repo, factset))
     l   = IvoryStorage.factsetLoader(v, repo.factset(factset).toHdfs, from, to)
   } yield l.loadScoobi(sc)
+
 }

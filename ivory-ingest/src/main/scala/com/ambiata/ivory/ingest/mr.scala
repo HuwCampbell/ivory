@@ -3,7 +3,9 @@ package com.ambiata.ivory.ingest
 import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
+import com.ambiata.ivory.lookup.{ReducerLookup, NamespaceLookup, FeatureIdLookup}
 import com.ambiata.ivory.storage.fact._
+import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.parse._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.mr._
@@ -12,7 +14,7 @@ import java.lang.{Iterable => JIterable}
 
 import scalaz.{Reducer => _, _}, Scalaz._
 
-import org.apache.hadoop.fs.{Path, FileSystem};
+import org.apache.hadoop.fs.{Path, FileSystem}
 import org.apache.hadoop.conf._
 import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
@@ -45,8 +47,8 @@ object IngestJob {
 
     /* map */
     job.setMapperClass(classOf[IngestMapper])
-    job.setMapOutputKeyClass(classOf[LongWritable]);
-    job.setMapOutputValueClass(classOf[BytesWritable]);
+    job.setMapOutputKeyClass(classOf[LongWritable])
+    job.setMapOutputValueClass(classOf[BytesWritable])
 
     /* partition & sort */
     job.setPartitionerClass(classOf[IngestPartitioner])
@@ -63,8 +65,8 @@ object IngestJob {
 
     /* output */
     LazyOutputFormat.setOutputFormatClass(job, classOf[SequenceFileOutputFormat[_, _]])
-    MultipleOutputs.addNamedOutput(job, Keys.Out,  classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable]);
-    MultipleOutputs.addNamedOutput(job, Keys.Err,  classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable]);
+    MultipleOutputs.addNamedOutput(job, Keys.Out,  classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable])
+    MultipleOutputs.addNamedOutput(job, Keys.Err,  classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable])
     FileOutputFormat.setOutputPath(job, ctx.output)
 
     /* compression */
@@ -74,10 +76,10 @@ object IngestJob {
     })
 
     /* cache / config initializtion */
-    ctx.thriftCache.push(job, Keys.NamespaceLookup, namespaces)
-    ctx.thriftCache.push(job, Keys.FeatureIdLookup, features)
-    ctx.thriftCache.push(job, Keys.ReducerLookup, allocations)
-    ctx.thriftCache.push(job, Keys.Dictionary, DictionaryThriftConversion.dictionary.to(dict))
+    ctx.thriftCache.push(job, ReducerLookups.Keys.NamespaceLookup, namespaces)
+    ctx.thriftCache.push(job, ReducerLookups.Keys.FeatureIdLookup, features)
+    ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup, allocations)
+    ctx.thriftCache.push(job, ReducerLookups.Keys.Dictionary, DictionaryThriftConversion.dictionary.to(dict))
     job.getConfiguration.set(Keys.IvoryZone, ivoryZone.getID)
     job.getConfiguration.set(Keys.IngestZone, ingestZone.getID)
     job.getConfiguration.set(Keys.IngestBase, FileSystem.get(conf).getFileStatus(root).getPath.toString)
@@ -93,24 +95,7 @@ object IngestJob {
     }, true).run(conf).run.unsafePerformIO
   }
 
-  def index(dict: Dictionary): (NamespaceLookup, FeatureIdLookup) = {
-    val namespaces = new NamespaceLookup
-    val features = new FeatureIdLookup
-    dict.meta.toList.zipWithIndex.foreach({ case ((fid, _), idx) =>
-      namespaces.putToNamespaces(idx, fid.namespace)
-      features.putToIds(fid.toString, idx)
-    })
-    (namespaces, features)
-  }
-
-  def partitionFor(lookup: NamespaceLookup, key: LongWritable): String =
-    "factset" + "/" + lookup.namespaces.get((key.get >>> 32).toInt) + "/" + Date.unsafeFromInt((key.get & 0xffffffff).toInt).slashed + "/part"
-
   object Keys {
-    val NamespaceLookup = ThriftCache.Key("namespace-lookup")
-    val FeatureIdLookup = ThriftCache.Key("feature-id-lookup")
-    val ReducerLookup = ThriftCache.Key("reducer-lookup")
-    val Dictionary = ThriftCache.Key("dictionary")
     val IvoryZone = "ivory.tz"
     val IngestZone = "ivory.ingest.tz"
     val IngestBase = "ivory.ingest.base"
@@ -134,7 +119,7 @@ class IngestPartitioner extends Partitioner[LongWritable, BytesWritable] with Co
   def setConf(conf: Configuration): Unit = {
     _conf = conf
     ctx = MrContext.fromConfiguration(_conf)
-    ctx.thriftCache.pop(conf, IngestJob.Keys.ReducerLookup, lookup)
+    ctx.thriftCache.pop(conf, ReducerLookups.Keys.ReducerLookup, lookup)
   }
 
   def getConf: Configuration =
@@ -196,9 +181,9 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
   override def setup(context: Mapper[LongWritable, Text, LongWritable, BytesWritable]#Context): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     out = new MultipleOutputs(context.asInstanceOf[Mapper[LongWritable, Text, NullWritable, BytesWritable]#Context])
-    ctx.thriftCache.pop(context.getConfiguration, IngestJob.Keys.FeatureIdLookup, lookup)
+    ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.FeatureIdLookup, lookup)
     val dictThrift = new ThriftDictionary
-    ctx.thriftCache.pop(context.getConfiguration, IngestJob.Keys.Dictionary, dictThrift)
+    ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.Dictionary, dictThrift)
     dict = DictionaryThriftConversion.dictionary.from(dictThrift)
     ivoryZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IvoryZone))
     ingestZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IngestZone))
@@ -265,7 +250,7 @@ class IngestReducer extends Reducer[LongWritable, BytesWritable, NullWritable, B
 
   override def setup(context: Reducer[LongWritable, BytesWritable, NullWritable, BytesWritable]#Context): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
-    ctx.thriftCache.pop(context.getConfiguration, IngestJob.Keys.NamespaceLookup, lookup)
+    ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.NamespaceLookup, lookup)
     out = new MultipleOutputs(context)
   }
 
@@ -273,9 +258,9 @@ class IngestReducer extends Reducer[LongWritable, BytesWritable, NullWritable, B
     out.close()
 
   override def reduce(key: LongWritable, iter: JIterable[BytesWritable], context: Reducer[LongWritable, BytesWritable, NullWritable, BytesWritable]#Context): Unit = {
-    val path = IngestJob.partitionFor(lookup, key)
+    val path = ReducerLookups.factsetPartitionFor(lookup, key)
     val iterator = iter.iterator
     while (iterator.hasNext)
-      out.write(IngestJob.Keys.Out, NullWritable.get, iterator.next, path);
+      out.write(IngestJob.Keys.Out, NullWritable.get, iterator.next, path)
   }
 }

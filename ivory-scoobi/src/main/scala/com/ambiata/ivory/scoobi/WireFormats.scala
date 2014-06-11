@@ -1,5 +1,7 @@
 package com.ambiata.ivory.scoobi
 
+import com.ambiata.mundane.io.{MemoryConversions, BytesQuantity}
+import com.nicta.scoobi.Scoobi.WireFormat
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, Value => _, _}, Scalaz._
 import java.io._
@@ -9,6 +11,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 
 import scala.collection.JavaConverters._
+import MemoryConversions._
 
 trait WireFormats {
 
@@ -129,6 +132,9 @@ trait WireFormats {
     }
     override def toString = "ThriftObject"
   }
+
+  implicit def BytesQuantityWireFormat: WireFormat[BytesQuantity] =
+    com.nicta.scoobi.core.WireFormat.LongFmt.xmap[BytesQuantity](_.bytes, _.toBytes.value)
 }
 
 object WireFormats extends WireFormats

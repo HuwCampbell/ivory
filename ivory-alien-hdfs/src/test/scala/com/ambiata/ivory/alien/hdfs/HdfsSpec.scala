@@ -67,6 +67,6 @@ class HdfsSpec extends Specification with FileMatchers { def is = s2"""
     new File(s"$basedir/b").mkdirs
     new File(s"$basedir/b/c").createNewFile()
     Hdfs.mv(new Path(s"$basedir/b"), new Path(s"$basedir/a")).run(new Configuration) must beOk
-    new File(s"$basedir/a/b/c") must beAFile
+    new File(s"$basedir/a/b/c").isFile
   }
 }
