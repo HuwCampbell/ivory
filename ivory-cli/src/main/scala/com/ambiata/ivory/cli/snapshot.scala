@@ -60,7 +60,7 @@ object snapshot extends IvoryApp {
         c.set("mapreduce.map.output.compress", "true")
         codecOpt.foreach(codec => c.set("mapred.map.output.compress.codec", codec.getClass.getName))
       }).map {
-        case (_, _, out) => List(banner, s"Output path: $out", "Status -- SUCCESS")
+        case (_, out) => List(banner, s"Output path: $out", "Status -- SUCCESS")
       }
   })
 

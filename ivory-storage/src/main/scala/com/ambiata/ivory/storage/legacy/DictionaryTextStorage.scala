@@ -8,24 +8,23 @@ import com.ambiata.mundane.parse._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.ivory.storage.store._
 
 object DictionaryTextStorage {
 
-  case class DictionaryTextLoader(path: Path) extends IvoryLoader[Hdfs[Dictionary]] {
-    def load: Hdfs[Dictionary] =
-      Hdfs.readWith(path, fromInputStream(path.getName, _))
+  case class DictionaryTextLoader[F[+_] : Monad](path: StorePathResultT[F]) extends IvoryLoader[ResultT[F, Dictionary]] {
+    def load = for {
+      exists <- path.run(_.exists)
+      _ <- if (!exists) ResultT.fail[F, Unit](s"Path ${path.path} does not exist in ${path.store}!") else ResultT.ok[F, Unit](())
+      lines <- path.run(_.linesUtf8.read)
+      dict <- ResultT.fromDisjunction[F, Dictionary](DictionaryTextStorage.fromLines(lines).leftMap(\&/.This(_)))
+    } yield dict
   }
 
   case class DictionaryTextStorer(path: Path, delim: Char = '|') extends IvoryStorer[Dictionary, Hdfs[Unit]] {
     def store(dict: Dictionary): Hdfs[Unit] =
       Hdfs.writeWith(path, os => Streams.write(os, delimitedDictionaryString(dict, delim)))
   }
-
-  def dictionaryFromHdfs(path: Path): Hdfs[Dictionary] =
-    DictionaryTextLoader(path).load
-
-  def dictionaryToHdfs(path: Path, dict: Dictionary): Hdfs[Unit] =
-    DictionaryTextStorer(path).store(dict)
 
   def fromInputStream(is: java.io.InputStream): ResultTIO[Dictionary] = for {
     content <- Streams.read(is)
@@ -47,10 +46,6 @@ object DictionaryTextStorage {
       fs  <- ResultT.fromDisjunction[IO, Dictionary](fromLines(raw.lines.toList).leftMap(err => This(s"Error reading dictionary from file '$path': $err")))
     } yield fs
   }
-
-  def writeFile(dict: Dictionary, path: String, delim: Char = '|'): ResultTIO[Unit] = ResultT.safe({
-    Streams.write(new java.io.FileOutputStream(path), delimitedDictionaryString(dict, delim))
-  })
 
   def delimitedDictionaryString(dict: Dictionary, delim: Char): String =
     dict.meta.map({ case (featureId, featureMeta) =>

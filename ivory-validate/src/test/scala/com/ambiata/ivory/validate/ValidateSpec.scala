@@ -40,8 +40,6 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
                                       FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, NumericalType, "desc"),
                                       FeatureId("ns2", "fid3") -> FeatureMeta(BooleanEncoding, CategoricalType, "desc")))
 
-    dictionaryToIvory(repo, dict, "fact1").run(sc).run.unsafePerformIO().toEither must beRight
-
     val facts1 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
                        IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
                        BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
@@ -50,9 +48,9 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
     persist(facts1.toIvoryFactset(repo, Factset("factset1"), None), facts2.toIvoryFactset(repo, Factset("factset2"), None))
     writeFactsetVersion(repo, List(Factset("factset1"), Factset("factset2"))).run(sc) must beOk
 
-    storeToIvory(repo, FeatureStore(List(PrioritizedFactset(Factset("factset1"), Priority(1)), PrioritizedFactset(Factset("factset2"), Priority(2)))), "store1").run(sc) must beOk
+    val store = FeatureStore(List(PrioritizedFactset(Factset("factset1"), Priority(1)), PrioritizedFactset(Factset("factset2"), Priority(2))))
 
-    Validate.validateHdfsStore(repo.root.toHdfs, "store1", "dict1", new Path(outpath), false).run(sc) must beOk
+    ValidateStoreHdfs(repo, store, dict, false).exec(new Path(outpath)).run(sc) must beOk
 
     val res = fromTextFile(outpath).run.toList
                                println(res)
@@ -76,8 +74,6 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
                                       FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, NumericalType, "desc"),
                                       FeatureId("ns2", "fid3") -> FeatureMeta(BooleanEncoding, CategoricalType, "desc")))
 
-    dictionaryToIvory(repo, dict, "dict1").run(sc).run.unsafePerformIO().toEither must beRight
-
     val facts1 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
                        IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
                        BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
@@ -85,7 +81,7 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
     facts1.toIvoryFactset(repo, Factset("factset1"), None).persist
     writeFactsetVersion(repo, List(Factset("factset1"))).run(sc) must beOk
 
-    Validate.validateHdfsFactSet(repo.root.toHdfs, Factset("factset1"), "dict1", new Path(outpath)).run(sc) must beOk
+    ValidateFactSetHdfs(repo, Factset("factset1"), dict).exec(new Path(outpath)).run(sc) must beOk
 
     val res = fromTextFile(outpath).run.toList
     res must have size(1)
