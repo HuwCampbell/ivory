@@ -5,6 +5,8 @@ ivory
 ivory: (the ivories) the keys of a piano
 ```
 
+[![Build Status](https://travis-ci.org/ambiata/ivory.png)](https://travis-ci.org/ambiata/ivory)
+
 Overview
 --------
 
