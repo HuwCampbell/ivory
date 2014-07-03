@@ -1,0 +1,7 @@
+#!/bin/sh -eu
+
+# cross-platform, symlink tolerant pathing
+BASE=$(readlink $0 || printf $0 | xargs dirname)/..
+JAR="${BASE}/lib/ivory.jar"
+
+exec hadoop jar "${JAR}" "$@"
