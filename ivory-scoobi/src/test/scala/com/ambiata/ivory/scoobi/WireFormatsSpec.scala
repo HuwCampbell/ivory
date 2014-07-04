@@ -13,7 +13,7 @@ import WireFormats._
 
 import scala.collection.JavaConverters._
 
-class WireFormatsSpec extends Specification { def is = s2"""
+class WireFormatsSpec extends Specification with matcher.ThrownExpectations { def is = s2"""
   Can serialise/deserialise thrift             $e1
   Can serialise/desrialise Facts               $e2
                                                """
@@ -25,7 +25,7 @@ class WireFormatsSpec extends Specification { def is = s2"""
                         new ThriftFact("eid5", "fid5", ThriftFactValue.d(1.0)),
                         new ThriftFact("eid6", "fid6", ThriftFactValue.t(new ThriftTombstone)))
     val fmt = implicitly[WireFormat[ThriftFact]]
-    expected.map(tf => {
+    expected.foreach(tf => {
       val bos = new ByteArrayOutputStream(2048)
       val out = new DataOutputStream(bos)
       fmt.toWire(tf, out)
@@ -34,6 +34,7 @@ class WireFormatsSpec extends Specification { def is = s2"""
       val actual = fmt.fromWire(new DataInputStream(new ByteArrayInputStream(bos.toByteArray)))
       actual must_== tf
     })
+    ok
   }
 
   def e2 = {
@@ -46,7 +47,7 @@ class WireFormatsSpec extends Specification { def is = s2"""
 
     val bos = new ByteArrayOutputStream
     val out = new DataOutputStream(bos)
-    expected.map(f => {
+    expected.foreach(f => {
       bos.reset()
       WireFormats.factWireFormat.toWire(f, out)
       out.flush()
@@ -54,5 +55,6 @@ class WireFormatsSpec extends Specification { def is = s2"""
       val actual = WireFormats.factWireFormat.fromWire(new DataInputStream(new ByteArrayInputStream(bos.toByteArray)))
       actual must_== f
     })
+    ok
   }
 }

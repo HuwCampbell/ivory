@@ -9,7 +9,7 @@ import SeqSchemas._
 
 import scala.collection.JavaConverters._
 
-class SeqSchemaSpec extends Specification { def is = s2"""
+class SeqSchemaSpec extends Specification with matcher.ThrownExpectations { def is = s2"""
   Can convert ThriftFact to/from writable using SeqSchema     $e1
                                                               """
   def e1 = {
@@ -20,6 +20,7 @@ class SeqSchemaSpec extends Specification { def is = s2"""
                         new ThriftFact("eid5", "fid5", ThriftFactValue.d(1.0)),
                         new ThriftFact("eid6", "fid6", ThriftFactValue.t(new ThriftTombstone)))
     val sch = SeqSchemas.thriftFactSeqSchema
-    expected.map(tf => sch.fromWritable(sch.toWritable(tf)) must_== tf)
+    expected.foreach(tf => sch.fromWritable(sch.toWritable(tf)) must_== tf)
+    ok
   }
 }

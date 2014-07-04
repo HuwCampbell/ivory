@@ -22,7 +22,7 @@ class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""
 
   def a1 = {
     implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
-    val directory = path(TempFiles.createTempDir("snapshot").getPath)
+    val directory = path(TempFiles.createTempDir("print-facts").getPath)
     val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 
     createEntitiesFiles(directory)

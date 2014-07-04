@@ -2,9 +2,11 @@ import com.ambiata.promulgate.project.ProjectPlugin._
 import com.typesafe.sbt.SbtNativePackager._, NativePackagerKeys._
 import com.typesafe.tools.mima.plugin.MimaPlugin._
 import com.typesafe.tools.mima.plugin.MimaKeys._
+import com.typesafe.sbt.SbtProguard._
 
 import sbt._, Keys._, KeyRanks._
 import sbtassembly.Plugin._, AssemblyKeys._
+
 
 object build extends Build {
   type Settings = Def.Setting[_]
@@ -79,11 +81,53 @@ object build extends Build {
   lazy val cli = Project(
     id = "cli"
   , base = file("ivory-cli")
-  , settings = standardSettings ++ app("cli") ++ universalSettings ++ Seq[Settings](
+  , settings = standardSettings ++ app("cli") ++ universalSettings ++ proguardSettings ++ Seq[Settings](
       name := "ivory-cli"
     , dist
     , mainClass in assembly := Some("com.ambiata.ivory.cli.main")
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.scoobi(version.value))
+    , ProguardKeys.inputs in Proguard <<= (assembly).map(f => Seq(f))
+    , ProguardKeys.libraries in Proguard := Seq()
+    , ProguardKeys.options in Proguard  += """
+      -libraryjars <java.home>/lib/rt.jar
+      -dontobfuscate
+      -dontoptimize
+      -dontwarn scala.**
+      -dontwarn org.apache.hadoop.**
+      -dontwarn org.apache.avro.**
+      -dontwarn org.apache.avalon.**
+      -dontwarn org.apache.commons.lang.**
+      -dontwarn org.specs2.**
+      -dontwarn org.scalacheck.**
+      -dontwarn org.springframework.**
+      -dontwarn com.owtelse.**
+      -dontwarn org.jdom.**
+      -dontwarn org.junit.**
+      -dontwarn org.aspectj.**
+      -dontwarn org.slf4j.**
+      -dontwarn scodec.**
+      -dontwarn org.fusesource.**
+      -dontwarn org.apache.log4j.**
+      -dontwarn org.apache.log.**
+      -dontwarn com.bea.xml.**
+      -dontwarn com.nicta.scoobi.**
+      -dontwarn com.amazonaws.**
+      -dontwarn org.xmlpull.**
+      -dontwarn net.sf.cglib.**
+      -dontwarn nu.xom.**
+      -dontwarn com.ctc.wstx.**
+      -dontwarn org.kxml2.**
+      -dontwarn org.dom4j.**
+      -dontwarn org.codehaus.jettison.**
+      -dontwarn javassist.**
+      -dontwarn javax.**
+      -dontnote **
+      -dontskipnonpubliclibraryclasses
+      -keep class com.ambiata.ivory.**
+      -keepclassmembers class * { ** MODULE$; }
+      -keepclassmembers class * { ** serialVersionUID; }
+    """
+    , javaOptions in (Proguard, ProguardKeys.proguard) := Seq("-Xmx2G")
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2)
       ++ addArtifact(Artifact("ivory", "dist", "tgz"), packageZipTarball in Universal)
       ++ addArtifact(Artifact("ivory", "dist", "zip"), packageBin in Universal)
   )
@@ -94,11 +138,11 @@ object build extends Build {
   , base = file("ivory-core")
   , settings = standardSettings ++ lib("core") ++ Seq[Settings](
       name := "ivory-core"
-    , addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0-M3" cross CrossVersion.full)
-    ) ++ Seq[Settings](libraryDependencies ++= depend.trove ++ depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++ depend.thrift ++ depend.hadoop(version.value) ++ Seq(
+    , addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0" cross CrossVersion.full)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++ depend.thrift ++ depend.hadoop(version.value) ++ Seq(
         "org.scala-lang" % "scala-compiler" % "2.10.4"
       , "org.scala-lang" % "scala-reflect" % "2.10.4"
-      , "org.scalamacros" % "quasiquotes_2.10.3" % "2.0.0-M3"
+      , "org.scalamacros" %% "quasiquotes" % "2.0.0"
     ))
   )
 
@@ -107,11 +151,11 @@ object build extends Build {
   , base = file("ivory-data")
   , settings = standardSettings ++ lib("data") ++ Seq[Settings](
       name := "ivory-data"
-    , addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0-M3" cross CrossVersion.full)
+    , addCompilerPlugin("org.scalamacros" %% "paradise" % "2.0.0" cross CrossVersion.full)
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.specs2 ++ depend.hadoop(version.value) ++ Seq(
         "org.scala-lang" % "scala-compiler" % "2.10.4"
       , "org.scala-lang" % "scala-reflect" % "2.10.4"
-      , "org.scalamacros" % "quasiquotes_2.10.3" % "2.0.0-M3"
+      , "org.scalamacros" %% "quasiquotes" % "2.0.0"
     ))
   )
 
@@ -120,7 +164,7 @@ object build extends Build {
   , base = file("ivory-extract")
   , settings = standardSettings ++ lib("extract") ++ Seq[Settings](
       name := "ivory-extract"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value))
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2 ++ depend.mundane)
   )
   .dependsOn(core, scoobi, storage, validate, mr)
 
@@ -129,7 +173,7 @@ object build extends Build {
   , base = file("ivory-generate")
   , settings = standardSettings ++ lib("generate") ++ Seq[Settings](
       name := "ivory-generate"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.scoobi(version.value))
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.scoobi(version.value) ++ depend.specs2)
   )
   .dependsOn(core, storage)
 
@@ -138,7 +182,7 @@ object build extends Build {
   , base = file("ivory-ingest")
   , settings = standardSettings ++ lib("ingest") ++ Seq[Settings](
       name := "ivory-ingest"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.scoobi(version.value) ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.scoobi(version.value) ++ depend.saws ++ depend.mundane)
   )
   .dependsOn(core, storage, alien_hdfs, scoobi, mr)
 
@@ -156,7 +200,7 @@ object build extends Build {
   , base = file("ivory-scoobi")
   , settings = standardSettings ++ lib("scoobi") ++ Seq[Settings](
       name := "ivory-scoobi"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.saws ++ depend.specs2 ++ depend.mundane)
   )
   .dependsOn(core, alien_hdfs)
 
@@ -165,7 +209,7 @@ object build extends Build {
   , base = file("ivory-storage")
   , settings = standardSettings ++ lib("storage") ++ Seq[Settings](
       name := "ivory-storage"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2 ++ depend.saws)
   )
   .dependsOn(core, data, scoobi, alien_hdfs, core % "test->test")
 
@@ -174,7 +218,7 @@ object build extends Build {
   , base = file("ivory-validate")
   , settings = standardSettings ++ lib("validate") ++ Seq[Settings](
       name := "ivory-validate"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2 ++ depend.mundane)
   )
   .dependsOn(core, scoobi, storage)
 

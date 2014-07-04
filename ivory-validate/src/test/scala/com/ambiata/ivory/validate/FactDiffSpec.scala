@@ -19,10 +19,15 @@ import com.ambiata.ivory.alien.hdfs._
 import WireFormats._
 import FactFormats._
 
-class FactDiffSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
-  override def isCluster = false
+class FactDiffSpec extends Specification with FileMatchers { def is = s2"""
 
-  "FactDiff finds difference with all facts" >> { implicit sc: ScoobiConfiguration =>
+  FactDiff finds difference with all facts $e1
+  FactDiff finds no difference $e2
+
+  """
+
+  def e1 = {
+    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
     val facts1 = fromLazySeq(
                    Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
                        IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
@@ -46,7 +51,8 @@ class FactDiffSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     out must have size(6)
   }
 
-  "FactDiff finds no difference" >> { implicit sc: ScoobiConfiguration =>
+  def e2 = {
+    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
     val facts1 = fromLazySeq(
                    Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
                        IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),

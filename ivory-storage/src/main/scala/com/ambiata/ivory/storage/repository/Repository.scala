@@ -5,7 +5,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf.Configuration
 import com.amazonaws.services.s3.AmazonS3Client
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
+import com.ambiata.mundane.io.{Location => _, S3Location => _, HdfsLocation => _, LocalLocation => _, _}
 import com.ambiata.mundane.store._
 import com.ambiata.saws.s3._
 import com.ambiata.saws.core._
