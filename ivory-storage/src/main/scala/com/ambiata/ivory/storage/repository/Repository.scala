@@ -15,6 +15,8 @@ import com.nicta.scoobi.Scoobi._
 
 sealed trait Repository {
   def toStore: Store[ResultTIO]
+  def toStorePath(path: FilePath): StorePathIO =
+    StorePath(toStore, path)
 
   def root: FilePath
   def errors: FilePath = root </> "errors"
