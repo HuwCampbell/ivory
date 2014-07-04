@@ -1,9 +1,8 @@
-import sbt._
-import Keys._
-import sbt.KeyRanks._
-import sbtassembly.Plugin._
-import AssemblyKeys._
 import com.ambiata.promulgate.project.ProjectPlugin._
+import com.typesafe.sbt.SbtNativePackager._, NativePackagerKeys._
+
+import sbt._, Keys._, KeyRanks._
+import sbtassembly.Plugin._, AssemblyKeys._
 
 object build extends Build {
   type Settings = Def.Setting[_]
@@ -77,9 +76,12 @@ object build extends Build {
   lazy val cli = Project(
     id = "cli"
   , base = file("ivory-cli")
-  , settings = standardSettings ++ app("cli") ++ Seq[Settings](
+  , settings = standardSettings ++ app("cli") ++ universalSettings ++ Seq[Settings](
       name := "ivory-cli"
+    , dist
     ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.scoobi(version.value))
+      ++ addArtifact(Artifact("ivory", "dist", "tgz"), packageZipTarball in Universal)
+      ++ addArtifact(Artifact("ivory", "dist", "zip"), packageBin in Universal)
   )
   .dependsOn(api)
 
@@ -201,10 +203,11 @@ object build extends Build {
     (if (name == "ivory") "" else name) + "> "
   }
 
-  lazy val buildAssemblySettings: Seq[Settings] = Seq(
-    artifact in (Compile, assembly) ~= { art =>
-      art.copy(`classifier` = Some("assembly"))
-    }
-  ) ++ addArtifact(artifact in (Compile, assembly), assembly)
-
+  lazy val dist =
+    mappings in Universal <<= (baseDirectory, assembly).map({ case (base, jar) => Seq(
+      jar -> "lib/ivory.jar"
+    , base / "src" / "main"/ "bin" / "ivory" -> "bin/ivory"
+    , base / ".." / "NOTICE.txt" -> "NOTICE.txt"
+    , base / ".." / "README.md" -> "README.md"
+    ) })
 }
