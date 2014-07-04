@@ -4,6 +4,101 @@ First-class feature generation
 Specification for adding first-class support for feature generation into
 Ivory.
 
+Feature examples
+----------------
+
+### Retail examples
+
+Derive features from a primitive point-of-sale feature type, e.g.:
+
+```
+(transaction_id: string, store_id: string, sku_id: string, sales_amnt: int)
+```
+
+* Weekly average maximum spend - for each week over a 12 week period (per HH), calculate total
+daily sales, take the weekly maximum of those daily sales, then average across the 12 weeks,
+ignoring weeks with null or negative sales.
+
+* Lapsing HHs - sum the last 6 weeks sales, and the 6 weeks prior to that, subtract the two and
+if the former is less than 60% of the latter, flag as ‘lapsed’.
+
+* Yearly spend - sum the last 52 weeks sales
+
+* Yearly SKUs - count the number of SKUs purchased in the last 52 weeks
+
+* Yearly distinct SKUs - count the number of distinct SKUs purchased in the last 52 weeks
+
+* Yearly carts - count number of distinct transactions in the last 52 weeks
+
+* Average transaction size over the last 12 months
+
+* Average monthly spend over the last 6 months
+
+* Minimum weekly spend in the last 3 months
+
+* Maximum spend in the last 2 weeks
+
+* Per-SKU (product) features:
+
+  * Yearly purchases - number of times purchased in the last 52 weeks
+
+  * Yearly average spend - average amount spent in the last 52 weeks
+
+  * Yearly total spend - total amount spent in the last 52 weeks
+
+  * Yearly inter-purchase interval (IPI) - number of days between the first and last
+  purchase divided by the number of purchases in the last 52 weeks
+
+  * Median monthly spend over the last 2 years
+
+  * Maximum spend in the last 6 months
+
+
+* Purchased baby products at least twice in last 6 weeks
+  * the mapping of SKU to the baby product category may not be known up-front ...
+  * or could be ... may be Ivory could maintain small mapping tables?
+
+* Purchased meat prdoducts at least twice in last 12 weeks
+
+
+### Telco examples
+
+Derive features from a primitive call-record feature type, e.g.:
+
+```
+(
+  tchnlgy_cd:     string,     // e.g. "VC" == voice calls, "SM" == SMS
+  inbnd_outbnd:   string,     // e.g. "I" == inbound, "O" == outbound
+  call_dur:       int,        // call duration
+  cntry_cd:       string      // country code
+)
+```
+
+* Total calls in last week
+
+* Total SMS in the last 2 weeks
+
+* Duration of inbound calls in last month
+
+* Difference in total outbound calls in the last month vs 2 months before that
+
+* Proportion of international calls to national calls in last 6 weeks
+
+* Gradient of weekly output call duration over last 2 months - compute total outbound
+call duration in 7 day windows over the last 7 x 8 = 56 days, then compute the gradient
+over those 8 values
+
+### Banking examples
+
+* TODO
+
+
+### Date examples
+
+* Number of days since the last call
+
+* Number of weeks since last purchase
+
 
 High level steps
 ----------------
