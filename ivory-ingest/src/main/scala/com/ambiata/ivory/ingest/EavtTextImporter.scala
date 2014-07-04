@@ -11,7 +11,6 @@ import com.ambiata.ivory.storage.repository._
 import scoobi._
 import scalaz.{DList => _, _}, Scalaz._, effect.IO
 import alien.hdfs._
-import ScoobiS3EMRAction._
 import ScoobiAction._
 import WireFormats._, FactFormats._
 import com.ambiata.mundane.control._
@@ -23,18 +22,9 @@ import org.apache.hadoop.conf.Configuration
 
 // FIX move to com.ambiata.ivory.ingest.internal
 /**
- * Import a text file, formatted as an EAVT file, into ivory
- * either on S3 or Hdfs
+ * Import a text file, formatted as an EAVT file, into ivory.
  */
 object EavtTextImporter {
-
-  def onS3(repository: S3Repository, dictionary: Dictionary, factset: Factset, namespace: String, path: FilePath, timezone: DateTimeZone, codec: Option[CompressionCodec], preprocess: String => String = identity): ScoobiS3EMRAction[Unit] = for {
-    _  <- ScoobiS3EMRAction.reader((sc: ScoobiConfiguration) =>
-              basicScoobiJob(repository.hdfs, dictionary, factset, namespace,
-                new Path(path.path), (repository.tmp </> "errors").toHdfs, timezone, preprocess, codec)(sc))
-    _  <- copyFilesToS3(repository, factset, namespace)
-  } yield ()
-
   def onHdfs(repository: HdfsRepository, dictionary: Dictionary, factset: Factset, namespace: String,
              path: Path, errorPath: Path, timezone: DateTimeZone,
              codec: Option[CompressionCodec],
@@ -160,21 +150,4 @@ object EavtTextImporter {
     persist(codec.map(packed.compressWith(_)).getOrElse(packed),
             codec.map(persistErrors.compressWith(_)).getOrElse(persistErrors))
   }
-
-  def copyFilesToS3(repository: S3Repository, factset: Factset, namespace: String): ScoobiS3EMRAction[Unit] = for {
-    sc <- ScoobiS3EMRAction.scoobiConfiguration
-    _  <- Option(sc.get("EMR_CLUSTER_ID")).map((clusterId: String) => copyFilesWithDistCp(clusterId, repository, factset, namespace)).
-           getOrElse(copyFilesOneByOne(repository, factset, namespace))
-  } yield ()
-
-  def copyFilesOneByOne(repository: S3Repository, factset: Factset, namespace: String): ScoobiS3EMRAction[Unit] = {
-    ScoobiS3EMRAction.fromHdfsS3(HdfsS3.putPathsByDate(repository.bucket, repository.namespace(factset, namespace).path, (repository.hdfs.factset(factset) </> namespace).toHdfs))
-  }
-
-  def copyFilesWithDistCp(clusterId: String, repository: S3Repository, factset: Factset, namespace: String): ScoobiS3EMRAction[Unit] = {
-    val src  = s"hdfs:///${repository.hdfs.factset(factset)}/${namespace}"
-    val dest = s"s3://${repository.bucket}/${repository.namespace(factset, namespace).path}"
-    ScoobiS3EMRAction.fromEMRAction(DistCopy.run(clusterId, List(s"--src=$src", s"--dest=$dest", "--srcPattern=.*/.*/.*"))).void
-  }
-
 }

@@ -22,8 +22,7 @@ object importFacts extends IvoryApp {
                           namespace: String  = "",
                           input: String      = "",
                           errors: Option[Path] = None,
-                          timezone: DateTimeZone = DateTimeZone.getDefault,
-                          tmpDirectory: FilePath = Repository.defaultS3TmpDirectory)
+                          timezone: DateTimeZone = DateTimeZone.getDefault)
 
   val parser = new scopt.OptionParser[CliArguments]("import-facts"){
     head("""
@@ -34,41 +33,27 @@ object importFacts extends IvoryApp {
 
     help("help") text "shows this usage text"
     opt[String]('r', "repository").action { (x, c) => c.copy(repositoryPath = x) }.required.
-      text (s"Ivory repository to import features into. If the path starts with 's3://' we assume that this is a S3 repository")
-
-    opt[String]('t', "temp-dir") action { (x, c) => c.copy(tmpDirectory = x.toFilePath) } optional() text
-      s"Temporary directory path used to transfer data when interacting with S3. {user.home}/.s3repository by default"
+      text (s"Ivory repository to import features into.")
 
     opt[String]('d', "dictionary")      action { (x, c) => c.copy(dictionary = x) }      required() text s"Dictionary name, used to get encoding of fact."
     opt[String]('f', "factset")         action { (x, c) => c.copy(factset = Factset(x)) }   required() text s"Fact set name to import the feature into."
     opt[String]('n', "namespace")       action { (x, c) => c.copy(namespace = x) } required() text s"Namespace to import features into."
     opt[String]('i', "input")           action { (x, c) => c.copy(input = x)   }   required() text s"path to read EAVT text files from."
-    opt[String]('e', "errors")          action { (x, c) => c.copy(errors = Some(new Path(x)))  }  optional() text s"optional path to persist errors in (not loaded to s3)"
+    opt[String]('e', "errors")          action { (x, c) => c.copy(errors = Some(new Path(x)))  }  optional() text s"optional path to persist errors in"
     opt[String]('z', "timezone")        action { (x, c) => c.copy(timezone = DateTimeZone.forID(x))   } required() text
       s"timezone for the dates (see http://joda-time.sourceforge.net/timezones.html, for example Sydney is Australia/Sydney)"
   }
 
   def cmd = IvoryCmd[CliArguments](parser, CliArguments(), ScoobiCmd { configuration => c =>
-      val actions: ScoobiS3EMRAction[Unit] = if (c.repositoryPath.startsWith("s3://")) {
-        // import to S3
-        val p = c.repositoryPath.replace("s3://", "").toFilePath
-        val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, configuration)
-        for {
-          dictionary <- ScoobiS3EMRAction.fromHdfsS3(DictionariesS3Loader(repository).load(c.dictionary))
-          _          <- EavtTextImporter.onS3(repository, dictionary, c.factset, c.namespace, new FilePath(c.input), c.timezone, Some(new SnappyCodec))
-        } yield ()
-      } else {
-        // import to Hdfs only
+      val actions: ScoobiAction[Unit] = {
         val repository = HdfsRepository(c.repositoryPath.toFilePath, configuration, ScoobiRun(configuration))
         for {
-          dictionary <- ScoobiS3EMRAction.fromHdfs(InternalDictionaryLoader(repository, c.dictionary).load)
-          _          <- ScoobiS3EMRAction.fromScoobiAction(
-            EavtTextImporter.onHdfs(repository, dictionary, c.factset, c.namespace,
-              new Path(c.input), c.errors.getOrElse(new Path("errors")), c.timezone, Some(new SnappyCodec)))
+          dictionary <- ScoobiAction.fromHdfs(InternalDictionaryLoader(repository, c.dictionary).load)
+          _          <- EavtTextImporter.onHdfs(repository, dictionary, c.factset, c.namespace, new Path(c.input), c.errors.getOrElse(new Path("errors")), c.timezone, Some(new SnappyCodec))
         } yield ()
       }
 
-      actions.runScoobiAwsT(configuration).map {
+      actions.run(configuration).map {
         case _ => List(s"successfully imported into ${c.repositoryPath}")
       }
     })
