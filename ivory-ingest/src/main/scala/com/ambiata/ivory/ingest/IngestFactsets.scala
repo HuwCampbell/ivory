@@ -22,11 +22,6 @@ sealed trait IngestFactsets {
   def ingest(dictionary: Dictionary, namespace: String, factsetId: Factset, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit]
 }
 
-case class S3EavtIngestFactsets(conf: ScoobiConfiguration, repository: S3Repository, transform: String => String, codec: Option[CompressionCodec]) {
-  def ingest(dictionary: Dictionary, namespace: String, factsetId: Factset, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit] =
-    EavtTextImporter.onS3(repository, dictionary, factsetId, namespace, input, timezone, codec, transform).runScoobiAwsT(conf)
-}
-
 case class MapReduceEavtIngestFactsets(conf: ScoobiConfiguration, repository: HdfsRepository, transform: String => String, codec: Option[CompressionCodec]) {
 
   def ingest(dictionary: Dictionary, namespace: String, factsetId: Factset, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit] =

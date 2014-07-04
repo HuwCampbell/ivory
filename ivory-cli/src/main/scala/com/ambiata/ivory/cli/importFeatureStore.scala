@@ -16,7 +16,7 @@ import com.nicta.scoobi.Scoobi._
 
 object importFeatureStore extends IvoryApp {
 
-  case class CliArguments(repo: String, name: String, path: String, tmpDirectory: FilePath = Repository.defaultS3TmpDirectory)
+  case class CliArguments(repo: String, name: String, path: String)
 
   val parser = new scopt.OptionParser[CliArguments]("import-feature-store"){
     head("""
@@ -27,24 +27,14 @@ object importFeatureStore extends IvoryApp {
 
     help("help") text "shows this usage text"
     opt[String]('r', "repo") action { (x, c) => c.copy(repo = x) } required() text
-      s"Path to the repository. If the path starts with 's3://' we assume that this is a S3 repository"
-
-    opt[String]('t', "temp-dir") action { (x, c) => c.copy(tmpDirectory = x.toFilePath) } optional() text
-      s"Temporary directory path used to transfer data when interacting with S3. {user.home}/.s3repository by default"
-
+      s"Path to the repository."
     opt[String]('n', "name") action { (x, c) => c.copy(name = x) } required() text s"Name of the feature store in the repository."
     opt[String]('p', "path") action { (x, c) => c.copy(path = x) } required() text s"Hdfs path to feature store to import."
   }
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), HadoopCmd { configuration => c =>
       val actions =
-        if (c.repo.startsWith("s3://")) {
-          val p = c.repo.replace("s3://", "").toFilePath
-          val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, configuration)
-          FeatureStoreImporter.onS3(repository, c.name, new FilePath(c.path)).runHdfs(configuration).evalT
-        }
-        else
-          FeatureStoreImporter.onHdfs(HdfsRepository(c.path.toFilePath, configuration, ScoobiRun(configuration)), c.name, new Path(c.path)).run(configuration)
+        FeatureStoreImporter.onHdfs(HdfsRepository(c.path.toFilePath, configuration, ScoobiRun(configuration)), c.name, new Path(c.path)).run(configuration)
 
       actions.map {
         case _ => List(s"Successfully imported feature store into ${c.repo} under the name ${c.name}.")
