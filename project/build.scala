@@ -79,6 +79,7 @@ object build extends Build {
   , settings = standardSettings ++ app("cli") ++ universalSettings ++ Seq[Settings](
       name := "ivory-cli"
     , dist
+    , mainClass in assembly := None
     ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.scoobi(version.value))
       ++ addArtifact(Artifact("ivory", "dist", "tgz"), packageZipTarball in Universal)
       ++ addArtifact(Artifact("ivory", "dist", "zip"), packageBin in Universal)
