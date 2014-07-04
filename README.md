@@ -259,3 +259,45 @@ The format of fact sets are versioned. This allows the format of fact sets to be
 reference fact sets persisted in an older format.
 
 A fact set format version is specified by a `.version` file that is stored at the root directory of a given fact set.
+
+
+Contributing and Issues
+-----------------------
+
+All bugs and feature requests can be raised as [github issues](https://github.com/ambiata/ivory/issues).
+
+All contributions are via [github pull requests](https://help.github.com/articles/using-pull-requests). In general:
+ - Try to provide enough detail as to what you are adding / fixing.
+ - Add tests for any new features / bug fixes.
+ - Make sure you are up-to-date with the latest commit on master.
+ - If you are not sure about any process or change, you can ask on
+   the [mailing list](https://groups.google.com/forum/#!forum/ivory-project) first.
+
+
+Contact
+-------
+
+General ivory questions can be sent to the mailing list <https://groups.google.com/forum/#!forum/ivory-project>.
+
+Ivory is developed by the engineering team at [Ambiata](http://ambiata.com/), feel free to get in contact with us:
+
+> Ben Lever
+> <ben.lever@ambiata.com>
+> [@bmlever](https://twitter.com/bmlever)
+
+> Mark Hibberd
+> <mark.hibberd@ambiata.com>
+> [@markhibberd](https://twitter.com/markhibberd)
+
+> Russell Aronson
+> <russell.aronson@ambiata.com>
+
+> Eric Torreborre
+> <eric.torreborre@ambiata.com>
+
+> Max Swadling
+> <maxwell.swadling@ambiata.com>
+
+> Charles O'Farrell
+> <charles.ofarrell@ambiata.com>
+> [@charlesofarrell](https://twitter.com/charlesofarrell)
