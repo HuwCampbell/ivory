@@ -61,7 +61,6 @@ object Repository {
   def storeByName(name: String): FilePath =  stores </> name
   def factset(set: Factset): FilePath =  factsets </> set.name
   def namespace(set: Factset, namespace: String): FilePath =  factset(set) </> namespace
-  def version(set: Factset): FilePath =  factset(set) </> ".version"
 
   val defaultS3TmpDirectory: FilePath =
     ".s3repository".toFilePath
