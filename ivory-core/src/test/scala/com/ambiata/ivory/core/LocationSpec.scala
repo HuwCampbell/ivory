@@ -32,9 +32,9 @@ Location Known Answer Tests
     Location.fromUri("file:some/path").toEither must beRight(LocalLocation("some/path"))
 
   def dfault =
-    Location.fromUri("/some/path").toEither must beRight(LocalLocation("/some/path"))
+    Location.fromUri("/some/path").toEither must beRight(HdfsLocation("/some/path"))
 
   def fragment =
-    Location.fromUri("some/path").toEither must beRight(LocalLocation("some/path"))
+    Location.fromUri("some/path").toEither must beRight(HdfsLocation("some/path"))
 
 }

@@ -20,7 +20,9 @@ object Location {
       case "file" =>
         LocalLocation(uri.toURL.getFile).right
       case null =>
-        LocalLocation(uri.getPath).right
+        // TODO Should be LocalLocation but our own consumers aren't ready yet
+        // https://github.com/ambiata/ivory/issues/87
+        HdfsLocation(uri.getPath).right
       case _ =>
         s"Unknown or invalid repository scheme [${uri.getScheme}]".left
     }

@@ -43,9 +43,15 @@ Repository Known Answer Tests
     Repository.fromUri("file:some/path", Conf).toEither must beRight(LocalRepository("some" </> "path"))
 
   def dfault =
-    Repository.fromUri("/some/path", Conf).toEither must beRight(LocalRepository(FilePath.root </> "some" </> "path"))
+    Repository.fromUri("/some/path", Conf).toEither must beRight((r: Repository) => r must beLike({
+      case HdfsRepository(_, _, run) =>
+        r must_== HdfsRepository("/some/path".toFilePath, Conf, run)
+    }))
 
   def fragment =
-    Repository.fromUri("some/path", Conf).toEither must beRight(LocalRepository("some" </> "path"))
+    Repository.fromUri("some/path", Conf).toEither must beRight((r: Repository) => r must beLike({
+      case HdfsRepository(_, _, run) =>
+        r must_== HdfsRepository("some/path".toFilePath, Conf, run)
+    }))
 
 }
