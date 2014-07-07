@@ -1,5 +1,7 @@
 import com.ambiata.promulgate.project.ProjectPlugin._
 import com.typesafe.sbt.SbtNativePackager._, NativePackagerKeys._
+import com.typesafe.tools.mima.plugin.MimaPlugin._
+import com.typesafe.tools.mima.plugin.MimaKeys._
 
 import sbt._, Keys._, KeyRanks._
 import sbtassembly.Plugin._, AssemblyKeys._
@@ -56,8 +58,9 @@ object build extends Build {
   lazy val api = Project(
     id = "api"
   , base = file("ivory-api")
-  , settings = standardSettings ++ lib("api") ++ Seq[Settings](
+  , settings = standardSettings ++ lib("api") ++ mimaDefaultSettings ++ Seq[Settings](
       name := "ivory-api"
+    , previousArtifact := Some("com.ambiata" %% "ivory-api" % "1.0.0-cdh5-20140703185823-2efc9c3")
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value))
   )
   .dependsOn(generate, ingest, validate, extract)
