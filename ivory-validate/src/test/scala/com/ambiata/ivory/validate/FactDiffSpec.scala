@@ -1,7 +1,7 @@
 package com.ambiata.ivory.validate
 
 import org.specs2._
-import org.specs2.matcher.FileMatchers
+import org.specs2.matcher.{ThrownExpectations, FileMatchers}
 import scalaz.{DList => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
@@ -19,7 +19,7 @@ import com.ambiata.ivory.alien.hdfs._
 import WireFormats._
 import FactFormats._
 
-class FactDiffSpec extends Specification with FileMatchers { def is = s2"""
+class FactDiffSpec extends Specification with ThrownExpectations with FileMatchers { def is = s2"""
 
   FactDiff finds difference with all facts $e1
   FactDiff finds no difference $e2

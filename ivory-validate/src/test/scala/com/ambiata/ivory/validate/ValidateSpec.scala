@@ -1,7 +1,7 @@
 package com.ambiata.ivory.validate
 
 import org.specs2._
-import org.specs2.matcher.FileMatchers
+import org.specs2.matcher.{ThrownExpectations, FileMatchers}
 import scalaz.{DList => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.mutable._
@@ -21,7 +21,7 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import IvoryStorage._
 
-class ValidateSpec extends Specification with FileMatchers { def is = s2"""
+class ValidateSpec extends Specification with ThrownExpectations with FileMatchers { def is = s2"""
 
   Validate feature store $e1
   Validate fact set $e2
