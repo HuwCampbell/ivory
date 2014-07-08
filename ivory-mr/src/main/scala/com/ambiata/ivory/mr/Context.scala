@@ -35,9 +35,6 @@ case class MrContext(id: ContextId) {
   val thriftCache: ThriftCache =
     ThriftCache(new Path(tmpBase, "dist-cache-thrift"), id)
 
-  val textCache: TextCache =
-    TextCache(new Path(tmpBase, "dist-cache-text"), id)
-
   def cleanup: Hdfs[Unit] =
     Hdfs.deleteAll(tmpBase)
 }
