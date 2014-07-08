@@ -3,7 +3,7 @@ package com.ambiata.ivory.storage.store
 import com.ambiata.ivory.alien.hdfs.HdfsStore
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
+import com.ambiata.mundane.io.{Location => _, _}
 import com.ambiata.mundane.store._
 import com.ambiata.saws.core.Clients
 import com.ambiata.saws.s3.S3Store

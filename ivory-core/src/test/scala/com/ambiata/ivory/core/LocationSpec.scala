@@ -1,12 +1,9 @@
 package com.ambiata.ivory.core
 
-import org.specs2._, matcher._, specification._
-import org.scalacheck._, Arbitrary._
+import com.ambiata.mundane.io.{Location => _, _}
+import org.specs2._
 
-import scalaz._, Scalaz._
-import org.apache.hadoop.fs.Path
-
-class LocationSpec extends Specification with ScalaCheck { def is = s2"""
+class LocationSpec extends Specification { def is = s2"""
 
 Location Known Answer Tests
 -----------------------------
