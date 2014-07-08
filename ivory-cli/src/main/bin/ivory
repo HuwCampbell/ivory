@@ -4,4 +4,4 @@
 BASE=$((readlink $0 || printf $0) | xargs dirname)/..
 JAR="${BASE}/lib/ivory.jar"
 
-exec hadoop jar "${JAR}" com.ambiata.ivory.cli.main "$@"
+exec hadoop jar "${JAR}" "$@"
