@@ -9,7 +9,7 @@ import scalaz._, effect._
 
 object importDictionary extends IvoryApp {
 
-  case class CliArguments(repo: String, path: String)
+  case class CliArguments(repo: String, path: String, update: Boolean)
 
   val parser = new scopt.OptionParser[CliArguments]("import-dictionary"){
     head("""
@@ -23,13 +23,16 @@ object importDictionary extends IvoryApp {
       s"Path to the repository."
 
     opt[String]('p', "path") action { (x, c) => c.copy(path = x) } required() text s"Hdfs path to either a single dictionary file or directory of files to import."
+    opt[Unit]('u', "update") action { (x, c) => c.copy(update = true) } optional() text s"Update the existing dictionary with extra values."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", ""), HadoopCmd { configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", update = false), HadoopCmd { configuration => c =>
       for {
         repository <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(c.repo, configuration).leftMap(\&/.This(_)))
         source <- ResultT.fromDisjunction[IO, StorePathIO](StorePath.fromUri(c.path, configuration).leftMap(\&/.This(_)))
-        newPath <- DictionaryImporter.fromPath(repository, source)
+        newPath <- DictionaryImporter.fromPath(repository, source,
+          if (c.update) DictionaryImporter.Update else DictionaryImporter.Override
+        )
       } yield List(s"Successfully imported dictionary ${c.path} into ${c.repo} under $newPath.")
   })
 }
