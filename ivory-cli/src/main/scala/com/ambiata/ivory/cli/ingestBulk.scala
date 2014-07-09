@@ -44,7 +44,7 @@ object ingestBulk extends IvoryApp {
   type Parts = String
 
   def cmd = IvoryCmd[CliArguments](parser,
-      CliArguments("", None, "", DateTimeZone.getDefault, 1024 * 1024 * 256 /* 256MB */, Some(new SnappyCodec)),
+      CliArguments("", None, "", DateTimeZone.getDefault, 1024 * 1024 * 256 /* 256MB */, Codec()),
       ScoobiCmd(configuration => c => {
       val res = onHdfs(new Path(c.repo), c.dictionary, new Path(c.input), c.timezone, c.optimal, c.codec)
       res.run(configuration).map {

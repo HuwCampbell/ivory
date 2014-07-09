@@ -6,7 +6,6 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.extract._
 
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.io.compress._
 import org.apache.commons.logging.LogFactory
 
 import org.joda.time.LocalDate
@@ -52,7 +51,7 @@ object pivotSnapshot extends IvoryApp {
                       |
                       |""".stripMargin
       println(banner)
-      val res = Pivot.onHdfsFromSnapshot(new Path(c.repo), new Path(c.output), c.delim, c.tombstone, Date.fromLocalDate(c.date), Some(new SnappyCodec))
+      val res = Pivot.onHdfsFromSnapshot(new Path(c.repo), new Path(c.output), c.delim, c.tombstone, Date.fromLocalDate(c.date), Codec())
       res.run(configuration).map {
         case _ => List(banner, "Status -- SUCCESS")
       }

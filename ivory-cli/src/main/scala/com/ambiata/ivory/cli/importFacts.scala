@@ -2,7 +2,6 @@ package com.ambiata.ivory.cli
 
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.io.compress._
 import org.joda.time.DateTimeZone
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.core._, IvorySyntax._
@@ -49,7 +48,7 @@ object importFacts extends IvoryApp {
         val repository = HdfsRepository(c.repositoryPath.toFilePath, configuration, ScoobiRun(configuration))
         for {
           dictionary <- ScoobiAction.fromHdfs(InternalDictionaryLoader(repository, c.dictionary).load)
-          _          <- EavtTextImporter.onHdfs(repository, dictionary, c.factset, c.namespace, new Path(c.input), c.errors.getOrElse(new Path("errors")), c.timezone, Some(new SnappyCodec))
+          _          <- EavtTextImporter.onHdfs(repository, dictionary, c.factset, c.namespace, new Path(c.input), c.errors.getOrElse(new Path("errors")), c.timezone, Codec())
         } yield ()
       }
 
