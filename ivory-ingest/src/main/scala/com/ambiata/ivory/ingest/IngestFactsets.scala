@@ -28,7 +28,7 @@ case class MapReduceEavtIngestFactsets(conf: ScoobiConfiguration, repository: Hd
     EavtTextImporter.onHdfs(repository, dictionary, factsetId, namespace, new Path(input.path), repository.errors.toHdfs, timezone, codec, transform).run(conf)
 }
 
-case class HdfsEavtIngestFactsets(conf: Configuration, repository: HdfsRepository, transform: String => String) {
+case class HdfsEavtIngestFactsets(conf: Configuration, repository: HdfsRepository, transform: String => String, codec: Option[CompressionCodec]) {
   def ingest(dictionary: Dictionary, namespace: String, factsetId: Factset, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit] =
-    EavtTextImporter.onHdfsDirect(conf, repository, dictionary, factsetId, namespace, new Path(input.path), repository.errors.toHdfs, timezone, transform)
+    EavtTextImporter.onHdfsDirect(conf, repository, dictionary, factsetId, namespace, new Path(input.path), repository.errors.toHdfs, timezone, transform, codec)
 }

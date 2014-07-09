@@ -58,7 +58,7 @@ object ingest extends IvoryApp {
     _    <- if (!runOnSingleMachine)
               EavtTextImporter.onHdfs(repo, dict, factset, namespace, input, errorPath, timezone, Codec())
             else
-              ScoobiAction.fromResultTIO { EavtTextImporter.onHdfsDirect(conf, repo, dict, factset, namespace, input, errorPath, timezone, identity) }
+              ScoobiAction.fromResultTIO { EavtTextImporter.onHdfsDirect(conf, repo, dict, factset, namespace, input, errorPath, timezone, identity, Codec()) }
   } yield ()
 
 }
