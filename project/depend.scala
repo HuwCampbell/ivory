@@ -18,7 +18,7 @@ object depend {
     ExclusionRule(organization = "org.apache.httpcomponents")
   ))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140706225344-aad4179" excludeAll(
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140709042001-6c1bfce" excludeAll(
     ExclusionRule(organization = "org.specs2"),
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec"),
