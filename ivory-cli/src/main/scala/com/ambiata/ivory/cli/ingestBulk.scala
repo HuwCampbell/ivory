@@ -18,7 +18,7 @@ import scalaz.{DList => _, _}, Scalaz._
 
 object ingestBulk extends IvoryApp {
 
-  case class CliArguments(repo: String, dictionary: Option[String], input: String, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec])
+  case class CliArguments(repo: String, dictionary: Option[String], input: String, timezone: DateTimeZone, optimal: Long)
 
   val parser = new scopt.OptionParser[CliArguments]("ingest-bulk") {
     head("""
@@ -29,7 +29,6 @@ object ingestBulk extends IvoryApp {
          |""".stripMargin)
 
     help("help") text "shows this usage text"
-    opt[Unit]('n', "no-compression")         action { (_, c) => c.copy(codec = None) }    text "Don't use compression."
 
     opt[String]('r', "repo")                 action { (x, c) => c.copy(repo = x) }       required() text "Path to an ivory repository."
     opt[String]('i', "input")                action { (x, c) => c.copy(input = x) }      required() text "Path to data to import."
@@ -44,9 +43,9 @@ object ingestBulk extends IvoryApp {
   type Parts = String
 
   def cmd = IvoryCmd[CliArguments](parser,
-      CliArguments("", None, "", DateTimeZone.getDefault, 1024 * 1024 * 256 /* 256MB */, Codec()),
+      CliArguments("", None, "", DateTimeZone.getDefault, 1024 * 1024 * 256 /* 256MB */),
       ScoobiCmd(configuration => c => {
-      val res = onHdfs(new Path(c.repo), c.dictionary, new Path(c.input), c.timezone, c.optimal, c.codec)
+      val res = onHdfs(new Path(c.repo), c.dictionary, new Path(c.input), c.timezone, c.optimal, Codec())
       res.run(configuration).map {
         case f => List(s"Successfully imported '${c.input}' as ${f} into '${c.repo}'")
       }
