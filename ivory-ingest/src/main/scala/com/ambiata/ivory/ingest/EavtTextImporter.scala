@@ -44,8 +44,8 @@ object EavtTextImporter {
 
   def onHdfsDirect(conf: Configuration, repository: HdfsRepository, dictionary: Dictionary, factset: Factset, namespace: String,
              path: Path, errorPath: Path, timezone: DateTimeZone,
-             preprocess: String => String): ResultT[IO, Unit] = for {
-    _  <- HdfsDirectEavtTextImporter.direct(conf, repository, dictionary, factset, namespace, path, errorPath, timezone, preprocess)
+             preprocess: String => String, codec: Option[CompressionCodec]): ResultT[IO, Unit] = for {
+    _  <- HdfsDirectEavtTextImporter.direct(conf, repository, dictionary, factset, namespace, path, errorPath, timezone, preprocess, codec)
     _  <- writeFactsetVersion(repository, List(factset)).run(conf)
   } yield ()
 

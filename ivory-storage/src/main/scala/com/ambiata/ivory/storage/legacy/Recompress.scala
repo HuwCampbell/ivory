@@ -53,10 +53,11 @@ object Recompress {
     snapshots <- select(new Path(input, "snapshots"), new Path(output, "snapshots"), true, conf)
   } yield errors ++ factsets ++ metadata ++ snapshots
 
-  def go(input: String, output: String, distribution: Int, dry: Boolean): ScoobiAction[Unit] = for {
+  def go(input: String, output: String, distribution: Int, dry: Boolean,
+         codec: Option[CompressionCodec]): ScoobiAction[Unit] = for {
     conf  <- ScoobiAction.scoobiConfiguration
     stats <- ScoobiAction.fromHdfs { all(input, output, conf) }
-    _     <- if (dry) print(stats) else gox(stats, distribution)
+    _     <- if (dry) print(stats) else gox(stats, distribution, codec)
   } yield ()
 
   def print(stats: List[Stat]): ScoobiAction[Unit] = ScoobiAction.safe {
@@ -65,7 +66,7 @@ object Recompress {
     )
   }
 
-  def gox(stats: List[Stat], distribution: Int): ScoobiAction[Unit] =
+  def gox(stats: List[Stat], distribution: Int, codec: Option[CompressionCodec]): ScoobiAction[Unit] =
     ScoobiAction.scoobiConfiguration.map(c =>
       run(fromSource(new PathSource(stats, distribution, classOf[PathInputFormat])).parallelDo((stat: Stat, emitter: Emitter[Unit]) => {
         emitter.tick
@@ -74,7 +75,7 @@ object Recompress {
         if (!fs.exists(stat.target)) {
           if (stat.seq) {
             println(s"compress ${stat.path} ${stat.target}")
-            facts(stat.path, stat.target, emitter)
+            facts(stat.path, stat.target, emitter, codec)
           } else {
             println(s"cp ${stat.path} ${stat.target}")
             Hdfs.cp(stat.path, stat.target, false).run(new Configuration).run.unsafePerformIO.toOption.getOrElse(sys.error("Couldn't copy: " + stat.path))
@@ -89,13 +90,13 @@ object Recompress {
   //******************************** Ignore below here for now, this is based on the dist-copy related code, can be factored out
   //                                 when that is ready.
 
-  def facts(from: Path, to: Path, emitter: Emitter[Unit]): Unit = {
+  def facts(from: Path, to: Path, emitter: Emitter[Unit], codec: Option[CompressionCodec]): Unit = {
     val reader = new SequenceFile.Reader(new Configuration, SequenceFile.Reader.file(from))
     val opts = List(
       SequenceFile.Writer.file(to),
       SequenceFile.Writer.keyClass(classOf[NullWritable]),
-      SequenceFile.Writer.valueClass(classOf[BytesWritable]),
-      SequenceFile.Writer.compression(SequenceFile.CompressionType.BLOCK, new SnappyCodec))
+      SequenceFile.Writer.valueClass(classOf[BytesWritable])
+    ) ++ codec.map(SequenceFile.Writer.compression(SequenceFile.CompressionType.BLOCK, _))
     val writer = SequenceFile.createWriter(new Configuration, opts:_*)
     val bytes = new BytesWritable
     val nul = NullWritable.get

@@ -49,15 +49,16 @@ object snapshot extends IvoryApp {
                       |
                       |""".stripMargin
       println(banner)
-      val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), Date.fromLocalDate(c.date), c.incremental, Some(new SnappyCodec))
+      val codecOpt = Codec()
+      val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), Date.fromLocalDate(c.date), c.incremental, codecOpt)
       res.run(configuration <| { c =>
         // MR1
         c.set("mapred.compress.map.output", "true")
-        c.set("mapred.map.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec")
+        codecOpt.foreach(codec => c.set("mapred.map.output.compression.codec", codec.getClass.getName))
 
         // YARN
         c.set("mapreduce.map.output.compress", "true")
-        c.set("mapred.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec")
+        codecOpt.foreach(codec => c.set("mapred.map.output.compress.codec", codec.getClass.getName))
       }).map {
         case (_, _, out) => List(banner, s"Output path: $out", "Status -- SUCCESS")
       }

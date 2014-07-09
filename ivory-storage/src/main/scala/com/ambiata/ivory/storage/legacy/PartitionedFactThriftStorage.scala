@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.legacy
 
 import scalaz.{DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
-import org.apache.hadoop.io.compress.{SnappyCodec, CompressionCodec}
+import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
 
