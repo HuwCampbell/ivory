@@ -26,8 +26,8 @@ object depend {
   ))
 
   val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-store").map(c =>
-                      "com.ambiata"          %% c                 % "1.2.1-20140706115053-2c11cc2") ++
-                  Seq("com.ambiata"          %% "mundane-testing" % "1.2.1-20140706115053-2c11cc2" % "test")
+                      "com.ambiata"          %% c                 % "1.2.1-20140708033412-e6bdaf5") ++
+                  Seq("com.ambiata"          %% "mundane-testing" % "1.2.1-20140708033412-e6bdaf5" % "test")
 
   val caliper   = Seq("com.google.caliper"   %  "caliper"         % "0.5-rc1")
 

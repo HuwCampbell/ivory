@@ -53,7 +53,6 @@ ChordSpec
 }
 
 trait SampleFacts extends MustThrownMatchers {
-  val DICTIONARY_NAME = "dict1"
 
   def createEntitiesFiles(directory: String)(implicit sc: ScoobiConfiguration) = {
     implicit val fs = sc.fileSystem
@@ -63,12 +62,12 @@ trait SampleFacts extends MustThrownMatchers {
     TempFiles.writeLines(entitiesFile, entities, isRemote)
   }
 
-  def createDictionary(repo: HdfsRepository)(implicit sc: ScoobiConfiguration) = {
-    val dict = Dictionary(DICTIONARY_NAME, Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, "desc"),
+  def createDictionary(repo: HdfsRepository) = {
+    val dict = Dictionary(Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, "desc"),
       FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, NumericalType, "desc"),
       FeatureId("ns2", "fid3") -> FeatureMeta(BooleanEncoding, CategoricalType, "desc")))
 
-    dictionaryToIvory(repo, dict, dict.name).run(sc) must beOk
+    dictionaryToIvory(repo, dict) must beOk
     dict
   }
 

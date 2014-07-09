@@ -1,6 +1,7 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.extract._
@@ -51,7 +52,7 @@ object chord extends IvoryApp {
     _    <- Chord.onHdfs(repoPath, entitiesPath, tout, new Path(tmpPath, "chord"), takeSnapshot, Codec())
     _    <- if(pivot) {
               println("Pivoting extracted chord in '${tout}' to '${dout}'")
-              Pivot.onHdfs(tout, dout, new Path(tout, ".dictionary"), delim, tombstone)
+              Pivot.onHdfs(repoPath, tout, dout, delim, tombstone)
             } else ScoobiAction.ok(())
   } yield ()
 }

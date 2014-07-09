@@ -77,7 +77,7 @@ object IngestJob {
     ctx.thriftCache.push(job, Keys.NamespaceLookup, namespaces)
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, features)
     ctx.thriftCache.push(job, Keys.ReducerLookup, allocations)
-    ctx.textCache.push(job, Keys.Dictionary, DictionaryTextStorage.delimitedDictionaryString(dict, '|'))
+    ctx.thriftCache.push(job, Keys.Dictionary, DictionaryThriftConversion.dictionary.to(dict))
     job.getConfiguration.set(Keys.IvoryZone, ivoryZone.getID)
     job.getConfiguration.set(Keys.IngestZone, ingestZone.getID)
     job.getConfiguration.set(Keys.IngestBase, FileSystem.get(conf).getFileStatus(root).getPath.toString)
@@ -110,7 +110,7 @@ object IngestJob {
     val NamespaceLookup = ThriftCache.Key("namespace-lookup")
     val FeatureIdLookup = ThriftCache.Key("feature-id-lookup")
     val ReducerLookup = ThriftCache.Key("reducer-lookup")
-    val Dictionary = TextCache.Key("dictionary")
+    val Dictionary = ThriftCache.Key("dictionary")
     val IvoryZone = "ivory.tz"
     val IngestZone = "ivory.ingest.tz"
     val IngestBase = "ivory.ingest.base"
@@ -197,7 +197,9 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     out = new MultipleOutputs(context.asInstanceOf[Mapper[LongWritable, Text, NullWritable, BytesWritable]#Context])
     ctx.thriftCache.pop(context.getConfiguration, IngestJob.Keys.FeatureIdLookup, lookup)
-    dict = ctx.textCache.pop(context.getConfiguration, IngestJob.Keys.Dictionary, DictionaryTextStorage.fromString("ingest", _))
+    val dictThrift = new ThriftDictionary
+    ctx.thriftCache.pop(context.getConfiguration, IngestJob.Keys.Dictionary, dictThrift)
+    dict = DictionaryThriftConversion.dictionary.from(dictThrift)
     ivoryZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IvoryZone))
     ingestZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IngestZone))
     base = context.getConfiguration.get(IngestJob.Keys.IngestBase)

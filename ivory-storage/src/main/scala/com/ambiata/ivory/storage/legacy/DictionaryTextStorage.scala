@@ -8,14 +8,17 @@ import com.ambiata.mundane.parse._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.alien.hdfs._
-import com.ambiata.ivory.alien.hdfs.HdfsS3Action._
-import com.ambiata.saws.s3.S3
+import com.ambiata.ivory.storage.store._
 
 object DictionaryTextStorage {
 
-  case class DictionaryTextLoader(path: Path) extends IvoryLoader[Hdfs[Dictionary]] {
-    def load: Hdfs[Dictionary] =
-      Hdfs.readWith(path, fromInputStream(path.getName, _))
+  case class DictionaryTextLoader[F[+_] : Monad](path: StorePathResultT[F]) extends IvoryLoader[ResultT[F, Dictionary]] {
+    def load = for {
+      exists <- path.run(_.exists)
+      _ <- if (!exists) ResultT.fail[F, Unit](s"Path ${path.path} does not exist in ${path.store}!") else ResultT.ok[F, Unit](())
+      lines <- path.run(_.linesUtf8.read)
+      dict <- ResultT.fromDisjunction[F, Dictionary](DictionaryTextStorage.fromLines(lines).leftMap(\&/.This(_)))
+    } yield dict
   }
 
   case class DictionaryTextStorer(path: Path, delim: Char = '|') extends IvoryStorer[Dictionary, Hdfs[Unit]] {
@@ -23,43 +26,26 @@ object DictionaryTextStorage {
       Hdfs.writeWith(path, os => Streams.write(os, delimitedDictionaryString(dict, delim)))
   }
 
-  case class DictionaryTextStorerS3(bucket: String, key: String, delim: Char = '|') {
-    def store(dict: Dictionary): HdfsS3Action[Unit] = for {
-      _ <- HdfsS3Action.fromHdfs(Hdfs.writeWith(new Path(key), os => Streams.write(os, delimitedDictionaryString(dict, delim))))
-      a <- HdfsS3.putPaths(bucket, key, new Path(key))
-    } yield a
-  }
-
-  def dictionaryFromHdfs(path: Path): Hdfs[Dictionary] =
-    DictionaryTextLoader(path).load
-
-  def dictionaryToHdfs(path: Path, dict: Dictionary): Hdfs[Unit] =
-    DictionaryTextStorer(path).store(dict)
-
-  def fromInputStream(name: String, is: java.io.InputStream): ResultTIO[Dictionary] = for {
+  def fromInputStream(is: java.io.InputStream): ResultTIO[Dictionary] = for {
     content <- Streams.read(is)
-    r <- ResultT.fromDisjunction[IO, Dictionary](fromLines(name, content.lines.toList).leftMap(This(_)))
+    r <- ResultT.fromDisjunction[IO, Dictionary](fromLines(content.lines.toList).leftMap(This(_)))
   } yield r
 
-  def fromString(name: String, s: String): String \/ Dictionary =
-    fromLines(name, s.lines.toList)
+  def fromString(s: String): String \/ Dictionary =
+    fromLines(s.lines.toList)
 
-  def fromLines(name: String, lines: List[String]): String \/ Dictionary = {
+  def fromLines(lines: List[String]): String \/ Dictionary = {
     val numbered = lines.zipWithIndex.map({ case (l, n) => (l, n + 1) })
-    numbered.map({ case (l, n) => parseDictionaryEntry(l).leftMap(e => s"Line $n: $e")}).sequenceU.map(entries => Dictionary(name, entries.toMap))
+    numbered.map({ case (l, n) => parseDictionaryEntry(l).leftMap(e => s"Line $n: $e")}).sequenceU.map(entries => Dictionary(entries.toMap))
   }
 
   def fromFile(path: String): ResultTIO[Dictionary] = {
     val file = new java.io.File(path)
     for {
       raw <- Files.read(file.getAbsolutePath.toFilePath)
-      fs  <- ResultT.fromDisjunction[IO, Dictionary](fromLines(file.getName, raw.lines.toList).leftMap(err => This(s"Error reading dictionary from file '$path': $err")))
+      fs  <- ResultT.fromDisjunction[IO, Dictionary](fromLines(raw.lines.toList).leftMap(err => This(s"Error reading dictionary from file '$path': $err")))
     } yield fs
   }
-
-  def writeFile(dict: Dictionary, path: String, delim: Char = '|'): ResultTIO[Unit] = ResultT.safe({
-    Streams.write(new java.io.FileOutputStream(path), delimitedDictionaryString(dict, delim))
-  })
 
   def delimitedDictionaryString(dict: Dictionary, delim: Char): String =
     dict.meta.map({ case (featureId, featureMeta) =>

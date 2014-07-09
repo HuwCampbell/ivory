@@ -31,7 +31,7 @@ class DenseRowTextStorageSpec extends Specification { def is = s2"""
     implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
     val directory = path(TempFiles.createTempDir("denserowtextstorer").getPath)
 
-    val dict = Dictionary("dict", Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, ""),
+    val dict = Dictionary(Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, ""),
                                       FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, ContinuousType, ""),
                                       FeatureId("ns1", "fid3") -> FeatureMeta(BooleanEncoding, CategoricalType, ""),
                                       FeatureId("ns1", "fid4") -> FeatureMeta(DoubleEncoding, NumericalType, "")))
