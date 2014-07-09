@@ -24,10 +24,14 @@ import com.ambiata.mundane.io._
 import org.specs2.specification.{Fixture, FixtureExample}
 import org.specs2.execute.{Result, AsResult}
 
-class EavtTextImporterSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
-  override def isCluster = false
+class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2"""
 
-  "Scoobi job runs and creates expected data" >> { setup: Setup =>
+  Scoobi job runs and creates expected data $e1
+
+  When there are errors, they must be saved as a Thrift record containing the full record + the error message $e2
+
+  """
+  def e1 = setup { setup: Setup =>
     import setup._
 
     saveInputFile
@@ -45,7 +49,7 @@ class EavtTextImporterSpec extends HadoopSpecification with SimpleJobs with File
     factsFromIvoryFactset(repository, Factset("factset1")).map(_.run.collect { case \/-(r) => r}).run(sc) must beOkLike(_ must containTheSameElementsAs(expected))
   }
 
-  "When there are errors, they must be saved as a Thrift record containing the full record + the error message" >> { setup: Setup =>
+  def e2 = setup { setup: Setup =>
     import setup._
     // save an input file containing errors
     saveInputFileWithErrors
@@ -56,15 +60,14 @@ class EavtTextImporterSpec extends HadoopSpecification with SimpleJobs with File
     valueFromSequenceFile[ParseError](errors.toString).run must not(beEmpty)
   }
 
-  implicit def setup: Fixture[Setup] = new Fixture[Setup] {
-    def apply[R : AsResult](f: Setup => R): Result = fixtureContext { sc1: ScoobiConfiguration =>
-      f(new Setup { implicit lazy val sc = sc1 })
-    }
+  def setup: Fixture[Setup] = new Fixture[Setup] {
+    def apply[R : AsResult](f: Setup => R): Result =
+      AsResult(f(new Setup))
   }
 }
 
-trait Setup {
-  implicit def sc: ScoobiConfiguration
+class Setup() {
+  implicit def sc: ScoobiConfiguration = ScoobiConfiguration()
   implicit lazy val fs = sc.fileSystem
 
   val directory = path(TempFiles.createTempDir("eavtimporter").getPath)

@@ -3,7 +3,6 @@ package com.ambiata.ivory.storage.legacy
 import scalaz.{DList => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.mutable._
-import com.nicta.scoobi.testing.SimpleJobs
 import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.TempFiles
 
@@ -12,10 +11,11 @@ import org.specs2._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 
-class DenseRowTextStorageSpec extends HadoopSpecification with SimpleJobs {
-  override def isCluster = false
-
-  "Dense rows line up" >> {
+class DenseRowTextStorageSpec extends Specification { def is = s2"""
+  Dense rows line up            $e1
+  Dense rows stored correctly   $e2
+"""
+  def e1 = {
     val features = List((0, FeatureId("ns1", "fid1"), FeatureMeta(StringEncoding, CategoricalType, "")),
                         (1, FeatureId("ns1", "fid2"), FeatureMeta(IntEncoding, ContinuousType, "")),
                         (2, FeatureId("ns1", "fid3"), FeatureMeta(BooleanEncoding, CategoricalType, "")),
@@ -27,7 +27,8 @@ class DenseRowTextStorageSpec extends HadoopSpecification with SimpleJobs {
     DenseRowTextStorageV1.makeDense(facts, features, "☠") must_== List("abc", "123", "true", "☠")
   }
 
-  "Dense rows stored correctly" >> { implicit sc: ScoobiConfiguration =>
+  def e2 = {
+    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
     val directory = path(TempFiles.createTempDir("denserowtextstorer").getPath)
 
     val dict = Dictionary("dict", Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, ""),

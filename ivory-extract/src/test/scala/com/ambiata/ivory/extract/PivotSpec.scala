@@ -1,11 +1,11 @@
 package com.ambiata.ivory.extract
 
 import com.nicta.scoobi.testing.TestFiles._
-import com.nicta.scoobi.testing.{HadoopSpecification, TempFiles}
+import com.nicta.scoobi.testing.TempFiles
 import com.ambiata.ivory.core._
 import org.apache.hadoop.fs.{Path}
 import org.joda.time.LocalDate
-import com.nicta.scoobi.core.ScoobiConfiguration
+import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._, IvorySyntax._
@@ -16,15 +16,18 @@ import IvoryStorage._
 import ScoobiAction._
 import scalaz._, Scalaz._
 import com.ambiata.ivory.alien.hdfs.Hdfs
+import org.specs2._
 
-class PivotSpec extends HadoopSpecification with SampleFacts { def is = s2"""
+class PivotSpec extends Specification with SampleFacts { def is = s2"""
 
  A Sequence file containing feature values can be pivoted as a row-oriented file with a new dictionary $e1
 
 """
 
-  def e1 = { implicit sc: ScoobiConfiguration =>
-    val directory = path(TempFiles.createTempDir("chord").getPath)
+  def e1 = {
+    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
+
+    val directory = path(TempFiles.createTempDir("pivot").getPath)
     val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 
     createEntitiesFiles(directory)
@@ -50,6 +53,4 @@ class PivotSpec extends HadoopSpecification with SampleFacts { def is = s2"""
     }
 
   }
-
-  override def isCluster = false
 }

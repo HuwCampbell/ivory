@@ -9,3 +9,5 @@ addSbtPlugin("com.ambiata" % "promulgate" % "0.11.0-20140410040932-7b5bc30")
 addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "0.7.1")
 
 addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "0.1.6")
+
+addSbtPlugin("com.typesafe.sbt" % "sbt-proguard" % "0.2.2" )

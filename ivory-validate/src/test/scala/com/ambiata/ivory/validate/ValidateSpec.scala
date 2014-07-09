@@ -1,7 +1,7 @@
 package com.ambiata.ivory.validate
 
 import org.specs2._
-import org.specs2.matcher.FileMatchers
+import org.specs2.matcher.{ThrownExpectations, FileMatchers}
 import scalaz.{DList => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.mutable._
@@ -21,10 +21,15 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import IvoryStorage._
 
-class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
-  override def isCluster = false
+class ValidateSpec extends Specification with ThrownExpectations with FileMatchers { def is = s2"""
 
-  "Validate feature store" >> { implicit sc: ScoobiConfiguration =>
+  Validate feature store $e1
+  Validate fact set $e2
+
+  """
+
+  def e1 = {
+    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
     implicit val fs = sc.fileSystem
 
     val directory = path(TempFiles.createTempDir("validation").getPath)
@@ -35,7 +40,7 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
                                       FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, NumericalType, "desc"),
                                       FeatureId("ns2", "fid3") -> FeatureMeta(BooleanEncoding, CategoricalType, "desc")))
 
-    dictionaryToIvory(repo, dict, dict.name).run(configuration).run.unsafePerformIO().toEither must beRight
+    dictionaryToIvory(repo, dict, dict.name).run(sc).run.unsafePerformIO().toEither must beRight
 
     val facts1 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
                        IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
@@ -59,7 +64,8 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     res must contain("factset1")
   }
 
-  "Validate fact set" >> { implicit sc: ScoobiConfiguration =>
+  def e2 = {
+    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
     implicit val fs = sc.fileSystem
 
     val directory = path(TempFiles.createTempDir("validation").getPath)
@@ -70,7 +76,7 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
                                       FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, NumericalType, "desc"),
                                       FeatureId("ns2", "fid3") -> FeatureMeta(BooleanEncoding, CategoricalType, "desc")))
 
-    dictionaryToIvory(repo, dict, dict.name).run(configuration).run.unsafePerformIO().toEither must beRight
+    dictionaryToIvory(repo, dict, dict.name).run(sc).run.unsafePerformIO().toEither must beRight
 
     val facts1 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
                        IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
