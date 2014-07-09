@@ -1,0 +1,4 @@
+: ${HADOOP_VERSION:=cdh5}
+: ${JVM_OPTS:="-Dfile.encoding=UTF8 -XX:MaxPermSize=512m -Xms512m -Xmx2g -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"}
+
+export HADOOP_VERSION JVM_OPTS
