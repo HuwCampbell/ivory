@@ -2,7 +2,7 @@ package com.ambiata.ivory.mr
 
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapreduce.Job
-import org.apache.hadoop.mapreduce.lib.input.{FileSplit, ProxiedInputSplit}
+import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.InputSplit
 import org.apache.hadoop.conf.Configuration
 import java.util.UUID
@@ -54,8 +54,20 @@ object MrContext {
   def fromConfiguration(conf: Configuration): MrContext =
     MrContext(ContextId(conf.get(MrContext.Keys.Id)))
 
-  def getSplitPath(split: InputSplit): Path =
-    ProxiedInputSplit.fromInputSplit(split).getUnderlying.asInstanceOf[FileSplit].getPath
+  /**
+   * WARNING: This method uses reflection and should _only_ be used in setup methods (unless we find an alternative)
+   */
+  def getSplitPath(split: InputSplit): Path = {
+    // Evil reflection, but unfortunately doing this via a package-protected class would fail in local mode
+    (if (split.getClass.getSimpleName == "TaggedInputSplit") {
+      Option(split.getClass.getDeclaredMethod("getInputSplit")).flatMap { method =>
+        scala.util.Try {
+          method.setAccessible(true)
+          method.invoke(split).asInstanceOf[InputSplit]
+        }.toOption
+      }.getOrElse(split)
+    } else split).asInstanceOf[FileSplit].getPath
+  }
 
   object Keys {
     val Id = "ivory.ctx.id"
