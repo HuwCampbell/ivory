@@ -31,6 +31,9 @@ object depend {
 
   val caliper   = Seq("com.google.caliper"   %  "caliper"         % "0.5-rc1")
 
+  // We _need_ 1.6 for running distributed jobs - otherwise libthrift brings in 1.5 and things break
+  val slf4j     = Seq("org.slf4j"            % "slf4j-api"        % "1.6.4")
+
   def scoobi(version: String) =
     (if (version.contains("cdh4")) Seq(
       "com.nicta" %% "scoobi" % "0.9.0-cdh4-20140610022328-7b2296d" intransitive(),
