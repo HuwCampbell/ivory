@@ -18,7 +18,6 @@ import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.fact._
-import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
 case class HdfsSnapshot(repoPath: Path, store: String, entities: Option[Path], snapshot: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)], codec: Option[CompressionCodec], fast: Boolean) {

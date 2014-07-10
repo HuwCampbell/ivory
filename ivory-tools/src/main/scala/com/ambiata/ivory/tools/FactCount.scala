@@ -1,4 +1,4 @@
-package com.ambiata.ivory.extract
+package com.ambiata.ivory.tools
 
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path

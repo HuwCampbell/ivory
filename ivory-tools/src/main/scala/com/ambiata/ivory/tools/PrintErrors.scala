@@ -1,4 +1,4 @@
-package com.ambiata.ivory.extract.print
+package com.ambiata.ivory.tools
 
 import scalaz.concurrent.Task
 import com.ambiata.ivory.core.ParseError

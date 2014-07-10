@@ -28,7 +28,7 @@ object build extends Build {
     , mr
     , scoobi
     , storage
-    , validate
+    , tools
     , alien_hdfs
     )
   )
@@ -65,7 +65,7 @@ object build extends Build {
     , previousArtifact := Some("com.ambiata" %% "ivory-api" % "1.0.0-cdh5-20140703185823-2efc9c3")
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value))
   )
-  .dependsOn(generate, ingest, validate, extract)
+  .dependsOn(generate, ingest, tools, extract)
 
   lazy val benchmark = Project(
     id = "benchmark"
@@ -166,7 +166,7 @@ object build extends Build {
       name := "ivory-extract"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2 ++ depend.mundane)
   )
-  .dependsOn(core, scoobi, storage, validate, mr)
+  .dependsOn(core, scoobi, storage, mr, storage % "test->test")
 
   lazy val generate = Project(
     id = "generate"
@@ -213,14 +213,14 @@ object build extends Build {
   )
   .dependsOn(core, data, scoobi, alien_hdfs, core % "test->test")
 
-  lazy val validate = Project(
-    id = "validate"
-  , base = file("ivory-validate")
-  , settings = standardSettings ++ lib("validate") ++ Seq[Settings](
-      name := "ivory-validate"
+  lazy val tools = Project(
+    id = "tools"
+  , base = file("ivory-tools")
+  , settings = standardSettings ++ lib("tools") ++ Seq[Settings](
+      name := "ivory-tools"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2 ++ depend.mundane)
   )
-  .dependsOn(core, scoobi, storage)
+  .dependsOn(core, extract, scoobi, storage, core % "test->test", storage % "test->test")
 
   lazy val alien_hdfs = Project(
     id = "hdfs"

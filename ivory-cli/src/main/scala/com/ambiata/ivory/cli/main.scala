@@ -30,9 +30,7 @@ object main {
     pivot,
     pivotSnapshot,
     recompress,
-    snapshot,
-    validateFactSet,
-    validateStore
+    snapshot
   )
 
   def main(args: Array[String]): Unit = {

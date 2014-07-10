@@ -1,4 +1,4 @@
-package com.ambiata.ivory.validate
+package com.ambiata.ivory.tools
 
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._

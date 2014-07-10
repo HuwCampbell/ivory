@@ -17,7 +17,6 @@ import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.legacy.fatrepo.ExtractLatestWorkflow
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
 case class HdfsChord(repoPath: Path, store: String, entities: HashMap[String, Array[Int]], outputPath: Path, tmpPath: Path, incremental: Option[Path], codec: Option[CompressionCodec]) {

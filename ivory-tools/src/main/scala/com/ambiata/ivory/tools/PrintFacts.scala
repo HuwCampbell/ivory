@@ -1,4 +1,4 @@
-package com.ambiata.ivory.extract.print
+package com.ambiata.ivory.tools
 
 import scalaz.stream.{Sink, io}
 import java.io.File
