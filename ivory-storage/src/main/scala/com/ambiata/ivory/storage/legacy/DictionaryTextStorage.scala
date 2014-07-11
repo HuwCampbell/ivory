@@ -96,7 +96,7 @@ object DictionaryTextStorage {
     s match {
       case "boolean"    => BooleanEncoding.success
       case "int"        => IntEncoding.success
-      case "long"       => IntEncoding.success
+      case "long"       => LongEncoding.success
       case "double"     => DoubleEncoding.success
       case "string"     => StringEncoding.success
       case otherwise    => "".failure

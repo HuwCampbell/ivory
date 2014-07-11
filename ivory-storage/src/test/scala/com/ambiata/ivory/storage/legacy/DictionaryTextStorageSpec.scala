@@ -11,6 +11,8 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
     extract to completion when all fields are valid $e1
     catch invalid encodings                         $e2
     catch invalid types                             $e3
+    parse all encoding                              $parseEncoding
+    parse all types                                 $parseType
 
   Given a dictionary file we can:
     load it successfully if it is valid             $e4
@@ -43,4 +45,14 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
   def e5 = {
     DictionaryTextStorage.fromFile("ivory-storage/src/test/resources/bad_dictionary.txt").run.unsafePerformIO().toEither must beLeft
   }
+
+  def parseEncoding =
+    seqToResult(List(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding).map {
+      enc => DictionaryTextStorage.parseEncoding(DictionaryTextStorage.encodingString(enc)) ==== enc.success
+    })
+
+  def parseType =
+    seqToResult(List(NumericalType, ContinuousType, CategoricalType, BinaryType).map {
+      ty => DictionaryTextStorage.parseType(DictionaryTextStorage.typeString(ty)) ==== ty.success
+    })
 }
