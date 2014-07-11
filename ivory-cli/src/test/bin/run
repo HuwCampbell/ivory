@@ -1,0 +1,21 @@
+#!/bin/sh -eu
+
+DIR=$(dirname $0)
+
+EXIT=0
+
+# Run all the tests, capturing any failures
+for TEST in ${DIR}/tests/*; do
+    echo "*** Executing `basename ${TEST}` ***"
+    echo
+    "${TEST}/test" || EXIT=1
+    echo
+done
+
+if [ ${EXIT} -gt 0 ]; then
+    echo "Tests failed!"
+else
+    echo "Tests passed!"
+fi
+
+exit ${EXIT}
