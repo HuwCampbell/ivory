@@ -1,18 +1,20 @@
 package com.ambiata.ivory.alien.hdfs
 
 import org.specs2.Specification
+import org.specs2.matcher.FileMatchers
 import org.apache.hadoop.fs.Path
 import java.io.File
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.apache.hadoop.conf.Configuration
 
-class HdfsSpec extends Specification { def is = s2"""
+class HdfsSpec extends Specification with FileMatchers { def is = s2"""
 
  The Hdfs object provide functions to deal with paths
    it is possible to recursively glob paths                              $e1
    can create a new dir, changing the name when it already exists        $e2
    run out of names when trying to change a dir                          $e3
    can filter out hidden files                                           $e4
+   can move dirs to dirs (in local mode)                                 $moveDirToDirLocal
 """
 
   val basedir = "target/test/HdfsSpec/" + java.util.UUID.randomUUID()
@@ -58,5 +60,13 @@ class HdfsSpec extends Specification { def is = s2"""
     files.foreach(f => new File(f).createNewFile)
 
     Hdfs.globFiles(new Path(dir), "*").filterHidden.run(new Configuration) must beOkLike(paths => paths.map(_.getName) must containTheSameElementsAs(nonhidden.map(new Path(_).getName)))
+  }
+
+  def moveDirToDirLocal = {
+    new File(s"$basedir/a").mkdirs
+    new File(s"$basedir/b").mkdirs
+    new File(s"$basedir/b/c").createNewFile()
+    Hdfs.mv(new Path(s"$basedir/b"), new Path(s"$basedir/a")).run(new Configuration) must beOk
+    new File(s"$basedir/a/b/c") must beAFile
   }
 }
