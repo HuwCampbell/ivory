@@ -19,7 +19,7 @@ object validateStore extends IvoryApp {
     opt[Unit]("include-overridden") action { (_, c) => c.copy(includeOverridden = true) }  text s"Validate overridden facts. Default is false."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", false), ScoobiCmd { configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", false), c => ScoobiCmd { configuration =>
       Validate.validateHdfsStore(new Path(c.repo), c.store, new Path(c.output), c.includeOverridden).run(configuration).map {
         case _ => List(s"validated feature store ${c.store} in the ${c.repo} repository.")
       }

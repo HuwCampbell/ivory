@@ -20,7 +20,7 @@ object validateFactSet extends IvoryApp {
     opt[String]('o', "output")      action { (x, c) => c.copy(output = x) }     required() text s"Hdfs location to store validation errors."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", Factset(""), ""), ScoobiCmd { configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", Factset(""), ""), c => ScoobiCmd { configuration =>
     Validate.validateHdfsFactSet(new Path(c.repo), c.factset, new Path(c.output)).run(configuration).map {
       case _ => List(s"validated fact set ${c.factset} in the ${c.repo} repository.")
     }

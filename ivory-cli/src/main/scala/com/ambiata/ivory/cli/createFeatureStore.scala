@@ -26,7 +26,7 @@ object createFeatureStore extends IvoryApp {
     opt[String]('e', "append-existing") action { (x, c) => c.copy(existing = Some(x)) }  text s"Name of an existing feature store to append to the end of this one."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", None), HadoopCmd { configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", None), c => HadoopCmd { configuration =>
     val sets = c.sets.split(",").toList.map(_.trim).map(Factset)
 
     val actions =

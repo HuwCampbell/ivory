@@ -26,7 +26,7 @@ object importFeatureStore extends IvoryApp {
     opt[String]('p', "path") action { (x, c) => c.copy(path = x) } required() text s"Hdfs path to feature store to import."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), HadoopCmd { configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), c => HadoopCmd { configuration =>
       val actions =
         FeatureStoreImporter.onHdfs(HdfsRepository(c.path.toFilePath, configuration, ScoobiRun(configuration)), c.name, new Path(c.path)).run(configuration)
 

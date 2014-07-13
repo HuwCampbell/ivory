@@ -24,7 +24,7 @@ object createRepository extends IvoryApp {
 
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments(), HadoopCmd { configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments(), c => HadoopCmd { configuration =>
       println("Created configuration: " + configuration)
 
       val actions =

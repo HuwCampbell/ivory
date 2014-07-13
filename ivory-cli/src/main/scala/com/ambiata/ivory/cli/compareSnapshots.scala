@@ -22,8 +22,8 @@ object compareSnapshots extends IvoryApp {
     opt[String]("output") action { (x, c) => c.copy(output = x) } required() text s"Hdfs path to store results."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), ScoobiCmd {
-    configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), c => ScoobiCmd {
+    configuration =>
       val banner = s"""======================= CompareSnapshot =======================
                       |
                       |Arguments --

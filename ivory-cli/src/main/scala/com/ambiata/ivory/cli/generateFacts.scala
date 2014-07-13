@@ -33,7 +33,7 @@ object generateFacts extends IvoryApp {
     opt[String]('o', "output")     action { (x, c) => c.copy(output = x) }      required() text s"Hdfs path to write facts to."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", 0, LocalDate.now(), LocalDate.now(), ""), ScoobiCmd { configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", 0, LocalDate.now(), LocalDate.now(), ""), c => ScoobiCmd { configuration =>
       GenerateFacts.onHdfs(Repository.fromHdfsPath(FilePath(c.repo), configuration), c.entities, new Path(c.flags), c.start, c.end, new Path(c.output))(configuration).run(configuration).
         mapError(e => { println(s"Failed to generate dictionary: ${Result.asString(e)}"); e }).
                                                                                      map(v => List(s"Dictionary successfully written to ${c.output}."))

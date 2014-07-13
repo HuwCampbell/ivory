@@ -33,7 +33,7 @@ object ingest extends IvoryApp {
 
   }
 
-  def cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", DateTimeZone.getDefault, false), HadoopCmd { configuration => c =>
+  def cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", DateTimeZone.getDefault, false), c => HadoopCmd { configuration =>
       val res = onHdfs(new Path(c.repo), c.namespace, new Path(c.input), c.timezone, c.runOnSingleMachine)
       res.run(configuration.modeIs(com.nicta.scoobi.core.Mode.Cluster)).map {
         case f => List(s"Successfully imported '${c.input}' as ${f} into '${c.repo}'")

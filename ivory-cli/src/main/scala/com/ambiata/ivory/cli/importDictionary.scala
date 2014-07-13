@@ -26,7 +26,7 @@ object importDictionary extends IvoryApp {
     opt[Unit]('u', "update") action { (x, c) => c.copy(update = true) } optional() text s"Update the existing dictionary with extra values."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", update = false), HadoopCmd { configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", update = false), c => HadoopCmd { configuration =>
       for {
         repository <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(c.repo, configuration).leftMap(\&/.This(_)))
         source <- ResultT.fromDisjunction[IO, StorePathIO](StorePath.fromUri(c.path, configuration).leftMap(\&/.This(_)))

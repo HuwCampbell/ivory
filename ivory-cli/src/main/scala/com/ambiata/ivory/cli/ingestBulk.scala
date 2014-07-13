@@ -38,7 +38,7 @@ object ingestBulk extends IvoryApp {
 
   def cmd = IvoryCmd[CliArguments](parser,
       CliArguments("", "", DateTimeZone.getDefault, 1024 * 1024 * 256 /* 256MB */),
-      ScoobiCmd(configuration => c => {
+      c => ScoobiCmd(configuration => {
       val res = onHdfs(new Path(c.repo), new Path(c.input), c.timezone, c.optimal, Codec())
       res.run(configuration).map {
         case f => List(s"Successfully imported '${c.input}' as ${f} into '${c.repo}'")

@@ -15,7 +15,7 @@ object countFacts extends IvoryApp {
     opt[String]('p', "path") action { (x, c) => c.copy(path = x) }      required() text "Input path (glob path to fact sequence file)"
   }
 
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), ScoobiCmd { configuration => c =>
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), c => ScoobiCmd { configuration =>
     FactCount.flatFacts(new Path(c.path, "*out*")).run(configuration).map(count =>
       List(s"Fact count: $count", "Status -- SUCCESS"))
   })

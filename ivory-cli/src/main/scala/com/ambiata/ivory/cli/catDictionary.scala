@@ -10,29 +10,22 @@ import scalaz._, Scalaz._, effect._
 
 object catDictionary extends IvoryApp {
 
-  case class CliArguments(repo: String, name: Option[String] = None, delimiter: Char = '|')
-
-//    opt[String]('r', "repo")        action { (x, c) => c.copy(repo = x) }           required()             text
-//      s"Ivory repository to create. If the path starts with 's3://' we assume that this is a S3 repository"
-//    opt[String]('n', "name")        action { (x, c) => c.copy(name = Some(x)) }           optional()       text
-//      s"For displaying the contents of an older dictionary"
-//    opt[Char]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) }        optional()             text
-//      "Delimiter (`|` by default)"
-//
-
-  val cmd = new IvoryPirateCmd[CliArguments](
-      option[String]('r' -> "repo", "repo")
-        ~ "cat-dictionary"
-        ~~ "Print dictionary as text to standard out, delimited by '|' or explicitly set delimiter."
-      , HadoopCmd { conf => {
-    case CliArguments(repo, nameOpt, delim) =>
-      for {
-        repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, conf).leftMap(\&/.This(_)))
-        store = DictionaryThriftStorage(repo)
-        dictionary <- nameOpt.flatMap(Identifier.parse).cata(store.loadFromId, store.load)
-      } yield List(
-        DictionaryTextStorage.delimitedDictionaryString(dictionary, delim)
-      )
-  }
-  })
+  val cmd = new IvoryPirateCmd(
+    ^^(
+      required[String]('r' -> "repo", "Ivory repository to create. If the path starts with 's3://' we assume that this is a S3 repository"),
+      optional[String]('n' -> "name", "For displaying the contents of an older dictionary"),
+      optional[Char]('d' -> "delimiter", "Delimiter (`|` by default)")) { (repo, nameOpt, delim) =>
+      HadoopCmd(conf =>
+        for {
+          repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, conf).leftMap(\&/.This(_)))
+          store = DictionaryThriftStorage(repo)
+          dictionary <- nameOpt.flatMap(Identifier.parse).cata(store.loadFromId, store.load)
+        } yield List(
+          DictionaryTextStorage.delimitedDictionaryString(dictionary, delim.getOrElse('|'))
+        )
+        // TODO Fuck you variance
+      ): IvoryRunner
+    } ~ "cat-dictionary"
+      ~~ "Print dictionary as text to standard out, delimited by '|' or explicitly set delimiter."
+  )
 }

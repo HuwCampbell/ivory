@@ -32,7 +32,7 @@ object chord extends IvoryApp {
     opt[String]("tombstone")     action { (x, c) => c.copy(tombstone = x) }            text "Tombstone for pivot file, default 'NA'."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", "", true, false, '|', "NA"), ScoobiCmd { configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", "", true, false, '|', "NA"), c => ScoobiCmd { configuration =>
       val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(c.tmp), new Path(c.entities), c.takeSnapshot, c.pivot, c.delim, c.tombstone)
       res.run(configuration).map {
         case _ => List(s"Successfully extracted chord from '${c.repo}' and stored in '${c.output}'")

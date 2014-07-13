@@ -22,7 +22,7 @@ object catFacts extends IvoryApp {
       "Tombstone (NA by default)"
   }
 
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), HadoopCmd { conf => c =>
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), c => HadoopCmd { conf =>
     PrintFacts.print(c.paths.map(new Path(_)), conf, c.delimiter, c.tombstone).executeT(consoleLogging).map(_ => Nil)
   })
 }

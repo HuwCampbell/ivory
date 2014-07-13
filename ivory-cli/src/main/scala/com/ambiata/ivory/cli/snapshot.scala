@@ -26,8 +26,8 @@ object snapshot extends IvoryApp {
       s"Optional date to take snapshot from, default is now."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", LocalDate.now(), true), ScoobiCmd {
-    configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", LocalDate.now(), true), c => ScoobiCmd {
+    configuration =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
                       |

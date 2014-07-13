@@ -40,7 +40,7 @@ object importFacts extends IvoryApp {
       s"timezone for the dates (see http://joda-time.sourceforge.net/timezones.html, for example Sydney is Australia/Sydney)"
   }
 
-  def cmd = IvoryCmd[CliArguments](parser, CliArguments(), ScoobiCmd { configuration => c =>
+  def cmd = IvoryCmd[CliArguments](parser, CliArguments(), c => ScoobiCmd { configuration =>
       val actions: ScoobiAction[Unit] = {
         val repository = HdfsRepository(c.repositoryPath.toFilePath, configuration, ScoobiRun(configuration))
         for {
