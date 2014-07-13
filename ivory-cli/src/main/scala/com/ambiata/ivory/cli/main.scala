@@ -63,7 +63,7 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
         var scoobieResult: Option[Unit] = None
         new ScoobiApp {
           // Need to evaluate immediately to avoid the main() method of ScoobiApp cleaning up too soon
-          def run = scoobieResult = parseAndRun(args, f(configuration)).unsafePerformIO
+          def run() = scoobieResult = parseAndRun(args, f(configuration)).unsafePerformIO()
         }.main(args)
         scoobieResult
       }
