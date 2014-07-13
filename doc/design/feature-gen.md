@@ -88,12 +88,61 @@ Derive features from a primitive call-record feature type, e.g.:
 call duration in 7 day windows over the last 7 x 8 = 56 days, then compute the gradient
 over those 8 values
 
+
+### Online media example
+
+Derive features from web-log event records, e.g.:
+
+```
+(
+  session_id: String,
+  article_id: string,
+  headline: string,
+  content_type: string,
+  section_id: String,
+  duration: Long
+  ...
+)
+```
+
+* Number of times each article was read where the `headline` is not empty and the `content_type` contains
+the string `story`.
+
+* Total number of events in the last 12 months
+
+* Total number of days in the last 3 month that events occurred
+
+* Average number of daily events between 11am - 3pm over the last 2 months
+
+* Average number of weekend events over the last 3 weeks
+
+* Average number of weekday events over the last 5 weeks
+
+* Mean number of events per session over the last 6 weeks
+
+* Average duration of sessions over the last 1 month
+
+* Gradient of weekly average session duration over the last 8 weeks
+
+* Maximum daily events over the last 1 month
+
+* First quantile (0.1) daily event count over the last 2 months
+
+* Total number of events for section "foo" in the last 6 weeks
+
+* Proportion of events for section "foo" compared to all events in the last 6 weeks
+
+* Gradient of weekly proporition of events for section "foo" compared to all weekly events over the last 8 weeks
+
+* Mean days per month of activity over the last 4 months
+
+
 ### Banking examples
 
 * TODO
 
 
-### Date examples
+### General date examples
 
 * Number of days since the last call
 

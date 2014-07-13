@@ -263,6 +263,20 @@ reference fact sets persisted in an older format.
 A fact set format version is specified by a `.version` file that is stored at the root directory of a given fact set.
 
 
+Further Documentation
+---------------------
+
+### User documentation
+
+  * [API Compatibility](https://github.com/ambiata/ivory/blob/master/doc/user/api-compatability.md)
+  * [Introductory presentation](https://speakerdeck.com/ambiata/ivory-an-introduction)
+
+
+### Design documentation
+
+  * [Design notes](https://github.com/ambiata/ivory/tree/master/doc/design)
+
+
 Contributing and Issues
 -----------------------
 
