@@ -5,29 +5,26 @@ import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.legacy.{DictionaryTextStorage, DictionaryThriftStorage}
 import com.ambiata.ivory.storage.repository._
 import com.nicta.scoobi.Scoobi._
+import io.mth.pirate._, Pirate._
 import scalaz._, Scalaz._, effect._
 
 object catDictionary extends IvoryApp {
 
   case class CliArguments(repo: String, name: Option[String] = None, delimiter: Char = '|')
 
-  import ScoptReaders.charRead
+//    opt[String]('r', "repo")        action { (x, c) => c.copy(repo = x) }           required()             text
+//      s"Ivory repository to create. If the path starts with 's3://' we assume that this is a S3 repository"
+//    opt[String]('n', "name")        action { (x, c) => c.copy(name = Some(x)) }           optional()       text
+//      s"For displaying the contents of an older dictionary"
+//    opt[Char]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) }        optional()             text
+//      "Delimiter (`|` by default)"
+//
 
-  val parser = new scopt.OptionParser[CliArguments]("cat-dictionary") {
-    head("""
-           |Print dictionary as text to standard out, delimited by '|' or explicitly set delimiter.
-           |""".stripMargin)
-
-    help("help") text "shows this usage text"
-    opt[String]('r', "repo")        action { (x, c) => c.copy(repo = x) }           required()             text
-      s"Ivory repository to create. If the path starts with 's3://' we assume that this is a S3 repository"
-    opt[String]('n', "name")        action { (x, c) => c.copy(name = Some(x)) }           optional()       text
-      s"For displaying the contents of an older dictionary"
-    opt[Char]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) }        optional()             text
-      "Delimiter (`|` by default)"
-  }
-
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), HadoopCmd { conf => {
+  val cmd = new IvoryPirateCmd[CliArguments](
+      option[String]('r' -> "repo", "repo")
+        ~ "cat-dictionary"
+        ~~ "Print dictionary as text to standard out, delimited by '|' or explicitly set delimiter."
+      , HadoopCmd { conf => {
     case CliArguments(repo, nameOpt, delim) =>
       for {
         repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, conf).leftMap(\&/.This(_)))

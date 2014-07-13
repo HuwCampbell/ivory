@@ -132,6 +132,7 @@ object build extends Build {
       ++ addArtifact(Artifact("ivory", "dist", "zip"), packageBin in Universal)
   )
   .dependsOn(api)
+  .dependsOn(RootProject(file("../pirate")))
 
   lazy val core = Project(
     id = "core"
