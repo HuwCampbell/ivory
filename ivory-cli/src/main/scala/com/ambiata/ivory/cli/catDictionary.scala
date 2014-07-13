@@ -2,8 +2,7 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.data.Identifier
-import com.ambiata.ivory.storage.legacy.DictionaryTextStorage
-import com.ambiata.ivory.storage.legacy.DictionaryThriftStorage
+import com.ambiata.ivory.storage.legacy.{DictionaryTextStorage, DictionaryThriftStorage}
 import com.ambiata.ivory.storage.repository._
 import com.nicta.scoobi.Scoobi._
 import scalaz._, Scalaz._, effect._

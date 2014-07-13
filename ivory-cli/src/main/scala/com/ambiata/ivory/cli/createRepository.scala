@@ -1,17 +1,10 @@
 package com.ambiata.ivory.cli
 
-import scalaz._, Scalaz._
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import com.ambiata.mundane.parse._
-import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
-
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
-
 import com.nicta.scoobi.Scoobi._
 
 object createRepository extends IvoryApp {

@@ -1,8 +1,6 @@
 package com.ambiata.ivory.cli
 
 import org.apache.hadoop.fs.Path
-import com.ambiata.mundane.control._
-
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.validate._
 

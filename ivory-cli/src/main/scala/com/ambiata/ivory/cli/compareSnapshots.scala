@@ -1,13 +1,10 @@
 package com.ambiata.ivory.cli
 
+import com.ambiata.ivory.api._, Ivory._, IvoryRetire._
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.lib.Relational
-import scalaz.{DList => _, Value => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path
-
-import com.ambiata.ivory.api._, Ivory._, IvoryRetire._
-
-import scala.collection.JavaConverters._
+import scalaz.{DList => _, Value => _, _}, Scalaz._
 
 object compareSnapshots extends IvoryApp {
 

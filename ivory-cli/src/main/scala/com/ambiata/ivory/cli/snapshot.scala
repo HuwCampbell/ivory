@@ -1,19 +1,10 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.mundane.control._
-
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.extract._
-import com.ambiata.ivory.scoobi._
-import com.ambiata.ivory.storage.legacy._
-
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.io.compress._
-import org.apache.commons.logging.LogFactory
 import org.joda.time.LocalDate
-import java.util.Calendar
-import java.util.UUID
-
+import java.util.{Calendar, UUID}
 import scalaz.{DList => _, _}, Scalaz._
 
 object snapshot extends IvoryApp {

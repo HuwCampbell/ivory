@@ -1,7 +1,6 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.storage.legacy._
-import com.ambiata.mundane.io._
 
 object recompress extends IvoryApp {
   case class CliArguments(input: String, output: String, distribution: Int, dry: Boolean)

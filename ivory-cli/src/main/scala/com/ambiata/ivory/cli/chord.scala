@@ -1,19 +1,12 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
-
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.extract._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
-
 import org.apache.hadoop.fs.Path
-import org.apache.commons.logging.LogFactory
-
-import scalaz.{DList => _, _}, Scalaz._
 
 object chord extends IvoryApp {
 

@@ -1,20 +1,14 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
-
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.ingest.EavtTextImporter
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
-
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
-import org.apache.commons.logging.LogFactory
 import org.joda.time.DateTimeZone
-
 import scalaz.{DList => _, _}, Scalaz._
 
 object ingest extends IvoryApp {

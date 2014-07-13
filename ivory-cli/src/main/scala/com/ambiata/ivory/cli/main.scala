@@ -1,12 +1,10 @@
 package com.ambiata.ivory.cli
 
-import com.nicta.scoobi.core._
-import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
+import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.conf.Configuration
-import scalaz._, Scalaz._
-import scalaz.effect._
+import scalaz._, Scalaz._, effect._
 
 object main {
 
