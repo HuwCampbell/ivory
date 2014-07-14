@@ -14,6 +14,8 @@ if [ ! -e "${DIST}/ivory-cli-${VERSION}" ]; then
   aws s3 cp "s3://ambiata-oss/com.ambiata/ivory-cli_${SCALA_VERSION}/${VERSION}/dists/ivory_${SCALA_VERSION}.tgz" /tmp 1>&2
   tar xf "/tmp/ivory_${SCALA_VERSION}.tgz" -C "${DIST}"
   rm -r "/tmp/ivory_${SCALA_VERSION}.tgz"
+  # Old versions of the ivory script are not compatible with /bin/sh
+  sed -i 's/BASE=$((/BASE=$( (/' "${DIST}/ivory-cli-${VERSION}/bin/ivory"
 fi
 
 # Allow callers to now find and then execute this version
