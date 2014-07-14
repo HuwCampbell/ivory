@@ -1,4 +1,4 @@
-package com.ambiata.ivory.validate
+package com.ambiata.ivory.tools
 
 import org.specs2._
 import org.specs2.matcher.{ThrownExpectations, FileMatchers}

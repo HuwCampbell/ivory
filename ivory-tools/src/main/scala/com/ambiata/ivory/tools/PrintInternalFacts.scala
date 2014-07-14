@@ -1,4 +1,4 @@
-package com.ambiata.ivory.extract.print
+package com.ambiata.ivory.tools
 
 import java.io.File
 import scalaz.concurrent.Task

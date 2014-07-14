@@ -1,4 +1,4 @@
-package com.ambiata.ivory.extract.print
+package com.ambiata.ivory.tools
 
 import org.specs2._
 import com.nicta.scoobi.Scoobi._
@@ -6,6 +6,7 @@ import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.TempFiles
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.extract._
 import org.apache.hadoop.fs.Path
 import org.joda.time.{LocalDate, DateTimeZone}

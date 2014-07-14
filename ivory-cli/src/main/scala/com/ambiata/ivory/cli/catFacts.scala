@@ -3,7 +3,7 @@ package com.ambiata.ivory.cli
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 
-import com.ambiata.ivory.extract.print.PrintFacts
+import com.ambiata.ivory.tools.PrintFacts
 
 object catFacts extends IvoryApp {
   case class CliArguments(delimiter: String = "|", tombstone: String = "NA", paths: List[String] = Nil)

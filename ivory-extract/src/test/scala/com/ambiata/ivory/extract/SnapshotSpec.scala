@@ -8,6 +8,7 @@ import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.extract._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.legacy._
 import org.apache.hadoop.fs.Path
 import org.joda.time.LocalDate
 import com.nicta.scoobi.core.ScoobiConfiguration

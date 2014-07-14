@@ -1,7 +1,7 @@
 package com.ambiata.ivory.cli
 
 import org.apache.hadoop.fs.Path
-import com.ambiata.ivory.extract.FactCount
+import com.ambiata.ivory.tools.FactCount
 
 object countFacts extends IvoryApp {
   case class CliArguments(path: String)

@@ -56,12 +56,4 @@ object IvoryRetire {
   val extractChord = com.ambiata.ivory.extract.Chord.onHdfs _
   val pivot = com.ambiata.ivory.extract.Pivot.onHdfs _
 
-  /**
-   * Validate, these APIs are too low level, and will be replaced by more
-   * general validation mechanisms.
-   */
-  val validateStore = com.ambiata.ivory.validate.Validate.validateHdfsStore _
-  val validateFactSet = com.ambiata.ivory.validate.Validate.validateHdfsFactSet _
-  val validateFact = com.ambiata.ivory.validate.Validate.validateFact _
-  val validateEncoding = com.ambiata.ivory.validate.Validate.validateEncoding _
 }
