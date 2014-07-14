@@ -1,6 +1,7 @@
 package com.ambiata.ivory.mr
 
 import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.ivory.core.thrift._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 
@@ -24,8 +25,6 @@ case class ThriftCache(base: Path, id: ContextId) {
   val distCache = DistCache(base, id)
   val serializer = new TSerializer(new TCompactProtocol.Factory)
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
-
-  type ThriftLike = org.apache.thrift.TBase[_ <: org.apache.thrift.TBase[_, _], _ <: org.apache.thrift.TFieldIdEnum]
 
   /* Push a thrift data-type to the distributed cache for this job, under the
      specified key. This fails _hard_ if anything goes wrong. */

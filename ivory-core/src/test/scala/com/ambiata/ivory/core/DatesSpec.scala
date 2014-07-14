@@ -67,8 +67,9 @@ Generic Time Format Parsing
     (Dates.date("2001-02-29") must beNone)
   }
 
-  def zonesymmetric = prop((dz: (DateTime, DateTimeZone), ivory: DateTimeZone) => runExample(dz._1, dz._2, ivory) ==> {
-    val (d, local) = dz
+  def zonesymmetric = prop((dz: DateTimeWithZone, ivory: DateTimeZone) => runExample(dz.datetime, dz.zone, ivory) ==> {
+    val d = dz.datetime
+    val local = dz.zone
     (Dates.datetimezone(d.iso8601(local), local) must beSome(d)) and
     (Dates.datetimezone(d.iso8601(local), ivory) must beSome((iDate: DateTime) => {
       // TODO: Fix when we handle DST
@@ -81,8 +82,9 @@ Generic Time Format Parsing
     }))
   }).set(minTestsOk = 10000)
 
-  def timesymmetric = prop((dz: (DateTime, DateTimeZone), ivory: DateTimeZone) => runExample(dz._1, dz._2, ivory) ==> {
-    val (d, local) = dz
+  def timesymmetric = prop((dz: DateTimeWithZone, ivory: DateTimeZone) => runExample(dz.datetime, dz.zone, ivory) ==> {
+    val d = dz.datetime
+    val local = dz.zone
     (Dates.datetime(d.localIso8601, local, local) must beSome(d)) and
     (Dates.datetime(d.localIso8601, local, ivory) must beSome((iDate: DateTime) => {
       // TODO: Fix when we handle DST

@@ -10,6 +10,7 @@ import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi.ScoobiAction
+import com.ambiata.ivory.scoobi.TestConfigurations
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import IvoryStorage._
@@ -25,7 +26,7 @@ class PivotSpec extends Specification with SampleFacts { def is = s2"""
 """
 
   def e1 = {
-    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
+    implicit val sc: ScoobiConfiguration = TestConfigurations.scoobiConfiguration
 
     val directory = path(TempFiles.createTempDir("pivot").getPath)
     val repo = Repository.fromHdfsPath(directory </> "repo", sc)

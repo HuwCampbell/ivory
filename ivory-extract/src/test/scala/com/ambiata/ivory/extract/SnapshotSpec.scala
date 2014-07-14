@@ -7,6 +7,7 @@ import com.nicta.scoobi.testing.TempFiles
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.extract._
+import com.ambiata.ivory.scoobi.TestConfigurations
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.legacy._
 import org.apache.hadoop.fs.Path
@@ -20,7 +21,8 @@ class SnapshotSpec extends Specification with SampleFacts { def is = s2"""
 """
 
   def e1 = {
-    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
+    implicit val sc: ScoobiConfiguration = TestConfigurations.scoobiConfiguration
+
     val directory = path(TempFiles.createTempDir("snapshot").getPath)
     val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 

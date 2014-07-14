@@ -37,24 +37,22 @@ Eavt Parse Formats
     , fact.date.hyphenated + " " + fact.time.hhmmss
     )) must_== Success(fact))
 
-  def standard = prop((fz: (Fact, DateTimeZone)) => {
-    val (fact, z) = fz
-    EavtParsers.fact(TestDictionary, fact.namespace, z).run(List(
-      fact.entity
-    , fact.feature
-    , fact.value.stringValue.getOrElse("?")
-    , fact.datetime.iso8601(z)
-    )) must_== Success(fact)
+  def standard = prop((fz: SparseEntities) => {
+    EavtParsers.fact(TestDictionary, fz.fact.namespace, fz.zone).run(List(
+      fz.fact.entity
+    , fz.fact.feature
+    , fz.fact.value.stringValue.getOrElse("?")
+    , fz.fact.datetime.iso8601(fz.zone)
+    )) must_== Success(fz.fact)
   })
 
-  def zones = prop((fz: (Fact, DateTimeZone)) => {
-    val (fact, z) = fz
-    EavtParsers.fact(TestDictionary, fact.namespace, z).run(List(
-      fact.entity
-    , fact.feature
-    , fact.value.stringValue.getOrElse("?")
-    , fact.date.hyphenated + " " + fact.time.hhmmss
-    )) must_== Success(fact)
+  def zones = prop((fz: SparseEntities) => {
+    EavtParsers.fact(TestDictionary, fz.fact.namespace, fz.zone).run(List(
+      fz.fact.entity
+    , fz.fact.feature
+    , fz.fact.value.stringValue.getOrElse("?")
+    , fz.fact.date.hyphenated + " " + fz.fact.time.hhmmss
+    )) must_== Success(fz.fact)
   })
 
   def parsefail = prop((bad: BadEavt) =>
@@ -65,7 +63,7 @@ Eavt Parse Formats
    */
   case class BadEavt(string: String, namespace: String, timezone: DateTimeZone)
   implicit def BadEavtArbitrary: Arbitrary[BadEavt] = Arbitrary(for {
-    e                   <- Gen.oneOf(TestEntities)
+    e                   <- Gen.oneOf(testEntities(10000))
     (a, v, t, ns, m, z) <- Gen.oneOf(for {
       (f, m) <- Gen.oneOf(TestDictionary.meta.toList)
       a      <- arbitrary[String].retryUntil(s => !TestDictionary.meta.toList.exists(_._1.name == s))
