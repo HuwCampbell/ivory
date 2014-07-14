@@ -181,7 +181,14 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
 
   def mv(src: Path, dest: Path): Hdfs[Path] = for {
     fs <- filesystem
-    r  <- if(fs.rename(src, dest)) Hdfs.value(dest) else Hdfs.fail(s"Could not move ${src} to ${dest}")
+    newDest <- Hdfs.safe {
+      // Evil. Unfortunate moving dirs to dirs in HDFS is (intentionally) broken in local mode
+      // https://issues.apache.org/jira/browse/HADOOP-9507
+      if (fs.getScheme == "file" && fs.isDirectory(src) && fs.isDirectory(dest))
+        new Path(dest, src.getName)
+      else dest
+    }
+    r <- if(fs.rename(src, newDest)) Hdfs.value(dest) else Hdfs.fail(s"Could not move ${src} to ${dest}")
   } yield r
 
   def delete(p: Path): Hdfs[Unit] =
