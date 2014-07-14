@@ -1,0 +1,22 @@
+#!/bin/sh -eu
+
+# Downloads a specific version of ivory, caches the output and outputs the path to the executable
+
+VERSION=$1
+DIST=target/dist
+SCALA_VERSION=${SCALA_VERSION:-"2.10"}
+
+mkdir -p "$DIST"
+
+if [ ! -e "${DIST}/ivory-cli-${VERSION}" ]; then
+  # Redirect stdout to stderr so we don't confuse consumers who rely on just the path being "returned"
+  # Note that before 20140704013114-9062d18 we didn't have have a tar distribution, only the jar
+  aws s3 cp "s3://ambiata-oss/com.ambiata/ivory-cli_${SCALA_VERSION}/${VERSION}/dists/ivory_${SCALA_VERSION}.tgz" /tmp 1>&2
+  tar xf "/tmp/ivory_${SCALA_VERSION}.tgz" -C "${DIST}"
+  rm -r "/tmp/ivory_${SCALA_VERSION}.tgz"
+  # Old versions of the ivory script are not compatible with /bin/sh
+  sed -i 's/BASE=$((/BASE=$( (/' "${DIST}/ivory-cli-${VERSION}/bin/ivory"
+fi
+
+# Allow callers to now find and then execute this version
+echo "${DIST}/ivory-cli-${VERSION}/bin/ivory"
