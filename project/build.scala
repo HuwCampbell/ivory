@@ -63,7 +63,7 @@ object build extends Build {
   , settings = standardSettings ++ lib("api") ++ mimaDefaultSettings ++ Seq[Settings](
       name := "ivory-api"
     , previousArtifact := Some("com.ambiata" %% "ivory-api" % "1.0.0-cdh5-20140703185823-2efc9c3")
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value))
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.slf4j)
   )
   .dependsOn(generate, ingest, tools, extract)
 
@@ -73,8 +73,9 @@ object build extends Build {
   , settings = standardSettings ++ app("benchmark") ++ Seq[Settings](
       name := "ivory-benchmark"
     , fork in run := true
+    , run in Compile <<= Defaults.runTask(fullClasspath in Compile, mainClass in (Compile, run), runner in (Compile, run))
     , javaOptions in run <++= (fullClasspath in Runtime).map(cp => Seq("-cp", sbt.Attributed.data(cp).mkString(":")))
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.caliper)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.caliper)
   )
   .dependsOn(api)
 
@@ -166,7 +167,7 @@ object build extends Build {
       name := "ivory-extract"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2 ++ depend.mundane)
   )
-  .dependsOn(core, scoobi, storage, mr, storage % "test->test")
+  .dependsOn(core, scoobi, storage, mr, core % "test->test", scoobi % "test->test", storage % "test->test")
 
   lazy val generate = Project(
     id = "generate"
@@ -184,7 +185,7 @@ object build extends Build {
       name := "ivory-ingest"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.scoobi(version.value) ++ depend.saws ++ depend.mundane)
   )
-  .dependsOn(core, storage, alien_hdfs, scoobi, mr)
+  .dependsOn(core, storage, alien_hdfs, scoobi, mr, scoobi % "test->test")
 
   lazy val mr = Project(
     id = "mr"
@@ -193,7 +194,7 @@ object build extends Build {
       name := "ivory-mr"
     ) ++ Seq[Settings](libraryDependencies ++= depend.thrift ++ depend.mundane ++ depend.scalaz ++ depend.specs2 ++ depend.hadoop(version.value))
   )
-  .dependsOn(core, alien_hdfs)
+  .dependsOn(core, alien_hdfs, core % "test->test")
 
   lazy val scoobi = Project(
     id = "scoobi"
@@ -211,7 +212,7 @@ object build extends Build {
       name := "ivory-storage"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2 ++ depend.saws)
   )
-  .dependsOn(core, data, scoobi, alien_hdfs, core % "test->test")
+  .dependsOn(core, data, scoobi, alien_hdfs, core % "test->test",  scoobi % "test->test")
 
   lazy val tools = Project(
     id = "tools"
@@ -238,8 +239,7 @@ object build extends Build {
   )
 
   lazy val testingSettings: Seq[Settings] = Seq(
-    initialCommands in console := "import org.specs2._"
-  , logBuffered := false
+    logBuffered := false
   , cancelable := true
   , fork in test := true
   , testOptions in Test += Tests.Setup(() => System.setProperty("log4j.configuration", "file:etc/log4j-test.properties"))

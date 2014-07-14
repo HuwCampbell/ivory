@@ -39,7 +39,7 @@ object SeqSchemas {
   }
 
   /* WARNING THIS IS NOT SAFE TO EXPOSE, DANGER LURKS, SEE ThriftFactSeqSchema */
-  private def mkThriftSchema[A](empty: A)(implicit ev: A <:< org.apache.thrift.TBase[_ <: org.apache.thrift.TBase[_, _], _ <: org.apache.thrift.TFieldIdEnum]) = new SeqSchema[A] {
+  private def mkThriftSchema[A](empty: A)(implicit ev: A <:< ThriftLike) = new SeqSchema[A] {
     type SeqType = BytesWritable
     val serialiser = ThriftSerialiser()
 

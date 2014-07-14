@@ -29,7 +29,8 @@ object depend {
                       "com.ambiata"          %% c                 % "1.2.1-20140708033412-e6bdaf5") ++
                   Seq("com.ambiata"          %% "mundane-testing" % "1.2.1-20140708033412-e6bdaf5" % "test")
 
-  val caliper   = Seq("com.google.caliper"   %  "caliper"         % "0.5-rc1")
+  val caliper   = Seq("com.google.caliper"   %  "caliper"         % "0.5-rc1",
+                      "com.google.guava"     %  "guava"           % "14.0.1" force())
 
   // We _need_ 1.6 for running distributed jobs - otherwise libthrift brings in 1.5 and things break
   val slf4j     = Seq("org.slf4j"            % "slf4j-api"        % "1.6.4")

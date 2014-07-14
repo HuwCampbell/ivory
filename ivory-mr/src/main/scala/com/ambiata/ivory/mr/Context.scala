@@ -9,11 +9,13 @@ import java.util.UUID
 
 import com.ambiata.ivory.alien.hdfs._
 
+import scalaz.syntax.bind._
+
 case class ContextId(value: String)
 
 object ContextId {
-  def namespacedContextId(namespace: String, job: Job): ContextId =
-    ContextId(s"${namespace}-${job.getJobName}-${UUID.randomUUID.toString}")
+  def namespacedContextId(namespace: String): ContextId =
+    ContextId(s"${namespace}-${UUID.randomUUID.toString}")
 
   def randomContextId: ContextId =
     ContextId(UUID.randomUUID.toString)
@@ -46,7 +48,7 @@ object MrContext {
    * again from the configuration object.
    */
   def newContext(namespace: String, job: Job): MrContext = {
-    val id = ContextId.namespacedContextId(namespace, job)
+    val id = ContextId.namespacedContextId(namespace)
     job.getConfiguration.set(MrContext.Keys.Id, id.value)
     MrContext(id)
   }

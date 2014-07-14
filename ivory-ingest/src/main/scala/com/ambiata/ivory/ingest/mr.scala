@@ -41,7 +41,7 @@ object IngestJob {
     val ctx = MrContext.newContext("ivory-ingest", job)
 
     job.setJarByClass(classOf[IngestMapper])
-    job.setJobName("ivory-ingest")
+    job.setJobName(ctx.id.value)
 
     /* map */
     job.setMapperClass(classOf[IngestMapper])
@@ -188,7 +188,7 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
   val kout = new LongWritable
 
   /* The output value, only create once per mapper. */
-  val vout = new BytesWritable
+  val vout = Writables.bytesWritable(4096)
 
   /* Path this mapper is processing */
   var splitPath: Path = null
@@ -204,7 +204,6 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
     ingestZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IngestZone))
     base = context.getConfiguration.get(IngestJob.Keys.IngestBase)
     splitPath = MrContext.getSplitPath(context.getInputSplit)
-    vout.setCapacity(4096)
   }
 
   override def cleanup(context: Mapper[LongWritable, Text, LongWritable, BytesWritable]#Context): Unit =
