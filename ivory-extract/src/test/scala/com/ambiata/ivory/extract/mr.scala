@@ -66,12 +66,9 @@ SnapshotMapperSpec
     val empty = new NamespacedThriftFact with NamespacedThriftFactDerived
 
     fs.foreach(f => {
-      def matchFunc() {
-        kout.copyBytes must_== f.entity.getBytes ++ f.namespace.getBytes ++ f.feature.getBytes
-        vout.copyBytes must_== serializer.serialize(new PriorityTag(priority.toShort, ByteBuffer.wrap(serializer.serialize(f.toNamespacedThrift))))
-      }
-      
-      map(empty, serializer.serialize(f.toNamespacedThrift), kstate, vstate, kout, vout, matchFunc _, deserializer)
+      map(empty, serializer.serialize(f.toNamespacedThrift), kstate, vstate, kout, vout, () => (), deserializer)
+      (kout.copyBytes must_== f.entity.getBytes ++ f.namespace.getBytes ++ f.feature.getBytes) and
+      (vout.copyBytes must_== serializer.serialize(new PriorityTag(priority.toShort, ByteBuffer.wrap(serializer.serialize(f.toNamespacedThrift)))))
     })
   }
 }

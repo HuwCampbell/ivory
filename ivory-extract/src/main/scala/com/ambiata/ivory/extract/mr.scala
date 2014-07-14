@@ -227,6 +227,22 @@ trait SnapshotFactsetThiftMapper[A <: ThriftLike] extends SnapshotFactsetBaseMap
   /* Function to parse a fact given the path to the file containing the fact and the thrift fact */
   val parseFact: (String, A) => ParseError \/ Fact
 
+  var counterNameOk: String = null
+  var counterNameSkip: String = null
+  val counterGroup = "ivory"
+
+  def commit(context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context)() {
+    context.write(kout, vout)
+  }
+
+  def parse(a: A): ParseError \/ Fact =
+    parseFact(stringPath, a)
+
+  override def setup(context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = {
+    counterNameOk = s"snapshot.${version}.ok"
+    counterNameSkip = s"snapshot.${version}.skip"
+  }
+
   /**
    * Map over thrift factsets, dropping any facts in the future of `date`
    *
@@ -235,10 +251,10 @@ trait SnapshotFactsetThiftMapper[A <: ThriftLike] extends SnapshotFactsetBaseMap
    * 2. snapshot.$version.skip - number of facts skipped because they were in the future
    */
   override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = {
-    context.getCounter("ivory", s"snapshot.${version}.ok").increment(1)
-    if(!SnapshotFactsetThriftMapper.map(thrift, date, (a: A) => parseFact(stringPath, a), value.copyBytes,
-                                        kstate, vstate, kout, vout, () => context.write(kout, vout), deserializer))
-      context.getCounter("ivory", s"snapshot.${version}.skip").increment(1)
+    context.getCounter(counterGroup, counterNameOk).increment(1)
+    if(!SnapshotFactsetThriftMapper.map(thrift, date, parse, value.copyBytes,
+                                        kstate, vstate, kout, vout, commit(context), deserializer))
+      context.getCounter(counterGroup, counterNameSkip).increment(1)
   }
 }
 
@@ -303,11 +319,16 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
   /* State management for mapper values, created once per mapper and mutated per record */
   val vstate = SnapshotMapper.ValueState(Priority.Max)
 
-  override def setup(context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = { }
+  val counterNameOk = "snapshot.incr.ok"
+  val counterGroup = "ivory"
+
+  def commit(context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context)() {
+    context.write(kout, vout)
+  }
 
   override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = {
-    context.getCounter("ivory", "snapshot.incr.ok").increment(1)
-    SnapshotIncrementalMapper.map(fact, value.copyBytes, kstate, vstate, kout, vout, () => context.write(kout, vout), deserializer)
+    context.getCounter(counterGroup, counterNameOk).increment(1)
+    SnapshotIncrementalMapper.map(fact, value.copyBytes, kstate, vstate, kout, vout, commit(context), deserializer)
   }
 }
 
@@ -346,8 +367,6 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
 
   /* Output value, created once per reducer and mutated per record */
   val vout = Writables.bytesWritable(4096)
-
-  override def setup(context: Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context): Unit = { }
 
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context): Unit = {
     SnapshotReducer.reduce(fact, priorityTag, kout, vout, iter.iterator, () => context.write(kout, vout), deserializer)
