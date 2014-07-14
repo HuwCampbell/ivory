@@ -1,7 +1,6 @@
 package com.ambiata.ivory.extract
 
-import com.nicta.scoobi.Scoobi._
-import scalaz.{DList => _, _}, Scalaz._
+import scalaz._, Scalaz._
 import com.ambiata.ivory.core._
 
 object Validate {
