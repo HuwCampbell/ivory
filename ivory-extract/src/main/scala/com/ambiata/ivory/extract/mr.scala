@@ -115,7 +115,7 @@ object SnapshotJob {
 object SnapshotMapper {
   type MapperContext = Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context
 
-  /**
+  /*
    * Mutate a BytesWritable with the snapshot mapper key (entity, namespace, feature)
    */
   case class KeyState(capacity: Int) {
@@ -132,7 +132,7 @@ object SnapshotMapper {
     }
   }
 
-  /**
+  /*
    * Mutate a PriorityTag with the serialized bytes of a fact, along with the factset
    * priority
    */
@@ -249,7 +249,7 @@ trait SnapshotFactsetThiftMapper[A <: ThriftLike] extends SnapshotFactsetBaseMap
     parse = (a: A) => parseFact(stringPath, a)
   }
 
-  /**
+  /*
    * Map over thrift factsets, dropping any facts in the future of `date`
    *
    * This will create two counters:
@@ -285,7 +285,7 @@ object SnapshotFactsetThriftMapper {
   }
 }
 
-/**
+/*
  * FactsetVersionOne mapper
  */
 class SnapshotFactsetVersionOneMapper extends SnapshotFactsetThiftMapper[ThriftFact] {
@@ -294,7 +294,7 @@ class SnapshotFactsetVersionOneMapper extends SnapshotFactsetThiftMapper[ThriftF
   val parseFact = PartitionFactThriftStorageV1.parseFact _
 }
 
-/**
+/*
  * FactsetVersionTwo mapper
  */
 class SnapshotFactsetVersionTwoMapper extends SnapshotFactsetThiftMapper[ThriftFact] {
@@ -303,7 +303,7 @@ class SnapshotFactsetVersionTwoMapper extends SnapshotFactsetThiftMapper[ThriftF
   val parseFact = PartitionFactThriftStorageV2.parseFact _
 }
 
-/**
+/*
  * Incremental snapshot mapper.
  */
 class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
