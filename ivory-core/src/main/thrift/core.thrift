@@ -39,7 +39,8 @@ enum ThriftDictionaryEncoding {
     INT = 1,
     LONG = 2,
     DOUBLE = 3,
-    STRING = 4
+    STRING = 4,
+    STRUCT = 5
 }
 
 enum ThriftDictionaryType {
@@ -47,6 +48,40 @@ enum ThriftDictionaryType {
     CONTINOUS = 1,
     CATEGORICAL = 2,
     BINARY = 3
+}
+
+union ThriftDictionaryStructMetaOpts {
+    1: bool isOptional;
+}
+
+/**
+ * NOTE: The current encoding of structs is far from optimal/ideal, and is to avoid an early bump in Dictionary verions.
+ * When we decide to make a new version of the dictionary, something like the following would be better.
+ *
+ * struct IntEncoding {}
+ * struct ...Encoding {}
+ * struct StringEncoding {}
+ * struct StructEncoding {
+ *  1:  list<ThriftDictionaryStructMeta> values;
+ * }
+ * union ThriftDicitonaryEncoding {
+ *  1: IntEncoding intEncoding;
+ *  2: ...
+ *  n: StructEncoding structEncoding;
+ * }
+ */
+struct ThriftDictionaryStructMeta {
+    1: string name;
+    2: ThriftDictionaryEncoding encoding;
+    3: ThriftDictionaryStructMetaOpts opts
+}
+
+struct ThriftDictionaryStruct {
+    1: list<ThriftDictionaryStructMeta> values;
+}
+
+union ThriftDictionaryFeatureValue {
+    1: ThriftDictionaryStruct structValue;
 }
 
 struct ThriftDictionaryFeatureId {
@@ -59,6 +94,7 @@ struct ThriftDictionaryFeatureMeta {
     2: ThriftDictionaryType type;
     3: string desc;
     4: list<string> tombstoneValue;
+    5: optional ThriftDictionaryFeatureValue value;
 }
 
 struct ThriftDictionary {

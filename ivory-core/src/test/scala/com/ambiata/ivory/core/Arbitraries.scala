@@ -88,12 +88,27 @@ object Arbitraries {
     } yield FeatureId(ns, name) -> FeatureMeta(enc, ty, desc, tombs)).map(Dictionary))
 
   implicit def EncodingArbitrary: Arbitrary[Encoding] =
+    Arbitrary(Gen.oneOf(arbitrary[PrimitiveEncoding], arbitrary[StructEncoding]))
+
+  implicit def PrimitiveEncodingArbitrary: Arbitrary[PrimitiveEncoding] =
     Arbitrary(Gen.oneOf(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding))
+
+  implicit def StructEncodingArbitrary: Arbitrary[StructEncoding] =
+    Arbitrary(Gen.mapOf[String, StructValue](for {
+      name <- arbitrary[String]
+      enc <- arbitrary[PrimitiveEncoding]
+      optional <- arbitrary[Boolean]
+    } yield name -> StructValue(enc, optional)).map(StructEncoding))
 
   implicit def TypeArbitrary: Arbitrary[Type] =
     Arbitrary(Gen.oneOf(NumericalType, ContinuousType, CategoricalType, BinaryType))
 
   def valueOf(encoding: Encoding): Gen[Value] = encoding match {
+    case p: PrimitiveEncoding => valueOfPrim(p)
+    case _ => sys.error(s"Gen of $encoding not supported (yet)!") // TODO
+  }
+
+  def valueOfPrim(encoding: PrimitiveEncoding): Gen[Value] = encoding match {
     case BooleanEncoding =>
       arbitrary[Boolean].map(BooleanValue)
     case IntEncoding =>

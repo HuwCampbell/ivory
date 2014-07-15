@@ -16,7 +16,8 @@ public enum ThriftDictionaryEncoding implements org.apache.thrift.TEnum {
   INT(1),
   LONG(2),
   DOUBLE(3),
-  STRING(4);
+  STRING(4),
+  STRUCT(5);
 
   private final int value;
 
@@ -47,6 +48,8 @@ public enum ThriftDictionaryEncoding implements org.apache.thrift.TEnum {
         return DOUBLE;
       case 4:
         return STRING;
+      case 5:
+        return STRUCT;
       default:
         return null;
     }

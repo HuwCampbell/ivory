@@ -17,6 +17,7 @@ case class Dictionary(meta: Map[FeatureId, FeatureMeta]) {
   /** append the mappings coming from another dictionary */
   def append(other: Dictionary) =
     Dictionary(meta ++ other.meta)
+
 }
 
 case class FeatureId(namespace: String, name: String) {
@@ -38,14 +39,32 @@ case class FeatureMeta(encoding: Encoding, ty: Type, desc: String, tombstoneValu
 }
 
 sealed trait Encoding
-case object BooleanEncoding   extends Encoding
-case object IntEncoding       extends Encoding
-case object LongEncoding      extends Encoding
-case object DoubleEncoding    extends Encoding
-case object StringEncoding    extends Encoding
+
+sealed trait PrimitiveEncoding extends SubEncoding
+case object BooleanEncoding   extends PrimitiveEncoding
+case object IntEncoding       extends PrimitiveEncoding
+case object LongEncoding      extends PrimitiveEncoding
+case object DoubleEncoding    extends PrimitiveEncoding
+case object StringEncoding    extends PrimitiveEncoding
+
+sealed trait SubEncoding extends Encoding
+
+case class StructEncoding(values: Map[String, StructValue]) extends SubEncoding
+
+// NOTE: For now we don't support nested structs
+case class StructValue(encoding: PrimitiveEncoding, optional: Boolean = false) {
+  def opt: StructValue =
+    if (optional) this else copy(optional = true)
+}
 
 object Encoding {
+
   def render(enc: Encoding): String = enc match {
+    case e: PrimitiveEncoding => renderPrimitive(e)
+    case _: StructEncoding    => sys.error("Encoding of structs not supported yet!") // TODO
+  }
+
+  def renderPrimitive(enc: PrimitiveEncoding): String = enc match {
     case BooleanEncoding => "boolean"
     case IntEncoding     => "int"
     case LongEncoding    => "long"
