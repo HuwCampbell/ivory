@@ -14,6 +14,7 @@ class DictionaryImporterSpec extends Specification { def is = s2"""
  A dictionary can be imported in a ivory repository
    with a dictionary saved as a Path locally               $e1
    with a dictionary when updated                          $e2
+   but fails with an invalid dictionary update             $invalidDict
 
 """
 
@@ -43,5 +44,16 @@ class DictionaryImporterSpec extends Specification { def is = s2"""
         out <- dictionaryFromIvory(repo)
       } yield out
     }.run.unsafePerformIO() must beOkValue(dict1.append(dict2))
+  }
+
+  def invalidDict = {
+    val fid = FeatureId("a", "b")
+    val dict1 = Dictionary(Map(fid -> FeatureMeta(StringEncoding, CategoricalType, "", Nil)))
+    val dict2 = Dictionary(Map(fid -> FeatureMeta(BooleanEncoding, CategoricalType, "", Nil)))
+    Temporary.using { dir =>
+      val repo = Repository.fromLocalPath(dir)
+      fromDictionary(repo, dict1, Override)
+        .flatMap(_ => fromDictionary(repo, dict2, Override))
+    }.run.unsafePerformIO() must beOkLike(_.isFailure)
   }
 }

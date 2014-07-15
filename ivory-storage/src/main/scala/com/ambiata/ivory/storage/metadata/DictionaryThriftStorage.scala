@@ -24,6 +24,9 @@ case class DictionaryThriftStorage(repository: Repository) {
       case (_, dict)                => store(dict).map(_._1 -> dict)
     }
 
+  def loadOption: ResultTIO[Option[Dictionary]] =
+    load.map(some) ||| ResultT.ok(none)
+
   private def loadWithId: ResultTIO[(Option[Identifier], Dictionary)] =
     IdentifierStorage.getOrFail(store, dictDir).flatMap(path => loadFromId(path._1).map(Some(path._1) ->)) |||
       loadDates.map(none ->) |||

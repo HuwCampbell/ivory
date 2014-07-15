@@ -6,23 +6,28 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import scalaz._, effect._
+import scalaz._, Scalaz._, effect._
 
 // FIX move to com.ambiata.ivory.ingest.internal
 object DictionaryImporter {
 
-  def fromPath(repository: Repository, source: StorePathIO, importType: ImportType): ResultTIO[FilePath] =
+  import DictionaryImportValidate._
+
+  def fromPath(repository: Repository, source: StorePathIO, importType: ImportType): ResultTIO[DictValidation[FilePath]] =
     DictionaryTextStorage.dictionaryFromHdfs(source).flatMap(fromDictionary(repository, _, importType))
 
-  def fromDictionary(repository: Repository, dictionary: Dictionary, importType: ImportType): ResultTIO[FilePath] = {
+  def fromDictionary(repository: Repository, dictionary: Dictionary, importType: ImportType): ResultTIO[DictValidation[FilePath]] = {
     val storage = DictionaryThriftStorage(repository)
     for {
-      oldDictionary <- importType match {
-        case Update => storage.load
-        case Override => ResultT.ok[IO, Dictionary](Dictionary(Map()))
+      oldDictionary <- storage.loadOption.map(_.getOrElse(Dictionary(Map())))
+      newDictionary = importType match {
+        case Update => oldDictionary.append(dictionary)
+        case Override => dictionary
       }
-      out <- storage.store(oldDictionary.append(dictionary))
-    } yield out._2
+      path <- validate(oldDictionary, newDictionary).traverseU {
+        _ => storage.store(newDictionary).map(_._2)
+      }
+    } yield path
   }
 
   sealed trait ImportType

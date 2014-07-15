@@ -1,6 +1,7 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.io._
 import com.ambiata.ivory.ingest._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
@@ -30,9 +31,13 @@ object importDictionary extends IvoryApp {
       for {
         repository <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(c.repo, configuration).leftMap(\&/.This(_)))
         source <- ResultT.fromDisjunction[IO, StorePathIO](StorePath.fromUri(c.path, configuration).leftMap(\&/.This(_)))
-        newPath <- DictionaryImporter.fromPath(repository, source,
+        newPathVal <- DictionaryImporter.fromPath(repository, source,
           if (c.update) DictionaryImporter.Update else DictionaryImporter.Override
         )
+        newPath <- newPathVal match {
+          case Success(path) => ResultT.ok[IO, FilePath](path)
+          case Failure(errors) => ResultT.fail[IO, FilePath](errors.list.mkString("\n"))
+        }
       } yield List(s"Successfully imported dictionary ${c.path} into ${c.repo} under $newPath.")
   })
 }
