@@ -35,12 +35,6 @@ case class DictionaryThriftStorage(repository: Repository) {
     dicts     <- dictPaths.traverseU(path => DictionaryTextStorage.dictionaryFromHdfs(StorePath(store, path)))
   } yield dicts.foldLeft(Dictionary(Map()))(_ append _)
 
-  def loadFromRef(path: FilePath): ResultTIO[Dictionary] = for {
-    idS  <- store.utf8.read(path)
-    id   <- ResultT.fromOption[IO, Identifier](Identifier.parse(idS), s"No dictionary ref found at $path")
-    dict <- loadFromId(id)
-  } yield dict
-
   def loadFromId(identifier: Identifier): ResultTIO[Dictionary] =
     loadFromPath(dictDir </> identifier.render </> DATA)
 
