@@ -18,6 +18,7 @@ import org.apache.hadoop.fs.Path
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
+import com.ambiata.ivory.scoobi.TestConfigurations._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
@@ -32,7 +33,8 @@ ChordSpec
 
 """
   def e1 = {
-    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
+    implicit val sc: ScoobiConfiguration = scoobiConfiguration
+
     val directory = path(TempFiles.createTempDir("chord").getPath)
     val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 

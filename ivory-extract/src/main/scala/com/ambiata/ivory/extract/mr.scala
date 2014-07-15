@@ -9,6 +9,7 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.mr._
 
 import java.lang.{Iterable => JIterable}
+import java.util.{Iterator => JIterator}
 import java.nio.ByteBuffer
 
 import scalaz.{Reducer => _, _}, Scalaz._
@@ -37,10 +38,10 @@ object SnapshotJob {
     val ctx = MrContext.newContext("ivory-snapshot", job)
 
     job.setJarByClass(classOf[SnapshotReducer])
-    job.setJobName("ivory-snapshot")
+    job.setJobName(ctx.id.value)
 
     /* map */
-    job.setMapOutputKeyClass(classOf[Text]);
+    job.setMapOutputKeyClass(classOf[BytesWritable]);
     job.setMapOutputValueClass(classOf[BytesWritable]);
 
     /* partiton & sort */
@@ -105,12 +106,53 @@ object SnapshotJob {
     lookup
   }
 
-  def outputKey(f: Fact): String =
-    s"${f.entity}|${f.namespace}|${f.feature}"
-
   object Keys {
     val SnapshotDate = "ivory.snapdate"
     val FactsetLookup = ThriftCache.Key("factset-lookup")
+  }
+}
+
+object SnapshotMapper {
+  type MapperContext = Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context
+
+  /**
+   * Mutate a BytesWritable with the snapshot mapper key (entity, namespace, feature)
+   */
+  case class KeyState(capacity: Int) {
+    val keyBytes = new Array[Byte](capacity)
+
+    def set(f: Fact, state: BytesWritable) {
+      val b1 = f.entity.getBytes
+      val b2 = f.namespace.getBytes
+      val b3 = f.feature.getBytes
+      System.arraycopy(b1, 0, keyBytes, 0, b1.length)
+      System.arraycopy(b2, 0, keyBytes, b1.length, b2.length)
+      System.arraycopy(b3, 0, keyBytes, b1.length + b2.length, b3.length)
+      state.set(keyBytes, 0, b1.length + b2.length + b3.length)
+    }
+  }
+
+  /**
+   * Mutate a PriorityTag with the serialized bytes of a fact, along with the factset
+   * priority
+   */
+  case class ValueState(priority: Priority) {
+    val priorityTag = new PriorityTag
+    val serializer = new TSerializer(new TCompactProtocol.Factory)
+
+    def set(f: Fact, state: BytesWritable) {
+      priorityTag.clear()
+      priorityTag.setPriority(priority.toShort)
+      priorityTag.setBytes(ByteBuffer.wrap(serializer.serialize(f.toNamespacedThrift)))
+      val bytes = serializer.serialize(priorityTag)
+      state.set(bytes, 0, bytes.length)
+    }
+  }
+
+  def map(fact: Fact, kstate: KeyState, vstate: ValueState, kout: BytesWritable, vout: BytesWritable, commit: () => Unit, deserializer: TDeserializer) {
+    kstate.set(fact, kout)
+    vstate.set(fact, vout)
+    commit()
   }
 }
 
@@ -124,20 +166,14 @@ object SnapshotJob {
  * The output key is a sting of entity|namespace|attribute
  *
  * The output value is expected (can not be typed checked because its all bytes) to be
- * a thrift serialized PrioritizedFactBytes object. This is a container that holds a
+ * a thrift serialized PriorityTag object. This is a container that holds a
  * factset priority and thrift serialized NamespacedFact object.
  */
-abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritable, Text, BytesWritable] {
+abstract class SnapshotFactsetBaseMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
+  import SnapshotMapper._
 
   /* Context object holding dist cache paths */
   var ctx: MrContext = null
-
-  /* Thrift serializer/deserializer. */
-  val serializer = new TSerializer(new TCompactProtocol.Factory)
-  val deserializer = new TDeserializer(new TCompactProtocol.Factory)
-
-  /* Empty instance to use when deserialising */
-  val tfact = new ThriftFact
 
   /* Snapshot date, see #setup. */
   var strDate: String = null
@@ -146,11 +182,17 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
   /* Lookup table for facset priority */
   val lookup = new FactsetLookup
 
+  /* Key state management, create once per mapper */
+  val kstate = KeyState(4096)
+
+  /* Value state management, create once per mapper */
+  var vstate: ValueState = null
+
   /* The output key, only create once per mapper. */
-  val kout = new Text
+  val kout = Writables.bytesWritable(4096)
 
   /* The output value, only create once per mapper. */
-  val vout = new BytesWritable
+  val vout = Writables.bytesWritable(4096)
 
   /* Partition created from input split path, only created once per mapper */
   var partition: Partition = null
@@ -158,10 +200,7 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
   /* Input split path, only created once per mapper */
   var stringPath: String = null
 
-  /* Priority of the factset, only created once per record */
-  var priority: Short = 0
-
-  override def setup(context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
+  override def setup(context: MapperContext): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
@@ -171,105 +210,146 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
       case Success(p) => p
       case Failure(e) => sys.error(s"Can not parse partition ${e}")
     }
-    priority = lookup.priorities.get(partition.factset.name)
+    val priority = lookup.priorities.get(partition.factset.name)
+    vstate = ValueState(Priority.unsafe(priority))
+  }
+}
+
+trait SnapshotFactsetThiftMapper[A <: ThriftLike] extends SnapshotFactsetBaseMapper {
+  import SnapshotMapper._
+
+  /* Thrift deserializer. */
+  val deserializer = new TDeserializer(new TCompactProtocol.Factory)
+
+  /* Thrift object provided from sub class, created once per mapper */
+  val thrift: A
+
+  /* Version string provided from sub class and to be used for counter names, created once per mapper */
+  val version: String
+
+  /* Function to parse a fact given the path to the file containing the fact and the thrift fact.
+   * Defined in the sub class */
+  val parseFact: (String, A) => ParseError \/ Fact
+
+  /* This is set through the setup method and will call parseFact above with the string path */
+  var parse: A => ParseError \/ Fact = null
+
+  var counterNameOk: String = null
+  var counterNameSkip: String = null
+  val counterGroup = "ivory"
+
+  val commit: MapperContext => () => Unit = (context: MapperContext) => () => {
+    context.write(kout, vout)
+  }
+
+  override def setup(context: MapperContext): Unit = {
+    super.setup(context)
+    counterNameOk = s"snapshot.${version}.ok"
+    counterNameSkip = s"snapshot.${version}.skip"
+    parse = (a: A) => parseFact(stringPath, a)
+  }
+
+  /**
+   * Map over thrift factsets, dropping any facts in the future of `date`
+   *
+   * This will create two counters:
+   * 1. snapshot.$version.ok - number of facts read
+   * 2. snapshot.$version.skip - number of facts skipped because they were in the future
+   */
+  override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
+    context.getCounter(counterGroup, counterNameOk).increment(1)
+    if(!SnapshotFactsetThriftMapper.map(thrift, date, parse, value.copyBytes,
+                                        kstate, vstate, kout, vout, commit(context), deserializer))
+      context.getCounter(counterGroup, counterNameSkip).increment(1)
+  }
+}
+
+object SnapshotFactsetThriftMapper {
+  import SnapshotMapper._
+
+  def map[A <: ThriftLike](thrift: A, date: Date, parseFact: A => ParseError \/ Fact, bytes: Array[Byte],
+                           kstate: KeyState, vstate: ValueState, kout: BytesWritable, vout: BytesWritable,
+                           commit: () => Unit, deserializer: TDeserializer): Boolean = {
+    deserializer.deserialize(thrift, bytes)
+    parseFact(thrift) match {
+      case \/-(f) =>
+        if(f.date > date)
+          false
+        else {
+          SnapshotMapper.map(f, kstate, vstate, kout, vout, commit, deserializer)
+          true
+        }
+      case -\/(e) =>
+        sys.error(s"Can not read fact - ${e}")
+    }
   }
 }
 
 /**
  * FactsetVersionOne mapper
  */
-class SnapshotFactsetVersionOneMapper extends SnapshotFactseBaseMapper {
-  override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
-    deserializer.deserialize(tfact, value.getBytes)
-
-    PartitionFactThriftStorageV1.parseFact(stringPath, tfact) match {
-      case \/-(f) =>
-        context.getCounter("ivory", "snapshot.v1.ok").increment(1)
-
-        if(f.date > date)
-          context.getCounter("ivory", "snapshot.v1.skip").increment(1)
-        else {
-          kout.set(SnapshotJob.outputKey(f))
-
-          val factbytes = serializer.serialize(f.toNamespacedThrift)
-          val v = serializer.serialize(new PrioritizedFactBytes(priority, ByteBuffer.wrap(factbytes)))
-          vout.set(v, 0, v.length)
-
-          context.write(kout, vout)
-        }
-      case -\/(e) =>
-        sys.error(s"Can not read fact - ${e}")
-    }
-  }
+class SnapshotFactsetVersionOneMapper extends SnapshotFactsetThiftMapper[ThriftFact] {
+  val thrift = new ThriftFact
+  val version = "v1"
+  val parseFact = PartitionFactThriftStorageV1.parseFact _
 }
 
 /**
  * FactsetVersionTwo mapper
  */
-class SnapshotFactsetVersionTwoMapper extends SnapshotFactseBaseMapper {
-  override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
-    deserializer.deserialize(tfact, value.getBytes)
-
-    PartitionFactThriftStorageV2.parseFact(stringPath, tfact) match {
-      case \/-(f) =>
-        context.getCounter("ivory", "snapshot.v2.ok").increment(1)
-
-        if(f.date > date)
-          context.getCounter("ivory", "snapshot.v2.skip").increment(1)
-        else {
-          kout.set(SnapshotJob.outputKey(f))
-
-          val factbytes = serializer.serialize(f.toNamespacedThrift)
-          val v = serializer.serialize(new PrioritizedFactBytes(priority, ByteBuffer.wrap(factbytes)))
-          vout.set(v, 0, v.length)
-
-          context.write(kout, vout)
-        }
-      case -\/(e) =>
-        sys.error(s"Can not read fact - ${e}")
-    }
-  }
+class SnapshotFactsetVersionTwoMapper extends SnapshotFactsetThiftMapper[ThriftFact] {
+  val thrift = new ThriftFact
+  val version = "v2"
+  val parseFact = PartitionFactThriftStorageV2.parseFact _
 }
 
 /**
  * Incremental snapshot mapper.
  */
-class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Text, BytesWritable] {
+class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
+  import SnapshotMapper._
 
-  /* Thrift serializer/deserializer. */
-  val serializer = new TSerializer(new TCompactProtocol.Factory)
+  /* Thrift deserializer */
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
 
-  /* Empty instance to use when deserialising */
+  /* Output key, created once per mapper and mutated for each record */
+  val kout = Writables.bytesWritable(4096)
+
+  /* Output value, created once per mapper and mutated for each record */
+  val vout = Writables.bytesWritable(4096)
+
+  /* Empty Fact, created once per mapper and mutated for each record */
   val fact = new NamespacedThriftFact with NamespacedThriftFactDerived
 
-  /* The output key, only create once per mapper. */
-  val kout = new Text
+  /* State management for mapper keys, created once per mapper and mutated per record */
+  val kstate = KeyState(4096)
 
-  /* The output value, only create once per mapper. */
-  val vout = new BytesWritable
+  /* State management for mapper values, created once per mapper and mutated per record */
+  val vstate = ValueState(Priority.Max)
 
-  /* Priority of the incremental is always Priority.Max */
-  val priority = Priority.Max.toShort
+  val counterNameOk = "snapshot.incr.ok"
+  val counterGroup = "ivory"
 
-  override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
-
-    context.getCounter("ivory", "snapshot.incr.ok").increment(1)
-    
-    val size = value.getLength
-    val bytes = new Array[Byte](size)
-    System.arraycopy(value.getBytes, 0, bytes, 0, size)
-
-    deserializer.deserialize(fact, bytes)
-    kout.set(SnapshotJob.outputKey(fact))
-
-    val v = serializer.serialize(new PrioritizedFactBytes(priority, ByteBuffer.wrap(bytes)))
-    vout.set(v, 0, v.length)
-
+  val commit: (MapperContext) => () => Unit = (context: MapperContext) => () => {
     context.write(kout, vout)
+  }
+
+  override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
+    context.getCounter(counterGroup, counterNameOk).increment(1)
+    SnapshotIncrementalMapper.map(fact, value.copyBytes, kstate, vstate, kout, vout, commit(context), deserializer)
   }
 }
 
+object SnapshotIncrementalMapper {
+  import SnapshotMapper._
+
+  def map(fact: NamespacedThriftFact with NamespacedThriftFactDerived, bytes: Array[Byte], kstate: KeyState,
+          vstate: ValueState, kout: BytesWritable, vout: BytesWritable, commit: () => Unit, deserializer: TDeserializer) {
+    fact.clear()
+    deserializer.deserialize(fact, bytes)
+    SnapshotMapper.map(fact, kstate, vstate, kout, vout, commit, deserializer)
+  }
+}
 
 /*
  * Reducer for ivory-snapshot.
@@ -280,52 +360,73 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Text
  *
  * The output is a sequence file, with no key, and the bytes of the serialized NamespacedFact.
  */
-class SnapshotReducer extends Reducer[Text, BytesWritable, NullWritable, BytesWritable] {
+class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable] {
+  import SnapshotReducer._
 
-  /* Thrift deserializer. */
+  /* Thrift deserializer */
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
-  
-  /* empty conainter class used to populate deserialized values. This is mutated per record */
-  val container = new PrioritizedFactBytes
 
-  /* empty fact class used to populate deserialized facts. This is mutated per record */
+  /* Empty Fact, created once per reducer and mutated per record */
   val fact = new NamespacedThriftFact with NamespacedThriftFactDerived
 
-  /* The output value, only create once per mapper. */
-  val vout = new BytesWritable
+  /* Empty PriorityTag, created once per reducer and mutated per record */
+  val priorityTag = new PriorityTag
 
-  override def reduce(key: Text, iter: JIterable[BytesWritable], context: Reducer[Text, BytesWritable, NullWritable, BytesWritable]#Context): Unit = {
+  /* Output key, only create once per reducer */
+  val kout = NullWritable.get
 
-    /****************** !!!!!! WARNING !!!!!! ******************
-     *
-     * This is some nasty nasty mutation that can coorrupt data
-     * without knowing, so double/triple check with others when
-     * changing.
-     *
-     ***********************************************************/
-    val iterator = iter.iterator
+  /* Output value, created once per reducer and mutated per record */
+  val vout = Writables.bytesWritable(4096)
 
-    // use one object to hold state instead of three
-    var latestContainer: PrioritizedFactBytes = null
-    var latestDate = 0l
-    var isTombstone = true
-    while (iterator.hasNext) {
-      val next = iterator.next
-      deserializer.deserialize(container, next.getBytes)
-      deserializer.deserialize(fact, container.getFactbytes) // explain why deserialize twice
-      val nextDate = fact.datetime.long
-      // move the if statement to a function
-      if(latestContainer == null || nextDate > latestDate || (nextDate == latestDate && container.getPriority < latestContainer.getPriority)) {
-        // change to state.set (1 line)
-        latestContainer = container.deepCopy
-        latestDate = nextDate
-        isTombstone = fact.isTombstone
+  val commit: (ReducerContext) => () => Unit = (context: ReducerContext) => () => {
+    context.write(kout, vout)
+  }
+
+  override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
+    SnapshotReducer.reduce(fact, priorityTag, kout, vout, iter.iterator, commit(context), deserializer)
+  }
+}
+
+/****************** !!!!!! WARNING !!!!!! ******************
+ *
+ * There is some nasty mutation in here that can corrupt data
+ * without knowing, so double/triple check with others when
+ * changing.
+ *
+ ***********************************************************/
+object SnapshotReducer {
+  type ReducerContext = Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context
+
+  case class ReduceState(var latestContainer: PriorityTag, var latestDate: Long, var isTombstone: Boolean) {
+    def accept(priorityTag: PriorityTag, nextDate: Long): Boolean =
+      latestContainer == null || nextDate > latestDate || (nextDate == latestDate && priorityTag.getPriority < latestContainer.getPriority)
+
+    def save(fact: Fact, priorityTag: PriorityTag, nextDate: Long): Unit = {
+      latestContainer = priorityTag.deepCopy
+      latestDate = nextDate
+      isTombstone = fact.isTombstone
+    }
+
+    def write(vout: BytesWritable, commit: () => Unit): Unit =
+      if (!isTombstone) {
+        vout.set(latestContainer.getBytes, 0, latestContainer.getBytes.length)
+        commit()
       }
+  }
+
+  def reduce(fact: NamespacedThriftFact with NamespacedThriftFactDerived, priorityTag: PriorityTag, kout: NullWritable,
+             vout: BytesWritable, iter: JIterator[BytesWritable], commit: () => Unit, deserializer: TDeserializer) {
+    val state = ReduceState(null, 0l, true)
+    while(iter.hasNext) {
+      val next = iter.next
+      priorityTag.clear()
+      fact.clear()
+      deserializer.deserialize(priorityTag, next.getBytes) // populate PriorityTag which holds priority and serialized fact
+      deserializer.deserialize(fact, priorityTag.getBytes) // populate fact
+      val nextDate = fact.datetime.long
+      if (state.accept(priorityTag, nextDate))
+        state.save(fact, priorityTag, nextDate)
     }
-    // change to state.write
-    if(!isTombstone) {
-      vout.set(latestContainer.getFactbytes, 0, latestContainer.getFactbytes.length)
-      context.write(NullWritable.get, vout)
-    }
+    state.write(vout, commit)
   }
 }

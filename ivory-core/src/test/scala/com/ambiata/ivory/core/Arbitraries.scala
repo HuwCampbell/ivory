@@ -9,7 +9,7 @@ import scalaz._, Scalaz._
 
 object Arbitraries {
   implicit def PriorityArbitrary: Arbitrary[Priority] =
-    Arbitrary(arbitrary[Short] filter (_ >= 0) map (Priority.unsafe))
+    Arbitrary(Gen.choose(Priority.Min.toShort, Priority.Max.toShort).map(Priority.unsafe))
 
   implicit def DateArbitrary: Arbitrary[Date] =
     Arbitrary(for {
@@ -32,11 +32,12 @@ object Arbitraries {
       t <- arbitrary[Time]
     } yield d.addTime(t))
 
-  implicit def DateTimeWithZoneArbitrary: Arbitrary[(DateTime, DateTimeZone)] =
+  case class DateTimeWithZone(datetime: DateTime, zone: DateTimeZone)
+  implicit def DateTimeWithZoneArbitrary: Arbitrary[DateTimeWithZone] =
     Arbitrary(for {
       dt <- arbitrary[DateTime]
       z  <- arbitrary[DateTimeZone].retryUntil(z => try { dt.joda(z); true } catch { case e: java.lang.IllegalArgumentException => false })
-    } yield (dt, z))
+    } yield DateTimeWithZone(dt, z))
 
   case class BadDateTime(datetime: DateTime, zone: DateTimeZone)
   implicit def BadDateTimeArbitrary: Arbitrary[BadDateTime] =
@@ -73,8 +74,8 @@ object Arbitraries {
   , FeatureId("vegetables", "peas") -> FeatureMeta(IntEncoding, ContinuousType, "Greens", "?" :: Nil)
   ))
 
-  lazy val TestEntities: List[String] =
-    (1 to 10000).toList.map(i => "T+%05d".format(i))
+  def testEntities(n: Int): List[String] =
+    (1 to n).toList.map(i => "T+%05d".format(i))
 
   def valueOf(encoding: Encoding): Gen[Value] = encoding match {
     case BooleanEncoding =>
@@ -89,19 +90,28 @@ object Arbitraries {
       arbitrary[String].map(StringValue)
    }
 
+  def factWithZoneGen(entity: Gen[String]): Gen[(Fact, DateTimeZone)] = for {
+    e      <- entity
+    (f, m) <- Gen.oneOf(TestDictionary.meta.toList)
+    dtz    <- arbitrary[DateTimeWithZone]
+    v      <- Gen.frequency(1 -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding))
+  } yield (Fact.newFact(e, f.namespace, f.name, dtz.datetime.date, dtz.datetime.time, v), dtz.zone)
+
+  case class SparseEntities(fact: Fact, zone: DateTimeZone)
+  case class DenseEntities(fact: Fact, zone: DateTimeZone)
+
   /**
    * Create an arbitrary fact and timezone such that the time in the fact is valid given the timezone
    */
-  implicit def FactWithZoneArbitrary: Arbitrary[(Fact, DateTimeZone)] = Arbitrary(for {
-    e       <- Gen.oneOf(TestEntities)
-    (f, m)  <- Gen.oneOf(TestDictionary.meta.toList)
-    (dt, z) <- arbitrary[(DateTime, DateTimeZone)]
-    v       <- Gen.frequency(1 -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding))
-  } yield (Fact.newFact(e, f.namespace, f.name, dt.date, dt.time, v), z))
+  implicit def SparseEntitiesArbitrary: Arbitrary[SparseEntities] =
+   Arbitrary(factWithZoneGen(Gen.oneOf(testEntities(1000))).map(SparseEntities.tupled))
+
+  implicit def DenseEntitiesArbitrary: Arbitrary[DenseEntities] =
+   Arbitrary(factWithZoneGen(Gen.oneOf(testEntities(50))).map(DenseEntities.tupled))
 
   implicit def FactArbitrary: Arbitrary[Fact] = Arbitrary(for {
-    (f, _) <- arbitrary[(Fact, DateTimeZone)]
-  } yield f)
+    es <- arbitrary[SparseEntities]
+  } yield es.fact)
 
   implicit def DateTimeZoneArbitrary: Arbitrary[DateTimeZone] = Arbitrary(for {
     zid <- Gen.oneOf(DateTimeZone.getAvailableIDs().asScala.toSeq)

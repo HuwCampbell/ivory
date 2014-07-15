@@ -5,6 +5,7 @@ import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.TempFiles
 import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.scoobi.TestConfigurations
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.extract._
@@ -22,7 +23,8 @@ class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""
 """
 
   def a1 = {
-    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
+    implicit val sc: ScoobiConfiguration = TestConfigurations.scoobiConfiguration
+
     val directory = path(TempFiles.createTempDir("print-facts").getPath)
     val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 

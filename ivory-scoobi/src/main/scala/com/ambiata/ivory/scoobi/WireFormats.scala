@@ -31,7 +31,7 @@ trait WireFormats {
   /* this is a special snowflake because you want to mix in Fact without the overhead of creating two objects. */
   def factWireFormat = new WireFormat[Fact] {
     import org.apache.thrift.protocol.TCompactProtocol
-    import org.apache.thrift.{TBase, TFieldIdEnum, TSerializer, TDeserializer}
+    import org.apache.thrift.{TSerializer, TDeserializer}
 
     def toWire(x: Fact, out: DataOutput) = {
       val serialiser = new TSerializer(new TCompactProtocol.Factory)
@@ -114,7 +114,7 @@ trait WireFormats {
   implicit def DateMapWireFormat = AnythingFmt[java.util.HashMap[String, Array[Int]]]
 
   /* WARNING THIS IS NOT SAFE TO EXPOSE, DANGER LURKS, SEE ThriftFactWireFormat */
-  private def mkThriftFmt[A](empty: A)(implicit ev: A <:< org.apache.thrift.TBase[_ <: org.apache.thrift.TBase[_, _], _ <: org.apache.thrift.TFieldIdEnum]): WireFormat[A] = new WireFormat[A] {
+  private def mkThriftFmt[A](empty: A)(implicit ev: A <:< ThriftLike): WireFormat[A] = new WireFormat[A] {
     val serialiser = ThriftSerialiser()
     def toWire(x: A, out: DataOutput) = {
       val bytes = serialiser.toBytes(x)

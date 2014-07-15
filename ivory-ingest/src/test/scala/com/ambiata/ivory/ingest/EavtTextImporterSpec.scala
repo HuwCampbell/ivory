@@ -20,6 +20,7 @@ import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.scoobi.TestConfigurations
 import com.ambiata.mundane.io._
 import org.specs2.specification.{Fixture, FixtureExample}
 import org.specs2.execute.{Result, AsResult}
@@ -67,7 +68,7 @@ class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2
 }
 
 class Setup() {
-  implicit def sc: ScoobiConfiguration = ScoobiConfiguration()
+  implicit def sc: ScoobiConfiguration = TestConfigurations.scoobiConfiguration
   implicit lazy val fs = sc.fileSystem
 
   val directory = path(TempFiles.createTempDir("eavtimporter").getPath)

@@ -10,6 +10,7 @@ import org.specs2._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
+import com.ambiata.ivory.scoobi.TestConfigurations
 
 class DenseRowTextStorageSpec extends Specification { def is = s2"""
   Dense rows line up            $e1
@@ -28,7 +29,7 @@ class DenseRowTextStorageSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
+    implicit val sc: ScoobiConfiguration = TestConfigurations.scoobiConfiguration
     val directory = path(TempFiles.createTempDir("denserowtextstorer").getPath)
 
     val dict = Dictionary(Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, ""),
