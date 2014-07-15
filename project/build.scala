@@ -73,6 +73,7 @@ object build extends Build {
   , settings = standardSettings ++ app("benchmark") ++ Seq[Settings](
       name := "ivory-benchmark"
     , fork in run := true
+    , publishArtifact in packageDoc := false
     , run in Compile <<= Defaults.runTask(fullClasspath in Compile, mainClass in (Compile, run), runner in (Compile, run))
     , javaOptions in run <++= (fullClasspath in Runtime).map(cp => Seq("-cp", sbt.Attributed.data(cp).mkString(":")))
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.caliper)

@@ -25,10 +25,13 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
   val serializer = new TSerializer(new TCompactProtocol.Factory)
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
 
-  val testFact = Fact.newFact("eid", "ns", "fid", Date(2014, 1, 1), Time(0), StringValue("abc"))
+  def date(): Date = Date(2014, 1, 1)
+  def time(): Time = Time(0)
+
+  val testFact = Fact.newFact("eid", "ns", "fid", date, time, StringValue("abc"))
   val testBytes = serializer.serialize(new PriorityTag(1, java.nio.ByteBuffer.wrap(serializer.serialize(testFact.toNamespacedThrift))))
 
-  /**
+  /*
    * Marks suggestion
    */
   def time_reducerOther(n: Int) = {
@@ -65,7 +68,7 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
     }
   }
 
-  /**
+  /*
    * Original implementation
    */
   def time_original(n: Int) = {
@@ -96,7 +99,7 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
     }
   }
 
-  /**
+  /*
    * All pieces from MutableState implementation without the function composition
    * (compare to MutableState implementation to check how much overhead there is)
    */
@@ -143,7 +146,7 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
     }
   }
 
-  /**
+  /*
    * MutableState implementation
    */
   def time_reducerWithComposition(n: Int) = {
