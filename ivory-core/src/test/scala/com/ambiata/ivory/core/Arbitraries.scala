@@ -77,6 +77,22 @@ object Arbitraries {
   def testEntities(n: Int): List[String] =
     (1 to n).toList.map(i => "T+%05d".format(i))
 
+  implicit def DictionaryArbitrary: Arbitrary[Dictionary] =
+    Arbitrary(Gen.mapOf[FeatureId, FeatureMeta](for {
+      ns    <- arbitrary[String]
+      name  <- arbitrary[String]
+      enc   <- arbitrary[Encoding]
+      ty    <- arbitrary[Type]
+      desc  <- arbitrary[String]
+      tombs <- Gen.listOf(arbitrary[String])
+    } yield FeatureId(ns, name) -> FeatureMeta(enc, ty, desc, tombs)).map(Dictionary))
+
+  implicit def EncodingArbitrary: Arbitrary[Encoding] =
+    Arbitrary(Gen.oneOf(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding))
+
+  implicit def TypeArbitrary: Arbitrary[Type] =
+    Arbitrary(Gen.oneOf(NumericalType, ContinuousType, CategoricalType, BinaryType))
+
   def valueOf(encoding: Encoding): Gen[Value] = encoding match {
     case BooleanEncoding =>
       arbitrary[Boolean].map(BooleanValue)
