@@ -10,8 +10,7 @@ export IVORY_NO_CODEC=1
 
 random() {
     # /bin/sh doesn't have $RANDOM
-    # date +%N doesn't work on osx
-    od -vAn -N4 -tu4 < /dev/urandom | tr -d ' '
+    date '+%Y%m%d%H%M%S'-$$
 }
 
 build_ivory() {
