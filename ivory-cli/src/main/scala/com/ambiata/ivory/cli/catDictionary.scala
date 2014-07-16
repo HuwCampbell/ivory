@@ -32,7 +32,10 @@ object catDictionary extends IvoryApp {
       for {
         repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, conf).leftMap(\&/.This(_)))
         store = DictionaryThriftStorage(repo)
-        dictionary <- nameOpt.flatMap(Identifier.parse).cata(store.loadFromId, store.load)
+        dictionary <- nameOpt.flatMap(Identifier.parse) match {
+          case Some(iid) => store.loadFromId(iid).flatMap(ResultT.fromOption(_, s"Dictionary '$iid' could not be found"))
+          case None      => store.load
+        }
       } yield List(
         DictionaryTextStorage.delimitedDictionaryString(dictionary, delim)
       )
