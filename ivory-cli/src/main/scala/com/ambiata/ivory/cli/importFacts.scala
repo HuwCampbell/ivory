@@ -7,6 +7,7 @@ import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.ingest.EavtTextImporter
 import com.ambiata.mundane.control.{Error, Ok}
@@ -45,7 +46,7 @@ object importFacts extends IvoryApp {
       val actions: ScoobiAction[Unit] = {
         val repository = HdfsRepository(c.repositoryPath.toFilePath, configuration, ScoobiRun(configuration))
         for {
-          dictionary <- ScoobiAction.fromResultTIO(IvoryStorage.dictionaryFromIvory(repository))
+          dictionary <- ScoobiAction.fromResultTIO(dictionaryFromIvory(repository))
           _          <- EavtTextImporter.onHdfs(repository, dictionary, c.factset, c.namespace, new Path(c.input), c.errors.getOrElse(new Path("errors")), c.timezone, Codec())
         } yield ()
       }

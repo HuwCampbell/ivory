@@ -1,16 +1,15 @@
-package com.ambiata.ivory.storage.legacy
+package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._, DictionaryThriftConversion.dictionary._
 import com.ambiata.ivory.data._
-import com.ambiata.ivory.storage._, dictionary._, repository._, store._, version._
+import com.ambiata.ivory.storage._, repository._, store._, version._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import scalaz._, Scalaz._, effect._
 import scodec.bits.ByteVector
 
-case class DictionaryThriftStorage(repository: Repository)
-  extends IvoryLoader[ResultTIO[Dictionary]] with IvoryStorer[Dictionary, ResultTIO[(Identifier, FilePath)]] {
+case class DictionaryThriftStorage(repository: Repository) {
 
   val DATA = "data".toFilePath
   val store = repository.toStore
@@ -33,7 +32,7 @@ case class DictionaryThriftStorage(repository: Repository)
   private def loadDates: ResultTIO[Dictionary] = for {
     dictDir   <- StoreDataUtil.listDir(store, dictDir).map(_.filter(_.basename.path.matches("""\d{4}-\d{2}-\d{2}""")).sortBy(_.basename.path).reverse.headOption)
     dictPaths <- dictDir.cata(store.list, ResultT.fail[IO, List[FilePath]](s"No date-based dictionaries found in $dictDir"))
-    dicts     <- dictPaths.traverseU(path => DictionaryTextStorage.DictionaryTextLoader(StorePath(store, path)).load)
+    dicts     <- dictPaths.traverseU(path => DictionaryTextStorage.dictionaryFromHdfs(StorePath(store, path)))
   } yield dicts.foldLeft(Dictionary(Map()))(_ append _)
 
   def loadFromRef(path: FilePath): ResultTIO[Dictionary] = for {

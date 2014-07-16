@@ -53,8 +53,7 @@ object DenseRowTextStorageV1 {
   }
 
   def featuresToString(features: List[(Int, FeatureId, FeatureMeta)], delim: Char): List[String] = {
-    import DictionaryTextStorage._
-    features.map({ case (i, f, m) => i.toString + delim + delimitedFeatureIdString(f, delim) + delim + delimitedFeatureMetaString(m, delim) })
+    features.map({ case (i, f, m) => i.toString + delim + f.toString(delim.toString) + delim + m.toString(delim.toString) })
   }
 
   def valueToString(v: Value, tombstoneValue: String): String = v match {

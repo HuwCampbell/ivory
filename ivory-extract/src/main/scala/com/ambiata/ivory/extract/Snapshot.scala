@@ -18,6 +18,7 @@ import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.fact._
+import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.alien.hdfs._
 
 case class HdfsSnapshot(repoPath: Path, store: String, entities: Option[Path], snapshot: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)], codec: Option[CompressionCodec], fast: Boolean) {
@@ -36,7 +37,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, entities: Option[Path], s
               s <- ScoobiAction.fromHdfs(storeFromIvory(r, sm.store))
             } yield (path, s, sm) })
     _    <- if(fast) scoobiLight(r, s, in, codec) else scoobiJob(r, d, s, es.map(_.toSet), in, codec)
-    _    <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, ".dictionary")).store(d))
+    _    <- ScoobiAction.fromHdfs(DictionaryTextStorage.dictionaryToHdfs(new Path(outputPath, ".dictionary"), d))
     _    <- ScoobiAction.fromHdfs(SnapshotMeta(snapshot, store).toHdfs(new Path(outputPath, SnapshotMeta.fname)))
   } yield ()
 

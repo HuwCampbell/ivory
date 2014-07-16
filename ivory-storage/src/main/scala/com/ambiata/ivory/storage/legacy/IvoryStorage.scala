@@ -174,13 +174,7 @@ object IvoryStorage {
 
   def factsFromIvoryS3FactsetBetween(repository: S3Repository, factset: Factset, from: Date, to: Date): ScoobiS3Action[DList[ParseError \/ Fact]] =
     InternalFactsetFactS3Loader(repository, factset, Some(from), Some(to)).load
-
-  def dictionaryFromIvory(repo: Repository): ResultTIO[Dictionary] =
-    DictionaryThriftStorage(repo).load
-
-  def dictionaryToIvory(repo: Repository, dictionary: Dictionary): ResultTIO[Unit] =
-    DictionaryThriftStorage(repo).store(dictionary).map(_ => ())
-
+  
   /* Store */
   def storeFromIvory(repo: HdfsRepository, name: String): Hdfs[FeatureStore] =
     InternalFeatureStoreLoader(repo, name).load

@@ -15,6 +15,7 @@ import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
 import IvoryStorage._

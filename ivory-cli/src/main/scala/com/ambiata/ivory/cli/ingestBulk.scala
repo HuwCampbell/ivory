@@ -7,6 +7,7 @@ import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.ingest.EavtTextImporter
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
 
@@ -55,7 +56,7 @@ object ingestBulk extends IvoryApp {
     fatrepo.ImportWorkflow.onHdfs(repo, importFeed(input, optimal, codec), timezone)
 
   def importFeed(input: Path, optimal: Long, codec: Option[CompressionCodec])(repo: HdfsRepository, factset: Factset, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
-    dict <- ScoobiAction.fromResultTIO(IvoryStorage.dictionaryFromIvory(repo))
+    dict <- ScoobiAction.fromResultTIO(dictionaryFromIvory(repo))
     list <- listing(input)
     conf <- ScoobiAction.scoobiConfiguration
     _    <- EavtTextImporter.onHdfsBulk(repo, dict, factset, list.map(_._1), input, errorPath, timezone, list, optimal, codec)

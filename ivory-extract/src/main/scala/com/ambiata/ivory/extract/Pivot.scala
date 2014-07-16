@@ -14,6 +14,7 @@ import SeqSchemas._
 import com.ambiata.ivory.storage._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.alien.hdfs._
 
 /**
@@ -32,7 +33,7 @@ object Pivot {
 
   def onHdfs(repoPath: Path, input: Path, output: Path, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
     repo <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
-    d <- ScoobiAction.fromResultTIO(IvoryStorage.dictionaryFromIvory(repo))
+    d <- ScoobiAction.fromResultTIO(dictionaryFromIvory(repo))
     _ <- onHdfsWithDictionary(input, output, d, delim, tombstone)
   } yield ()
 
