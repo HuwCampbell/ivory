@@ -3,6 +3,10 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-1c9d86c
+
+`count-facts` cli doesn't require `-p` to be specified, eg. `ivory count-facts /path/to/snapshot` is now valid.
+
 ## 1.0.0-*-5a804e8
 
 ### Dictionary format

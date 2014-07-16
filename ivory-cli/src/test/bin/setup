@@ -10,7 +10,7 @@ export IVORY_NO_CODEC=1
 
 random() {
     # /bin/sh doesn't have $RANDOM
-    date +%N
+    date '+%Y%m%d%H%M%S'-$$
 }
 
 build_ivory() {
