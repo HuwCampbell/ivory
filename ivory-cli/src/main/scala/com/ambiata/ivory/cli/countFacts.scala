@@ -16,7 +16,6 @@ object countFacts extends IvoryApp {
   }
 
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), ScoobiCmd { configuration => c =>
-    FactCount.flatFacts(new Path(c.path, "*")).run(configuration).map(count =>
-      List(s"Fact count: $count", "Status -- SUCCESS"))
+    FactCount.flatFacts(new Path(c.path, "*")).run(configuration).map(count => List(count.toString))
   })
 }

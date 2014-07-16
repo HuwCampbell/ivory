@@ -39,6 +39,7 @@ diff_test "${INPUT}/dictionary.psv" "${TARGET}/dictionary.psv"
 $IVORY extract-snapshot -r "${REPOSITORY}"
 $IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
+$IVORY count-facts "${REPOSITORY}/snapshots/00000000" | grep $(wc -l ${DIR}/expected/snapshot.psv | awk '{print $1}')
 
 ### CHORD ###
 
