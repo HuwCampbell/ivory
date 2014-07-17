@@ -1,4 +1,4 @@
-package com.ambiata.ivory.storage.legacy
+package com.ambiata.ivory.storage.metadata
 
 import scalaz._, Scalaz._
 import org.apache.hadoop.fs.Path
@@ -16,19 +16,19 @@ object CreateFeatureStore {
      for {
        repo     <- Hdfs.configuration.map(c => Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiConfiguration(c)))
        tmp      <- Hdfs.value(FeatureStoreTextStorage.fromFactsets(sets))
-       store    <- existing.traverse(e => IvoryStorage.storeFromIvory(repo, e))
+       store    <- existing.traverse(e => Metadata.storeFromIvory(repo, e))
        newStore  = store.map(fs => tmp +++ fs).getOrElse(tmp)
        _        <- Hdfs.mkdir(repo.stores.toHdfs)
-       _        <- IvoryStorage.storeToIvory(repo, newStore, name)
+       _        <- Metadata.storeToIvory(repo, newStore, name)
      } yield ()
    }
 
   def onS3(repository: S3Repository, name: String, sets: List[Factset], existing: Option[String] = None): HdfsS3Action[Unit] = {
     for {
       tmp      <- HdfsS3Action.fromHdfs(Hdfs.value(FeatureStoreTextStorage.fromFactsets(sets)))
-      store    <- existing.traverse(e => IvoryStorage.storeFromIvoryS3(repository, e))
+      store    <- existing.traverse(e => Metadata.storeFromIvoryS3(repository, e))
       newStore  = store.map(fs => tmp +++ fs).getOrElse(tmp)
-      _        <- IvoryStorage.storeToIvoryS3(repository, newStore, name)
+      _        <- Metadata.storeToIvoryS3(repository, newStore, name)
     } yield ()
   }
 

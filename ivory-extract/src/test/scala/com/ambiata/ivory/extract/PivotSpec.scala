@@ -12,6 +12,7 @@ import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.scoobi.TestConfigurations
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.repository._
 import IvoryStorage._
 import ScoobiAction._

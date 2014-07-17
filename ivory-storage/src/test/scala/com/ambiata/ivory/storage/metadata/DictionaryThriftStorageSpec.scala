@@ -1,4 +1,4 @@
-package com.ambiata.ivory.storage.legacy
+package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.data._
@@ -47,7 +47,7 @@ class DictionaryThriftStorageSpec extends Specification { def is = s2"""
   } must beOkValue(dict)
 
   private def storeDateDicts(dir: FilePath): ResultTIO[Unit] = {
-    import com.ambiata.ivory.storage.legacy.DictionaryTextStorage._
+    import DictionaryTextStorage._
     def storeText(name: String, ns: String) =
       Repository.fromLocalPath(dir).toStore.utf8.write(Repository.dictionaries </> name, delimitedDictionaryString(dict.forNamespace(ns), '|'))
     storeText("2004-03-12", "fruit") >> storeText("2006-08-34", "vegetables")

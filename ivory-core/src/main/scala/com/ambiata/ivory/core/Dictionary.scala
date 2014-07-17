@@ -33,6 +33,8 @@ object FeatureId {
 }
 
 case class FeatureMeta(encoding: Encoding, ty: Type, desc: String, tombstoneValue: List[String] = List("☠")) {
+  def toString(delim: String): String =
+    s"${Encoding.render(encoding)}${delim}${Type.render(ty)}${delim}${desc}${delim}${tombstoneValue.mkString(",")}"
 }
 
 sealed trait Encoding
@@ -42,8 +44,27 @@ case object LongEncoding      extends Encoding
 case object DoubleEncoding    extends Encoding
 case object StringEncoding    extends Encoding
 
+object Encoding {
+  def render(enc: Encoding): String = enc match {
+    case BooleanEncoding => "boolean"
+    case IntEncoding     => "int"
+    case LongEncoding    => "long"
+    case DoubleEncoding  => "double"
+    case StringEncoding  => "string"
+  }
+}
+
 sealed trait Type
 case object NumericalType   extends Type
 case object ContinuousType  extends Type
 case object CategoricalType extends Type
 case object BinaryType      extends Type
+
+object Type {
+  def render(ty: Type): String = ty match {
+    case NumericalType   => "numerical"
+    case ContinuousType  => "continuous"
+    case CategoricalType => "categorical"
+    case BinaryType      => "binary"
+  }
+}

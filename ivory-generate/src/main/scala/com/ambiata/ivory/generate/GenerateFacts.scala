@@ -16,13 +16,14 @@ import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.metadata.Metadata._
 
 case class HdfsGenerateFacts(repository: Repository, entities: Int, flags: Path, start: LocalDate, end: LocalDate, storer: IvoryScoobiStorer[Fact, DList[_]]) {
   def withStorer(newStorer: IvoryScoobiStorer[Fact, DList[_]]): HdfsGenerateFacts =
     copy(storer = newStorer)
 
   def run(implicit sc: ScoobiConfiguration): Hdfs[Unit] = for {
-    dict <- Hdfs.fromResultTIO(IvoryStorage.dictionaryFromIvory(repository))
+    dict <- Hdfs.fromResultTIO(dictionaryFromIvory(repository))
     fl   <- FeatureFlags.fromHdfs(flags)
   } yield scoobiJob(dict, fl)
 

@@ -17,6 +17,7 @@ import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.legacy.fatrepo.ExtractLatestWorkflow
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.alien.hdfs._
 
 case class HdfsChord(repoPath: Path, store: String, entities: HashMap[String, Array[Int]], outputPath: Path, tmpPath: Path, incremental: Option[Path], codec: Option[CompressionCodec]) {
@@ -47,7 +48,7 @@ case class HdfsChord(repoPath: Path, store: String, entities: HashMap[String, Ar
       s  <- ScoobiAction.fromHdfs(storeFromIvory(r, sm.store))
     } yield (path, s, sm))
     _  <- scoobiJob(r, d, s, chordPath, latest, validateIncr(earliest, in), codec)
-    _  <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, ".dictionary")).store(d))
+    _  <- ScoobiAction.fromHdfs(DictionaryTextStorage.dictionaryToHdfs(new Path(outputPath, ".dictionary"), d))
   } yield ()
 
   def validateIncr(earliest: Date, in: Option[(Path, FeatureStore, SnapshotMeta)]): Option[(Path, FeatureStore, SnapshotMeta)] =

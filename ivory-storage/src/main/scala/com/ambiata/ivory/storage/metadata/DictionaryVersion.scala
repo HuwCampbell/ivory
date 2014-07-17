@@ -1,4 +1,4 @@
-package com.ambiata.ivory.storage.dictionary
+package com.ambiata.ivory.storage.metadata
 
 sealed abstract class DictionaryVersion(override val toString: String)
 case object DictionaryVersionOne extends DictionaryVersion("1")

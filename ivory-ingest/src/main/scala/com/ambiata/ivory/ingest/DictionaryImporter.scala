@@ -1,7 +1,7 @@
 package com.ambiata.ivory.ingest
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import com.ambiata.mundane.control._
@@ -12,7 +12,7 @@ import scalaz._, effect._
 object DictionaryImporter {
 
   def fromPath(repository: Repository, source: StorePathIO, importType: ImportType): ResultTIO[FilePath] =
-    DictionaryTextStorage.DictionaryTextLoader(source).load.flatMap(fromDictionary(repository, _, importType))
+    DictionaryTextStorage.dictionaryFromHdfs(source).flatMap(fromDictionary(repository, _, importType))
 
   def fromDictionary(repository: Repository, dictionary: Dictionary, importType: ImportType): ResultTIO[FilePath] = {
     val storage = DictionaryThriftStorage(repository)

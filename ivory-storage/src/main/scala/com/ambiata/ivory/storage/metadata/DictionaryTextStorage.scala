@@ -1,4 +1,4 @@
-package com.ambiata.ivory.storage.legacy
+package com.ambiata.ivory.storage.metadata
 
 import scalaz.{Value => _, _}, Scalaz._, \&/._, effect.IO
 import org.apache.hadoop.fs.Path
@@ -12,19 +12,15 @@ import com.ambiata.ivory.storage.store._
 
 object DictionaryTextStorage {
 
-  case class DictionaryTextLoader[F[+_] : Monad](path: StorePathResultT[F]) extends IvoryLoader[ResultT[F, Dictionary]] {
-    def load = for {
-      exists <- path.run(_.exists)
-      _ <- if (!exists) ResultT.fail[F, Unit](s"Path ${path.path} does not exist in ${path.store}!") else ResultT.ok[F, Unit](())
-      lines <- path.run(_.linesUtf8.read)
-      dict <- ResultT.fromDisjunction[F, Dictionary](DictionaryTextStorage.fromLines(lines).leftMap(\&/.This(_)))
-    } yield dict
-  }
+  def dictionaryFromHdfs[F[+_] : Monad](path: StorePathResultT[F]): ResultT[F, Dictionary] = for {
+    exists <- path.run(_.exists)
+    _      <- if (!exists) ResultT.fail[F, Unit](s"Path ${path.path} does not exist in ${path.store}!") else ResultT.ok[F, Unit](())
+    lines  <- path.run(_.linesUtf8.read)
+    dict   <- ResultT.fromDisjunction[F, Dictionary](fromLines(lines).leftMap(\&/.This(_)))
+  } yield dict
 
-  case class DictionaryTextStorer(path: Path, delim: Char = '|') extends IvoryStorer[Dictionary, Hdfs[Unit]] {
-    def store(dict: Dictionary): Hdfs[Unit] =
-      Hdfs.writeWith(path, os => Streams.write(os, delimitedDictionaryString(dict, delim)))
-  }
+  def dictionaryToHdfs(path: Path, dict: Dictionary, delim: Char ='|'): Hdfs[Unit] =
+    Hdfs.writeWith(path, os => Streams.write(os, delimitedDictionaryString(dict, delim)))
 
   def fromInputStream(is: java.io.InputStream): ResultTIO[Dictionary] = for {
     content <- Streams.read(is)
@@ -47,30 +43,11 @@ object DictionaryTextStorage {
     } yield fs
   }
 
-  def delimitedDictionaryString(dict: Dictionary, delim: Char): String =
+  def delimitedDictionaryString(dict: Dictionary, delim: Char): String = {
+    val strDelim = delim.toString
     dict.meta.map({ case (featureId, featureMeta) =>
-      delimitedFeatureIdString(featureId, delim) + delim + delimitedFeatureMetaString(featureMeta, delim)
+      featureId.toString(strDelim) + delim + featureMeta.toString(strDelim)
     }).mkString("\n") + "\n"
-
-  def delimitedFeatureIdString(fid: FeatureId, delim: Char): String =
-    fid.namespace + delim + fid.name
-
-  def delimitedFeatureMetaString(meta: FeatureMeta, delim: Char): String =
-    encodingString(meta.encoding) + delim + typeString(meta.ty) + delim + meta.desc + delim + meta.tombstoneValue.mkString(",")
-
-  def encodingString(enc: Encoding): String = enc match {
-    case BooleanEncoding    => "boolean"
-    case IntEncoding        => "int"
-    case LongEncoding       => "long"
-    case DoubleEncoding     => "double"
-    case StringEncoding     => "string"
-  }
-
-  def typeString(ty: Type): String = ty match {
-    case NumericalType   => "numerical"
-    case ContinuousType  => "continuous"
-    case CategoricalType => "categorical"
-    case BinaryType      => "binary"
   }
 
   def parseDictionaryEntry(entry: String): String \/ (FeatureId, FeatureMeta) = {

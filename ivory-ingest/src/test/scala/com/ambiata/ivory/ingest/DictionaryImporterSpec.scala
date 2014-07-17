@@ -4,6 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
+import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultMatcher._
 import org.specs2.Specification
@@ -27,7 +28,7 @@ class DictionaryImporterSpec extends Specification { def is = s2"""
       _    <- Streams.write(new java.io.FileOutputStream((dir </> dictionaryPath).toFile), dictionary)
       repo  = Repository.fromLocalPath(dir)
       _    <- fromPath(repo, StorePath(repo.toStore, dictionaryPath), Override)
-      out  <- DictionaryThriftStorage(repo).load
+      out  <- dictionaryFromIvory(repo)
     } yield out).run.unsafePerformIO() must beOkValue(dict)
   }
 
@@ -39,7 +40,7 @@ class DictionaryImporterSpec extends Specification { def is = s2"""
       for {
         _ <- fromDictionary(repo, dict1, Override)
         _ <- fromDictionary(repo, dict2, Update)
-        out <- DictionaryThriftStorage(repo).load
+        out <- dictionaryFromIvory(repo)
       } yield out
     }.run.unsafePerformIO() must beOkValue(dict1.append(dict2))
   }

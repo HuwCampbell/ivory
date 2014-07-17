@@ -1,4 +1,4 @@
-package com.ambiata.ivory.storage.legacy
+package com.ambiata.ivory.storage.metadata
 
 import org.specs2._
 import scalaz._, Scalaz._, \&/._
@@ -48,11 +48,11 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
 
   def parseEncoding =
     seqToResult(List(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding).map {
-      enc => DictionaryTextStorage.parseEncoding(DictionaryTextStorage.encodingString(enc)) ==== enc.success
+      enc => DictionaryTextStorage.parseEncoding(Encoding.render(enc)) ==== enc.success
     })
 
   def parseType =
     seqToResult(List(NumericalType, ContinuousType, CategoricalType, BinaryType).map {
-      ty => DictionaryTextStorage.parseType(DictionaryTextStorage.typeString(ty)) ==== ty.success
+      ty => DictionaryTextStorage.parseType(Type.render(ty)) ==== ty.success
     })
 }
