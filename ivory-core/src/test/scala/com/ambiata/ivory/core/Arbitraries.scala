@@ -116,7 +116,7 @@ object Arbitraries {
     case LongEncoding =>
       arbitrary[Long].map(LongValue)
     case DoubleEncoding =>
-      arbitrary[Double].map(DoubleValue)
+      arbitrary[Double].retryUntil(Value.validDouble).map(DoubleValue)
     case StringEncoding =>
       arbitrary[String].map(StringValue)
    }

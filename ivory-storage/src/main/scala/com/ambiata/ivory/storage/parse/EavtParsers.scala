@@ -37,7 +37,8 @@ object EavtParsers {
     case BooleanEncoding                         => raw.parseBoolean.leftMap(_ => s"Value '$raw' is not a boolean").map(v => BooleanValue(v))
     case IntEncoding                             => raw.parseInt.leftMap(_ => s"Value '$raw' is not an integer").map(v => IntValue(v))
     case LongEncoding                            => raw.parseLong.leftMap(_ => s"Value '$raw' is not a long").map(v => LongValue(v))
-    case DoubleEncoding                          => raw.parseDouble.leftMap(_ => s"Value '$raw' is not a double").map(v => DoubleValue(v))
+    case DoubleEncoding                          => raw.parseDouble.flatMap(d => if(Value.validDouble(d)) d.success else ().failure)
+                                                        .leftMap(_ => s"Value '$raw' is not a double").map(v => DoubleValue(v))
     case StringEncoding                          => StringValue(raw).success[String]
   }
 }
