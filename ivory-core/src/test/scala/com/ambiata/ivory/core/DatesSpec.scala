@@ -100,20 +100,17 @@ Generic Time Format Parsing
   def runExample(d: DateTime, local: DateTimeZone, ivory: DateTimeZone): Boolean =
     (local.toString != "Africa/Monrovia" || d.date.year > 1980) // for some reason there are issues with this specific timezone before 1980
 
-  def parsedate = prop((dz: (DateTime, DateTimeZone)) => {
-    val (d, ivory) = dz
-    Dates.parse(d.date.hyphenated, ivory, ivory) must beSome((nd: Date \/ DateTime) => nd.toEither must beLeft(d.date))
-  })
+  def parsedate = prop((dtz: DateTimeWithZone) =>
+    Dates.parse(dtz.datetime.date.hyphenated, dtz.zone, dtz.zone) must beSome((nd: Date \/ DateTime) => nd.toEither must beLeft(dtz.datetime.date))
+  )
 
-  def parsetime = prop((dz: (DateTime, DateTimeZone)) => {
-    val (d, ivory) = dz
-    Dates.parse(d.localIso8601, ivory, ivory) must beSome((nd: Date \/ DateTime) => nd.toEither must beRight(d))
-  })
+  def parsetime = prop((dtz: DateTimeWithZone) =>
+    Dates.parse(dtz.datetime.localIso8601, dtz.zone, dtz.zone) must beSome((nd: Date \/ DateTime) => nd.toEither must beRight(dtz.datetime))
+  )
 
-  def parsezone = prop((dz: (DateTime, DateTimeZone)) => {
-    val (d, ivory) = dz
-    Dates.parse(d.iso8601(ivory), ivory, ivory) must beSome((nd: Date \/ DateTime) => nd.toEither must beRight(d))
-  })
+  def parsezone = prop((dtz: DateTimeWithZone) =>
+    Dates.parse(dtz.datetime.iso8601(dtz.zone), dtz.zone, dtz.zone) must beSome((nd: Date \/ DateTime) => nd.toEither must beRight(dtz.datetime))
+  )
 
   def parsefail =
     (Dates.parse("2001-02-29", DateTimeZone.UTC, DateTimeZone.UTC) must beNone) and

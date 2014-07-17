@@ -68,14 +68,14 @@ Eavt Parse Formats
       (f, m) <- Gen.oneOf(TestDictionary.meta.toList)
       a      <- arbitrary[String].retryUntil(s => !TestDictionary.meta.toList.exists(_._1.name == s))
       v      <- genValue(m)
-      (t, z) <- arbitrary[(DateTime, DateTimeZone)]
-    } yield (a, v, t, f.namespace, m, z), for {
+      dtz    <- arbitrary[DateTimeWithZone]
+    } yield (a, v, dtz.datetime, f.namespace, m, dtz.zone), for {
       (f, m) <- Gen.oneOf(TestDictionary.meta.toList).retryUntil(_._2.encoding != StringEncoding)
       a      <- Gen.const(f.name)
       bm     <- Gen.oneOf(TestDictionary.meta.toList).map(_._2).retryUntil(bm => !compatible(bm.encoding, m.encoding))
       v      <- genValue(bm).retryUntil(_.stringValue.map(s => !validString(s, m.encoding)).getOrElse(false))
-      (t, z) <- arbitrary[(DateTime, DateTimeZone)]
-    } yield (a, v, t, f.namespace, m, z), for {
+      dtz    <- arbitrary[DateTimeWithZone]
+    } yield (a, v, dtz.datetime, f.namespace, m, dtz.zone), for {
       (f, m) <- Gen.oneOf(TestDictionary.meta.toList)
       a      <- Gen.const(f.name)
       v      <- genValue(m)
