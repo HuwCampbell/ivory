@@ -6,6 +6,8 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.extract._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.store._
 
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
@@ -50,8 +52,7 @@ object snapshot extends IvoryApp {
                       |""".stripMargin
       println(banner)
       val codecOpt = Codec()
-      val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), Date.fromLocalDate(c.date), c.incremental, codecOpt)
-      res.run(configuration <| { c =>
+      val conf = configuration <| { c =>
         // MR1
         c.set("mapred.compress.map.output", "true")
         codecOpt.foreach(codec => c.set("mapred.map.output.compression.codec", codec.getClass.getName))
@@ -59,9 +60,12 @@ object snapshot extends IvoryApp {
         // YARN
         c.set("mapreduce.map.output.compress", "true")
         codecOpt.foreach(codec => c.set("mapred.map.output.compress.codec", codec.getClass.getName))
-      }).map {
-        case (_, out) => List(banner, s"Output path: $out", "Status -- SUCCESS")
       }
+      for {
+        repo <- Repository.fromUriResultTIO(c.repo, conf)
+        res  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental, codecOpt)
+        (_, out) = res
+      } yield List(banner, s"Output path: $out", "Status -- SUCCESS")
   })
 
 }

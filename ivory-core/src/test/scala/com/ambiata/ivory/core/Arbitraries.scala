@@ -165,4 +165,11 @@ object Arbitraries {
   implicit def DictDescArbitrary: Arbitrary[DictDesc] =
     Arbitrary(arbitrary[String].map(_.trim).retryUntil(s => !s.contains("|") && !s.contains("\uFFFF") && s.forall(_ > 31)).map(DictDesc))
 
+  implicit def FeatureStoreArbitrary: Arbitrary[FeatureStore] = Arbitrary(
+    Gen.choose(1, Priority.Max.toShort).map(n => {
+      val nms = (0 until n).map(i => "%05d".format(i))
+      FeatureStore(nms.zipWithIndex.map({ case (name, i) =>
+         PrioritizedFactset(Factset(name), Priority.unsafe((i + 1).toShort))
+      }).toList)
+    }))
 }

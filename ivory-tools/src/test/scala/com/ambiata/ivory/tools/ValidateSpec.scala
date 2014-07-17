@@ -46,7 +46,7 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
     val facts2 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "def")))
 
     persist(facts1.toIvoryFactset(repo, Factset("factset1"), None), facts2.toIvoryFactset(repo, Factset("factset2"), None))
-    writeFactsetVersion(repo, List(Factset("factset1"), Factset("factset2"))).run(sc) must beOk
+    writeFactsetVersion(repo, List(Factset("factset1"), Factset("factset2"))) must beOk
 
     val store = FeatureStore(List(PrioritizedFactset(Factset("factset1"), Priority(1)), PrioritizedFactset(Factset("factset2"), Priority(2))))
 
@@ -79,7 +79,7 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
                        BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
 
     facts1.toIvoryFactset(repo, Factset("factset1"), None).persist
-    writeFactsetVersion(repo, List(Factset("factset1"))).run(sc) must beOk
+    writeFactsetVersion(repo, List(Factset("factset1"))) must beOk
 
     ValidateFactSetHdfs(repo, Factset("factset1"), dict).exec(new Path(outpath)).run(sc) must beOk
 

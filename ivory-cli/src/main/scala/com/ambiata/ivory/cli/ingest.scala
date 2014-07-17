@@ -9,15 +9,19 @@ import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.io._
+import com.ambiata.mundane.control._
 import org.apache.hadoop.fs.Path
+import com.ambiata.ivory.storage.store._
+import com.ambiata.ivory.alien.hdfs._
+
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.conf.Configuration
 import org.apache.commons.logging.LogFactory
 import org.joda.time.DateTimeZone
 import MemoryConversions._
-import scalaz.{DList => _, Scalaz}
-import Scalaz._
-import MemoryConversions._
+
+import scalaz.{DList => _, _}, Scalaz._, effect._
 
 object ingest extends IvoryApp {
 
@@ -45,21 +49,23 @@ object ingest extends IvoryApp {
 
   def cmd = IvoryCmd[CliArguments](parser,
       CliArguments("", "", DateTimeZone.getDefault, 256.mb),
-      ScoobiCmd(configuration => c => {
-      val res = onHdfs(new Path(c.repo), new Path(c.input), c.timezone, c.optimal, Codec())
-      res.run(configuration).map {
-        case f => List(s"Successfully imported '${c.input}' as ${f} into '${c.repo}'")
-      }
-    }))
+      ScoobiCmd(configuration => c => for {
+        repo     <- Repository.fromUriResultTIO(c.repo, configuration)
+        inputRef <- Reference.fromUriResultTIO(c.input, configuration)
+        factset  <- run(repo, inputRef, c.timezone, c.optimal, Codec())
+      } yield List(s"Successfully imported '${c.input}' as ${factset} into '${c.repo}'")))
 
-  def onHdfs(repo: Path, input: Path, timezone: DateTimeZone, optimal: BytesQuantity, codec: Option[CompressionCodec]): ScoobiAction[Factset] =
-    fatrepo.ImportWorkflow.onHdfs(repo, importFeed(input, optimal, codec), timezone)
+  def run(repo: Repository, input: ReferenceIO, timezone: DateTimeZone, optimal: BytesQuantity, codec: Option[CompressionCodec]): ResultTIO[Factset] =
+    fatrepo.ImportWorkflow.onStore(repo, importFeed(input, optimal, codec), timezone)
 
-  def importFeed(input: Path, optimal: BytesQuantity, codec: Option[CompressionCodec])(repo: HdfsRepository, factset: Factset, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
-    dict <- ScoobiAction.fromResultTIO(dictionaryFromIvory(repo))
-    list <- ScoobiAction.fromHdfs(Namespaces.namespaceSizes(input))
-    conf <- ScoobiAction.scoobiConfiguration
-    _    <- EavtTextImporter.onHdfs(repo, dict, factset, list.map(_._1.toString), input, errorPath, timezone, list.toMap.mapKeys(_.toString).toList, optimal, codec)
+  def importFeed(input: ReferenceIO, optimal: BytesQuantity, codec: Option[CompressionCodec])(repo: Repository, factset: Factset, errorRef: ReferenceIO, timezone: DateTimeZone): ResultTIO[Unit] = for {
+    conf <- repo match {
+      case HdfsRepository(_, c, _) => ResultT.ok[IO, Configuration](c)
+      case _                       => ResultT.fail[IO, Configuration]("Currently only support HDFS repository")
+    }
+    dict <- dictionaryFromIvory(repo)
+    path <- Reference.hdfsPath(input)
+    list <- Namespaces.namespaceSizes(path).run(conf)
+    _    <- EavtTextImporter.onStore(repo, dict, factset, list.map(_._1), input, errorRef, timezone, list.toMap.mapKeys(_.toString).toList, optimal, codec)
   } yield ()
-
 }

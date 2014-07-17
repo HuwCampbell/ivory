@@ -18,8 +18,8 @@ object convertDictionary extends IvoryApp {
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments("", ""), HadoopCmd { conf => {
     case CliArguments(input, output) =>
       for {
-        in         <- StorePath.fromUriResult(input, conf)
-        out        <- StorePath.fromUriResult(output, conf)
+        in         <- Reference.fromUriResultTIO(input, conf)
+        out        <- Reference.fromUriResultTIO(output, conf)
         dictionary <- DictionaryTextStorage.fromStore(in)
         _          <- out.run(s => p => s.utf8.write(p, DictionaryTextStorageV2.delimitedString(dictionary)))
       } yield List(s"File successfully written to $output")

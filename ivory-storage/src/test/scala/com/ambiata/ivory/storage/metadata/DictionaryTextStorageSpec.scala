@@ -2,8 +2,11 @@ package com.ambiata.ivory.storage.metadata
 
 import org.specs2._
 import scalaz._, Scalaz._, \&/._
+import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.storage.store._
 
 class DictionaryTextStorageSpec extends Specification { def is = s2"""
 
@@ -35,7 +38,8 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
   }
 
   def e4 = {
-   DictionaryTextStorage.fromFile("ivory-storage/src/test/resources/good_dictionary.txt").run.unsafePerformIO().toDisjunction must_== Dictionary(Map(
+    val reference = Reference(PosixStore(FilePath("ivory-storage/src/test/resources")), FilePath("good_dictionary.txt"))
+    DictionaryTextStorage.fromStore(reference).run.unsafePerformIO().toDisjunction must_== Dictionary(Map(
      FeatureId("demo", "gender")            -> FeatureMeta(StringEncoding, Some(CategoricalType), "Gender"),
      FeatureId("demo", "postcode")          -> FeatureMeta(StringEncoding, Some(CategoricalType), "Postcode"),
      FeatureId("widgets", "count.1W") -> FeatureMeta(IntEncoding, Some(NumericalType), "Count in the last week")
@@ -43,7 +47,8 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
   }
 
   def e5 = {
-    DictionaryTextStorage.fromFile("ivory-storage/src/test/resources/bad_dictionary.txt").run.unsafePerformIO().toEither must beLeft
+    val reference = Reference(PosixStore(FilePath("ivory-storage/src/test/resources")), FilePath("bad_dictionary.txt"))
+    DictionaryTextStorage.fromStore(reference).run.unsafePerformIO().toEither must beLeft
   }
 
   def parseEncoding =

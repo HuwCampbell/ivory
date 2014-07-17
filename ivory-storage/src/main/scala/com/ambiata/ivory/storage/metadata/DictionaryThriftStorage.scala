@@ -38,7 +38,7 @@ case class DictionaryThriftStorage(repository: Repository) {
       .map(_.filter(_.basename.path.matches("""\d{4}-\d{2}-\d{2}""")).sortBy(_.basename.path).reverse.headOption)
       .flatMap(_.traverse[ResultTIO, Dictionary] { dictDir => for {
         dictPaths <- store.list(dictDir)
-        dicts     <- dictPaths.traverseU(path => DictionaryTextStorage.fromStore(StorePath(store, path)))
+        dicts     <- dictPaths.traverseU(path => DictionaryTextStorage.fromStore(Reference(store, path)))
       } yield dicts.foldLeft(Dictionary(Map()))(_ append _)
     })
 
@@ -53,6 +53,6 @@ case class DictionaryThriftStorage(repository: Repository) {
   def store(dictionary: Dictionary): ResultTIO[(Identifier, FilePath)] = for {
     bytes <- ResultT.safe[IO, Array[Byte]](ThriftSerialiser().toBytes(to(dictionary)))
     i <- IdentifierStorage.write(DATA, ByteVector(bytes))(store, dictDir)
-    _ <- Version.write(StorePath(store, i._2), Version(DictionaryVersionOne.toString))
+    _ <- Version.write(Reference(store, i._2), Version(DictionaryVersionOne.toString))
   } yield i
 }

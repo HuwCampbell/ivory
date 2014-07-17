@@ -15,12 +15,14 @@ import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.parse.ListParser
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.TestConfigurations
+import com.ambiata.ivory.alien.hdfs.HdfsStore
 import com.ambiata.mundane.io._
 import org.specs2.specification.{Fixture, FixtureExample}
 import org.specs2.execute.{Result, AsResult}
@@ -38,9 +40,9 @@ class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2
 
     saveInputFile
 
-    val errors = new Path(directory, "errors")
+    val errors = base </> "/errors"
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onHdfs(repository, dictionary, Factset("factset1"), List("ns1"), new Path(input), errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None).run(sc) must beOk
+    EavtTextImporter.onStore(repository, dictionary, Factset("factset1"), List("ns1"), input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None) must beOk
 
     val expected = List(
       StringFact("pid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1),  Time(10), "v1"),
@@ -55,10 +57,10 @@ class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2
     import setup._
     // save an input file containing errors
     saveInputFileWithErrors
-    val errors = new Path(directory, "errors")
+    val errors = base </> "errors"
 
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onHdfs(repository, dictionary, Factset("factset1"), List("ns1"), new Path(input), errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None).run(sc) must beOk
+    EavtTextImporter.onStore(repository, dictionary, Factset("factset1"), List("ns1"), input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None) must beOk
     valueFromSequenceFile[ParseError](errors.toString).run must not(beEmpty)
   }
 
@@ -72,10 +74,11 @@ class Setup() {
   implicit def sc: ScoobiConfiguration = TestConfigurations.scoobiConfiguration
   implicit lazy val fs = sc.fileSystem
 
-  val directory = path(TempFiles.createTempDir("eavtimporter").getPath)
-  val input = directory + "/input"
-  val namespaced = input + "/ns1"
-  val repository = Repository.fromHdfsPath(directory </> "repo", sc)
+  val directory = FilePath(TempFiles.createTempDir("eavtimporter").getPath)
+  val base = Reference(HdfsStore(sc, directory), FilePath.root)
+  val input = base </> "input"
+  val namespaced = (directory </> (input </> "/ns1").path).path
+  val repository = Repository.fromHdfsPath((directory </> "repo"), sc)
 
   val dictionary =
     Dictionary(

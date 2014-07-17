@@ -6,6 +6,7 @@ import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.extract._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.store._
 
 import org.apache.hadoop.fs.Path
 import org.apache.commons.logging.LogFactory
@@ -35,7 +36,7 @@ object pivot extends IvoryApp {
     opt[Char]("delim")             action { (x, c) => c.copy(delim = x) }                 text "Output delimiter, default is '|'"
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", '|', "NA"), ScoobiCmd(configuration => c => {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", '|', "NA"), ScoobiCmd(conf => c => {
       val banner = s"""======================= pivot =======================
                       |
                       |Arguments --
@@ -48,9 +49,11 @@ object pivot extends IvoryApp {
                       |
                       |""".stripMargin
       println(banner)
-      val res = Pivot.onHdfs(new Path(c.repo), new Path(c.input), new Path(c.output), c.delim, c.tombstone)
-      res.run(configuration).map {
-        case _ => List(banner, "Status -- SUCCESS")
-      }
+      for {
+        repo   <- Repository.fromUriResultTIO(c.repo, conf)
+        input  <- Reference.fromUriResultTIO(c.input, conf)
+        output <- Reference.fromUriResultTIO(c.output, conf)
+        _      <- Pivot.onStore(repo, input, output, c.delim, c.tombstone)
+      } yield List(banner, "Status -- SUCCESS")
     }))
 }

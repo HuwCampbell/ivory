@@ -45,7 +45,7 @@ class RecreateSpec extends Specification with HadoopSpecificationLike with Sampl
     val facts = fromLazySeq[Fact]((1 to 3).map(i => fact(i)))
     val factset = Factset("name")
     facts.toIvoryFactset(from, factset, None)(sc).persist
-    IvoryStorage.writeFactsetVersion(from, List(factset)).run(sc.configuration) must beOk
+    IvoryStorage.writeFactsetVersion(from, List(factset)) must beOk
 
     // recreate the factset in the target repository
     val codec: Option[CompressionCodec] = Some(new DefaultCodec)

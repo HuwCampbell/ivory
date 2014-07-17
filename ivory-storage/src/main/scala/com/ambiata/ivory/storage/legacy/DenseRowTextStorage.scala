@@ -18,8 +18,8 @@ object DenseRowTextStorageV1 {
   type Attribute = String
   type StringValue = String
 
-  case class DenseRowTextStorer(path: String, dict: Dictionary, delim: Char = '|', tombstone: String = "NA") extends IvoryScoobiStorer[Fact, DList[String]] {
-    lazy val features = indexDictionary(dict)
+  case class DenseRowTextStorer(path: String, dict: Dictionary, delim: Char = '|', tombstone: String = "NA") {
+    lazy val features = indexDictionary(dict, tombstone)
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[String] = {
       val byKey: DList[((Entity, Attribute), Iterable[Fact])] =
         dlist.by(f => (f.entity, f.featureId.toString("."))).groupByKeyWith(Groupings.sortGrouping)
@@ -30,8 +30,8 @@ object DenseRowTextStorageV1 {
       row.map({ case (eid, vs) => eid + delim + vs.mkString(delim.toString) }).toTextFile(path.toString, overwrite = true)
     }
 
-    override def storeMeta: ScoobiAction[Unit] =
-      ScoobiAction.fromHdfs(Hdfs.writeWith(new Path(path, ".dictionary"), os => Streams.write(os, featuresToString(features, delim).mkString("\n"))))
+    def storeMeta: Hdfs[Unit] =
+      Hdfs.writeWith(new Path(path, ".dictionary"), os => Streams.write(os, featuresToString(features, delim).mkString("\n")))
   }
 
   def indexDictionary(dict: Dictionary): List[(Int, FeatureId, FeatureMeta)] =
@@ -52,6 +52,9 @@ object DenseRowTextStorageV1 {
       (next, valueToString(value, tombstone) :: acc)
     })._2.reverse
   }
+
+  def indexDictionary(dict: Dictionary, tombstone: String): List[(Int, FeatureId, FeatureMeta)] =
+    dict.meta.toList.sortBy(_._1.toString(".")).zipWithIndex.map({ case ((f, m), i) => (i, f, m.copy(tombstoneValue = List(tombstone))) })
 
   def featuresToString(features: List[(Int, FeatureId, FeatureMeta)], delim: Char): List[String] = {
     import com.ambiata.ivory.storage.metadata.DictionaryTextStorage

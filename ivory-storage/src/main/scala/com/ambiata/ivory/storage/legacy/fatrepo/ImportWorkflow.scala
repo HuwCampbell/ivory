@@ -1,7 +1,7 @@
 package com.ambiata.ivory.storage.legacy.fatrepo
 
 import com.nicta.scoobi.Scoobi._
-import scalaz.{DList => _, _}, Scalaz._
+import scalaz.{DList => _, _}, Scalaz._, effect._
 import scala.math.{Ordering => SOrdering}
 import org.apache.hadoop.fs.Path
 import org.joda.time.{DateTimeZone, LocalDate}
@@ -13,6 +13,7 @@ import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
@@ -32,35 +33,32 @@ import com.ambiata.mundane.io._
  */
 object ImportWorkflow {
 
-  type ErrorPath = Path
-  type ImportFactsFunc = (HdfsRepository, Factset, ErrorPath, DateTimeZone) => ScoobiAction[Unit]
+  type ImportFactsFunc = (Repository, Factset, ReferenceIO, DateTimeZone) => ResultTIO[Unit]
 
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.Import")
 
-  def onHdfs(repoPath: Path, importFacts: ImportFactsFunc, timezone: DateTimeZone): ScoobiAction[Factset] = {
+  def onStore(repo: Repository, importFacts: ImportFactsFunc, timezone: DateTimeZone): ResultTIO[Factset] = {
     val start = System.currentTimeMillis
     for {
-      sc       <- ScoobiAction.scoobiConfiguration
-      repo     <- ScoobiAction.ok(Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
-      _        <- ScoobiAction.fromHdfs(createRepo(repo))
+      _        <- createRepo(repo)
       t1 = {
         val x = System.currentTimeMillis
         println(s"created repository in ${x - start}ms")
         x
       }
-      factset  <- ScoobiAction.fromHdfs(createFactSet(repo))
+      factset  <- createFactSet(repo)
       t3 = {
         val x = System.currentTimeMillis
         println(s"created fact set in ${x - t1}ms")
         x
       }
-      _        <- importFacts(repo, factset, new Path(repo.errors.path, factset.name), timezone)
+      _        <- importFacts(repo, factset, repo.toReference(repo.errors </> factset.name), timezone)
       t4 = {
         val x = System.currentTimeMillis
         println(s"imported fact set in ${x - t3}ms")
         x
       }
-      sname    <- ScoobiAction.fromHdfs(createStore(repo, factset))
+      sname    <- createStore(repo, factset)
       t5 = {
         val x = System.currentTimeMillis
         println(s"created store in ${x - t4}ms")
@@ -69,34 +67,42 @@ object ImportWorkflow {
     } yield factset
   }
 
-  def createRepo(repo: HdfsRepository): Hdfs[Unit] = for {
-    _  <- Hdfs.value(logger.debug(s"Going to create repository '${repo.root.path}'"))
-    e  <- Hdfs.exists(repo.root.toHdfs)
+  def createRepo(repo: Repository): ResultTIO[Unit] = for {
+    _  <- ResultT.ok[IO, Unit](logger.debug(s"Going to create repository '${repo.root.path}'"))
+    e  <- repo.toStore.exists(repo.root)
     _  <- if(!e) {
-      logger.debug(s"Hdfs path '${repo.root.path}' doesn't exist, creating")
-      val res = CreateRepository.onHdfs(repo.root.toHdfs)
+      logger.debug(s"Path '${repo.root.path}' doesn't exist, creating")
+      val res = CreateRepository.onStore(repo)
       logger.info(s"Repository '${repo.root.path}' created")
       res
     } else {
       logger.info(s"Repository already exists at '${repo.root.path}', not creating a new one")
-      Hdfs.ok(())
+      ResultT.ok[IO, Unit](())
     }
   } yield ()
 
-  def createFactSet(repo: HdfsRepository): Hdfs[Factset] = for {
-    factsetPaths <- Hdfs.globPaths(repo.factsets.toHdfs)
-    name          = Factset(nextName(factsetPaths.map(_.getName)))
-    e            <- Hdfs.mkdir(repo.factset(name).toHdfs)
-    _            <- if(!e) Hdfs.fail("Could not create fact-set, id already allocated.") else Hdfs.ok(())
-  } yield name
+  // TODO change this to use IdentifierStorage
+  // TODO handle locking
+  def createFactSet(repo: Repository): ResultTIO[Factset] = {
+    val store = repo.toStore
+    for {
+      factsetPaths <- store.list(Repository.factsets)
+      factset       = Factset(nextName(factsetPaths.map(p => (FilePath.root </> p).relativeTo(Repository.factsets).path)))
+      _            <- store.bytes.write(Repository.factsets </> FilePath(factset.name) </> ".allocated", scodec.bits.ByteVector.empty)
+    } yield factset
+  }
 
-  def createStore(repo: HdfsRepository, factset: Factset): Hdfs[String] = for {
-    storeNames <- Hdfs.globPaths(repo.stores.toHdfs).map(_.map(_.getName))
-    latest      = latestName(storeNames)
-    name        = nextName(storeNames)
-    _           = logger.debug(s"Going to create feature store '${name}'" + latest.map(l => s" based off feature store '${l}'").getOrElse(""))
-    _          <- CreateFeatureStore.onHdfs(repo.root.toHdfs, name, List(factset), latest)
-  } yield name
+  // TODO handle locking
+  def createStore(repo: Repository, factset: Factset): ResultTIO[String] = {
+    val store = repo.toStore
+    for {
+      storeNames <- store.list(Repository.stores).map(_.map(p => (FilePath.root </> p).relativeTo(Repository.factsets).path))
+      latest      = latestName(storeNames)
+      name        = nextName(storeNames)
+      _           = logger.debug(s"Going to create feature store '${name}'" + latest.map(l => s" based off feature store '${l}'").getOrElse(""))
+      _          <- CreateFeatureStore.inRepository(repo, name, List(factset), latest)
+    } yield name
+  }
 
   def latestName(names: List[String]): Option[String] =
     latestNameWith(names, identity)

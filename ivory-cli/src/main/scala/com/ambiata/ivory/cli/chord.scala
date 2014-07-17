@@ -8,12 +8,13 @@ import com.ambiata.ivory.extract._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.alien.hdfs._
 
 import org.apache.hadoop.fs.Path
 import org.apache.commons.logging.LogFactory
 
-import scalaz.{DList => _, _}, Scalaz._
+import scalaz.{DList => _, _}, Scalaz._, effect._, \&/._
 
 object chord extends IvoryApp {
 
@@ -39,20 +40,26 @@ object chord extends IvoryApp {
     opt[String]("tombstone")     action { (x, c) => c.copy(tombstone = x) }            text "Tombstone for pivot file, default 'NA'."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", "", true, false, '|', "NA"), ScoobiCmd { configuration => c =>
-      val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(c.tmp), new Path(c.entities), c.takeSnapshot, c.pivot, c.delim, c.tombstone)
-      res.run(configuration).map {
-        case _ => List(s"Successfully extracted chord from '${c.repo}' and stored in '${c.output}'")
-      }
-    })
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", "", true, false, '|', "NA"), ScoobiCmd { conf => c =>
+    for {
+      repo <- Repository.fromUriResultTIO(c.repo, conf)
+      out  <- Reference.fromUriResultTIO(c.output, conf)
+      tmp  <- Reference.fromUriResultTIO(c.tmp, conf)
+      ent  <- Reference.fromUriResultTIO(c.entities, conf)
+      _    <- run(repo, out, tmp, ent, c.takeSnapshot, c.pivot, c.delim, c.tombstone)
+    } yield List(s"Successfully extracted chord from '${c.repo}' and stored in '${c.output}'")
+  })
 
-  def onHdfs(repoPath: Path, outputPath: Path, tmpPath: Path, entitiesPath: Path, takeSnapshot: Boolean, pivot: Boolean, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
-    tout <- ScoobiAction.value(new Path(outputPath, "thrift"))
-    dout <- ScoobiAction.value(new Path(outputPath, "dense"))
-    _    <- Chord.onHdfs(repoPath, entitiesPath, tout, new Path(tmpPath, "chord"), takeSnapshot, Codec())
-    _    <- if(pivot) {
-              println("Pivoting extracted chord in '${tout}' to '${dout}'")
-              Pivot.onHdfs(repoPath, tout, dout, delim, tombstone)
-            } else ScoobiAction.ok(())
-  } yield ()
+  def run(repo: Repository, output: ReferenceIO, tmp: ReferenceIO, entities: ReferenceIO, takeSnapshot: Boolean, pivot: Boolean, delim: Char, tombstone: String): ResultTIO[Unit] = {
+    val thriftRef = output </> FilePath("thrift")
+    val denseRef = output </> FilePath("dense")
+    val tmpRef = tmp </> FilePath("chord")
+    for {
+      _    <- Chord.onStore(repo, entities, thriftRef, tmpRef, takeSnapshot, Codec())
+      _    <- if(pivot) {
+                println("Pivoting extracted chord in '${tout}' to '${dout}'")
+                Pivot.onStore(repo, thriftRef, denseRef, delim, tombstone)
+              } else ResultT.ok[IO, Unit](())
+    } yield ()
+  }
 }

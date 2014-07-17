@@ -25,6 +25,6 @@ Version
     Version.write(path, Version("a")) >> Version.read(path)
   } must beOkValue(Version("a"))
 
-  private def run[A](f: StorePathIO => ResultTIO[A]): Result[A] =
-    Temporary.using(dir => f(StorePath(PosixStore(dir), FilePath.root))).run.unsafePerformIO()
+  private def run[A](f: ReferenceIO => ResultTIO[A]): Result[A] =
+    Temporary.using(dir => f(Reference(PosixStore(dir), FilePath.root))).run.unsafePerformIO()
 }

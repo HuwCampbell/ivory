@@ -9,10 +9,10 @@ import scalaz._, Scalaz._, effect.IO
 
 object Versions {
   def read(repository: Repository, factset: Factset): ResultT[IO, FactsetVersion] =
-    Version.read(repository.toStorePath(Repository.factset(factset))).flatMap(parse(factset, _))
+    Version.read(repository.toReference(Repository.factset(factset))).flatMap(parse(factset, _))
 
   def write(repository: Repository, factset: Factset, version: FactsetVersion): ResultT[IO, Unit] =
-    Version.write(repository.toStorePath(Repository.factset(factset)), Version(version.toString))
+    Version.write(repository.toReference(Repository.factset(factset)), Version(version.toString))
 
   def readAll(repository: Repository, factsets: List[Factset]): ResultT[IO, List[(Factset, FactsetVersion)]] =
     factsets.traverseU(factset => read(repository, factset).map(factset -> _))

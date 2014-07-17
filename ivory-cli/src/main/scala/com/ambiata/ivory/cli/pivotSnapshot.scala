@@ -4,6 +4,8 @@ import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.extract._
+import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.store._
 
 import org.apache.hadoop.fs.Path
 import org.apache.commons.logging.LogFactory
@@ -38,7 +40,7 @@ object pivotSnapshot extends IvoryApp {
 
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", '|', "NA", new LocalDate), ScoobiCmd(configuration => c => {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", '|', "NA", new LocalDate), ScoobiCmd(conf => c => {
       val banner = s"""======================= pivot =======================
                       |
                       |Arguments --
@@ -51,9 +53,10 @@ object pivotSnapshot extends IvoryApp {
                       |
                       |""".stripMargin
       println(banner)
-      val res = Pivot.onHdfsFromSnapshot(new Path(c.repo), new Path(c.output), c.delim, c.tombstone, Date.fromLocalDate(c.date), Codec())
-      res.run(configuration).map {
-        case _ => List(banner, "Status -- SUCCESS")
-      }
+      for {
+        repo   <- Repository.fromUriResultTIO(c.repo, conf)
+        output <- Reference.fromUriResultTIO(c.output, conf)
+        _      <- Pivot.onStoreFromSnapshot(repo, output, c.delim, c.tombstone, Date.fromLocalDate(c.date), Codec())
+      } yield List(banner, "Status -- SUCCESS")
     }))
 }

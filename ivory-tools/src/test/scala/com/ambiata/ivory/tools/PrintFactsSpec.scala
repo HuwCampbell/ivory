@@ -33,8 +33,8 @@ class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""
     createFacts(repo)
 
     val testDir = "target/"+getClass.getSimpleName+"/"
-    val snapshot1 = HdfsSnapshot.takeSnapshot(repo.root.toHdfs, Date.fromLocalDate(LocalDate.now), false, None)
-    snapshot1.run(sc) must beOk
+    val snapshot1 = Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false, None)
+    snapshot1 must beOk
 
     val buffer = new StringBuffer
     val stringBufferLogging = (s: String) => IO { buffer.append(s+"\n"); ()}

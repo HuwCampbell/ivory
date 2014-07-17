@@ -29,7 +29,7 @@ object IvoryRetire {
   val snapshotFromHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotFromHdfs _
   val snapshotToHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotToHdfs _
 
-  val createRepository = com.ambiata.ivory.storage.legacy.CreateRepository.onHdfs _
+  val createRepository = com.ambiata.ivory.storage.legacy.CreateRepository.onStore _
 
   /**
    * Ingest types. These components expose the internal representations of ivory.
@@ -37,9 +37,8 @@ object IvoryRetire {
    * They will be replaced by a safer, stable API that lets users interact with
    * ivory, without concern for the current implementation.
    */
-  val importWorkflow = com.ambiata.ivory.storage.legacy.fatrepo.ImportWorkflow.onHdfs _
+  val importWorkflow = com.ambiata.ivory.storage.legacy.fatrepo.ImportWorkflow.onStore _
   val importDictionary = com.ambiata.ivory.ingest.DictionaryImporter.fromPath _
-  val importStore = com.ambiata.ivory.ingest.FeatureStoreImporter.onHdfs _
 
   implicit def DListToIvoryFactStorage(dlist: com.nicta.scoobi.core.DList[Ivory.Fact]): com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage =
     com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage(dlist)
@@ -50,8 +49,8 @@ object IvoryRetire {
    * They will be replaced by a safer, stable API that lets users interact with
    * ivory, without concern for the current implementation.
    */
-  val snapshot = com.ambiata.ivory.extract.HdfsSnapshot.snapshot _
-  val extractChord = com.ambiata.ivory.extract.Chord.onHdfs _
-  val pivot = com.ambiata.ivory.extract.Pivot.onHdfs _
+  val snapshot = com.ambiata.ivory.extract.Snapshot.snapshot _
+  val extractChord = com.ambiata.ivory.extract.Chord.onStore _
+  val pivot = com.ambiata.ivory.extract.Pivot.onStore _
 
 }
