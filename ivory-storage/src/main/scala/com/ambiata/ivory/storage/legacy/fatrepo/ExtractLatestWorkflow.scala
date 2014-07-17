@@ -10,6 +10,7 @@ import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.data._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.alien.hdfs._
@@ -61,7 +62,7 @@ object ExtractLatestWorkflow {
 
   def decideSnapshot(repo: HdfsRepository, date: Date, storeName: String, incr: Option[(Path, SnapshotMeta)]): Hdfs[(Boolean, Path)] =
   incr.collect({ case (p, sm) if sm.date <= date && sm.store == storeName => for {
-    store      <- IvoryStorage.storeFromIvory(repo, storeName)
+    store      <- Metadata.storeFromIvory(repo, storeName)
     partitions <- Hdfs.fromResultTIO(StoreGlob.between(repo, store, sm.date, date)).map(_.flatMap(_.partitions))
     filtered = partitions.filter(_.date.isAfter(sm.date)) // TODO this should probably be in StoreGlob.between, but not sure what else it will affect
     skip       <- if(filtered.isEmpty) Hdfs.value((true, p)) else outputDirectory(repo).map((false, _))

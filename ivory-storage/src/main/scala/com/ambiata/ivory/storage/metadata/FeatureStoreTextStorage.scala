@@ -1,30 +1,33 @@
-package com.ambiata.ivory.storage.legacy
+package com.ambiata.ivory.storage.metadata
 
 import scalaz.{Value => _, _}, Scalaz._, \&/._, effect.IO
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
+import com.ambiata.saws.s3.S3
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.ivory.alien.hdfs.HdfsS3Action._
 
 object FeatureStoreTextStorage {
 
-  case class FeatureStoreTextLoader(path: Path) extends IvoryLoader[Hdfs[FeatureStore]] {
-    def load: Hdfs[FeatureStore] =
-      Hdfs.readWith(path, is => fromInputStream(is))
-  }
-
-  case class FeatureStoreTextStorer(path: Path) extends IvoryStorer[FeatureStore, Hdfs[Unit]] {
-    def store(store: FeatureStore): Hdfs[Unit] =
-      Hdfs.writeWith(path, os => Streams.write(os, storeAsString(store)))
-  }
-
   def storeFromHdfs(path: Path): Hdfs[FeatureStore] =
-    FeatureStoreTextLoader(path).load
+    Hdfs.readWith(path, is => fromInputStream(is))
 
   def storeToHdfs(path: Path, store: FeatureStore): Hdfs[Unit] =
-    FeatureStoreTextStorer(path).store(store)
+    Hdfs.writeWith(path, os => Streams.write(os, storeAsString(store)))
+
+  def storeFromS3(bucket: String, key: String, tmp: Path): HdfsS3Action[FeatureStore] = for {
+    file  <- HdfsS3Action.fromAction(S3.downloadFile(bucket, key, to = tmp.toString))
+    store <- HdfsS3Action.fromHdfs(storeFromHdfs(new Path(file.getPath)))
+  } yield store
+
+  def storeToS3(bucket: String, key: String, store: FeatureStore, tmp: Path): HdfsS3Action[Unit] = for {
+    _ <- HdfsS3Action.fromHdfs(storeToHdfs(tmp, store))
+    _ <- HdfsS3.putPaths(bucket, key, tmp, glob = "*")
+    _ <- HdfsS3Action.fromHdfs(Hdfs.filesystem.map(fs => fs.delete(tmp, true)))
+  } yield ()
 
   def writeFile(path: String, store: FeatureStore): ResultTIO[Unit] = ResultT.safe({
     Streams.write(new java.io.FileOutputStream(path), storeAsString(store))
