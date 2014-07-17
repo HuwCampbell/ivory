@@ -13,10 +13,10 @@ object DictionaryImporter {
 
   import DictionaryImportValidate._
 
-  def fromPath(repository: Repository, source: StorePathIO, importOpts: ImportOpts): ResultTIO[DictValidation[FilePath]] =
+  def fromPath(repository: Repository, source: StorePathIO, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] =
     DictionaryTextStorage.dictionaryFromHdfs(source).flatMap(fromDictionary(repository, _, importOpts))
 
-  def fromDictionary(repository: Repository, dictionary: Dictionary, importOpts: ImportOpts): ResultTIO[DictValidation[FilePath]] = {
+  def fromDictionary(repository: Repository, dictionary: Dictionary, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] = {
     val storage = DictionaryThriftStorage(repository)
     for {
       oldDictionary <- storage.loadOption.map(_.getOrElse(Dictionary(Map())))
@@ -24,9 +24,10 @@ object DictionaryImporter {
         case Update => oldDictionary.append(dictionary)
         case Override => dictionary
       }
-      validation = if (importOpts.force) OK else validate(oldDictionary, newDictionary)
-      path <- validation.traverseU(_ => storage.store(newDictionary).map(_._2))
-    } yield path
+      validation = validate(oldDictionary, newDictionary)
+      doImport = validation.isSuccess || importOpts.force
+      path <- if (doImport) storage.store(newDictionary).map(_._2).map(some) else None.pure[ResultTIO]
+    } yield validation -> path
   }
 
   sealed trait ImportType

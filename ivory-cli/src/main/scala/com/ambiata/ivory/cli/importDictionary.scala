@@ -32,20 +32,14 @@ object importDictionary extends IvoryApp {
       for {
         repository <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(c.repo, configuration).leftMap(\&/.This(_)))
         source <- ResultT.fromDisjunction[IO, StorePathIO](StorePath.fromUri(c.path, configuration).leftMap(\&/.This(_)))
-        opts = ImportOpts(if (c.update) Update else Override, false)
-        newPathVal <- DictionaryImporter.fromPath(repository, source, opts)
-        newPath <- newPathVal match {
-          case Success(path) => path.pure[ResultTIO]
-          case f@Failure(errors) => for {
+        opts     = ImportOpts(if (c.update) Update else Override, c.force)
+        result  <- DictionaryImporter.fromPath(repository, source, opts)
+        _       <- result._1 match {
+          case Success(_)        => ResultT.unit[IO]
             // Always print validation errors regardless of force
-            _ <- errors.list.map(println).pure[ResultTIO]
-            v <- if (c.force) DictionaryImporter.fromPath(repository, source, opts.copy(force = true)) else f.pure[ResultTIO]
-            p <- v match {
-              case Success(path) => path.pure[ResultTIO]
-              case Failure(_) => ResultT.fail[IO, FilePath]("Invalid dictionary")
-            }
-          } yield p
+          case f@Failure(errors) => ResultT.safe[IO, Unit](errors.list.map(println))
         }
+        newPath <- ResultT.fromOption[IO, FilePath](result._2, "Invalid dictionary")
       } yield List(s"Successfully imported dictionary ${c.path} into ${c.repo} under $newPath.")
   })
 }

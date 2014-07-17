@@ -60,8 +60,8 @@ class DictionaryImporterSpec extends Specification { def is = s2"""
   }
 
   def invalidDict =
-    invalidUpgrade(false) must beOkLike(_.isFailure)
+    invalidUpgrade(false) must beOkLike(r => r._1.isFailure && r._2.isEmpty)
 
   def invalidDictForced =
-    invalidUpgrade(true) must beOkLike(_.isSuccess)
+    invalidUpgrade(true) must beOkLike(r => r._1.isFailure && r._2.isDefined)
 }
