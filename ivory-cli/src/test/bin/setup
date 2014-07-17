@@ -41,3 +41,8 @@ diff_test() {
 if [ ! -e "$IVORY" ]; then
     build_ivory
 fi
+
+export TARGET="${PROJECT}/target/regression/"
+export REPOSITORY="/tmp/ivory-$(random)"
+export INPUT="${TEST}/input"
+mkdir -p "${TARGET}"

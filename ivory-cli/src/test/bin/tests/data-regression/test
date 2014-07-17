@@ -1,15 +1,8 @@
 #!/bin/sh -eux
 
 DIR=$(dirname $0)
-INPUT="${DIR}/input"
 . "${DIR}/../../setup"
-
-### INIT ###
-
 DICT_NAME="dict_regression"
-TARGET="target/regression/"
-REPOSITORY="/tmp/ivory-$(random)"
-mkdir -p "${TARGET}"
 
 ### V0 ###
 

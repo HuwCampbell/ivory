@@ -1,14 +1,7 @@
 #!/bin/sh -eux
 
 DIR=$(dirname $0)
-INPUT="${DIR}/input"
 . "${DIR}/../../setup"
-
-### INIT ###
-
-TARGET="target/regression/"
-REPOSITORY="/tmp/ivory-$(random)"
-mkdir -p "${TARGET}"
 
 ### TEST ###
 
