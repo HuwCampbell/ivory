@@ -159,7 +159,7 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
   var ctx: MrContext = null
 
   /* Cache for path -> namespace mapping. */
-  var namespaces: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map.empty
+  val namespaces: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map.empty
 
   /* Value serializer. */
   val serializer = new TSerializer(new TCompactProtocol.Factory)

@@ -7,6 +7,7 @@ import com.ambiata.mundane.io._
 
 import scalaz._, Scalaz._, effect.IO, \&/._
 
+// FIX suspicously dup-y with StoreGlob.
 object Partitions {
   def select(repository: Repository, factset: Factset): ResultT[IO, List[Partition]] = for {
     paths <- repository.toStore.list(Repository.factset(factset))

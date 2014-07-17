@@ -7,6 +7,7 @@ import com.ambiata.mundane.io._
 
 import scalaz._, Scalaz._, effect.IO, \&/._
 
+// FIX suspicously dup-y with Partitions.
 object StoreGlob {
   def select(repository: Repository, store: FeatureStore): ResultT[IO, List[FactsetGlob]] = for {
     globs <- store.factsets.traverseU(factset => for {
