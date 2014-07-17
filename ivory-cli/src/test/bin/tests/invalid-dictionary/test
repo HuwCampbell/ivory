@@ -16,12 +16,13 @@ $IVORY create-repository -p "${REPOSITORY}"
 $IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
 
 # Import bad dictionary - should fail
-($IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary-bad.psv" -u && exit 1) | grep "Encoding changed"
+$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary-bad.psv" -u | grep "Encoding changed"
 $IVORY cat-dictionary -r "${REPOSITORY}" | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
 # Nothing should have changed
 diff_test "${INPUT}/dictionary.psv" "${TARGET}/dictionary.psv"
 
 # Import bad dictionary force
-($IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary-bad.psv" -u --force || exit 1) | grep "Encoding changed"
+IMPORT_OUT=`$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary-bad.psv" -u --force` || exit 1
+echo $IMPORT_OUT | grep "Encoding changed"
 $IVORY cat-dictionary -r "${REPOSITORY}" | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
 diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
