@@ -21,8 +21,6 @@ object IvoryRetire {
    * They will be replaced by a safer, stable API that lets users interact with
    * ivory, without concern for the current implementation.
    */
-  type IvoryLoader[A] = com.ambiata.ivory.storage.legacy.IvoryLoader[A]
-  type IvoryStorer[A, B] = com.ambiata.ivory.storage.legacy.IvoryStorer[A, B]
   type IvoryScoobiLoader[A] = com.ambiata.ivory.storage.legacy.IvoryScoobiLoader[A]
   type IvoryScoobiStorer[A, +B] = com.ambiata.ivory.storage.legacy.IvoryScoobiStorer[A, B]
 

@@ -3,6 +3,12 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-a79bda6
+
+- `ingest-bulk` in now just `ingest`.
+- `ingest` has been removed for more performant `ingest-bulk`.
+- `import-facts` has been removed.
+
 ## 1.0.0-*-548d896
 
 - `import-dictionary` will now validate non-backwards compatible changes to the dictionary.

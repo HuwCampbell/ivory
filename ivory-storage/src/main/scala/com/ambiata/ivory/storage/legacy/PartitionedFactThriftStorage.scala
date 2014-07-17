@@ -103,6 +103,7 @@ object PartitionFactThriftStorageV2 {
   }
 }
 
+// FIX delete this, should be using storage.fact.Partitions and/or storage.fact.StoreGlob
 object PartitionExpantion {
   def filterGlob(paths: List[String], from: Option[Date], to: Option[Date])(implicit sc: ScoobiConfiguration): List[String] =
     (from, to) match {

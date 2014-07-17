@@ -14,7 +14,6 @@ import FactFormats._
 import SeqSchemas._
 
 object SnapshotStorageV1 {
-
   case class SnapshotLoader(path: Path) extends IvoryScoobiLoader[Fact] {
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ Fact] =
       valueFromSequenceFile[Fact](path.toString).map(_.right[ParseError])

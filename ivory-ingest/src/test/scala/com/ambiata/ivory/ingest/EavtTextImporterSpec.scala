@@ -27,7 +27,7 @@ import org.specs2.execute.{Result, AsResult}
 
 class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2"""
 
-  Scoobi job runs and creates expected data $e1
+  MR job runs and creates expected data $e1
 
   When there are errors, they must be saved as a Thrift record containing the full record + the error message $e2
 
@@ -39,7 +39,7 @@ class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2
 
     val errors = new Path(directory, "errors")
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onHdfs(repository, dictionary, Factset("factset1"), "ns1", new Path(input), errors, DateTimeZone.getDefault, None, identity).run(sc) must beOk
+    EavtTextImporter.onHdfs(repository, dictionary, Factset("factset1"), List("ns1"), new Path(input), errors, DateTimeZone.getDefault, List("ns1" -> 1), 1024 * 1024 * 128, None).run(sc) must beOk
 
     val expected = List(
       StringFact("pid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1),  Time(10), "v1"),
@@ -57,7 +57,7 @@ class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2
     val errors = new Path(directory, "errors")
 
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onHdfs(repository, dictionary, Factset("factset1"), "ns1", new Path(input), errors, DateTimeZone.getDefault, None, identity).run(sc) must beOk
+    EavtTextImporter.onHdfs(repository, dictionary, Factset("factset1"), List("ns1"), new Path(input), errors, DateTimeZone.getDefault, List("ns1" -> 1), 1024 * 1024 * 128, None).run(sc) must beOk
     valueFromSequenceFile[ParseError](errors.toString).run must not(beEmpty)
   }
 
@@ -73,6 +73,7 @@ class Setup() {
 
   val directory = path(TempFiles.createTempDir("eavtimporter").getPath)
   val input = directory + "/input"
+  val namespaced = input + "/ns1"
   val repository = Repository.fromHdfsPath(directory </> "repo", sc)
 
   val dictionary =
@@ -85,16 +86,20 @@ class Setup() {
     val raw = List("pid1|fid1|v1|2012-10-01 00:00:10",
       "pid1|fid2|2|2012-10-15 00:00:20",
       "pid1|fid3|3.0|2012-03-20 00:00:30")
-
-    TempFiles.writeLines(new File(input), raw, isRemote)
+    save(namespaced, raw)
   }
 
   def saveInputFileWithErrors = {
     val raw = List("pid1|fid1|v1|2012-10-01 00:00:10",
                    "pid1|fid2|x|2012-10-15 00:00:20",
                    "pid1|fid3|3.0|2012-03-20 00:00:30")
+    save(namespaced, raw)
+  }
 
-    TempFiles.writeLines(new File(input), raw, isRemote)
+  def save(path: String, raw: List[String]) = {
+    val f = new File(path)
+    f.mkdirs()
+    TempFiles.writeLines(new File(f, "part"), raw, isRemote)
   }
 
 }
