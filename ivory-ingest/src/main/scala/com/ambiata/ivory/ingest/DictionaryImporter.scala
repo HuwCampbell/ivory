@@ -6,26 +6,33 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import scalaz._, effect._
+import scalaz._, Scalaz._, effect._
 
 // FIX move to com.ambiata.ivory.ingest.internal
 object DictionaryImporter {
 
-  def fromPath(repository: Repository, source: StorePathIO, importType: ImportType): ResultTIO[FilePath] =
-    DictionaryTextStorage.dictionaryFromHdfs(source).flatMap(fromDictionary(repository, _, importType))
+  import DictionaryImportValidate._
 
-  def fromDictionary(repository: Repository, dictionary: Dictionary, importType: ImportType): ResultTIO[FilePath] = {
+  def fromPath(repository: Repository, source: StorePathIO, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] =
+    DictionaryTextStorage.dictionaryFromHdfs(source).flatMap(fromDictionary(repository, _, importOpts))
+
+  def fromDictionary(repository: Repository, dictionary: Dictionary, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] = {
     val storage = DictionaryThriftStorage(repository)
     for {
-      oldDictionary <- importType match {
-        case Update => storage.load
-        case Override => ResultT.ok[IO, Dictionary](Dictionary(Map()))
+      oldDictionary <- storage.loadOption.map(_.getOrElse(Dictionary(Map())))
+      newDictionary = importOpts.ty match {
+        case Update => oldDictionary.append(dictionary)
+        case Override => dictionary
       }
-      out <- storage.store(oldDictionary.append(dictionary))
-    } yield out._2
+      validation = validate(oldDictionary, newDictionary)
+      doImport = validation.isSuccess || importOpts.force
+      path <- if (doImport) storage.store(newDictionary).map(_._2).map(some) else None.pure[ResultTIO]
+    } yield validation -> path
   }
 
   sealed trait ImportType
   case object Update extends ImportType
   case object Override extends ImportType
+
+  case class ImportOpts(ty: ImportType, force: Boolean)
 }

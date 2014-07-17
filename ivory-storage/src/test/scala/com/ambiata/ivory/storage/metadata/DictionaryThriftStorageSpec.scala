@@ -40,11 +40,11 @@ class DictionaryThriftStorageSpec extends Specification { def is = s2"""
 
   def loadMigrate = run { (loader, dir) =>
     storeDateDicts(dir) >> loader.loadMigrate
-  } must beOkValue(Identifier.initial -> dict.forNamespace("vegetables"))
+  } must beOkValue(Some(Identifier.initial -> dict.forNamespace("vegetables")))
 
   def loadIdentifier = run { (loader, dir) =>
     loader.store(dict) >>= (id => loader.loadFromId(id._1))
-  } must beOkValue(dict)
+  } must beOkValue(Some(dict))
 
   private def storeDateDicts(dir: FilePath): ResultTIO[Unit] = {
     import DictionaryTextStorage._

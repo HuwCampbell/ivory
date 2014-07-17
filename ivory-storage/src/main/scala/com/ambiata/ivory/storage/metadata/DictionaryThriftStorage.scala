@@ -16,38 +16,39 @@ case class DictionaryThriftStorage(repository: Repository) {
   val dictDir = Repository.dictionaries
 
   def load: ResultTIO[Dictionary] =
-    loadWithId.map(_._2)
+    loadOption.flatMap(ResultT.fromOption(_, s"No dictionaries found"))
 
-  def loadMigrate: ResultTIO[(Identifier, Dictionary)] =
-    loadWithId.flatMap {
+  def loadOption: ResultTIO[Option[Dictionary]] =
+    loadWithId.map(_.map(_._2))
+
+  def loadMigrate: ResultTIO[Option[(Identifier, Dictionary)]] =
+    loadWithId.flatMap(_.traverse[ResultTIO, (Identifier, Dictionary)] {
       case (Some(identifier), dict) => ResultT.ok(identifier -> dict)
       case (_, dict)                => store(dict).map(_._1 -> dict)
+    })
+
+  private def loadWithId: ResultTIO[Option[(Option[Identifier], Dictionary)]] =
+    IdentifierStorage.get(store, dictDir).flatMap {
+      case Some(path) => loadFromId(path._1).map(_.map(some(path._1) ->))
+      case None       => loadDates.map(_.map(none ->))
     }
 
-  private def loadWithId: ResultTIO[(Option[Identifier], Dictionary)] =
-    IdentifierStorage.getOrFail(store, dictDir).flatMap(path => loadFromId(path._1).map(Some(path._1) ->)) |||
-      loadDates.map(none ->) |||
-      ResultT.fail(s"No dictionaries found in $dictDir")
+  private def loadDates: ResultTIO[Option[Dictionary]] =
+    StoreDataUtil.listDir(store, dictDir)
+      .map(_.filter(_.basename.path.matches("""\d{4}-\d{2}-\d{2}""")).sortBy(_.basename.path).reverse.headOption)
+      .flatMap(_.traverse[ResultTIO, Dictionary] { dictDir => for {
+        dictPaths <- store.list(dictDir)
+        dicts     <- dictPaths.traverseU(path => DictionaryTextStorage.dictionaryFromHdfs(StorePath(store, path)))
+      } yield dicts.foldLeft(Dictionary(Map()))(_ append _)
+    })
 
-  private def loadDates: ResultTIO[Dictionary] = for {
-    dictDir   <- StoreDataUtil.listDir(store, dictDir).map(_.filter(_.basename.path.matches("""\d{4}-\d{2}-\d{2}""")).sortBy(_.basename.path).reverse.headOption)
-    dictPaths <- dictDir.cata(store.list, ResultT.fail[IO, List[FilePath]](s"No date-based dictionaries found in $dictDir"))
-    dicts     <- dictPaths.traverseU(path => DictionaryTextStorage.dictionaryFromHdfs(StorePath(store, path)))
-  } yield dicts.foldLeft(Dictionary(Map()))(_ append _)
-
-  def loadFromRef(path: FilePath): ResultTIO[Dictionary] = for {
-    idS  <- store.utf8.read(path)
-    id   <- ResultT.fromOption[IO, Identifier](Identifier.parse(idS), s"No dictionary ref found at $path")
-    dict <- loadFromId(id)
-  } yield dict
-
-  def loadFromId(identifier: Identifier): ResultTIO[Dictionary] =
+  def loadFromId(identifier: Identifier): ResultTIO[Option[Dictionary]] =
     loadFromPath(dictDir </> identifier.render </> DATA)
 
-  def loadFromPath(dictPath: FilePath): ResultTIO[Dictionary] = for {
-    bytes <- store.bytes.read(dictPath)
-    dict = ThriftSerialiser().fromBytes1(() => new ThriftDictionary(), bytes.toArray)
-  } yield from(dict)
+  def loadFromPath(dictPath: FilePath): ResultTIO[Option[Dictionary]] =
+    store.bytes.read(dictPath).map {
+      bytes => from(ThriftSerialiser().fromBytes1(() => new ThriftDictionary(), bytes.toArray))
+    }.map(some) ||| ResultT.ok(none)
 
   def store(dictionary: Dictionary): ResultTIO[(Identifier, FilePath)] = for {
     bytes <- ResultT.safe[IO, Array[Byte]](ThriftSerialiser().toBytes(to(dictionary)))

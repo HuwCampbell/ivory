@@ -3,6 +3,11 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-548d896
+
+- `import-dictionary` will now validate non-backwards compatible changes to the dictionary.
+  This includes changing feature types. If these changes are intentional then `--force` can be used to ignore the check.
+
 ## 1.0.0-*-1c9d86c
 
 `count-facts` cli doesn't require `-p` to be specified, eg. `ivory count-facts /path/to/snapshot` is now valid.

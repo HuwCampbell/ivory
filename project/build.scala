@@ -186,7 +186,7 @@ object build extends Build {
       name := "ivory-ingest"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.scoobi(version.value) ++ depend.saws ++ depend.mundane)
   )
-  .dependsOn(core, storage, alien_hdfs, scoobi, mr, scoobi % "test->test")
+  .dependsOn(core, storage, alien_hdfs, scoobi, mr, scoobi % "test->test", core % "test->test")
 
   lazy val mr = Project(
     id = "mr"
