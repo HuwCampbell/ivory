@@ -188,3 +188,8 @@ case class TombstoneValue() extends Value {
   val encoding = None
   val stringValue = None
 }
+
+object Value {
+  def validDouble(d: Double): Boolean =
+    !d.isNaN && !d.isNegInfinity && !d.isPosInfinity
+}

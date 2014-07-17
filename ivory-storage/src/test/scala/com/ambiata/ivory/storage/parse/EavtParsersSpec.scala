@@ -58,6 +58,12 @@ Eavt Parse Formats
   def parsefail = prop((bad: BadEavt) =>
     EavtParsers.fact(TestDictionary, bad.namespace, bad.timezone).run(bad.string.split("\\|").toList).toOption must beNone)
 
+  def genBadDouble: Gen[DoubleValue] =
+    Gen.oneOf(Double.NaN, Double.NegativeInfinity, Double.PositiveInfinity).map(DoubleValue)
+
+  def genBadValue(good: FeatureMeta, bad: FeatureMeta): Gen[Value] =
+    genValue(bad).retryUntil(_.stringValue.map(s => !validString(s, good.encoding)).getOrElse(false))
+
   /**
    * Arbitrary to create invalid EAVT strings such that the structure is correct, but the content is wrong in some way
    */
@@ -73,7 +79,7 @@ Eavt Parse Formats
       (f, m) <- Gen.oneOf(TestDictionary.meta.toList).retryUntil(_._2.encoding != StringEncoding)
       a      <- Gen.const(f.name)
       bm     <- Gen.oneOf(TestDictionary.meta.toList).map(_._2).retryUntil(bm => !compatible(bm.encoding, m.encoding))
-      v      <- genValue(bm).retryUntil(_.stringValue.map(s => !validString(s, m.encoding)).getOrElse(false))
+      v      <- Gen.oneOf(genBadValue(m, bm), if(m.encoding == DoubleEncoding) genBadDouble else genBadValue(m, bm))
       dtz    <- arbitrary[DateTimeWithZone]
     } yield (a, v, dtz.datetime, f.namespace, m, dtz.zone), for {
       (f, m) <- Gen.oneOf(TestDictionary.meta.toList)
@@ -96,7 +102,7 @@ Eavt Parse Formats
   def validString(s: String, e: Encoding): Boolean = e match {
     case StringEncoding  => true
     case IntEncoding     => s.parseInt.isSuccess
-    case DoubleEncoding  => s.parseDouble.isSuccess
+    case DoubleEncoding  => s.parseDouble.fold(_ => false, Value.validDouble)
     case BooleanEncoding => s.parseBoolean.isSuccess
     case LongEncoding    => s.parseLong.isSuccess
     case _: StructEncoding => sys.error("Encoding of structs as strings not supported!")
