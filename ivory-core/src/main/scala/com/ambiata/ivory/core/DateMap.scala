@@ -33,9 +33,10 @@ object DateMap {
     val Date = """(\d{4})-(\d{2})-(\d{2})""".r
     val lines = s.lines.toList
     val out = new HashMap[String, Array[Int]](lines.length)
-    lines.map(_.split("\\|").toList match {
+    lines.map(line => line.split("\\|").toList match {
       case h :: Date(y, m, d) :: Nil =>
         (h, y.toShort, m.toByte, d.toByte)
+      case _ => sys.error("Can't parse the line "+line+". Expected: entity id|yyyy-MM-dd")
     }).groupBy(_._1).foreach({ case (k, v) =>
       out.put(k, v.map({ case (_, y, m, d) => toInt(y, m, d) }).toArray.sorted.reverse)
     })
