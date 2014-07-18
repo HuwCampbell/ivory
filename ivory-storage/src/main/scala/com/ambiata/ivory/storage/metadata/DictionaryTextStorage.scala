@@ -69,7 +69,7 @@ object DictionaryTextStorage {
     parser.run(Delimited.parsePsv(entry)).disjunction
   }
 
-  def parseEncoding(s: String): Validation[String, Encoding] =
+  def parseEncoding(s: String): Validation[String, PrimitiveEncoding] =
     s match {
       case "boolean"    => BooleanEncoding.success
       case "int"        => IntEncoding.success
