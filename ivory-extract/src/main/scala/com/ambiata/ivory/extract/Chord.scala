@@ -48,7 +48,7 @@ case class HdfsChord(repoPath: Path, store: String, entities: HashMap[String, Ar
       s  <- ScoobiAction.fromHdfs(storeFromIvory(r, sm.store))
     } yield (path, s, sm))
     _  <- scoobiJob(r, d, s, chordPath, latest, validateIncr(earliest, in), codec)
-    _  <- ScoobiAction.fromHdfs(DictionaryTextStorage.toHdfs(new Path(outputPath, ".dictionary"), d))
+    _  <- ScoobiAction.fromHdfs(DictionaryTextStorageV2.toHdfs(new Path(outputPath, ".dictionary"), d))
   } yield ()
 
   def validateIncr(earliest: Date, in: Option[(Path, FeatureStore, SnapshotMeta)]): Option[(Path, FeatureStore, SnapshotMeta)] =
