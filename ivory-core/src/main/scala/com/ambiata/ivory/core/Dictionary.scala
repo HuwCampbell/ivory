@@ -58,7 +58,9 @@ object Encoding {
 
   def render(enc: Encoding): String = enc match {
     case e: PrimitiveEncoding => renderPrimitive(e)
-    case _: StructEncoding    => sys.error("Encoding of structs not supported yet!") // TODO
+    case StructEncoding(m)    => "(" + m.map {
+      case (n, v) => n + ":" + renderPrimitive(v.encoding) + (if (v.optional) "*" else "")
+    }.mkString(",") + ")"
   }
 
   def renderPrimitive(enc: PrimitiveEncoding): String = enc match {

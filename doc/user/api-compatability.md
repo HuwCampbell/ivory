@@ -6,6 +6,9 @@ This document serves as a list of changes to the Ivory API, both in the file for
 ## 1.0.0-*-e4212cc
 
 - `cat-dictionary` will no longer support custom delimiters and will always use '|'.
+- Dictionaries have switched to the following format:
+
+      namespace:id|encoding=string|type=categorical|description=description|tombstone=NA
 
 ## 1.0.0-*-cc96fbc
 

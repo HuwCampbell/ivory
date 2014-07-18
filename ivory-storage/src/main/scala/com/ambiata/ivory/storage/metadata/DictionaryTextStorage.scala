@@ -4,9 +4,7 @@ import scalaz.{Value => _, _}, Scalaz._
 import com.ambiata.mundane.parse._
 import com.ambiata.ivory.core._
 
-object DictionaryTextStorage extends TextStorage[(FeatureId, FeatureMeta), Dictionary] {
-
-  val DELIM = "|"
+trait DictionaryTextStorageCommon extends TextStorage[(FeatureId, FeatureMeta), Dictionary] {
 
   val name = "dictionary"
 
@@ -15,6 +13,12 @@ object DictionaryTextStorage extends TextStorage[(FeatureId, FeatureMeta), Dicti
 
   def toList(d: Dictionary): List[(FeatureId, FeatureMeta)] =
     d.meta.toList
+}
+
+object DictionaryTextStorage extends DictionaryTextStorageCommon {
+
+  val DELIM = "|"
+
   def parseLine(i: Int, e: String): ValidationNel[String, (FeatureId, FeatureMeta)] =
     parseDictionaryEntry(e).toValidationNel
 

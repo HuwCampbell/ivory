@@ -25,7 +25,7 @@ $V1 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
 
 # Need to remove extra blank line
 $IVORY cat-dictionary -r "${REPOSITORY}" | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
-diff_test "${INPUT}/dictionary.psv" "${TARGET}/dictionary.psv"
+diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
 
 ### SNAPSHOT ###
 

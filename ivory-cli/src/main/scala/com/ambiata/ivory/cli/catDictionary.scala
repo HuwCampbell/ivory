@@ -33,7 +33,7 @@ object catDictionary extends IvoryApp {
           case None      => store.load
         }
       } yield List(
-        DictionaryTextStorage.delimitedDictionaryString(dictionary)
+        DictionaryTextStorageV2.delimitedString(dictionary)
       )
   }
   })

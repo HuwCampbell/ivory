@@ -3,7 +3,7 @@ package com.ambiata.ivory.ingest
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
-import com.ambiata.ivory.storage.metadata.Metadata._
+import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultMatcher._
 import org.specs2.Specification
@@ -24,11 +24,10 @@ class DictionaryImporterSpec extends Specification { def is = s2"""
 
   def e1 = {
     val dictionaryPath = FilePath("dictionary.psv")
-    val dictionary = """demo|postcode|string|categorical|Postcode|☠"""
 
     val dict = Dictionary(Map(FeatureId("demo", "postcode") -> FeatureMeta(StringEncoding, Some(CategoricalType), "Postcode", List("☠"))))
     Temporary.using(dir => for {
-      _    <- Streams.write(new java.io.FileOutputStream((dir </> dictionaryPath).toFile), dictionary)
+      _    <- Streams.write(new java.io.FileOutputStream((dir </> dictionaryPath).toFile), DictionaryTextStorageV2.delimitedString(dict))
       repo  = Repository.fromLocalPath(dir)
       _    <- fromPath(repo, StorePath(repo.toStore, dictionaryPath), opts.copy(ty = Override))
       out  <- dictionaryFromIvory(repo)
