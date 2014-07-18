@@ -79,12 +79,12 @@ object Arbitraries {
 
   implicit def DictionaryArbitrary: Arbitrary[Dictionary] =
     Arbitrary(Gen.mapOf[FeatureId, FeatureMeta](for {
-      ns    <- arbitrary[String]
-      name  <- arbitrary[String]
+      ns    <- arbitrary[DictId].map(_.s)
+      name  <- arbitrary[DictId].map(_.s)
       enc   <- arbitrary[Encoding]
       ty    <- arbitrary[Option[Type]]
-      desc  <- arbitrary[String]
-      tombs <- Gen.listOf(arbitrary[String])
+      desc  <- arbitrary[DictDesc].map(_.s)
+      tombs <- Gen.listOf(arbitrary[DictTomb].map(_.s))
     } yield FeatureId(ns, name) -> FeatureMeta(enc, ty, desc, tombs)).map(Dictionary))
 
   implicit def EncodingArbitrary: Arbitrary[Encoding] =
@@ -95,7 +95,7 @@ object Arbitraries {
 
   implicit def StructEncodingArbitrary: Arbitrary[StructEncoding] =
     Arbitrary(Gen.mapOf[String, StructValue](for {
-      name <- arbitrary[String]
+      name <- arbitrary[DictId].map(_.s)
       enc <- arbitrary[PrimitiveEncoding]
       optional <- arbitrary[Boolean]
     } yield name -> StructValue(enc, optional)).map(StructEncoding))
@@ -147,4 +147,22 @@ object Arbitraries {
   implicit def DateTimeZoneArbitrary: Arbitrary[DateTimeZone] = Arbitrary(for {
     zid <- Gen.oneOf(DateTimeZone.getAvailableIDs().asScala.toSeq)
   } yield DateTimeZone.forID(zid))
+
+  case class DictId(s: String)
+  case class DictDesc(s: String)
+  case class DictTomb(s: String)
+
+  implicit def DictIdArbitrary: Arbitrary[DictId] = Arbitrary(
+    Gen.frequency(
+      1 -> Gen.const("_"),
+      99 -> Gen.listOf(Gen.alphaNumChar).map(_.mkString)
+    ).map(DictId)
+  )
+
+  implicit def DictTombArbitrary: Arbitrary[DictTomb] =
+    Arbitrary(arbitrary[DictDesc].map(_.s).retryUntil(s => !s.contains(",") && !s.contains("\"")).map(DictTomb))
+
+  implicit def DictDescArbitrary: Arbitrary[DictDesc] =
+    Arbitrary(arbitrary[String].map(_.trim).retryUntil(s => !s.contains("|") && !s.contains("\uFFFF") && s.forall(_ > 31)).map(DictDesc))
+
 }
