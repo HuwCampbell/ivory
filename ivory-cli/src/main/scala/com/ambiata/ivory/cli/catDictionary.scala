@@ -9,13 +9,11 @@ import scalaz._, Scalaz._, effect._
 
 object catDictionary extends IvoryApp {
 
-  case class CliArguments(repo: String, name: Option[String] = None, delimiter: Char = '|')
-
-  import ScoptReaders.charRead
+  case class CliArguments(repo: String, name: Option[String] = None)
 
   val parser = new scopt.OptionParser[CliArguments]("cat-dictionary") {
     head("""
-           |Print dictionary as text to standard out, delimited by '|' or explicitly set delimiter.
+           |Print dictionary as text to standard out, delimited by '|'.
            |""".stripMargin)
 
     help("help") text "shows this usage text"
@@ -23,12 +21,10 @@ object catDictionary extends IvoryApp {
       s"Ivory repository to create. If the path starts with 's3://' we assume that this is a S3 repository"
     opt[String]('n', "name")        action { (x, c) => c.copy(name = Some(x)) }           optional()       text
       s"For displaying the contents of an older dictionary"
-    opt[Char]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) }        optional()             text
-      "Delimiter (`|` by default)"
   }
 
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), HadoopCmd { conf => {
-    case CliArguments(repo, nameOpt, delim) =>
+    case CliArguments(repo, nameOpt) =>
       for {
         repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, conf).leftMap(\&/.This(_)))
         store = DictionaryThriftStorage(repo)
@@ -37,7 +33,7 @@ object catDictionary extends IvoryApp {
           case None      => store.load
         }
       } yield List(
-        DictionaryTextStorage.delimitedDictionaryString(dictionary, delim)
+        DictionaryTextStorage.delimitedDictionaryString(dictionary)
       )
   }
   })
