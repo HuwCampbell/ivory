@@ -63,7 +63,7 @@ Skew Tests
   , "flavours" -> 184072795L
   )
   def optimal = 1024 * 1024 * 256 // 256MB
-  def fake = FeatureMeta(DoubleEncoding, ContinuousType, "desc", Nil)
+  def fake = FeatureMeta(DoubleEncoding, Some(ContinuousType), "desc", Nil)
   def featureIds =
     (1 to 10).map(n => FeatureId("demographics", "d" + n)).toList ++
     (1 to 10).map(n => FeatureId("offers", "o" + n)).toList ++

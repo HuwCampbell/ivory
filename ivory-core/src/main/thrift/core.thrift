@@ -91,7 +91,7 @@ struct ThriftDictionaryFeatureId {
 
 struct ThriftDictionaryFeatureMeta {
     1: ThriftDictionaryEncoding encoding;
-    2: ThriftDictionaryType type;
+    2: optional ThriftDictionaryType type;
     3: string desc;
     4: list<string> tombstoneValue;
     5: optional ThriftDictionaryFeatureValue value;

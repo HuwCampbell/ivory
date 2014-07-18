@@ -56,7 +56,7 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
    * 
    * @see ThriftDictionaryType
    */
-  public ThriftDictionaryType type; // required
+  public ThriftDictionaryType type; // optional
   public String desc; // required
   public List<String> tombstoneValue; // required
   public ThriftDictionaryFeatureValue value; // optional
@@ -140,13 +140,13 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
   }
 
   // isset id assignments
-  private _Fields optionals[] = {_Fields.VALUE};
+  private _Fields optionals[] = {_Fields.TYPE,_Fields.VALUE};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.ENCODING, new org.apache.thrift.meta_data.FieldMetaData("encoding", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, ThriftDictionaryEncoding.class)));
-    tmpMap.put(_Fields.TYPE, new org.apache.thrift.meta_data.FieldMetaData("type", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.TYPE, new org.apache.thrift.meta_data.FieldMetaData("type", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, ThriftDictionaryType.class)));
     tmpMap.put(_Fields.DESC, new org.apache.thrift.meta_data.FieldMetaData("desc", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -164,13 +164,11 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
 
   public ThriftDictionaryFeatureMeta(
     ThriftDictionaryEncoding encoding,
-    ThriftDictionaryType type,
     String desc,
     List<String> tombstoneValue)
   {
     this();
     this.encoding = encoding;
-    this.type = type;
     this.desc = desc;
     this.tombstoneValue = tombstoneValue;
   }
@@ -599,14 +597,16 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
       sb.append(this.encoding);
     }
     first = false;
-    if (!first) sb.append(", ");
-    sb.append("type:");
-    if (this.type == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.type);
+    if (isSetType()) {
+      if (!first) sb.append(", ");
+      sb.append("type:");
+      if (this.type == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.type);
+      }
+      first = false;
     }
-    first = false;
     if (!first) sb.append(", ");
     sb.append("desc:");
     if (this.desc == null) {
@@ -748,9 +748,11 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
         oprot.writeFieldEnd();
       }
       if (struct.type != null) {
-        oprot.writeFieldBegin(TYPE_FIELD_DESC);
-        oprot.writeI32(struct.type.getValue());
-        oprot.writeFieldEnd();
+        if (struct.isSetType()) {
+          oprot.writeFieldBegin(TYPE_FIELD_DESC);
+          oprot.writeI32(struct.type.getValue());
+          oprot.writeFieldEnd();
+        }
       }
       if (struct.desc != null) {
         oprot.writeFieldBegin(DESC_FIELD_DESC);

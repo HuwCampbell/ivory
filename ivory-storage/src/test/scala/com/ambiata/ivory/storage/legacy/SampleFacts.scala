@@ -31,9 +31,9 @@ trait SampleFacts extends MustThrownMatchers {
   }
 
   def createDictionary(repo: HdfsRepository) = {
-    val dict = Dictionary(Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, "desc"),
-      FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, NumericalType, "desc"),
-      FeatureId("ns2", "fid3") -> FeatureMeta(BooleanEncoding, CategoricalType, "desc")))
+    val dict = Dictionary(Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, Some(CategoricalType), "desc"),
+      FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, Some(NumericalType), "desc"),
+      FeatureId("ns2", "fid3") -> FeatureMeta(BooleanEncoding, Some(CategoricalType), "desc")))
 
     dictionaryToIvory(repo, dict) must beOk
     dict

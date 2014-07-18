@@ -33,9 +33,9 @@ object FeatureId {
     SOrdering.by(f => (f.namespace, f.name))
 }
 
-case class FeatureMeta(encoding: Encoding, ty: Type, desc: String, tombstoneValue: List[String] = List("☠")) {
+case class FeatureMeta(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String] = List("☠")) {
   def toString(delim: String): String =
-    s"${Encoding.render(encoding)}${delim}${Type.render(ty)}${delim}${desc}${delim}${tombstoneValue.mkString(",")}"
+    s"${Encoding.render(encoding)}${delim}${ty.map(Type.render).getOrElse("")}${delim}${desc}${delim}${tombstoneValue.mkString(",")}"
 }
 
 sealed trait Encoding

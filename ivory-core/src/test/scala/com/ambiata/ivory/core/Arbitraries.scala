@@ -67,11 +67,11 @@ object Arbitraries {
   }
 
   lazy val TestDictionary: Dictionary = Dictionary(Map(
-    FeatureId("fruit", "apple") -> FeatureMeta(LongEncoding, ContinuousType, "Reds and Greens", "?" :: Nil)
-  , FeatureId("fruit", "orange") -> FeatureMeta(StringEncoding, CategoricalType, "Oranges", "?" :: Nil)
-  , FeatureId("vegetables", "potatoe") -> FeatureMeta(DoubleEncoding, ContinuousType, "Browns", "?" :: Nil)
-  , FeatureId("vegetables", "yams") -> FeatureMeta(BooleanEncoding, CategoricalType, "Sweets", "?" :: Nil)
-  , FeatureId("vegetables", "peas") -> FeatureMeta(IntEncoding, ContinuousType, "Greens", "?" :: Nil)
+    FeatureId("fruit", "apple") -> FeatureMeta(LongEncoding, Some(ContinuousType), "Reds and Greens", "?" :: Nil)
+  , FeatureId("fruit", "orange") -> FeatureMeta(StringEncoding, Some(CategoricalType), "Oranges", "?" :: Nil)
+  , FeatureId("vegetables", "potatoe") -> FeatureMeta(DoubleEncoding, Some(ContinuousType), "Browns", "?" :: Nil)
+  , FeatureId("vegetables", "yams") -> FeatureMeta(BooleanEncoding, Some(CategoricalType), "Sweets", "?" :: Nil)
+  , FeatureId("vegetables", "peas") -> FeatureMeta(IntEncoding, Some(ContinuousType), "Greens", "?" :: Nil)
   ))
 
   def testEntities(n: Int): List[String] =
@@ -82,7 +82,7 @@ object Arbitraries {
       ns    <- arbitrary[String]
       name  <- arbitrary[String]
       enc   <- arbitrary[Encoding]
-      ty    <- arbitrary[Type]
+      ty    <- arbitrary[Option[Type]]
       desc  <- arbitrary[String]
       tombs <- Gen.listOf(arbitrary[String])
     } yield FeatureId(ns, name) -> FeatureMeta(enc, ty, desc, tombs)).map(Dictionary))
