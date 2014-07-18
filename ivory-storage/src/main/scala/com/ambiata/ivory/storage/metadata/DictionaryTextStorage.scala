@@ -57,11 +57,11 @@ object DictionaryTextStorage {
       name      <- string
       encoding  <- for {
         s <- string
-        r <- value(parseEncoding(s).leftMap(_ => s"""not a valid encoding: '$s'"""))
+        r <- value(parseEncoding(s))
       } yield r
       ty        <- for {
         s <- string
-        r <- value(parseType(s).leftMap(_ => s"""not a valid feature type: '$s'"""))
+        r <- value(parseType(s))
       } yield r
       desc      <- string
       tombstone <- string
@@ -76,7 +76,7 @@ object DictionaryTextStorage {
       case "long"       => LongEncoding.success
       case "double"     => DoubleEncoding.success
       case "string"     => StringEncoding.success
-      case otherwise    => "".failure
+      case otherwise    => s"""not a valid encoding: '$s'""".failure
     }
 
   def parseType(s: String): Validation[String, Type] =
@@ -85,7 +85,7 @@ object DictionaryTextStorage {
       case "continuous"   => ContinuousType.success
       case "categorical"  => CategoricalType.success
       case "binary"       => BinaryType.success
-      case otherwise      => "".failure
+      case otherwise      => s"not a valid feature type: '$s'".failure
     }
 
 }
