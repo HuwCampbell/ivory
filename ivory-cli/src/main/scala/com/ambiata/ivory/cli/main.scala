@@ -40,9 +40,10 @@ object main {
     program.sequence.flatMap(_.flatten.fold(usage())(_ => IO.ioUnit)).unsafePerformIO
   }
 
-  def usage() = IO {
+  def usage(): IO[Unit] = IO {
     val cmdNames = commands.map(_.cmd.parser.programName).mkString("|")
     println(s"Usage: {$cmdNames}")
+    sys.exit(1)
   }
 }
 
