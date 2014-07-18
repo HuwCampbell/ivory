@@ -37,7 +37,7 @@ object generateDictionary extends IvoryApp {
 
   def generate(namespaces: Int, features: Int, dictPath: Path, flagsPath: Path): Hdfs[Unit] = for {
     dict <- GenerateDictionary.onHdfs(namespaces, features)
-    _    <- Hdfs.writeWith(dictPath, Streams.write(_, DictionaryTextStorage.delimitedDictionaryString(dict, '|')))
+    _    <- Hdfs.writeWith(dictPath, Streams.write(_, DictionaryTextStorage.delimitedString(dict)))
     _    <- GenerateFeatureFlags.onHdfs(dict, flagsPath)
   } yield ()
 }

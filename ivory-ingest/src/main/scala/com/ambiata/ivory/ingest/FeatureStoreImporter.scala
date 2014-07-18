@@ -14,7 +14,7 @@ import com.ambiata.mundane.io.FilePath
 object FeatureStoreImporter {
    def onHdfs(repository: HdfsRepository, name: String, storePath: Path): Hdfs[Unit] =
      for {
-       s <- FeatureStoreTextStorage.storeFromHdfs(storePath)
+       s <- FeatureStoreTextStorage.fromHdfs(storePath)
        _ <- Metadata.storeToIvory(repository, s, name)
      } yield ()
 }

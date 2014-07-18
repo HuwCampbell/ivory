@@ -21,7 +21,7 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
 
   def e1 = {
     val entry = "demo|postcode|string|categorical|Postcode|☠"
-    DictionaryTextStorage.parseDictionaryEntry(entry) must_== ((FeatureId("demo", "postcode"), FeatureMeta(StringEncoding, Some(CategoricalType), "Postcode"))).right
+    DictionaryTextStorage.parseDictionaryEntry(entry) ==== (FeatureId("demo", "postcode"), FeatureMeta(StringEncoding, Some(CategoricalType), "Postcode")).success
   }
 
   def e2 = {

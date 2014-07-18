@@ -38,7 +38,7 @@ case class DictionaryThriftStorage(repository: Repository) {
       .map(_.filter(_.basename.path.matches("""\d{4}-\d{2}-\d{2}""")).sortBy(_.basename.path).reverse.headOption)
       .flatMap(_.traverse[ResultTIO, Dictionary] { dictDir => for {
         dictPaths <- store.list(dictDir)
-        dicts     <- dictPaths.traverseU(path => DictionaryTextStorage.dictionaryFromHdfs(StorePath(store, path)))
+        dicts     <- dictPaths.traverseU(path => DictionaryTextStorage.fromStore(StorePath(store, path)))
       } yield dicts.foldLeft(Dictionary(Map()))(_ append _)
     })
 
