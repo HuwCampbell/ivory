@@ -13,7 +13,7 @@ object depend {
 
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140709042001-6c1bfce" excludeAll(
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140718230620-63e75be" excludeAll(
     ExclusionRule(organization = "org.specs2"),
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec"),
