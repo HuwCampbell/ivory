@@ -2,6 +2,8 @@
 
 DIR=$(dirname $0)
 
+PROJECT="${DIR}/../../../.." . "${DIR}/build"
+
 EXIT=0
 
 # Run all the tests, capturing any failures
