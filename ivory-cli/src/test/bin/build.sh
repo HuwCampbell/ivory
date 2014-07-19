@@ -1,5 +1,3 @@
-#!/bin/sh -eu
-
 IVORY=${IVORY:-}
 
 # Only build once, or if you want to override it for testing

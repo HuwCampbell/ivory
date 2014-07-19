@@ -2,7 +2,7 @@
 
 DIR=$(dirname $0)
 
-PROJECT="${DIR}/../../../.." . "${DIR}/build"
+PROJECT="${DIR}/../../../.." . "${DIR}/build.sh"
 
 EXIT=0
 

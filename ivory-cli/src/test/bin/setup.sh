@@ -1,5 +1,3 @@
-#!/bin/sh -eux
-
 TEST=$(dirname $0)
 COMMON=${TEST}/../..
 export PROJECT=${TEST}/../../../../../..
@@ -24,8 +22,8 @@ diff_test() {
     diff "$1" "$2"
 }
 
-. "${COMMON}/build"
-. "${COMMON}/versions"
+. "${COMMON}/build.sh"
+. "${COMMON}/versions.sh"
 
 export TARGET="${PROJECT}/target/regression/"
 export REPOSITORY="/tmp/ivory-$(random)"
