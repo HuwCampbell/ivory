@@ -44,6 +44,10 @@ object depend {
       "javassist" %  "javassist" % "3.12.1.GA") ++ hadoop(version)
 
 
+  def reflect(version: String) =
+    Seq("org.scala-lang" % "scala-compiler" % version, "org.scala-lang" % "scala-reflect" % version) ++
+      (if (version.contains("2.10")) Seq("org.scalamacros" %% "quasiquotes" % "2.0.0") else Seq())
+
   def hadoop(version: String, hadoopVersion: String = "2.2.0") =
     if (version.contains("cdh4")) Seq("org.apache.hadoop" % "hadoop-client" % "2.0.0-mr1-cdh4.6.0" % "provided" exclude("asm", "asm"),
                                       "org.apache.hadoop" % "hadoop-core"   % "2.0.0-mr1-cdh4.6.0" % "provided",

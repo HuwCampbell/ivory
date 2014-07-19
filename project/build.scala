@@ -48,6 +48,7 @@ object build extends Build {
   , version in ThisBuild := s"""1.0.0-${Option(System.getenv("HADOOP_VERSION")).getOrElse("cdh5")}"""
   , organization := "com.ambiata"
   , scalaVersion := "2.10.4"
+  , crossScalaVersions := Seq("2.10.4", "2.11.1")
   , fork in run  := true
   ) ++ Seq(prompt)
 
@@ -141,11 +142,8 @@ object build extends Build {
   , settings = standardSettings ++ lib("core") ++ Seq[Settings](
       name := "ivory-core"
     , addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0" cross CrossVersion.full)
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++ depend.thrift ++ depend.hadoop(version.value) ++ Seq(
-        "org.scala-lang" % "scala-compiler" % "2.10.4"
-      , "org.scala-lang" % "scala-reflect" % "2.10.4"
-      , "org.scalamacros" %% "quasiquotes" % "2.0.0"
-    ))
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++
+                                               depend.thrift ++ depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value))
   )
 
   lazy val data = Project(
@@ -154,11 +152,8 @@ object build extends Build {
   , settings = standardSettings ++ lib("data") ++ Seq[Settings](
       name := "ivory-data"
     , addCompilerPlugin("org.scalamacros" %% "paradise" % "2.0.0" cross CrossVersion.full)
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.specs2 ++ depend.hadoop(version.value) ++ Seq(
-        "org.scala-lang" % "scala-compiler" % "2.10.4"
-      , "org.scala-lang" % "scala-reflect" % "2.10.4"
-      , "org.scalamacros" %% "quasiquotes" % "2.0.0"
-    ))
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.specs2 ++
+                                               depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value))
   )
 
   lazy val extract = Project(
@@ -236,7 +231,7 @@ object build extends Build {
     javaOptions ++= Seq("-Xmx3G", "-Xms512m", "-Xss4m")
   , javacOptions ++= Seq("-source", "1.6", "-target", "1.6")
   , maxErrors := 20
-  , scalacOptions ++= Seq("-target:jvm-1.6", "-deprecation", "-unchecked", "-feature", "-language:_", "-Ywarn-all", "-Xlint", "-Xfatal-warnings", "-Yinline-warnings")
+  , scalacOptions ++= Seq("-target:jvm-1.6", "-deprecation", "-unchecked", "-feature", "-language:_", "-Xlint", "-Xfatal-warnings", "-Yinline-warnings")
   )
 
   lazy val testingSettings: Seq[Settings] = Seq(
