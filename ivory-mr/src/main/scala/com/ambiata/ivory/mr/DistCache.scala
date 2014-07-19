@@ -61,7 +61,8 @@ case class DistCache(base: Path, contextId: ContextId) {
 
   def findCacheFile(conf: Configuration, nskey: DistCache.NamespacedKey): String =
     if (org.apache.hadoop.util.VersionInfo.getVersion.contains("cdh4"))
-      com.nicta.scoobi.impl.util.Compatibility.cache.getLocalCacheFiles(conf).toList.find(_.getName == nskey.combined).getOrElse(sys.error("Could not find $nskey to pop from local path.")).toString
+      com.nicta.scoobi.impl.util.Compatibility.cache.getLocalCacheFiles(conf).toList.find(_.getName == nskey.combined)
+        .getOrElse(sys.error(s"Could not find $nskey to pop from local path.")).toString
     else
       nskey.combined
 }
