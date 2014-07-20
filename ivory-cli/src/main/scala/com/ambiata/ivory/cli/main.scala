@@ -16,6 +16,7 @@ object main {
     catFacts,
     catRepositoryFacts,
     chord,
+    convertDictionary,
     countFacts,
     createFeatureStore,
     createRepository,
