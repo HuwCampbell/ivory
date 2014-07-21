@@ -11,17 +11,17 @@ object Metadata {
 
   /* Store */
   def storeFromIvory(repo: HdfsRepository, name: String): Hdfs[FeatureStore] =
-    FeatureStoreTextStorage.storeFromHdfs(repo.storeByName(name).toHdfs)
+    FeatureStoreTextStorage.fromHdfs(repo.storeByName(name).toHdfs)
 
   def storeFromIvoryS3(repository: S3Repository, name: String): HdfsS3Action[FeatureStore] =
-    FeatureStoreTextStorage.storeFromS3(repository.bucket, repository.storeByName(name).path, (repository.tmp </> name).toHdfs)
+    FeatureStoreTextStorage.fromS3(repository.bucket, repository.storeByName(name).path, (repository.tmp </> name).toHdfs)
 
   def storeToIvory(repo: HdfsRepository, store: FeatureStore, name: String): Hdfs[Unit] =
-    FeatureStoreTextStorage.storeToHdfs(repo.storeByName(name).toHdfs, store)
+    FeatureStoreTextStorage.toHdfs(repo.storeByName(name).toHdfs, store)
 
   def storeToIvoryS3(repository: S3Repository, store: FeatureStore, name: String): HdfsS3Action[Unit] = {
     val tmpPath = new Path(repository.tmp.path, repository.storeByName(name).path)
-    FeatureStoreTextStorage.storeToS3(repository.bucket, repository.storeByName(name).path, store, tmpPath)
+    FeatureStoreTextStorage.toS3(repository.bucket, repository.storeByName(name).path, store, tmpPath)
   }
 
   /* Dictionary */

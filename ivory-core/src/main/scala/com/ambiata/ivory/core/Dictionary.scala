@@ -33,10 +33,7 @@ object FeatureId {
     SOrdering.by(f => (f.namespace, f.name))
 }
 
-case class FeatureMeta(encoding: Encoding, ty: Type, desc: String, tombstoneValue: List[String] = List("☠")) {
-  def toString(delim: String): String =
-    s"${Encoding.render(encoding)}${delim}${Type.render(ty)}${delim}${desc}${delim}${tombstoneValue.mkString(",")}"
-}
+case class FeatureMeta(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String] = List("☠"))
 
 sealed trait Encoding
 
@@ -61,7 +58,9 @@ object Encoding {
 
   def render(enc: Encoding): String = enc match {
     case e: PrimitiveEncoding => renderPrimitive(e)
-    case _: StructEncoding    => sys.error("Encoding of structs not supported yet!") // TODO
+    case StructEncoding(m)    => "(" + m.map {
+      case (n, v) => n + ":" + renderPrimitive(v.encoding) + (if (v.optional) "*" else "")
+    }.mkString(",") + ")"
   }
 
   def renderPrimitive(enc: PrimitiveEncoding): String = enc match {

@@ -1,10 +1,10 @@
 package com.ambiata.ivory.storage.store
 
+import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.store._
 import com.nicta.scoobi.Scoobi._
-
-import scalaz.\/
+import scalaz.{Store => _, _}, effect._
 
 /**
  * Represents a relative path within a repository
@@ -30,4 +30,7 @@ object StorePath {
     }
     StoreUtil.fromUri(root, conf).map(new StorePath(_, FilePath(file)))
   }
+
+  def fromUriResult(s: String, conf: ScoobiConfiguration): ResultTIO[StorePathIO] =
+    ResultT.fromDisjunction[IO, StorePathIO](StorePath.fromUri(s, conf).leftMap(\&/.This(_)))
 }

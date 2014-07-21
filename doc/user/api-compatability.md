@@ -3,6 +3,16 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-e4212cc
+
+- `cat-dictionary` will no longer support custom delimiters and will always use '|'.
+- Dictionaries have switched to the following format:
+
+      namespace:id|encoding=string|type=categorical|description=description|tombstone=NA
+
+  A companion `convert-dictionary` command has been added to help automatically upgrade external dictionaries to this
+  new format.
+
 ## 1.0.0-*-cc96fbc
 
 - `ingest-bulk` in now just `ingest`.

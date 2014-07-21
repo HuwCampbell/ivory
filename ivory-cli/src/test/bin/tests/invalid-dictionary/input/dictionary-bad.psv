@@ -1,2 +1,2 @@
-halibut|preheat|string|categorical|11s|NA
-halibut|swiss_cheese|string|binary|Gjc3K09|NA
+halibut:preheat|encoding=string|type=categorical|description=11s|tombstone=NA
+halibut:swiss_cheese|encoding=string|type=binary|description=Gjc3K09|tombstone=NA

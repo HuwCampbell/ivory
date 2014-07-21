@@ -14,7 +14,7 @@ object DictionaryImporter {
   import DictionaryImportValidate._
 
   def fromPath(repository: Repository, source: StorePathIO, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] =
-    DictionaryTextStorage.dictionaryFromHdfs(source).flatMap(fromDictionary(repository, _, importOpts))
+    DictionaryTextStorageV2.fromStore(source).flatMap(fromDictionary(repository, _, importOpts))
 
   def fromDictionary(repository: Repository, dictionary: Dictionary, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] = {
     val storage = DictionaryThriftStorage(repository)

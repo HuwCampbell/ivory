@@ -62,7 +62,8 @@ object DictionaryThriftConversion {
         dict.meta.map {
           case (FeatureId(ns, name), FeatureMeta(enc, ty, desc, tombstoneValue)) =>
             val (encJava, structJava) = encoding.to(enc)
-            val meta = new ThriftDictionaryFeatureMeta(encJava, typeBi.to(ty), desc, tombstoneValue.asJava)
+            val meta = new ThriftDictionaryFeatureMeta(encJava, desc, tombstoneValue.asJava)
+            ty.foreach(t => meta.setType(typeBi.to(t)))
             structJava.foreach(s => meta.setValue(ThriftDictionaryFeatureValue.structValue(s)))
             new ThriftDictionaryFeatureId(ns, name) -> meta
         }.asJava),
@@ -70,7 +71,7 @@ object DictionaryThriftConversion {
     dict =>
       Dictionary(dict.meta.asScala.toMap.map {
           case (featureId, meta) => FeatureId(featureId.ns, featureId.name) ->
-            FeatureMeta(encoding.from(meta), typeBi.from(meta.`type`), meta.desc, meta.tombstoneValue.asScala.toList)
+            FeatureMeta(encoding.from(meta), Option(meta.`type`).map(typeBi.from), meta.desc, meta.tombstoneValue.asScala.toList)
         })
   )
 }

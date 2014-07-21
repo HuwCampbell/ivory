@@ -21,7 +21,7 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
 
   def e1 = {
     val entry = "demo|postcode|string|categorical|Postcode|☠"
-    DictionaryTextStorage.parseDictionaryEntry(entry) must_== ((FeatureId("demo", "postcode"), FeatureMeta(StringEncoding, CategoricalType, "Postcode"))).right
+    DictionaryTextStorage.parseDictionaryEntry(entry) ==== (FeatureId("demo", "postcode"), FeatureMeta(StringEncoding, Some(CategoricalType), "Postcode")).success
   }
 
   def e2 = {
@@ -36,9 +36,9 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
 
   def e4 = {
    DictionaryTextStorage.fromFile("ivory-storage/src/test/resources/good_dictionary.txt").run.unsafePerformIO().toDisjunction must_== Dictionary(Map(
-     FeatureId("demo", "gender")            -> FeatureMeta(StringEncoding, CategoricalType, "Gender"),
-     FeatureId("demo", "postcode")          -> FeatureMeta(StringEncoding, CategoricalType, "Postcode"),
-     FeatureId("widgets", "count.1W") -> FeatureMeta(IntEncoding, NumericalType, "Count in the last week")
+     FeatureId("demo", "gender")            -> FeatureMeta(StringEncoding, Some(CategoricalType), "Gender"),
+     FeatureId("demo", "postcode")          -> FeatureMeta(StringEncoding, Some(CategoricalType), "Postcode"),
+     FeatureId("widgets", "count.1W") -> FeatureMeta(IntEncoding, Some(NumericalType), "Count in the last week")
    )).right
   }
 

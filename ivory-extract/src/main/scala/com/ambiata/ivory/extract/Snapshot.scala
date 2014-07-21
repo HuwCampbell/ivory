@@ -37,7 +37,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, entities: Option[Path], s
               s <- storeFromIvory(r, sm.store)
             } yield (path, s, sm) })
     _    <- job(r, s, in, codec)
-    _    <- DictionaryTextStorage.dictionaryToHdfs(new Path(outputPath, ".dictionary"), d)
+    _    <- DictionaryTextStorageV2.toHdfs(new Path(outputPath, ".dictionary"), d)
     _    <- SnapshotMeta(snapshot, store).toHdfs(new Path(outputPath, SnapshotMeta.fname))
   } yield ()))
 

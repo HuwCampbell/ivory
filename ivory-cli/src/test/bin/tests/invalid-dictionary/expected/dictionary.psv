@@ -1,6 +1,6 @@
-halibut|preheat|string|categorical|11s|NA
-halibut|swiss_cheese|string|binary|Gjc3K09|NA
-sauerkraut|chutney|double|binary|tEe9GOSGH1mpDhN9SxqMuJG|NA
-sauerkraut|grapefruits|int|numerical|0JHiy6vqsszX6uiIxN4|NA
-sauerkraut|pelargonium_citronellum|int|categorical|TBA2kEGjUwwGqyOG7MKRfhX4hIgkHX|NA
-sauerkraut|sweetened_condensed_milk|int|numerical|aufwLQ7Y2WD08zJMpLl6Y8UyAlbzgY24apAq9|NA
+halibut:preheat|encoding=string|type=categorical|description=11s|tombstone=NA
+halibut:swiss_cheese|encoding=string|type=binary|description=Gjc3K09|tombstone=NA
+sauerkraut:chutney|encoding=double|type=binary|description=tEe9GOSGH1mpDhN9SxqMuJG|tombstone=NA
+sauerkraut:grapefruits|encoding=int|type=numerical|description=0JHiy6vqsszX6uiIxN4|tombstone=NA
+sauerkraut:pelargonium_citronellum|encoding=int|type=categorical|description=TBA2kEGjUwwGqyOG7MKRfhX4hIgkHX|tombstone=NA
+sauerkraut:sweetened_condensed_milk|encoding=int|type=numerical|description=aufwLQ7Y2WD08zJMpLl6Y8UyAlbzgY24apAq9|tombstone=NA

@@ -49,7 +49,7 @@ class DictionaryThriftStorageSpec extends Specification { def is = s2"""
   private def storeDateDicts(dir: FilePath): ResultTIO[Unit] = {
     import DictionaryTextStorage._
     def storeText(name: String, ns: String) =
-      Repository.fromLocalPath(dir).toStore.utf8.write(Repository.dictionaries </> name, delimitedDictionaryString(dict.forNamespace(ns), '|'))
+      Repository.fromLocalPath(dir).toStore.utf8.write(Repository.dictionaries </> name, delimitedString(dict.forNamespace(ns)))
     storeText("2004-03-12", "fruit") >> storeText("2006-08-34", "vegetables")
   }
 

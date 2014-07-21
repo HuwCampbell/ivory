@@ -53,7 +53,8 @@ object DenseRowTextStorageV1 {
   }
 
   def featuresToString(features: List[(Int, FeatureId, FeatureMeta)], delim: Char): List[String] = {
-    features.map({ case (i, f, m) => i.toString + delim + f.toString(delim.toString) + delim + m.toString(delim.toString) })
+    import com.ambiata.ivory.storage.metadata.DictionaryTextStorage
+    features.map({ case (i, f, m) => i.toString + delim + DictionaryTextStorage.delimitedLineWithDelim((f, m), delim.toString) })
   }
 
   def valueToString(v: Value, tombstoneValue: String): String = v match {

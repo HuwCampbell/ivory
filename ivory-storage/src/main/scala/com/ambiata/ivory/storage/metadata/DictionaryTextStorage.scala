@@ -1,82 +1,65 @@
 package com.ambiata.ivory.storage.metadata
 
-import scalaz.{Value => _, _}, Scalaz._, \&/._, effect.IO
-import org.apache.hadoop.fs.Path
-import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
+import scalaz.{Value => _, _}, Scalaz._
 import com.ambiata.mundane.parse._
-
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.alien.hdfs._
-import com.ambiata.ivory.storage.store._
 
-object DictionaryTextStorage {
+trait DictionaryTextStorageCommon extends TextStorage[(FeatureId, FeatureMeta), Dictionary] {
 
-  def dictionaryFromHdfs[F[+_] : Monad](path: StorePathResultT[F]): ResultT[F, Dictionary] = for {
-    exists <- path.run(_.exists)
-    _      <- if (!exists) ResultT.fail[F, Unit](s"Path ${path.path} does not exist in ${path.store}!") else ResultT.ok[F, Unit](())
-    lines  <- path.run(_.linesUtf8.read)
-    dict   <- ResultT.fromDisjunction[F, Dictionary](fromLines(lines).leftMap(\&/.This(_)))
-  } yield dict
+  val name = "dictionary"
 
-  def dictionaryToHdfs(path: Path, dict: Dictionary, delim: Char ='|'): Hdfs[Unit] =
-    Hdfs.writeWith(path, os => Streams.write(os, delimitedDictionaryString(dict, delim)))
+  def fromList(entries: List[(FeatureId, FeatureMeta)]): Dictionary =
+    Dictionary(entries.toMap)
 
-  def fromInputStream(is: java.io.InputStream): ResultTIO[Dictionary] = for {
-    content <- Streams.read(is)
-    r <- ResultT.fromDisjunction[IO, Dictionary](fromLines(content.lines.toList).leftMap(This(_)))
-  } yield r
+  def toList(d: Dictionary): List[(FeatureId, FeatureMeta)] =
+    d.meta.toList
+}
 
-  def fromString(s: String): String \/ Dictionary =
-    fromLines(s.lines.toList)
+object DictionaryTextStorage extends DictionaryTextStorageCommon {
 
-  def fromLines(lines: List[String]): String \/ Dictionary = {
-    val numbered = lines.zipWithIndex.map({ case (l, n) => (l, n + 1) })
-    numbered.map({ case (l, n) => parseDictionaryEntry(l).leftMap(e => s"Line $n: $e")}).sequenceU.map(entries => Dictionary(entries.toMap))
+  val DELIM = "|"
+
+  def parseLine(i: Int, e: String): ValidationNel[String, (FeatureId, FeatureMeta)] =
+    parseDictionaryEntry(e).toValidationNel
+
+  def toLine(f: (FeatureId, FeatureMeta)): String =
+    delimitedLineWithDelim(f, DELIM)
+
+  def delimitedLineWithDelim(f: (FeatureId, FeatureMeta), delim: String): String =
+    f._1.toString(DELIM) + DELIM + metaToString(f._2, DELIM)
+
+  private def metaToString(meta: FeatureMeta, delim: String): String = {
+    import meta._
+    s"${Encoding.render(encoding)}${delim}${ty.map(Type.render).getOrElse("")}${delim}${desc}${delim}${tombstoneValue.mkString(",")}"
   }
 
-  def fromFile(path: String): ResultTIO[Dictionary] = {
-    val file = new java.io.File(path)
-    for {
-      raw <- Files.read(file.getAbsolutePath.toFilePath)
-      fs  <- ResultT.fromDisjunction[IO, Dictionary](fromLines(raw.lines.toList).leftMap(err => This(s"Error reading dictionary from file '$path': $err")))
-    } yield fs
-  }
-
-  def delimitedDictionaryString(dict: Dictionary, delim: Char): String = {
-    val strDelim = delim.toString
-    dict.meta.map({ case (featureId, featureMeta) =>
-      featureId.toString(strDelim) + delim + featureMeta.toString(strDelim)
-    }).mkString("\n") + "\n"
-  }
-
-  def parseDictionaryEntry(entry: String): String \/ (FeatureId, FeatureMeta) = {
+  def parseDictionaryEntry(entry: String): Validation[String, (FeatureId, FeatureMeta)] = {
     import ListParser._
     val parser: ListParser[(FeatureId, FeatureMeta)] = for {
       namespace <- string
       name      <- string
       encoding  <- for {
         s <- string
-        r <- value(parseEncoding(s).leftMap(_ => s"""not a valid encoding: '$s'"""))
+        r <- value(parseEncoding(s))
       } yield r
       ty        <- for {
         s <- string
-        r <- value(parseType(s).leftMap(_ => s"""not a valid feature type: '$s'"""))
+        r <- value(parseType(s))
       } yield r
       desc      <- string
       tombstone <- string
-    } yield (FeatureId(namespace, name), FeatureMeta(encoding, ty, desc, Delimited.parseCsv(tombstone)))
-    parser.run(Delimited.parsePsv(entry)).disjunction
+    } yield (FeatureId(namespace, name), FeatureMeta(encoding, Some(ty), desc, Delimited.parseCsv(tombstone)))
+    parser.run(Delimited.parsePsv(entry))
   }
 
-  def parseEncoding(s: String): Validation[String, Encoding] =
+  def parseEncoding(s: String): Validation[String, PrimitiveEncoding] =
     s match {
       case "boolean"    => BooleanEncoding.success
       case "int"        => IntEncoding.success
       case "long"       => LongEncoding.success
       case "double"     => DoubleEncoding.success
       case "string"     => StringEncoding.success
-      case otherwise    => "".failure
+      case otherwise    => s"""not a valid encoding: '$s'""".failure
     }
 
   def parseType(s: String): Validation[String, Type] =
@@ -85,7 +68,7 @@ object DictionaryTextStorage {
       case "continuous"   => ContinuousType.success
       case "categorical"  => CategoricalType.success
       case "binary"       => BinaryType.success
-      case otherwise      => "".failure
+      case otherwise      => s"not a valid feature type: '$s'".failure
     }
 
 }
