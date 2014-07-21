@@ -6,8 +6,7 @@ import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.compress._
 import MemoryConversions._
 
-import scalaz.Alpha.M
-object recreate extends ScoobiApp {
+object recreate extends IvoryApp {
   case class CliArguments(input: String, output: String, clean: Boolean, dry: Boolean, overwrite: Boolean, recreateData: List[RecreateData], maxNumber: Option[Int], reducerSize: Option[Long])
 
   val parser = new scopt.OptionParser[CliArguments]("ivory-recreate") {
@@ -26,8 +25,9 @@ object recreate extends ScoobiApp {
 
   }
 
-  def run {
-    parser.parse(args, CliArguments(input = "", output = "", clean = true, dry = false, overwrite = false, recreateData = RecreateData.ALL, maxNumber = None, reducerSize = None)).map { c =>
+
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments(input = "", output = "", clean = true, dry = false, overwrite = false, recreateData = RecreateData.ALL, maxNumber = None, reducerSize = None),
+    ScoobiCmd { configuration => c =>
       val rconf = RecreateConfig(from = Repository.fromHdfsPath(FilePath(c.input), configuration),
                                  to = Repository.fromHdfsPath(FilePath(c.output), configuration),
                                  sc = configuration,
@@ -39,12 +39,10 @@ object recreate extends ScoobiApp {
                                  reducerSize = c.reducerSize.map(_.bytes).getOrElse(256.mb),
                                  maxNumber = c.maxNumber,
                                  logger = consoleLogging)
-      Recreate.all.run(rconf).run.unsafePerformIO.fold(
-        ok =>  { println("Done!"); ok },
-        err => { println(err); sys.exit(1) }
-      )
-    }
-  }
+
+      Recreate.all.run(rconf).map(_ => Nil)
+    })
+
 }
 
 

@@ -29,6 +29,7 @@ object main {
     pivot,
     pivotSnapshot,
     recompress,
+    recreate,
     snapshot
   )
 
