@@ -1,6 +1,5 @@
 package com.ambiata.ivory.data
 
-import scala.reflect.macros.Context
 import language.experimental.macros
 
 object IvoryDataLiterals {
@@ -13,7 +12,8 @@ object IvoryDataLiterals {
   }
 }
 
-object IvoryDataLiteralsMacros {
+object IvoryDataLiteralsMacros extends com.ambiata.ivory.reflect.MacrosCompat {
+
   def keyMacro(c: Context)(): c.Expr[Key] = {
     import c.universe._
     c.prefix.tree match {

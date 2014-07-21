@@ -50,6 +50,8 @@ object build extends Build {
   , scalaVersion := "2.10.4"
   , crossScalaVersions := Seq("2.10.4", "2.11.1")
   , fork in run  := true
+  // https://gist.github.com/djspiewak/976cd8ac65e20e136f05
+  , unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / s"scala-${scalaBinaryVersion.value}"
   ) ++ Seq(prompt)
 
   def lib(name: String) =
@@ -145,6 +147,7 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++
                                                depend.thrift ++ depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value))
   )
+  .dependsOn(data)
 
   lazy val data = Project(
     id = "data"

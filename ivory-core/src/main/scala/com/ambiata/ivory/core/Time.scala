@@ -42,9 +42,7 @@ object Time {
   def create(seconds: Int): Option[Time] =
     isValid(seconds).option(unsafe(seconds))
 
-  object Macros {
-    import scala.reflect.macros.Context
-    import language.experimental.macros
+  object Macros extends com.ambiata.ivory.reflect.MacrosCompat {
 
     def literal(c: Context)(seconds: c.Expr[Int]): c.Expr[Time] = {
       import c.universe._
