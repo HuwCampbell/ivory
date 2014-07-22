@@ -50,9 +50,9 @@ SnapshotMapperSpec
     }))
   })
 
-  def e3 = prop((fs: List[Fact], priority: Priority) => assertMapperOutput(fs, priority, SnapshotIncrementalMapper.map _))
+  def e3 = prop((fs: List[Fact], priority: Priority) => assertMapperOutput(fs, priority, SnapshotIncrementalMapper.map))
 
-  def e4 = prop((fs: List[Fact]) => assertMapperOutput(fs, Priority.Max, SnapshotIncrementalMapper.map _))
+  def e4 = prop((fs: List[Fact]) => assertMapperOutput(fs, Priority.Max, SnapshotIncrementalMapper.map))
 
   def assertMapperOutput(fs: List[Fact], priority: Priority,
                          map: (NamespacedThriftFact with NamespacedThriftFactDerived, Array[Byte], KeyState, ValueState, BytesWritable, BytesWritable, () => Unit, TDeserializer) => Unit) {

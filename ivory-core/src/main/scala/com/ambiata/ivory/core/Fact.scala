@@ -71,31 +71,31 @@ object Fact {
 }
 
 trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
-    lazy val namespace: String =
+    def namespace: String =
       nspace
 
-    lazy val feature: String =
+    def feature: String =
       fact.attribute
 
-    lazy val date: Date =
+    def date: Date =
       Date.unsafeFromInt(yyyyMMdd)
 
-    lazy val time: Time =
+    def time: Time =
       Time.unsafe(seconds)
 
-    lazy val datetime: DateTime =
+    def datetime: DateTime =
       date.addTime(time)
 
-    lazy val entity: String =
+    def entity: String =
       fact.getEntity
 
-    lazy val featureId: FeatureId =
+    def featureId: FeatureId =
       FeatureId(nspace, fact.getAttribute)
 
-    lazy val seconds: Int =
+    def seconds: Int =
       Option(fact.getSeconds).getOrElse(0)
 
-    lazy val value: Value = fact.getValue match {
+    def value: Value = fact.getValue match {
       case tv if tv.isSetD => DoubleValue(tv.getD)
       case tv if tv.isSetS => StringValue(tv.getS)
       case tv if tv.isSetI => IntValue(tv.getI)
@@ -105,7 +105,7 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       case _               => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
     }
 
-    lazy val toThrift: ThriftFact = fact
+    def toThrift: ThriftFact = fact
 
     def toNamespacedThrift = this
 }
