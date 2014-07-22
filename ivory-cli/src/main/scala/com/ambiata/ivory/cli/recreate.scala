@@ -9,7 +9,7 @@ import MemoryConversions._
 object recreate extends IvoryApp {
   case class CliArguments(input: String, output: String, clean: Boolean, dry: Boolean, overwrite: Boolean, recreateData: List[RecreateData], maxNumber: Option[Int], reducerSize: Option[Long])
 
-  val parser = new scopt.OptionParser[CliArguments]("ivory-recreate") {
+  val parser = new scopt.OptionParser[CliArguments]("recreate") {
     head("""Clone an ivory repository, recompressing each part file and storing in a the latest format.""")
 
     help("help") text "shows this usage text"
