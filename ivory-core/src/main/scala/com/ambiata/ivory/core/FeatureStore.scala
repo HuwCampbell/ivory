@@ -8,11 +8,12 @@ import com.ambiata.mundane.control._
 
 /** The feature store is simply an ordered list of path references to fact sets. */
 case class FeatureStore(factsets: List[PrioritizedFactset]) {
-  def +++(other: FeatureStore): FeatureStore =
-    FeatureStore(PrioritizedFactset.concat(factsets, other.factsets))
 
-  def ---(other: FeatureStore): FeatureStore =
-    FeatureStore(PrioritizedFactset.diff(factsets, other.factsets))
+  /**
+   * add 2 feature stores so that their factsets are prioritized
+   */
+  def concat(other: FeatureStore): FeatureStore =
+    FeatureStore(PrioritizedFactset.concat(factsets, other.factsets))
 
   /** @return a FeatureStore having only the sets accepted by the predicate */
   def filter(predicate: String => Boolean) =
