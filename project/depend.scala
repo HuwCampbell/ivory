@@ -32,10 +32,10 @@ object depend {
 
   def scoobi(version: String) =
     (if (version.contains("cdh4")) Seq(
-      "com.nicta" %% "scoobi" % "0.9.0-cdh4-20140714070613-be7f9b6" intransitive(),
+      "com.nicta" %% "scoobi" % "0.9.0-cdh4-20140722073640-fe6f152" intransitive(),
       "com.nicta" %% "scoobi-compatibility-cdh4" % "1.0.2" intransitive())
     else if (version.contains("cdh5")) Seq(
-      "com.nicta" %% "scoobi" % "0.9.0-cdh5-20140714070058-be7f9b6" intransitive(),
+      "com.nicta" %% "scoobi" % "0.9.0-cdh5-20140722073131-fe6f152" intransitive(),
       "com.nicta" %% "scoobi-compatibility-cdh5" % "1.0.2" intransitive())
     else
       sys.error(s"unsupported scoobi version, can not build for $version")
