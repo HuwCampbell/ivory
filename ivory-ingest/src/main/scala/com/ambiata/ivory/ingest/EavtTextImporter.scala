@@ -2,6 +2,7 @@ package com.ambiata.ivory
 package ingest
 
 import com.ambiata.ivory.lookup.{ReducerLookup, NamespaceLookup, FeatureIdLookup}
+import com.ambiata.ivory.storage.lookup.ReducerLookups
 import org.apache.hadoop.fs.Path
 import com.nicta.scoobi.Scoobi._
 import com.ambiata.ivory.core._, IvorySyntax._
@@ -40,17 +41,11 @@ object EavtTextImporter {
     codec: Option[CompressionCodec]
   ): ScoobiAction[Unit] = for {
     sc <- ScoobiAction.scoobiConfiguration
-    (reducers, allocations) = Skew.calculate(dictionary, partitions, optimal)
-    (namespaces, features) = index(dictionary)
-    indexed = allocateReducers(allocations, features)
     _  <- ScoobiAction.safe {
       IngestJob.run(
         sc,
-        reducers,
-        indexed,
-        namespaces,
-        features,
         dictionary,
+        ReducerLookups.createLookups(dictionary, partitions, optimal),
         timezone,
         timezone,
         path,
