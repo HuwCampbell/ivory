@@ -47,6 +47,7 @@ case object StringEncoding    extends PrimitiveEncoding
 sealed trait SubEncoding extends Encoding
 
 case class StructEncoding(values: Map[String, StructEncodedValue]) extends SubEncoding
+case class ListEncoding(encoding: SubEncoding) extends Encoding
 
 // NOTE: For now we don't support nested structs
 case class StructEncodedValue(encoding: PrimitiveEncoding, optional: Boolean = false) {
@@ -57,6 +58,11 @@ case class StructEncodedValue(encoding: PrimitiveEncoding, optional: Boolean = f
 object Encoding {
 
   def render(enc: Encoding): String = enc match {
+    case ListEncoding(e) => "[" + renderSub(e) + "]"
+    case e: SubEncoding  => renderSub(e)
+  }
+
+  private def renderSub(enc: SubEncoding): String = enc match {
     case e: PrimitiveEncoding => renderPrimitive(e)
     case StructEncoding(m)    => "(" + m.map {
       case (n, v) => n + ":" + renderPrimitive(v.encoding) + (if (v.optional) "*" else "")

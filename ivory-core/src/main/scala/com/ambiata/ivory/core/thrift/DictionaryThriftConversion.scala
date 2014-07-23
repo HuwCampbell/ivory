@@ -25,20 +25,39 @@ object DictionaryThriftConversion {
       enc => encodings.find(_._2 == enc).get._1
   }
 
-  private val encoding = new {
-    val to: Encoding => (ThriftDictionaryEncoding, Option[ThriftDictionaryStruct]) = {
-      case enc: PrimitiveEncoding => primitiveEncoding.to(enc) -> None
-      case StructEncoding(v) => STRUCT -> Some(new ThriftDictionaryStruct(v.map {
-        case (name, StructEncodedValue(enc, optional)) => new ThriftDictionaryStructMeta(name, primitiveEncoding.to(enc),
-          ThriftDictionaryStructMetaOpts.isOptional(optional))
-      }.toList.asJava))
-    }
-    val from: ThriftDictionaryFeatureMeta => Encoding = meta => meta.getEncoding match {
-      case STRUCT => StructEncoding(Option(meta.getValue).flatMap(v => Try(v.getStructValue).toOption).map(_.getValues.asScala).getOrElse(Nil).map {
+  private val struct = new {
+    val to: StructEncoding => ThriftDictionaryStruct = senc => new ThriftDictionaryStruct(senc.values.map {
+      case (name, StructEncodedValue(enc, optional)) => new ThriftDictionaryStructMeta(name, primitiveEncoding.to(enc),
+        ThriftDictionaryStructMetaOpts.isOptional(optional))
+    }.toList.asJava)
+    val from: ThriftDictionaryStruct => StructEncoding = enc =>
+      StructEncoding(Option(enc.getValues).map(_.asScala).getOrElse(Nil).map {
         meta => meta.getName -> StructEncodedValue(primitiveEncoding.from(meta.getEncoding),
           optional = Try(meta.getOpts.getIsOptional).toOption.getOrElse(false))
       }.toMap)
-      case enc => primitiveEncoding.from(enc)
+  }
+
+  private val encoding = new {
+    val to: Encoding => (ThriftDictionaryEncoding, Option[ThriftDictionaryFeatureValue]) = {
+      case enc: PrimitiveEncoding => primitiveEncoding.to(enc) -> None
+      case ListEncoding(enc)      =>
+        STRUCT -> Some(ThriftDictionaryFeatureValue.listValue(enc match {
+          case penc: PrimitiveEncoding => ThriftDictionaryList.encoding(primitiveEncoding.to(penc))
+          case senc: StructEncoding    => ThriftDictionaryList.structEncoding(struct.to(senc))
+        }))
+      case enc: StructEncoding    =>
+        STRUCT -> Some(ThriftDictionaryFeatureValue.structValue(struct.to(enc)))
+    }
+    val from: ThriftDictionaryFeatureMeta => Encoding = meta => meta.getEncoding match {
+      case STRUCT if Option(meta.getValue).exists(_.isSetListValue) =>
+        ListEncoding(meta.getValue.getListValue match {
+          case enc if enc.isSetEncoding       => primitiveEncoding.from(enc.getEncoding)
+          case enc if enc.isSetStructEncoding => struct.from(enc.getStructEncoding)
+        })
+      case STRUCT if Option(meta.getValue).exists(_.isSetStructValue)
+                  => struct.from(meta.getValue.getStructValue)
+      case STRUCT => StructEncoding(Map()) // Should _never_ happen
+      case enc    => primitiveEncoding.from(enc)
     }
   }
 
@@ -64,7 +83,7 @@ object DictionaryThriftConversion {
             val (encJava, structJava) = encoding.to(enc)
             val meta = new ThriftDictionaryFeatureMeta(encJava, desc, tombstoneValue.asJava)
             ty.foreach(t => meta.setType(typeBi.to(t)))
-            structJava.foreach(s => meta.setValue(ThriftDictionaryFeatureValue.structValue(s)))
+            structJava.foreach(meta.setValue)
             new ThriftDictionaryFeatureId(ns, name) -> meta
         }.asJava),
 

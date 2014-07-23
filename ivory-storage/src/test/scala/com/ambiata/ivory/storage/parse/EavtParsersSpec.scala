@@ -112,6 +112,7 @@ Eavt Parse Formats
     case BooleanEncoding => s.parseBoolean.isSuccess
     case LongEncoding    => s.parseLong.isSuccess
     case _: StructEncoding => sys.error("Encoding of structs as strings not supported!")
+    case _: ListEncoding   => sys.error("Encoding of lists as strings not supported!")
   }
 
   def genValue(m: FeatureMeta): Gen[Value] =

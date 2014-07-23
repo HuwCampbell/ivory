@@ -96,8 +96,14 @@ struct ThriftDictionaryStruct {
     1: list<ThriftDictionaryStructMeta> values;
 }
 
+union ThriftDictionaryList {
+    1: ThriftDictionaryEncoding encoding;
+    2: ThriftDictionaryStruct   structEncoding;
+}
+
 union ThriftDictionaryFeatureValue {
     1: ThriftDictionaryStruct structValue;
+    2: ThriftDictionaryList   listValue;
 }
 
 struct ThriftDictionaryFeatureId {

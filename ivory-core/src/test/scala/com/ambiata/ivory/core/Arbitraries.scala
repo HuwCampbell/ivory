@@ -94,6 +94,9 @@ object Arbitraries {
     } yield FeatureId(ns, name) -> FeatureMeta(enc, ty, desc, tombs)).map(Dictionary))
 
   implicit def EncodingArbitrary: Arbitrary[Encoding] =
+    Arbitrary(Gen.oneOf(arbitrary[SubEncoding], arbitrary[ListEncoding]))
+
+  implicit def SubEncodingArbitrary: Arbitrary[SubEncoding] =
     Arbitrary(Gen.oneOf(arbitrary[PrimitiveEncoding], arbitrary[StructEncoding]))
 
   implicit def PrimitiveEncodingArbitrary: Arbitrary[PrimitiveEncoding] =
@@ -105,6 +108,9 @@ object Arbitraries {
       enc <- arbitrary[PrimitiveEncoding]
       optional <- arbitrary[Boolean]
     } yield name -> StructEncodedValue(enc, optional)).map(StructEncoding))
+
+  implicit def ListEncodingArbitrary: Arbitrary[ListEncoding] =
+    Arbitrary(arbitrary[SubEncoding].map(ListEncoding))
 
   implicit def TypeArbitrary: Arbitrary[Type] =
     Arbitrary(Gen.oneOf(NumericalType, ContinuousType, CategoricalType, BinaryType))
@@ -119,6 +125,7 @@ object Arbitraries {
           b <- if (v.optional) arbitrary[Boolean] else Gen.const(true)
         } yield if (b) Some(p) else None
       }).map(_.flatten.toMap).map(StructValue)
+    case l: ListEncoding      => sys.error("List encoding not supported yet") // TODO
   }
 
   def valueOfPrim(encoding: PrimitiveEncoding): Gen[PrimitiveValue] = encoding match {
