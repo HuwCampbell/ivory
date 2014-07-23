@@ -12,8 +12,8 @@ import com.ambiata.ivory.storage.fact.{Namespaces, Versions}
 import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.ivory.storage.metadata.Metadata._
-import com.ambiata.ivory.storage.repository.RecreateAction._
 import com.ambiata.ivory.storage.repository.RecreateData._
+import com.ambiata.mundane.control.{ResultT, ResultTIO}
 import com.ambiata.mundane.io.{BytesQuantity, FilePath}
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
@@ -21,13 +21,19 @@ import org.apache.hadoop.io.compress.CompressionCodec
 import IvoryStorage._
 
 import scalaz.Scalaz._
+import scalaz.effect.IO
+import scalaz.Kleisli._
 import scalaz.{DList => _, _}
 import Namespaces._
+import Stats._
 
 /**
  * Recreate actions for recreating parts or all of a repository
  */
-object Recreate {
+object Recreate { outer =>
+
+  type RecreateAction[A] = ReaderT[ResultTIO, RecreateConfig, A]
+
   def all: RecreateAction[Unit] =
     log("====== Recreating metadata")  >> metadata >>
     log("====== Recreating factsets")  >> factsets >>
@@ -65,11 +71,11 @@ object Recreate {
       val name = data.plural
       val todo =
         log("Dry run!").when(conf.dryFor(data)) >>
-        logStat("Number of "+name, conf.from, StatAction.numberOf(f)) >>
-        logStat("Size of "+name,   conf.from, StatAction.showSizeOfInBytes(f)) >>
+        logStat("Number of "+name, conf.from, Stats.numberOf(f)) >>
+        logStat("Size of "+name,   conf.from, Stats.showSizeOfInBytes(f)) >>
         action(conf) >>
-        logStat("Number of "+name, conf.to, StatAction.numberOf(f)) >>
-        logStat("Size of "+name,   conf.to, StatAction.showSizeOfInBytes(f))
+        logStat("Number of "+name, conf.to, Stats.numberOf(f)) >>
+        logStat("Size of "+name,   conf.to, Stats.showSizeOfInBytes(f))
 
       todo.unless(conf.recreateData.nonEmpty && conf.dryFor(data))
     }
@@ -189,10 +195,46 @@ object Recreate {
     case \/-(a) => a
   }
 
-  /**
-   * Execute a stat action and log the result
-   */
+  /** Execute a stat action and log the result */
   private def logStat[A](name: String, repository: Repository, stat: StatAction[A]): RecreateAction[Unit] =
     fromStat(repository, stat).log(value => s"$name in ${repository.root}: $value")
+
+  /**
+   * RECREATE ACTION methods
+   */
+
+  /** create actions */
+  private def fromStat[A](repo: Repository, action: StatAction[A]) =
+    fromScoobi(ScoobiAction.scoobiConfiguration.map(sc => action.run(StatConfig(sc.configuration, repo))))
+
+  private implicit def createKleisli[A](f: RecreateConfig => ResultTIO[A]): RecreateAction[A] =
+    kleisli[ResultTIO, RecreateConfig, A](f)
+
+  private def configuration: RecreateAction[RecreateConfig] =
+    (config: RecreateConfig) => ResultT.ok[IO, RecreateConfig](config)
+
+  private def log(message: String): RecreateAction[Unit] =
+    (config: RecreateConfig) => ResultT.fromIO(config.logger(message))
+
+  private def fromScoobi[A](action: ScoobiAction[A]): RecreateAction[A] =
+    (c: RecreateConfig) => action.run(c.sc)
+
+  private def fromHdfs[A](action: Hdfs[A]): RecreateAction[A] =
+    fromScoobi(ScoobiAction.fromHdfs(action))
+
+  private def fromResultTIO[A](r: ResultTIO[A]): RecreateAction[A] =
+    (c: RecreateConfig) => r
+
+  /** additional syntax */
+  implicit class actionSyntax[A](action: RecreateAction[A]) {
+    def log(f: A => String): RecreateAction[Unit] =
+      action.flatMap(a => outer.log(f(a)))
+
+    def when(condition: Boolean): RecreateAction[Unit] =
+      if (condition) action.void else fromResultTIO(ResultT.ok[IO, Unit](()))
+
+    def unless(condition: Boolean): RecreateAction[Unit] =
+      when(!condition)
+  }
 
 }

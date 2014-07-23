@@ -89,6 +89,14 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
       sizes <- all.traverse(Hdfs.size)
     } yield sizes.sum
 
+  /** @return the number of files in a directory */
+  def numberOfFiles(path: Path, glob: String = "*"): Hdfs[Int] =
+    Hdfs.globPaths(path, glob).map(_.size)
+
+  /** @return the number of files in a directory, including the files in subdirectories */
+  def numberOfFilesRecursively(path: Path, glob: String = "*"): Hdfs[Int] =
+    Hdfs.globPathsRecursively(path, glob).map(_.size)
+
   def isDirectory(p: Path): Hdfs[Boolean] =
     filesystem.map(fs => fs.isDirectory(p))
 
