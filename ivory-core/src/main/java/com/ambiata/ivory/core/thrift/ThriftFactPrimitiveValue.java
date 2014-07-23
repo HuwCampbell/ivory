@@ -32,15 +32,14 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, ThriftFactValue._Fields> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftFactValue");
+public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFactPrimitiveValue, ThriftFactPrimitiveValue._Fields> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftFactPrimitiveValue");
   private static final org.apache.thrift.protocol.TField S_FIELD_DESC = new org.apache.thrift.protocol.TField("s", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField I_FIELD_DESC = new org.apache.thrift.protocol.TField("i", org.apache.thrift.protocol.TType.I32, (short)2);
   private static final org.apache.thrift.protocol.TField L_FIELD_DESC = new org.apache.thrift.protocol.TField("l", org.apache.thrift.protocol.TType.I64, (short)3);
   private static final org.apache.thrift.protocol.TField D_FIELD_DESC = new org.apache.thrift.protocol.TField("d", org.apache.thrift.protocol.TType.DOUBLE, (short)4);
   private static final org.apache.thrift.protocol.TField B_FIELD_DESC = new org.apache.thrift.protocol.TField("b", org.apache.thrift.protocol.TType.BOOL, (short)5);
   private static final org.apache.thrift.protocol.TField T_FIELD_DESC = new org.apache.thrift.protocol.TField("t", org.apache.thrift.protocol.TType.STRUCT, (short)6);
-  private static final org.apache.thrift.protocol.TField STRUCT_SPARSE_FIELD_DESC = new org.apache.thrift.protocol.TField("structSparse", org.apache.thrift.protocol.TType.STRUCT, (short)7);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -49,8 +48,7 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
     L((short)3, "l"),
     D((short)4, "d"),
     B((short)5, "b"),
-    T((short)6, "t"),
-    STRUCT_SPARSE((short)7, "structSparse");
+    T((short)6, "t");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -77,8 +75,6 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
           return B;
         case 6: // T
           return T;
-        case 7: // STRUCT_SPARSE
-          return STRUCT_SPARSE;
         default:
           return null;
       }
@@ -133,66 +129,58 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
     tmpMap.put(_Fields.T, new org.apache.thrift.meta_data.FieldMetaData("t", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftTombstone.class)));
-    tmpMap.put(_Fields.STRUCT_SPARSE, new org.apache.thrift.meta_data.FieldMetaData("structSparse", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftFactStructSparse.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftFactValue.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftFactPrimitiveValue.class, metaDataMap);
   }
 
-  public ThriftFactValue() {
+  public ThriftFactPrimitiveValue() {
     super();
   }
 
-  public ThriftFactValue(_Fields setField, Object value) {
+  public ThriftFactPrimitiveValue(_Fields setField, Object value) {
     super(setField, value);
   }
 
-  public ThriftFactValue(ThriftFactValue other) {
+  public ThriftFactPrimitiveValue(ThriftFactPrimitiveValue other) {
     super(other);
   }
-  public ThriftFactValue deepCopy() {
-    return new ThriftFactValue(this);
+  public ThriftFactPrimitiveValue deepCopy() {
+    return new ThriftFactPrimitiveValue(this);
   }
 
-  public static ThriftFactValue s(String value) {
-    ThriftFactValue x = new ThriftFactValue();
+  public static ThriftFactPrimitiveValue s(String value) {
+    ThriftFactPrimitiveValue x = new ThriftFactPrimitiveValue();
     x.setS(value);
     return x;
   }
 
-  public static ThriftFactValue i(int value) {
-    ThriftFactValue x = new ThriftFactValue();
+  public static ThriftFactPrimitiveValue i(int value) {
+    ThriftFactPrimitiveValue x = new ThriftFactPrimitiveValue();
     x.setI(value);
     return x;
   }
 
-  public static ThriftFactValue l(long value) {
-    ThriftFactValue x = new ThriftFactValue();
+  public static ThriftFactPrimitiveValue l(long value) {
+    ThriftFactPrimitiveValue x = new ThriftFactPrimitiveValue();
     x.setL(value);
     return x;
   }
 
-  public static ThriftFactValue d(double value) {
-    ThriftFactValue x = new ThriftFactValue();
+  public static ThriftFactPrimitiveValue d(double value) {
+    ThriftFactPrimitiveValue x = new ThriftFactPrimitiveValue();
     x.setD(value);
     return x;
   }
 
-  public static ThriftFactValue b(boolean value) {
-    ThriftFactValue x = new ThriftFactValue();
+  public static ThriftFactPrimitiveValue b(boolean value) {
+    ThriftFactPrimitiveValue x = new ThriftFactPrimitiveValue();
     x.setB(value);
     return x;
   }
 
-  public static ThriftFactValue t(ThriftTombstone value) {
-    ThriftFactValue x = new ThriftFactValue();
+  public static ThriftFactPrimitiveValue t(ThriftTombstone value) {
+    ThriftFactPrimitiveValue x = new ThriftFactPrimitiveValue();
     x.setT(value);
-    return x;
-  }
-
-  public static ThriftFactValue structSparse(ThriftFactStructSparse value) {
-    ThriftFactValue x = new ThriftFactValue();
-    x.setStructSparse(value);
     return x;
   }
 
@@ -230,11 +218,6 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
           break;
         }
         throw new ClassCastException("Was expecting value of type ThriftTombstone for field 't', but got " + value.getClass().getSimpleName());
-      case STRUCT_SPARSE:
-        if (value instanceof ThriftFactStructSparse) {
-          break;
-        }
-        throw new ClassCastException("Was expecting value of type ThriftFactStructSparse for field 'structSparse', but got " + value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -300,16 +283,6 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
-        case STRUCT_SPARSE:
-          if (field.type == STRUCT_SPARSE_FIELD_DESC.type) {
-            ThriftFactStructSparse structSparse;
-            structSparse = new ThriftFactStructSparse();
-            structSparse.read(iprot);
-            return structSparse;
-          } else {
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
-            return null;
-          }
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -346,10 +319,6 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
         ThriftTombstone t = (ThriftTombstone)value_;
         t.write(oprot);
         return;
-      case STRUCT_SPARSE:
-        ThriftFactStructSparse structSparse = (ThriftFactStructSparse)value_;
-        structSparse.write(oprot);
-        return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
     }
@@ -385,11 +354,6 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
           t = new ThriftTombstone();
           t.read(iprot);
           return t;
-        case STRUCT_SPARSE:
-          ThriftFactStructSparse structSparse;
-          structSparse = new ThriftFactStructSparse();
-          structSparse.read(iprot);
-          return structSparse;
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -425,10 +389,6 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
         ThriftTombstone t = (ThriftTombstone)value_;
         t.write(oprot);
         return;
-      case STRUCT_SPARSE:
-        ThriftFactStructSparse structSparse = (ThriftFactStructSparse)value_;
-        structSparse.write(oprot);
-        return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
     }
@@ -449,8 +409,6 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
         return B_FIELD_DESC;
       case T:
         return T_FIELD_DESC;
-      case STRUCT_SPARSE:
-        return STRUCT_SPARSE_FIELD_DESC;
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -551,20 +509,6 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
     value_ = value;
   }
 
-  public ThriftFactStructSparse getStructSparse() {
-    if (getSetField() == _Fields.STRUCT_SPARSE) {
-      return (ThriftFactStructSparse)getFieldValue();
-    } else {
-      throw new RuntimeException("Cannot get field 'structSparse' because union is currently set to " + getFieldDesc(getSetField()).name);
-    }
-  }
-
-  public void setStructSparse(ThriftFactStructSparse value) {
-    if (value == null) throw new NullPointerException();
-    setField_ = _Fields.STRUCT_SPARSE;
-    value_ = value;
-  }
-
   public boolean isSetS() {
     return setField_ == _Fields.S;
   }
@@ -595,25 +539,20 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
   }
 
 
-  public boolean isSetStructSparse() {
-    return setField_ == _Fields.STRUCT_SPARSE;
-  }
-
-
   public boolean equals(Object other) {
-    if (other instanceof ThriftFactValue) {
-      return equals((ThriftFactValue)other);
+    if (other instanceof ThriftFactPrimitiveValue) {
+      return equals((ThriftFactPrimitiveValue)other);
     } else {
       return false;
     }
   }
 
-  public boolean equals(ThriftFactValue other) {
+  public boolean equals(ThriftFactPrimitiveValue other) {
     return other != null && getSetField() == other.getSetField() && getFieldValue().equals(other.getFieldValue());
   }
 
   @Override
-  public int compareTo(ThriftFactValue other) {
+  public int compareTo(ThriftFactPrimitiveValue other) {
     int lastComparison = org.apache.thrift.TBaseHelper.compareTo(getSetField(), other.getSetField());
     if (lastComparison == 0) {
       return org.apache.thrift.TBaseHelper.compareTo(getFieldValue(), other.getFieldValue());

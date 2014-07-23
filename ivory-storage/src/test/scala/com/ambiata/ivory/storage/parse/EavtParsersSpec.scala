@@ -26,7 +26,7 @@ Eavt Parse Formats
     EavtParsers.fact(TestDictionary, fact.namespace, DateTimeZone.getDefault).run(List(
       fact.entity
     , fact.feature
-    , fact.value.stringValue.getOrElse("?")
+    , Value.toString(fact.value, None).getOrElse("?")
     , fact.date.hyphenated
     )) must_== Success(fact.withTime(Time(0))))
 
@@ -34,7 +34,7 @@ Eavt Parse Formats
     EavtParsers.fact(TestDictionary, fact.namespace, DateTimeZone.getDefault).run(List(
       fact.entity
     , fact.feature
-    , fact.value.stringValue.getOrElse("?")
+    , Value.toString(fact.value, None).getOrElse("?")
     , fact.date.hyphenated + " " + fact.time.hhmmss
     )) must_== Success(fact))
 
@@ -42,7 +42,7 @@ Eavt Parse Formats
     EavtParsers.fact(TestDictionary, fz.fact.namespace, fz.zone).run(List(
       fz.fact.entity
     , fz.fact.feature
-    , fz.fact.value.stringValue.getOrElse("?")
+    , Value.toString(fz.fact.value, None).getOrElse("?")
     , fz.fact.datetime.iso8601(fz.zone)
     )) must_== Success(fz.fact)
   })
@@ -51,7 +51,7 @@ Eavt Parse Formats
     EavtParsers.fact(TestDictionary, fz.fact.namespace, fz.zone).run(List(
       fz.fact.entity
     , fz.fact.feature
-    , fz.fact.value.stringValue.getOrElse("?")
+    , Value.toString(fz.fact.value, None).getOrElse("?")
     , fz.fact.date.hyphenated + " " + fz.fact.time.hhmmss
     )) must_== Success(fz.fact)
   })
@@ -68,7 +68,7 @@ Eavt Parse Formats
     Gen.oneOf(Double.NaN, Double.NegativeInfinity, Double.PositiveInfinity).map(DoubleValue)
 
   def genBadValue(good: FeatureMeta, bad: FeatureMeta): Gen[Value] =
-    genValue(bad).retryUntil(_.stringValue.map(s => !validString(s, good.encoding)).getOrElse(false))
+    genValue(bad).retryUntil(Value.toString(_, None).map(s => !validString(s, good.encoding)).getOrElse(false))
 
   /**
    * Arbitrary to create invalid EAVT strings such that the structure is correct, but the content is wrong in some way
@@ -93,7 +93,7 @@ Eavt Parse Formats
       v      <- genValue(m)
       (t, z) <- arbitrary[BadDateTime].map(b => (b.datetime, b.zone))
     } yield (a, v, t, f.namespace, m, z))
-  } yield BadEavt(s"$e|$a|${v.stringValue.getOrElse(m.tombstoneValue.head)}|${t.localIso8601}", ns, z))
+  } yield BadEavt(s"$e|$a|${Value.toString(v, None).getOrElse(m.tombstoneValue.head)}|${t.localIso8601}", ns, z))
 
   def compatible(from: Encoding, to: Encoding): Boolean =
     if(from == to) true else (from, to) match {

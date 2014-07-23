@@ -2,6 +2,21 @@ namespace java com.ambiata.ivory.core.thrift
 
 struct ThriftTombstone {}
 
+// Unfortunately Thrift doesn't (yet) support recursive types, or this could be ThriftFactValue :(
+union ThriftFactPrimitiveValue {
+    1: string s;
+    2: i32 i;
+    3: i64 l;
+    4: double d;
+    5: bool b;
+    6: ThriftTombstone t;
+}
+
+struct ThriftFactStructSparse {
+    1: map<string, ThriftFactPrimitiveValue> v;
+}
+
+// NOTE: For the next Fact version remove the primitive values here and replace with ThriftFactPrimitiveValue
 union ThriftFactValue {
     1: string s;
     2: i32 i;
@@ -9,6 +24,7 @@ union ThriftFactValue {
     4: double d;
     5: bool b;
     6: ThriftTombstone t;
+    7: ThriftFactStructSparse structSparse;
 }
 
 struct ThriftFact {

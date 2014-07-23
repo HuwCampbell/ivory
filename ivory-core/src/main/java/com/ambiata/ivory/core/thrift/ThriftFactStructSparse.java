@@ -32,22 +32,22 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionary, ThriftDictionary._Fields>, java.io.Serializable, Cloneable, Comparable<ThriftDictionary> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftDictionary");
+public class ThriftFactStructSparse implements org.apache.thrift.TBase<ThriftFactStructSparse, ThriftFactStructSparse._Fields>, java.io.Serializable, Cloneable, Comparable<ThriftFactStructSparse> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftFactStructSparse");
 
-  private static final org.apache.thrift.protocol.TField META_FIELD_DESC = new org.apache.thrift.protocol.TField("meta", org.apache.thrift.protocol.TType.MAP, (short)1);
+  private static final org.apache.thrift.protocol.TField V_FIELD_DESC = new org.apache.thrift.protocol.TField("v", org.apache.thrift.protocol.TType.MAP, (short)1);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new ThriftDictionaryStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new ThriftDictionaryTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new ThriftFactStructSparseStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new ThriftFactStructSparseTupleSchemeFactory());
   }
 
-  public Map<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta> meta; // required
+  public Map<String,ThriftFactPrimitiveValue> v; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    META((short)1, "meta");
+    V((short)1, "v");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -62,8 +62,8 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // META
-          return META;
+        case 1: // V
+          return V;
         default:
           return null;
       }
@@ -107,96 +107,96 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.META, new org.apache.thrift.meta_data.FieldMetaData("meta", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.V, new org.apache.thrift.meta_data.FieldMetaData("v", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftDictionaryFeatureId.class), 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftDictionaryFeatureMeta.class))));
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftFactPrimitiveValue.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftDictionary.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftFactStructSparse.class, metaDataMap);
   }
 
-  public ThriftDictionary() {
+  public ThriftFactStructSparse() {
   }
 
-  public ThriftDictionary(
-    Map<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta> meta)
+  public ThriftFactStructSparse(
+    Map<String,ThriftFactPrimitiveValue> v)
   {
     this();
-    this.meta = meta;
+    this.v = v;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public ThriftDictionary(ThriftDictionary other) {
-    if (other.isSetMeta()) {
-      Map<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta> __this__meta = new HashMap<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta>(other.meta.size());
-      for (Map.Entry<ThriftDictionaryFeatureId, ThriftDictionaryFeatureMeta> other_element : other.meta.entrySet()) {
+  public ThriftFactStructSparse(ThriftFactStructSparse other) {
+    if (other.isSetV()) {
+      Map<String,ThriftFactPrimitiveValue> __this__v = new HashMap<String,ThriftFactPrimitiveValue>(other.v.size());
+      for (Map.Entry<String, ThriftFactPrimitiveValue> other_element : other.v.entrySet()) {
 
-        ThriftDictionaryFeatureId other_element_key = other_element.getKey();
-        ThriftDictionaryFeatureMeta other_element_value = other_element.getValue();
+        String other_element_key = other_element.getKey();
+        ThriftFactPrimitiveValue other_element_value = other_element.getValue();
 
-        ThriftDictionaryFeatureId __this__meta_copy_key = new ThriftDictionaryFeatureId(other_element_key);
+        String __this__v_copy_key = other_element_key;
 
-        ThriftDictionaryFeatureMeta __this__meta_copy_value = new ThriftDictionaryFeatureMeta(other_element_value);
+        ThriftFactPrimitiveValue __this__v_copy_value = new ThriftFactPrimitiveValue(other_element_value);
 
-        __this__meta.put(__this__meta_copy_key, __this__meta_copy_value);
+        __this__v.put(__this__v_copy_key, __this__v_copy_value);
       }
-      this.meta = __this__meta;
+      this.v = __this__v;
     }
   }
 
-  public ThriftDictionary deepCopy() {
-    return new ThriftDictionary(this);
+  public ThriftFactStructSparse deepCopy() {
+    return new ThriftFactStructSparse(this);
   }
 
   @Override
   public void clear() {
-    this.meta = null;
+    this.v = null;
   }
 
-  public int getMetaSize() {
-    return (this.meta == null) ? 0 : this.meta.size();
+  public int getVSize() {
+    return (this.v == null) ? 0 : this.v.size();
   }
 
-  public void putToMeta(ThriftDictionaryFeatureId key, ThriftDictionaryFeatureMeta val) {
-    if (this.meta == null) {
-      this.meta = new HashMap<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta>();
+  public void putToV(String key, ThriftFactPrimitiveValue val) {
+    if (this.v == null) {
+      this.v = new HashMap<String,ThriftFactPrimitiveValue>();
     }
-    this.meta.put(key, val);
+    this.v.put(key, val);
   }
 
-  public Map<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta> getMeta() {
-    return this.meta;
+  public Map<String,ThriftFactPrimitiveValue> getV() {
+    return this.v;
   }
 
-  public ThriftDictionary setMeta(Map<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta> meta) {
-    this.meta = meta;
+  public ThriftFactStructSparse setV(Map<String,ThriftFactPrimitiveValue> v) {
+    this.v = v;
     return this;
   }
 
-  public void unsetMeta() {
-    this.meta = null;
+  public void unsetV() {
+    this.v = null;
   }
 
-  /** Returns true if field meta is set (has been assigned a value) and false otherwise */
-  public boolean isSetMeta() {
-    return this.meta != null;
+  /** Returns true if field v is set (has been assigned a value) and false otherwise */
+  public boolean isSetV() {
+    return this.v != null;
   }
 
-  public void setMetaIsSet(boolean value) {
+  public void setVIsSet(boolean value) {
     if (!value) {
-      this.meta = null;
+      this.v = null;
     }
   }
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case META:
+    case V:
       if (value == null) {
-        unsetMeta();
+        unsetV();
       } else {
-        setMeta((Map<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta>)value);
+        setV((Map<String,ThriftFactPrimitiveValue>)value);
       }
       break;
 
@@ -205,8 +205,8 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case META:
-      return getMeta();
+    case V:
+      return getV();
 
     }
     throw new IllegalStateException();
@@ -219,8 +219,8 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
     }
 
     switch (field) {
-    case META:
-      return isSetMeta();
+    case V:
+      return isSetV();
     }
     throw new IllegalStateException();
   }
@@ -229,21 +229,21 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof ThriftDictionary)
-      return this.equals((ThriftDictionary)that);
+    if (that instanceof ThriftFactStructSparse)
+      return this.equals((ThriftFactStructSparse)that);
     return false;
   }
 
-  public boolean equals(ThriftDictionary that) {
+  public boolean equals(ThriftFactStructSparse that) {
     if (that == null)
       return false;
 
-    boolean this_present_meta = true && this.isSetMeta();
-    boolean that_present_meta = true && that.isSetMeta();
-    if (this_present_meta || that_present_meta) {
-      if (!(this_present_meta && that_present_meta))
+    boolean this_present_v = true && this.isSetV();
+    boolean that_present_v = true && that.isSetV();
+    if (this_present_v || that_present_v) {
+      if (!(this_present_v && that_present_v))
         return false;
-      if (!this.meta.equals(that.meta))
+      if (!this.v.equals(that.v))
         return false;
     }
 
@@ -256,19 +256,19 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
   }
 
   @Override
-  public int compareTo(ThriftDictionary other) {
+  public int compareTo(ThriftFactStructSparse other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
 
-    lastComparison = Boolean.valueOf(isSetMeta()).compareTo(other.isSetMeta());
+    lastComparison = Boolean.valueOf(isSetV()).compareTo(other.isSetV());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetMeta()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.meta, other.meta);
+    if (isSetV()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.v, other.v);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -290,14 +290,14 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("ThriftDictionary(");
+    StringBuilder sb = new StringBuilder("ThriftFactStructSparse(");
     boolean first = true;
 
-    sb.append("meta:");
-    if (this.meta == null) {
+    sb.append("v:");
+    if (this.v == null) {
       sb.append("null");
     } else {
-      sb.append(this.meta);
+      sb.append(this.v);
     }
     first = false;
     sb.append(")");
@@ -325,15 +325,15 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
     }
   }
 
-  private static class ThriftDictionaryStandardSchemeFactory implements SchemeFactory {
-    public ThriftDictionaryStandardScheme getScheme() {
-      return new ThriftDictionaryStandardScheme();
+  private static class ThriftFactStructSparseStandardSchemeFactory implements SchemeFactory {
+    public ThriftFactStructSparseStandardScheme getScheme() {
+      return new ThriftFactStructSparseStandardScheme();
     }
   }
 
-  private static class ThriftDictionaryStandardScheme extends StandardScheme<ThriftDictionary> {
+  private static class ThriftFactStructSparseStandardScheme extends StandardScheme<ThriftFactStructSparse> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, ThriftDictionary struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, ThriftFactStructSparse struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -343,24 +343,23 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
           break;
         }
         switch (schemeField.id) {
-          case 1: // META
+          case 1: // V
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map26 = iprot.readMapBegin();
-                struct.meta = new HashMap<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta>(2*_map26.size);
-                for (int _i27 = 0; _i27 < _map26.size; ++_i27)
+                org.apache.thrift.protocol.TMap _map0 = iprot.readMapBegin();
+                struct.v = new HashMap<String,ThriftFactPrimitiveValue>(2*_map0.size);
+                for (int _i1 = 0; _i1 < _map0.size; ++_i1)
                 {
-                  ThriftDictionaryFeatureId _key28;
-                  ThriftDictionaryFeatureMeta _val29;
-                  _key28 = new ThriftDictionaryFeatureId();
-                  _key28.read(iprot);
-                  _val29 = new ThriftDictionaryFeatureMeta();
-                  _val29.read(iprot);
-                  struct.meta.put(_key28, _val29);
+                  String _key2;
+                  ThriftFactPrimitiveValue _val3;
+                  _key2 = iprot.readString();
+                  _val3 = new ThriftFactPrimitiveValue();
+                  _val3.read(iprot);
+                  struct.v.put(_key2, _val3);
                 }
                 iprot.readMapEnd();
               }
-              struct.setMetaIsSet(true);
+              struct.setVIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -376,18 +375,18 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, ThriftDictionary struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, ThriftFactStructSparse struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.meta != null) {
-        oprot.writeFieldBegin(META_FIELD_DESC);
+      if (struct.v != null) {
+        oprot.writeFieldBegin(V_FIELD_DESC);
         {
-          oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.STRUCT, struct.meta.size()));
-          for (Map.Entry<ThriftDictionaryFeatureId, ThriftDictionaryFeatureMeta> _iter30 : struct.meta.entrySet())
+          oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, struct.v.size()));
+          for (Map.Entry<String, ThriftFactPrimitiveValue> _iter4 : struct.v.entrySet())
           {
-            _iter30.getKey().write(oprot);
-            _iter30.getValue().write(oprot);
+            oprot.writeString(_iter4.getKey());
+            _iter4.getValue().write(oprot);
           }
           oprot.writeMapEnd();
         }
@@ -399,54 +398,53 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
 
   }
 
-  private static class ThriftDictionaryTupleSchemeFactory implements SchemeFactory {
-    public ThriftDictionaryTupleScheme getScheme() {
-      return new ThriftDictionaryTupleScheme();
+  private static class ThriftFactStructSparseTupleSchemeFactory implements SchemeFactory {
+    public ThriftFactStructSparseTupleScheme getScheme() {
+      return new ThriftFactStructSparseTupleScheme();
     }
   }
 
-  private static class ThriftDictionaryTupleScheme extends TupleScheme<ThriftDictionary> {
+  private static class ThriftFactStructSparseTupleScheme extends TupleScheme<ThriftFactStructSparse> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, ThriftDictionary struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, ThriftFactStructSparse struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
-      if (struct.isSetMeta()) {
+      if (struct.isSetV()) {
         optionals.set(0);
       }
       oprot.writeBitSet(optionals, 1);
-      if (struct.isSetMeta()) {
+      if (struct.isSetV()) {
         {
-          oprot.writeI32(struct.meta.size());
-          for (Map.Entry<ThriftDictionaryFeatureId, ThriftDictionaryFeatureMeta> _iter31 : struct.meta.entrySet())
+          oprot.writeI32(struct.v.size());
+          for (Map.Entry<String, ThriftFactPrimitiveValue> _iter5 : struct.v.entrySet())
           {
-            _iter31.getKey().write(oprot);
-            _iter31.getValue().write(oprot);
+            oprot.writeString(_iter5.getKey());
+            _iter5.getValue().write(oprot);
           }
         }
       }
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, ThriftDictionary struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, ThriftFactStructSparse struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map32 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.meta = new HashMap<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta>(2*_map32.size);
-          for (int _i33 = 0; _i33 < _map32.size; ++_i33)
+          org.apache.thrift.protocol.TMap _map6 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.v = new HashMap<String,ThriftFactPrimitiveValue>(2*_map6.size);
+          for (int _i7 = 0; _i7 < _map6.size; ++_i7)
           {
-            ThriftDictionaryFeatureId _key34;
-            ThriftDictionaryFeatureMeta _val35;
-            _key34 = new ThriftDictionaryFeatureId();
-            _key34.read(iprot);
-            _val35 = new ThriftDictionaryFeatureMeta();
-            _val35.read(iprot);
-            struct.meta.put(_key34, _val35);
+            String _key8;
+            ThriftFactPrimitiveValue _val9;
+            _key8 = iprot.readString();
+            _val9 = new ThriftFactPrimitiveValue();
+            _val9.read(iprot);
+            struct.v.put(_key8, _val9);
           }
         }
-        struct.setMetaIsSet(true);
+        struct.setVIsSet(true);
       }
     }
   }

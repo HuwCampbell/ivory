@@ -105,10 +105,17 @@ object Arbitraries {
 
   def valueOf(encoding: Encoding): Gen[Value] = encoding match {
     case p: PrimitiveEncoding => valueOfPrim(p)
-    case _ => sys.error(s"Gen of $encoding not supported (yet)!") // TODO
+    case StructEncoding(s)    =>
+      Gen.sequence[Seq, Option[(String, PrimitiveValue)]](s.map { case (k, v) =>
+        for {
+          p <- valueOfPrim(v.encoding).map(k ->)
+          // _Sometimes_ generate a value for optional fields :)
+          b <- if (v.optional) arbitrary[Boolean] else Gen.const(true)
+        } yield if (b) Some(p) else None
+      }).map(_.flatten.toMap).map(StructValue)
   }
 
-  def valueOfPrim(encoding: PrimitiveEncoding): Gen[Value] = encoding match {
+  def valueOfPrim(encoding: PrimitiveEncoding): Gen[PrimitiveValue] = encoding match {
     case BooleanEncoding =>
       arbitrary[Boolean].map(BooleanValue)
     case IntEncoding =>

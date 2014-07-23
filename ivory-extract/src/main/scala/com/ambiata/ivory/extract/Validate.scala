@@ -16,6 +16,19 @@ object Validate {
       case (LongValue(_),    LongEncoding)      => Success(())
       case (DoubleValue(_),  DoubleEncoding)    => Success(())
       case (StringValue(_),  StringEncoding)    => Success(())
+      case (s:StructValue,  e: StructEncoding)  => validateStruct(s, e)
       case _                                    => s"Not a valid ${Encoding.render(encoding)}!".failure
+    }
+
+  def validateStruct(fact: StructValue, encoding: StructEncoding): Validation[String, Unit] =
+    encoding.values.toStream.traverseU {
+      case (n, v) =>
+        val x = fact.values.get(n).map(validateEncoding(_, v.encoding))
+        if (!v.optional) x.getOrElse(s"Missing struct $n".failure)
+        else             x.getOrElse(().success)
+    }.void |+| {
+      fact.values.toStream.traverseU {
+        case (n, v) => encoding.values.get(n).map(_ => ().success).getOrElse(s"Undeclared struct value $n".failure)
+      }.void
     }
 }

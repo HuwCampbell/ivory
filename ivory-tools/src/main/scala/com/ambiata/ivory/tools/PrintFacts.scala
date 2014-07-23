@@ -9,7 +9,7 @@ import org.apache.hadoop.io.{ByteWritable, SequenceFile, BytesWritable, NullWrit
 import org.apache.avro.mapred.SequenceFileReader
 import scalaz.stream.Process
 import scalaz.stream.Process.End
-import com.ambiata.ivory.core.Fact
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.io.{IOActions, IOAction, Logger}
 import scalaz.std.anyVal._
 import com.ambiata.ivory.scoobi.{ScoobiAction, SeqSchemas}
@@ -29,13 +29,14 @@ object PrintFacts {
   } yield ()
 
   def printFact(delim: String, tombstone: String, logger: Logger)(path: Path, f: Fact): Task[Unit] = Task.delay {
-    val logged =
+    // We're ignoring structs here
+    val logged = Value.toString(f.value, Some(tombstone)).map { value =>
       Seq(f.entity,
           f.namespace,
           f.feature,
-          if(f.isTombstone) tombstone else f.value.stringValue.getOrElse(""),
+          value,
           f.date.hyphenated+delim+f.time.hhmmss).mkString(delim)
-
-    logger(logged).unsafePerformIO
+    }
+    logged.foreach(logger(_).unsafePerformIO())
   }
 }

@@ -341,14 +341,14 @@ public class ThriftDictionaryStruct implements org.apache.thrift.TBase<ThriftDic
           case 1: // VALUES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
-                struct.values = new ArrayList<ThriftDictionaryStructMeta>(_list0.size);
-                for (int _i1 = 0; _i1 < _list0.size; ++_i1)
+                org.apache.thrift.protocol.TList _list10 = iprot.readListBegin();
+                struct.values = new ArrayList<ThriftDictionaryStructMeta>(_list10.size);
+                for (int _i11 = 0; _i11 < _list10.size; ++_i11)
                 {
-                  ThriftDictionaryStructMeta _elem2;
-                  _elem2 = new ThriftDictionaryStructMeta();
-                  _elem2.read(iprot);
-                  struct.values.add(_elem2);
+                  ThriftDictionaryStructMeta _elem12;
+                  _elem12 = new ThriftDictionaryStructMeta();
+                  _elem12.read(iprot);
+                  struct.values.add(_elem12);
                 }
                 iprot.readListEnd();
               }
@@ -376,9 +376,9 @@ public class ThriftDictionaryStruct implements org.apache.thrift.TBase<ThriftDic
         oprot.writeFieldBegin(VALUES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.values.size()));
-          for (ThriftDictionaryStructMeta _iter3 : struct.values)
+          for (ThriftDictionaryStructMeta _iter13 : struct.values)
           {
-            _iter3.write(oprot);
+            _iter13.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -409,9 +409,9 @@ public class ThriftDictionaryStruct implements org.apache.thrift.TBase<ThriftDic
       if (struct.isSetValues()) {
         {
           oprot.writeI32(struct.values.size());
-          for (ThriftDictionaryStructMeta _iter4 : struct.values)
+          for (ThriftDictionaryStructMeta _iter14 : struct.values)
           {
-            _iter4.write(oprot);
+            _iter14.write(oprot);
           }
         }
       }
@@ -423,14 +423,14 @@ public class ThriftDictionaryStruct implements org.apache.thrift.TBase<ThriftDic
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list5 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.values = new ArrayList<ThriftDictionaryStructMeta>(_list5.size);
-          for (int _i6 = 0; _i6 < _list5.size; ++_i6)
+          org.apache.thrift.protocol.TList _list15 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.values = new ArrayList<ThriftDictionaryStructMeta>(_list15.size);
+          for (int _i16 = 0; _i16 < _list15.size; ++_i16)
           {
-            ThriftDictionaryStructMeta _elem7;
-            _elem7 = new ThriftDictionaryStructMeta();
-            _elem7.read(iprot);
-            struct.values.add(_elem7);
+            ThriftDictionaryStructMeta _elem17;
+            _elem17 = new ThriftDictionaryStructMeta();
+            _elem17.read(iprot);
+            struct.values.add(_elem17);
           }
         }
         struct.setValuesIsSet(true);

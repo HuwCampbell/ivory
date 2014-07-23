@@ -17,8 +17,15 @@ ValidateSpec
     Validate.validateEncoding(e.value, e.enc).toEither must beRight
   )
 
-  def invalid = prop((e: EncodingAndValue, e2: Encoding) => {
+  def invalid = prop((e: EncodingAndValue, e2: Encoding) => (e.enc != e2 && !isCompatible(e, e2)) ==> {
     Validate.validateEncoding(e.value, e2).toEither must beLeft
   })
+
+  // A small subset of Struct encoded values are valid for different optional/empty Structs
+  private def isCompatible(e1: EncodingAndValue, e2: Encoding): Boolean =
+    (e1, e2) match {
+      case (EncodingAndValue(_, StructValue(m)), StructEncoding(v)) => m.isEmpty && v.forall(_._2.optional)
+      case _ => false
+    }
 
 }

@@ -49,7 +49,7 @@ object DenseRowTextStorageV1 {
         case f if f.featureId == fid => f.value
       }).getOrElse(TombstoneValue())
       val next = if(value == TombstoneValue() || rest.isEmpty) rest else rest.tail
-      (next, valueToString(value, tombstone) :: acc)
+      (next, Value.toString(value, Some(tombstone)).toList ++ acc)
     })._2.reverse
   }
 
@@ -59,14 +59,5 @@ object DenseRowTextStorageV1 {
   def featuresToString(features: List[(Int, FeatureId, FeatureMeta)], delim: Char): List[String] = {
     import com.ambiata.ivory.storage.metadata.DictionaryTextStorage
     features.map({ case (i, f, m) => i.toString + delim + DictionaryTextStorage.delimitedLineWithDelim((f, m), delim.toString) })
-  }
-
-  def valueToString(v: Value, tombstoneValue: String): String = v match {
-    case BooleanValue(b)  => b.toString
-    case IntValue(i)      => i.toString
-    case LongValue(i)     => i.toString
-    case DoubleValue(d)   => d.toString
-    case StringValue(s)   => s
-    case TombstoneValue() => tombstoneValue
   }
 }
