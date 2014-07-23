@@ -9,6 +9,7 @@ import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.scoobi.ScoobiAction.scoobiJob
 import com.ambiata.ivory.storage.fact.{Namespaces, Versions}
+import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.repository.RecreateAction._
@@ -17,6 +18,7 @@ import com.ambiata.mundane.io.{BytesQuantity, FilePath}
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodec
+import IvoryStorage._
 
 import scalaz.Scalaz._
 import scalaz.{DList => _, _}
@@ -138,7 +140,10 @@ object Recreate {
       namespaces    <- ScoobiAction.fromHdfs(namespaceSizes(from.factset(Factset(name)).toHdfs))
       partitions    <- ScoobiAction.fromHdfs(Hdfs.globFiles(from.factset(Factset(name)).toHdfs, "*/*/*/*/*").filterHidden)
       version       <- ScoobiAction.fromResultTIO(Versions.read(from, Factset(name)))
-      _             <- ScoobiAction.safe(RecreateFactsetJob.run(configuration, version, dictionary, namespaces, partitions, to.factset(Factset(name)).toHdfs, reducerSize, codec)).unless(dry)
+      _             <- {
+        ScoobiAction.safe(RecreateFactsetJob.run(configuration, version, dictionary, namespaces, partitions, to.factset(Factset(name)).toHdfs, reducerSize, codec)) >>
+        ScoobiAction.fromHdfs(writeFactsetVersion(to, List(Factset(name))))
+      }.unless(dry)
     } yield ()
 
   /**

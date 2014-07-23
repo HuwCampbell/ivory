@@ -41,6 +41,7 @@ object EavtTextImporter {
     codec: Option[CompressionCodec]
   ): ScoobiAction[Unit] = for {
     sc <- ScoobiAction.scoobiConfiguration
+    _  <- ScoobiAction.fromHdfs(writeFactsetVersion(repository, List(factset)))
     _  <- ScoobiAction.safe {
       IngestJob.run(
         sc,
@@ -55,24 +56,6 @@ object EavtTextImporter {
         codec
       )
     }
-    _  <- ScoobiAction.fromHdfs(writeFactsetVersion(repository, List(factset)))
   } yield ()
 
-  def allocateReducers(allocations: List[(String, String, Int)], features: FeatureIdLookup): ReducerLookup = {
-    val indexed = new ReducerLookup
-    allocations.foreach({ case (n, f, r) =>
-      indexed.putToReducers(features.ids.get(FeatureId(n, f).toString), r)
-    })
-    indexed
-  }
-
-  def index(dict: Dictionary): (NamespaceLookup, FeatureIdLookup) = {
-    val namespaces = new NamespaceLookup
-    val features = new FeatureIdLookup
-    dict.meta.toList.zipWithIndex.foreach({ case ((fid, _), idx) =>
-      namespaces.putToNamespaces(idx, fid.namespace)
-      features.putToIds(fid.toString, idx)
-    })
-    (namespaces, features)
-  }
 }
