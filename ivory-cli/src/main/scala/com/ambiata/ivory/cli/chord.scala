@@ -57,7 +57,7 @@ object chord extends IvoryApp {
     for {
       _    <- Chord.onStore(repo, entities, thriftRef, tmpRef, takeSnapshot, Codec())
       _    <- if(pivot) {
-                println("Pivoting extracted chord in '${tout}' to '${dout}'")
+                println(s"Pivoting extracted chord in '${thriftRef.path}' to '${denseRef.path}'")
                 Pivot.onStore(repo, thriftRef, denseRef, delim, tombstone)
               } else ResultT.ok[IO, Unit](())
     } yield ()

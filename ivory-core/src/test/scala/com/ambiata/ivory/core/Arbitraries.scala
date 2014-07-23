@@ -165,11 +165,21 @@ object Arbitraries {
   implicit def DictDescArbitrary: Arbitrary[DictDesc] =
     Arbitrary(arbitrary[String].map(_.trim).retryUntil(s => !s.contains("|") && !s.contains("\uFFFF") && s.forall(_ > 31)).map(DictDesc))
 
+  def oldIdentifiers(n: Int): List[String] =
+    (0 until n).map(i => "%05d".format(i)).toList
+
+  case class OldIdentifiers(ids: List[String])
+  implicit def OldIdentitiersArbitrary: Arbitrary[OldIdentifiers] =
+    Arbitrary(Gen.choose(1, Priority.Max.toShort).map(n => OldIdentifiers(oldIdentifiers(n))))
+
+  case class SmallOldIdentifiers(ids: List[String])
+  implicit def SmallOldIdentifiersArbitrary: Arbitrary[SmallOldIdentifiers] =
+    Arbitrary(Gen.choose(1, 100).map(n => SmallOldIdentifiers(oldIdentifiers(n))))
+
   implicit def FeatureStoreArbitrary: Arbitrary[FeatureStore] = Arbitrary(
-    Gen.choose(1, Priority.Max.toShort).map(n => {
-      val nms = (0 until n).map(i => "%05d".format(i))
-      FeatureStore(nms.zipWithIndex.map({ case (name, i) =>
-         PrioritizedFactset(Factset(name), Priority.unsafe((i + 1).toShort))
+    arbitrary[OldIdentifiers].map(ids =>
+      FeatureStore(ids.ids.zipWithIndex.map({ case (id, i) =>
+         PrioritizedFactset(Factset(id), Priority.unsafe((i + 1).toShort))
       }).toList)
-    }))
+    ))
 }

@@ -9,6 +9,7 @@ import org.joda.time.format.DateTimeFormat
 import org.apache.commons.logging.LogFactory
 
 import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.data.StoreDataUtil
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
@@ -81,29 +82,33 @@ object ImportWorkflow {
     }
   } yield ()
 
+  def nextFactset(repo: Repository): ResultTIO[Factset] = for {
+    factsetPaths <- StoreDataUtil.listDir(repo.toStore, Repository.factsets)
+  } yield Factset(nextName(factsetPaths.map(_.basename.path)))
+
   // TODO change this to use IdentifierStorage
   // TODO handle locking
-  def createFactSet(repo: Repository): ResultTIO[Factset] = {
-    val store = repo.toStore
-    for {
-      factsetPaths <- store.list(Repository.factsets)
-      factset       = Factset(nextName(factsetPaths.map(p => (FilePath.root </> p).relativeTo(Repository.factsets).path)))
-      _            <- store.bytes.write(Repository.factsets </> FilePath(factset.name) </> ".allocated", scodec.bits.ByteVector.empty)
-    } yield factset
-  }
+  def createFactSet(repo: Repository): ResultTIO[Factset] = for {
+    factset <- nextFactset(repo)
+    _       <- repo.toStore.bytes.write(Repository.factsets </> FilePath(factset.name) </> ".allocated", scodec.bits.ByteVector.empty)
+  } yield factset
+
+  def listStores(repo: Repository): ResultTIO[List[String]] =
+    repo.toStore.list(Repository.stores).map(_.map(_.basename.path))
+
+  def latestStore(repo: Repository): ResultTIO[Option[String]] =
+    listStores(repo).map(latestName)
 
   // TODO handle locking
-  def createStore(repo: Repository, factset: Factset): ResultTIO[String] = {
-    val store = repo.toStore
-    for {
-      storeNames <- store.list(Repository.stores).map(_.map(p => (FilePath.root </> p).relativeTo(Repository.factsets).path))
-      latest      = latestName(storeNames)
-      name        = nextName(storeNames)
-      _           = logger.debug(s"Going to create feature store '${name}'" + latest.map(l => s" based off feature store '${l}'").getOrElse(""))
-      _          <- CreateFeatureStore.inRepository(repo, name, List(factset), latest)
-    } yield name
-  }
+  def createStore(repo: Repository, factset: Factset): ResultTIO[String] = for {
+    names  <- listStores(repo)
+    latest  = latestName(names)
+    name    = nextName(names)
+    _       = logger.debug(s"Going to create feature store '${name}'" + latest.map(l => s" based off feature store '${l}'").getOrElse(""))
+    _      <- CreateFeatureStore.inRepository(repo, name, List(factset), latest)
+  } yield name
 
+  // TODO Replace all the below with Identifier
   def latestName(names: List[String]): Option[String] =
     latestNameWith(names, identity)
 

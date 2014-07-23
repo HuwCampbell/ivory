@@ -61,12 +61,6 @@ class PivotSpec extends Specification with SampleFacts { def is = s2"""
     })
   }
 
-  def dictLine(i: Int, ns: String, attr: String, enc: Encoding, ty: Type, desc: String): String = {
-    val fid = FeatureId(ns, attr)
-    val m = FeatureMeta(enc, Some(ty), desc, List("NA"))
-    s"${i}|${DictionaryTextStorage.delimitedLineWithDelim((fid, m), "|")}"
-  }
-
   def readLines(ref: ReferenceIO): ResultTIO[List[String]] =
     ref.run(store => path => {
       for {

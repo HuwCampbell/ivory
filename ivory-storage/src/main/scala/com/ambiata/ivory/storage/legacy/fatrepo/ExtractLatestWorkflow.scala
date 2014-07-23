@@ -72,13 +72,10 @@ object ExtractLatestWorkflow {
 
   def latestStore(repo: Repository): ResultTIO[String] = for {
     _         <- ResultT.ok[IO, Unit](logger.info(s"Finding latest feature store in the '${repo.root.path}' repository."))
-    latestOpt <- latest(repo.toReference(Repository.stores))
+    latestOpt <- ImportWorkflow.latestStore(repo)
     latest    <- latestOpt.map(ResultT.ok[IO, String](_)).getOrElse(ResultT.fail[IO, String](s"There are no feature stores"))
     _          = logger.info(s"Latest feature store is '${latest}'")
   } yield latest
-
-  def latest(ref: ReferenceIO): ResultTIO[Option[String]] =
-    ref.run(s => s.list).map(_.map(p => (FilePath.root </> p).relativeTo(ref.path).toString).sorted(SOrdering[String].reverse).headOption)
 
   def outputDirectory(repo: Repository): ResultTIO[ReferenceIO] = for {
     store  <- ResultT.ok[IO, Store[ResultTIO]](repo.toStore)

@@ -40,7 +40,7 @@ class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2
 
     saveInputFile
 
-    val errors = base </> "/errors"
+    val errors = base </> "errors"
     // run the scoobi job to import facts on Hdfs
     EavtTextImporter.onStore(repository, dictionary, Factset("factset1"), List("ns1"), input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None) must beOk
 

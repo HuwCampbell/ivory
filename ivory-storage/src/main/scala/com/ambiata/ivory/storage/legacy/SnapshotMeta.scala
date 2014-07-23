@@ -38,11 +38,11 @@ object SnapshotMeta {
   }
 
   def latest(snapshots: ReferenceIO, date: Date): ResultTIO[Option[(ReferenceIO, SnapshotMeta)]] = for {
-    paths <- snapshots.run(s => p => StoreDataUtil.listDir(s, p)).map(_.map(Reference(snapshots.store, _)))
+    paths <- snapshots.run(s => p => StoreDataUtil.listDir(s, p)).map(_.map(snapshots </> _.basename))
     metas <- paths.traverseU(p => {
       val snapmeta = p </> fname
-      snapshots.store.exists(snapmeta.path).flatMap(e =>
-        if(e) fromReference(snapmeta).map[Option[(ReferenceIO, SnapshotMeta)]](sm => Some((p, sm))) else ResultT.ok(None))
+      snapmeta.run(store => path => store.exists(path).flatMap(e =>
+        if(e) fromReference(snapmeta).map(sm => Some((p, sm))) else ResultT.ok(None)))
     }).map(_.flatten)
   } yield metas.filter(_._2.date.isBeforeOrEqual(date)).sortBy(_._2.date).lastOption
 }
