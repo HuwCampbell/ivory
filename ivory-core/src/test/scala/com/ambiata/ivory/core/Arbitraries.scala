@@ -182,4 +182,12 @@ object Arbitraries {
          PrioritizedFactset(Factset(id), Priority.unsafe((i + 1).toShort))
       }).toList)
     ))
+
+  case class EncodingAndValue(enc: Encoding, value: Value)
+
+  implicit def EncodingAndValueArbitrary: Arbitrary[EncodingAndValue] = Arbitrary(for {
+    enc   <- arbitrary[Encoding]
+    value <- valueOf(enc)
+  } yield EncodingAndValue(enc, value))
+
 }
