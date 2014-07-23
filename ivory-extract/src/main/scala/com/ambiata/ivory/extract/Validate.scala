@@ -21,14 +21,9 @@ object Validate {
     }
 
   def validateStruct(fact: StructValue, encoding: StructEncoding): Validation[String, Unit] =
-    encoding.values.toStream.traverseU {
-      case (n, v) =>
-        val x = fact.values.get(n).map(validateEncoding(_, v.encoding))
-        if (!v.optional) x.getOrElse(s"Missing struct $n".failure)
-        else             x.getOrElse(().success)
-    }.void |+| {
-      fact.values.toStream.traverseU {
-        case (n, v) => encoding.values.get(n).map(_ => ().success).getOrElse(s"Undeclared struct value $n".failure)
-      }.void
+    Maps.outerJoin(encoding.values, fact.values).toStream.foldMap {
+      case (n, \&/.This(enc))        => if (!enc.optional) s"Missing struct $n".failure else ().success
+      case (n, \&/.That(value))      => s"Undeclared struct value $n".failure
+      case (n, \&/.Both(enc, value)) => validateEncoding(value, enc.encoding).leftMap(_ + s" for $n")
     }
 }
