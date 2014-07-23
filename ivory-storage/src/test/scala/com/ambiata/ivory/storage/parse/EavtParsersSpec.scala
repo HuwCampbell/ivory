@@ -19,6 +19,7 @@ Eavt Parse Formats
  Can parse standard date-time format     $standard
  Can parse with different time zones     $zones
  Must fail with bad EAVT string          $parsefail
+ Must fail with struct EAVT string       $structFail
 
 """
   def date = prop((fact: Fact) =>
@@ -57,6 +58,11 @@ Eavt Parse Formats
 
   def parsefail = prop((bad: BadEavt) =>
     EavtParsers.fact(TestDictionary, bad.namespace, bad.timezone).run(bad.string.split("\\|").toList).toOption must beNone)
+
+  def structFail = {
+    val dict = Dictionary(Map(FeatureId("ns", "a") -> FeatureMeta(StructEncoding(Map()), None, "")))
+    EavtParsers.parse("e|a|v|t", dict, "ns", DateTimeZone.getDefault).toOption must beNone
+  }
 
   def genBadDouble: Gen[DoubleValue] =
     Gen.oneOf(Double.NaN, Double.NegativeInfinity, Double.PositiveInfinity).map(DoubleValue)

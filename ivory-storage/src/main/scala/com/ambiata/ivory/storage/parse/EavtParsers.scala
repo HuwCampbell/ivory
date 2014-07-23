@@ -40,5 +40,6 @@ object EavtParsers {
     case DoubleEncoding                          => raw.parseDouble.flatMap(d => if(Value.validDouble(d)) d.success else ().failure)
                                                         .leftMap(_ => s"Value '$raw' is not a double").map(v => DoubleValue(v))
     case StringEncoding                          => StringValue(raw).success[String]
+    case s: StructEncoding                       => "Struct encoding not supported".failure
   }
 }
