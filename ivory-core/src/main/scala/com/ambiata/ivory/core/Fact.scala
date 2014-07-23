@@ -19,14 +19,7 @@ trait Fact {
   def toNamespacedThrift: NamespacedThriftFact with NamespacedThriftFactDerived
 
   def safeCopy: Fact =
-    FatThriftFact.factWith(entity, namespace, feature, date, time, value match {
-      case BooleanValue(b)  => ThriftFactValue.b(b)
-      case IntValue(i)      => ThriftFactValue.i(i)
-      case LongValue(l)     => ThriftFactValue.l(l)
-      case DoubleValue(d)   => ThriftFactValue.d(d)
-      case StringValue(s)   => ThriftFactValue.s(s)
-      case TombstoneValue() => ThriftFactValue.t(new ThriftTombstone())
-    })
+    Fact.newFact(entity, namespace, feature, date, time, value)
 
   def coordinateString(delim: Char): String = {
     val fields = List(s"$entity", s"$featureId", s"${date.int}-${time}}")
