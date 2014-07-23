@@ -28,9 +28,6 @@ trait Fact {
       case TombstoneValue() => ThriftFactValue.t(new ThriftTombstone())
     })
 
-  lazy val stringValue: Option[String] =
-    value.stringValue
-
   def coordinateString(delim: Char): String = {
     val fields = List(s"$entity", s"$featureId", s"${date.int}-${time}}")
     fields.mkString(delim.toString)
