@@ -24,9 +24,13 @@ object Print {
 
   def printPathsWith[A](paths: List[Path], configuration: Configuration, schema: SeqSchema[A], printA: (Path, A) => Task[Unit]): IOAction[Unit] =
     paths.traverseU(path => for {
-      files       <- IOActions.fromResultT(Hdfs.globFiles(path, "").filterHidden.run(configuration))
-      _           <- files.traverse(file => printWith(file, configuration, schema, printA))
+      files       <- {
+        val (basePath, glob) = Hdfs.pathAndGlob(path)
+        IOActions.fromResultT(Hdfs.globFiles(basePath, glob).filterHidden.run(configuration))
+      }
+      _ <- files.traverse(file => printWith(file, configuration, schema, printA))
     } yield ()).void
+
 
   def printWith[A](path: Path, configuration: Configuration, schema: SeqSchema[A], printA: (Path, A) => Task[Unit]): IOAction[Unit] = IOActions.result { logger =>
     val reader = new SequenceFile.Reader(configuration, SequenceFile.Reader.file(path))

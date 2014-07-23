@@ -2,7 +2,7 @@ package com.ambiata.ivory.alien.hdfs
 
 import scalaz._, Scalaz._, \&/._, effect._, Effect._
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, FileUtil, FileContext, Path}
+import org.apache.hadoop.fs.{FileSystem, FileUtil, FileContext, Path, GlobExpander}
 import java.io._
 import java.util.UUID
 
@@ -105,15 +105,12 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
 
   def globDirs(p: Path, glob: String = "*"): Hdfs[List[Path]] =
     filesystem.map(fs =>
-      if (fs.isFile(p)) List() else fs.globStatus(newPath(p, glob)).toList.filter(_.isDirectory).map(_.getPath)
+      if (fs.isFile(p)) List() else fs.globStatus(new Path(p, glob)).toList.filter(_.isDirectory).map(_.getPath)
     )
 
   def globPaths(p: Path, glob: String = "*"): Hdfs[List[Path]] =
     filesystem.map(fs =>
-      if(fs.isFile(p)) List(p) else fs.globStatus(newPath(p, glob)).toList.map(_.getPath))
-
-  private def newPath(path: Path, glob: String) =
-    if (glob.isEmpty) path else new Path(path, glob)
+      if(fs.isFile(p)) List(p) else fs.globStatus(new Path(p, glob)).toList.map(_.getPath))
 
   def globPathsRecursively(p: Path, glob: String = "*"): Hdfs[List[Path]] = {
     def getPaths(path: Path): FileSystem => List[Path] = { fs: FileSystem =>
@@ -135,6 +132,16 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
     fs    <- filesystem
     files <- globPathsRecursively(p, glob)
   } yield files.filter(fs.isFile)
+
+  /**
+   * strip out the non-glob path and the glob path of a path
+   * if the path has no globbing characters then the glob is "*"
+   */
+  def pathAndGlob(path: Path): (Path, String) = {
+    val parts = path.toUri.toString.split("/")
+    val (basePath, glob) = parts.partition(p  => !Seq("*", "{").exists(p.contains))
+    (new Path(basePath.mkString("/")), if (glob.isEmpty) "*" else glob.mkString("/"))
+  }
 
   def readWith[A](p: Path, f: InputStream => ResultT[IO, A], glob: String = "*"): Hdfs[A] = for {
     _     <- mustexist(p)

@@ -1,6 +1,6 @@
 package com.ambiata.ivory.tools
 
-import com.ambiata.ivory.storage.fact.FactsetVersion
+import com.ambiata.ivory.storage.fact.{FactsetVersionOne, FactsetVersion}
 import org.specs2._
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.TestFiles._
