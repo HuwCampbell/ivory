@@ -18,9 +18,6 @@ trait Fact {
 
   def toNamespacedThrift: NamespacedThriftFact with NamespacedThriftFactDerived
 
-  def safeCopy: Fact =
-    Fact.newFact(entity, namespace, feature, date, time, value)
-
   def coordinateString(delim: Char): String = {
     val fields = List(s"$entity", s"$featureId", s"${date.int}-${time}}")
     fields.mkString(delim.toString)
