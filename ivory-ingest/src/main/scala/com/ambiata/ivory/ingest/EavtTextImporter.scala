@@ -1,6 +1,8 @@
 package com.ambiata.ivory
 package ingest
 
+import com.ambiata.ivory.lookup.{ReducerLookup, NamespaceLookup, FeatureIdLookup}
+import com.ambiata.ivory.storage.lookup.ReducerLookups
 import org.apache.hadoop.fs.Path
 import com.nicta.scoobi.Scoobi._
 import com.ambiata.ivory.core._, IvorySyntax._
@@ -13,7 +15,7 @@ import alien.hdfs._
 import ScoobiAction._
 import WireFormats._, FactFormats._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.FilePath
+import com.ambiata.mundane.io.{BytesQuantity, FilePath}
 import com.ambiata.saws.emr._
 import org.joda.time.DateTimeZone
 import org.apache.hadoop.io.compress._
@@ -34,22 +36,17 @@ object EavtTextImporter {
     path: Path,
     errorPath: Path,
     timezone: DateTimeZone,
-    partitions: List[(String, Long)],
-    optimal: Long,
+    partitions: List[(String, BytesQuantity)],
+    optimal: BytesQuantity,
     codec: Option[CompressionCodec]
   ): ScoobiAction[Unit] = for {
     sc <- ScoobiAction.scoobiConfiguration
-    (reducers, allocations) = Skew.calculate(dictionary, partitions, optimal)
-    (namespaces, features) = index(dictionary)
-    indexed = allocateReducers(allocations, features)
+    _  <- ScoobiAction.fromHdfs(writeFactsetVersion(repository, List(factset)))
     _  <- ScoobiAction.safe {
       IngestJob.run(
         sc,
-        reducers,
-        indexed,
-        namespaces,
-        features,
         dictionary,
+        ReducerLookups.createLookups(dictionary, partitions, optimal),
         timezone,
         timezone,
         path,
@@ -59,24 +56,6 @@ object EavtTextImporter {
         codec
       )
     }
-    _  <- ScoobiAction.fromHdfs(writeFactsetVersion(repository, List(factset)))
   } yield ()
 
-  def allocateReducers(allocations: List[(String, String, Int)], features: FeatureIdLookup): ReducerLookup = {
-    val indexed = new ReducerLookup
-    allocations.foreach({ case (n, f, r) =>
-      indexed.putToReducers(features.ids.get(FeatureId(n, f).toString), r)
-    })
-    indexed
-  }
-
-  def index(dict: Dictionary): (NamespaceLookup, FeatureIdLookup) = {
-    val namespaces = new NamespaceLookup
-    val features = new FeatureIdLookup
-    dict.meta.toList.zipWithIndex.foreach({ case ((fid, _), idx) =>
-      namespaces.putToNamespaces(idx, fid.namespace)
-      features.putToIds(fid.toString, idx)
-    })
-    (namespaces, features)
-  }
 }

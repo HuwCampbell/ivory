@@ -1,8 +1,11 @@
 package com.ambiata.ivory.core
 
-import scalaz._, Scalaz._
 import java.io.File
+
 import com.ambiata.mundane.parse.ListParser
+
+import scalaz.Scalaz._
+import scalaz._
 
 case class Partition(factset: Factset, namespace: String, date: Date, base: Option[String] = None) {
 
@@ -21,19 +24,19 @@ object Partition {
   def parseDir(path: String): Validation[String, Partition] =
     pathParser(false).run(pathPieces(path))
 
-  def parseWith(f: => String): Validation[String, Partition] =
+  def parseWith(f: String): Validation[String, Partition] =
     pathParser(true).run(pathPieces(f))
 
   def pathParser(withFile: Boolean): ListParser[Partition] = {
-    import ListParser._
+    import com.ambiata.mundane.parse.ListParser._
     for {
       _        <- if(withFile) consume(1) else consume(0)
       d        <- short
       m        <- short
       y        <- short
       date     <- Date.create(y, m.toByte, d.toByte) match {
-        case None => ListParser((position, _) => (position, s"""not a valid date ($y-$m-$d)""").failure)
-        case Some(d) => d.point[ListParser]
+        case None       => ListParser((position, _) => (position, s"""not a valid date ($y-$m-$d)""").failure)
+        case Some(date) => date.point[ListParser]
       }
       ns      <- string
       factset <- string
@@ -62,4 +65,5 @@ object Partitions {
   /** Filter paths between two dates (inclusive) */
   def pathsBetween(partitions: List[Partition], from: Date, to: Date): List[Partition] =
     pathsBeforeOrEqual(pathsAfterOrEqual(partitions, from), to)
+
 }

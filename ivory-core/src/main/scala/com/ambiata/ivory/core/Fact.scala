@@ -67,6 +67,7 @@ object Fact {
       case DoubleValue(d)   => ThriftFactValue.d(d)
       case TombstoneValue() => ThriftFactValue.t(new ThriftTombstone())
     })
+
 }
 
 trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
@@ -95,13 +96,13 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       Option(fact.getSeconds).getOrElse(0)
 
     def value: Value = fact.getValue match {
-      case tv if(tv.isSetD) => DoubleValue(tv.getD)
-      case tv if(tv.isSetS) => StringValue(tv.getS)
-      case tv if(tv.isSetI) => IntValue(tv.getI)
-      case tv if(tv.isSetL) => LongValue(tv.getL)
-      case tv if(tv.isSetB) => BooleanValue(tv.getB)
-      case tv if(tv.isSetT) => TombstoneValue()
-      case _                => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
+      case tv if tv.isSetD => DoubleValue(tv.getD)
+      case tv if tv.isSetS => StringValue(tv.getS)
+      case tv if tv.isSetI => IntValue(tv.getI)
+      case tv if tv.isSetL => LongValue(tv.getL)
+      case tv if tv.isSetB => BooleanValue(tv.getB)
+      case tv if tv.isSetT => TombstoneValue()
+      case _               => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
     }
 
     def toThrift: ThriftFact = fact
@@ -110,6 +111,15 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
 }
 
 object FatThriftFact {
+  def apply(ns: String, date: Date, tfact: ThriftFact): Fact = new NamespacedThriftFact(tfact, ns, date.int) with NamespacedThriftFactDerived
+
+  def factWith(entity: String, namespace: String, feature: String, date: Date, time: Time, value: ThriftFactValue): Fact = {
+    val tfact = new ThriftFact(entity, feature, value)
+    FatThriftFact(namespace, date, tfact.setSeconds(time.seconds))
+  }
+}
+
+object LeanThriftFact {
   def apply(ns: String, date: Date, tfact: ThriftFact): Fact = new NamespacedThriftFact(tfact, ns, date.int) with NamespacedThriftFactDerived
 
   def factWith(entity: String, namespace: String, feature: String, date: Date, time: Time, value: ThriftFactValue): Fact = {

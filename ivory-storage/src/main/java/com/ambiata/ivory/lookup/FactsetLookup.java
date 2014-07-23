@@ -4,7 +4,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package com.ambiata.ivory.ingest;
+package com.ambiata.ivory.lookup;
 
 import org.apache.thrift.scheme.IScheme;
 import org.apache.thrift.scheme.SchemeFactory;
@@ -12,42 +12,30 @@ import org.apache.thrift.scheme.StandardScheme;
 
 import org.apache.thrift.scheme.TupleScheme;
 import org.apache.thrift.protocol.TTupleProtocol;
-import org.apache.thrift.protocol.TProtocolException;
-import org.apache.thrift.EncodingUtils;
-import org.apache.thrift.TException;
-import org.apache.thrift.async.AsyncMethodCallback;
-import org.apache.thrift.server.AbstractNonblockingServer.*;
-import java.util.List;
-import java.util.ArrayList;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.EnumMap;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.EnumSet;
 import java.util.Collections;
 import java.util.BitSet;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class NamespaceLookup implements org.apache.thrift.TBase<NamespaceLookup, NamespaceLookup._Fields>, java.io.Serializable, Cloneable, Comparable<NamespaceLookup> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("NamespaceLookup");
+public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, FactsetLookup._Fields>, java.io.Serializable, Cloneable, Comparable<FactsetLookup> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("FactsetLookup");
 
-  private static final org.apache.thrift.protocol.TField NAMESPACES_FIELD_DESC = new org.apache.thrift.protocol.TField("namespaces", org.apache.thrift.protocol.TType.MAP, (short)1);
+  private static final org.apache.thrift.protocol.TField PRIORITIES_FIELD_DESC = new org.apache.thrift.protocol.TField("priorities", org.apache.thrift.protocol.TType.MAP, (short)1);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new NamespaceLookupStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new NamespaceLookupTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new FactsetLookupStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new FactsetLookupTupleSchemeFactory());
   }
 
-  public Map<Integer,String> namespaces; // required
+  public Map<String,Short> priorities; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    NAMESPACES((short)1, "namespaces");
+    PRIORITIES((short)1, "priorities");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -62,8 +50,8 @@ public class NamespaceLookup implements org.apache.thrift.TBase<NamespaceLookup,
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // NAMESPACES
-          return NAMESPACES;
+        case 1: // PRIORITIES
+          return PRIORITIES;
         default:
           return null;
       }
@@ -107,85 +95,85 @@ public class NamespaceLookup implements org.apache.thrift.TBase<NamespaceLookup,
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.NAMESPACES, new org.apache.thrift.meta_data.FieldMetaData("namespaces", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.PRIORITIES, new org.apache.thrift.meta_data.FieldMetaData("priorities", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32), 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I16))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(NamespaceLookup.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(FactsetLookup.class, metaDataMap);
   }
 
-  public NamespaceLookup() {
+  public FactsetLookup() {
   }
 
-  public NamespaceLookup(
-    Map<Integer,String> namespaces)
+  public FactsetLookup(
+    Map<String,Short> priorities)
   {
     this();
-    this.namespaces = namespaces;
+    this.priorities = priorities;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public NamespaceLookup(NamespaceLookup other) {
-    if (other.isSetNamespaces()) {
-      Map<Integer,String> __this__namespaces = new HashMap<Integer,String>(other.namespaces);
-      this.namespaces = __this__namespaces;
+  public FactsetLookup(FactsetLookup other) {
+    if (other.isSetPriorities()) {
+      Map<String,Short> __this__priorities = new HashMap<String,Short>(other.priorities);
+      this.priorities = __this__priorities;
     }
   }
 
-  public NamespaceLookup deepCopy() {
-    return new NamespaceLookup(this);
+  public FactsetLookup deepCopy() {
+    return new FactsetLookup(this);
   }
 
   @Override
   public void clear() {
-    this.namespaces = null;
+    this.priorities = null;
   }
 
-  public int getNamespacesSize() {
-    return (this.namespaces == null) ? 0 : this.namespaces.size();
+  public int getPrioritiesSize() {
+    return (this.priorities == null) ? 0 : this.priorities.size();
   }
 
-  public void putToNamespaces(int key, String val) {
-    if (this.namespaces == null) {
-      this.namespaces = new HashMap<Integer,String>();
+  public void putToPriorities(String key, short val) {
+    if (this.priorities == null) {
+      this.priorities = new HashMap<String,Short>();
     }
-    this.namespaces.put(key, val);
+    this.priorities.put(key, val);
   }
 
-  public Map<Integer,String> getNamespaces() {
-    return this.namespaces;
+  public Map<String,Short> getPriorities() {
+    return this.priorities;
   }
 
-  public NamespaceLookup setNamespaces(Map<Integer,String> namespaces) {
-    this.namespaces = namespaces;
+  public FactsetLookup setPriorities(Map<String,Short> priorities) {
+    this.priorities = priorities;
     return this;
   }
 
-  public void unsetNamespaces() {
-    this.namespaces = null;
+  public void unsetPriorities() {
+    this.priorities = null;
   }
 
-  /** Returns true if field namespaces is set (has been assigned a value) and false otherwise */
-  public boolean isSetNamespaces() {
-    return this.namespaces != null;
+  /** Returns true if field priorities is set (has been assigned a value) and false otherwise */
+  public boolean isSetPriorities() {
+    return this.priorities != null;
   }
 
-  public void setNamespacesIsSet(boolean value) {
+  public void setPrioritiesIsSet(boolean value) {
     if (!value) {
-      this.namespaces = null;
+      this.priorities = null;
     }
   }
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case NAMESPACES:
+    case PRIORITIES:
       if (value == null) {
-        unsetNamespaces();
+        unsetPriorities();
       } else {
-        setNamespaces((Map<Integer,String>)value);
+        setPriorities((Map<String,Short>)value);
       }
       break;
 
@@ -194,8 +182,8 @@ public class NamespaceLookup implements org.apache.thrift.TBase<NamespaceLookup,
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case NAMESPACES:
-      return getNamespaces();
+    case PRIORITIES:
+      return getPriorities();
 
     }
     throw new IllegalStateException();
@@ -208,8 +196,8 @@ public class NamespaceLookup implements org.apache.thrift.TBase<NamespaceLookup,
     }
 
     switch (field) {
-    case NAMESPACES:
-      return isSetNamespaces();
+    case PRIORITIES:
+      return isSetPriorities();
     }
     throw new IllegalStateException();
   }
@@ -218,21 +206,21 @@ public class NamespaceLookup implements org.apache.thrift.TBase<NamespaceLookup,
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof NamespaceLookup)
-      return this.equals((NamespaceLookup)that);
+    if (that instanceof FactsetLookup)
+      return this.equals((FactsetLookup)that);
     return false;
   }
 
-  public boolean equals(NamespaceLookup that) {
+  public boolean equals(FactsetLookup that) {
     if (that == null)
       return false;
 
-    boolean this_present_namespaces = true && this.isSetNamespaces();
-    boolean that_present_namespaces = true && that.isSetNamespaces();
-    if (this_present_namespaces || that_present_namespaces) {
-      if (!(this_present_namespaces && that_present_namespaces))
+    boolean this_present_priorities = true && this.isSetPriorities();
+    boolean that_present_priorities = true && that.isSetPriorities();
+    if (this_present_priorities || that_present_priorities) {
+      if (!(this_present_priorities && that_present_priorities))
         return false;
-      if (!this.namespaces.equals(that.namespaces))
+      if (!this.priorities.equals(that.priorities))
         return false;
     }
 
@@ -245,19 +233,19 @@ public class NamespaceLookup implements org.apache.thrift.TBase<NamespaceLookup,
   }
 
   @Override
-  public int compareTo(NamespaceLookup other) {
+  public int compareTo(FactsetLookup other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
 
-    lastComparison = Boolean.valueOf(isSetNamespaces()).compareTo(other.isSetNamespaces());
+    lastComparison = Boolean.valueOf(isSetPriorities()).compareTo(other.isSetPriorities());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetNamespaces()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.namespaces, other.namespaces);
+    if (isSetPriorities()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.priorities, other.priorities);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -279,14 +267,14 @@ public class NamespaceLookup implements org.apache.thrift.TBase<NamespaceLookup,
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("NamespaceLookup(");
+    StringBuilder sb = new StringBuilder("FactsetLookup(");
     boolean first = true;
 
-    sb.append("namespaces:");
-    if (this.namespaces == null) {
+    sb.append("priorities:");
+    if (this.priorities == null) {
       sb.append("null");
     } else {
-      sb.append(this.namespaces);
+      sb.append(this.priorities);
     }
     first = false;
     sb.append(")");
@@ -314,15 +302,15 @@ public class NamespaceLookup implements org.apache.thrift.TBase<NamespaceLookup,
     }
   }
 
-  private static class NamespaceLookupStandardSchemeFactory implements SchemeFactory {
-    public NamespaceLookupStandardScheme getScheme() {
-      return new NamespaceLookupStandardScheme();
+  private static class FactsetLookupStandardSchemeFactory implements SchemeFactory {
+    public FactsetLookupStandardScheme getScheme() {
+      return new FactsetLookupStandardScheme();
     }
   }
 
-  private static class NamespaceLookupStandardScheme extends StandardScheme<NamespaceLookup> {
+  private static class FactsetLookupStandardScheme extends StandardScheme<FactsetLookup> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, NamespaceLookup struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, FactsetLookup struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -332,22 +320,22 @@ public class NamespaceLookup implements org.apache.thrift.TBase<NamespaceLookup,
           break;
         }
         switch (schemeField.id) {
-          case 1: // NAMESPACES
+          case 1: // PRIORITIES
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
                 org.apache.thrift.protocol.TMap _map0 = iprot.readMapBegin();
-                struct.namespaces = new HashMap<Integer,String>(2*_map0.size);
+                struct.priorities = new HashMap<String,Short>(2*_map0.size);
                 for (int _i1 = 0; _i1 < _map0.size; ++_i1)
                 {
-                  int _key2;
-                  String _val3;
-                  _key2 = iprot.readI32();
-                  _val3 = iprot.readString();
-                  struct.namespaces.put(_key2, _val3);
+                  String _key2;
+                  short _val3;
+                  _key2 = iprot.readString();
+                  _val3 = iprot.readI16();
+                  struct.priorities.put(_key2, _val3);
                 }
                 iprot.readMapEnd();
               }
-              struct.setNamespacesIsSet(true);
+              struct.setPrioritiesIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -363,18 +351,18 @@ public class NamespaceLookup implements org.apache.thrift.TBase<NamespaceLookup,
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, NamespaceLookup struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, FactsetLookup struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.namespaces != null) {
-        oprot.writeFieldBegin(NAMESPACES_FIELD_DESC);
+      if (struct.priorities != null) {
+        oprot.writeFieldBegin(PRIORITIES_FIELD_DESC);
         {
-          oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.STRING, struct.namespaces.size()));
-          for (Map.Entry<Integer, String> _iter4 : struct.namespaces.entrySet())
+          oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I16, struct.priorities.size()));
+          for (Map.Entry<String, Short> _iter4 : struct.priorities.entrySet())
           {
-            oprot.writeI32(_iter4.getKey());
-            oprot.writeString(_iter4.getValue());
+            oprot.writeString(_iter4.getKey());
+            oprot.writeI16(_iter4.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -386,52 +374,52 @@ public class NamespaceLookup implements org.apache.thrift.TBase<NamespaceLookup,
 
   }
 
-  private static class NamespaceLookupTupleSchemeFactory implements SchemeFactory {
-    public NamespaceLookupTupleScheme getScheme() {
-      return new NamespaceLookupTupleScheme();
+  private static class FactsetLookupTupleSchemeFactory implements SchemeFactory {
+    public FactsetLookupTupleScheme getScheme() {
+      return new FactsetLookupTupleScheme();
     }
   }
 
-  private static class NamespaceLookupTupleScheme extends TupleScheme<NamespaceLookup> {
+  private static class FactsetLookupTupleScheme extends TupleScheme<FactsetLookup> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, NamespaceLookup struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, FactsetLookup struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
-      if (struct.isSetNamespaces()) {
+      if (struct.isSetPriorities()) {
         optionals.set(0);
       }
       oprot.writeBitSet(optionals, 1);
-      if (struct.isSetNamespaces()) {
+      if (struct.isSetPriorities()) {
         {
-          oprot.writeI32(struct.namespaces.size());
-          for (Map.Entry<Integer, String> _iter5 : struct.namespaces.entrySet())
+          oprot.writeI32(struct.priorities.size());
+          for (Map.Entry<String, Short> _iter5 : struct.priorities.entrySet())
           {
-            oprot.writeI32(_iter5.getKey());
-            oprot.writeString(_iter5.getValue());
+            oprot.writeString(_iter5.getKey());
+            oprot.writeI16(_iter5.getValue());
           }
         }
       }
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, NamespaceLookup struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, FactsetLookup struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map6 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.namespaces = new HashMap<Integer,String>(2*_map6.size);
+          org.apache.thrift.protocol.TMap _map6 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I16, iprot.readI32());
+          struct.priorities = new HashMap<String,Short>(2*_map6.size);
           for (int _i7 = 0; _i7 < _map6.size; ++_i7)
           {
-            int _key8;
-            String _val9;
-            _key8 = iprot.readI32();
-            _val9 = iprot.readString();
-            struct.namespaces.put(_key8, _val9);
+            String _key8;
+            short _val9;
+            _key8 = iprot.readString();
+            _val9 = iprot.readI16();
+            struct.priorities.put(_key8, _val9);
           }
         }
-        struct.setNamespacesIsSet(true);
+        struct.setPrioritiesIsSet(true);
       }
     }
   }

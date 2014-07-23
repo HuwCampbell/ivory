@@ -17,7 +17,7 @@ object CreateFeatureStore {
        repo     <- Hdfs.configuration.map(c => Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiConfiguration(c)))
        tmp      <- Hdfs.value(FeatureStoreTextStorage.fromFactsets(sets))
        store    <- existing.traverse(e => Metadata.storeFromIvory(repo, e))
-       newStore  = store.map(fs => tmp +++ fs).getOrElse(tmp)
+       newStore  = store.map(fs => tmp concat fs).getOrElse(tmp)
        _        <- Hdfs.mkdir(repo.stores.toHdfs)
        _        <- Metadata.storeToIvory(repo, newStore, name)
      } yield ()
@@ -27,7 +27,7 @@ object CreateFeatureStore {
     for {
       tmp      <- HdfsS3Action.fromHdfs(Hdfs.value(FeatureStoreTextStorage.fromFactsets(sets)))
       store    <- existing.traverse(e => Metadata.storeFromIvoryS3(repository, e))
-      newStore  = store.map(fs => tmp +++ fs).getOrElse(tmp)
+      newStore  = store.map(fs => tmp concat fs).getOrElse(tmp)
       _        <- Metadata.storeToIvoryS3(repository, newStore, name)
     } yield ()
   }

@@ -20,6 +20,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.alien.hdfs._
+import MemoryConversions._
 
 case class HdfsSnapshot(repoPath: Path, store: String, entities: Option[Path], snapshot: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)], codec: Option[CompressionCodec]) {
   import IvoryStorage._
@@ -47,7 +48,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, entities: Option[Path], s
     paths  = globs.flatMap(_.partitions.map(p => new Path(p.path))) ++ incremental.map(_._1).toList
     size  <- paths.traverse(Hdfs.size).map(_.sum)
     _     = println(s"Total input size: ${size}")
-    reducers = size / 1024 / 1024 / 768 + 1 // one reducer per 768MB of input
+    reducers = size.toBytes.value / 768.mb.toBytes.value + 1 // one reducer per 768MB of input
     _     = println(s"Number of reducers: ${reducers}")
     _     <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshot, globs, outputPath, incremental.map(_._1), codec))
   } yield ()
@@ -72,11 +73,12 @@ object HdfsSnapshot {
       case None =>
         factsFromIvoryStoreTo(repo, store, latestDate)
       case Some((p, s, sm)) => for {
-        o <- factsFromIvoryStoreBetween(repo, s, sm.date, latestDate) // read facts from already processed store from the last snapshot date to the latest date
-        sd = store --- s
-        _  = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
-        n <- factsFromIvoryStoreTo(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
-      } yield o ++ n ++ valueFromSequenceFile[Fact](p.toString).map(fact => (Priority.Max, Factset(SnapshotName), fact).right[ParseError])
+        sc <- ScoobiAction.scoobiConfiguration
+        o  <- factsFromIvoryStoreBetween(repo, s, sm.date, latestDate) // read facts from already processed store from the last snapshot date to the latest date
+        sd  = store diff s
+        _   = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
+        n  <- factsFromIvoryStoreTo(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
+      } yield o ++ n ++ FlatFactThriftStorageV1.FlatFactThriftLoader(p.toString).loadScoobi(sc).map(_.map((Priority.Max, Factset(SnapshotName), _)))
     }
   }
 
@@ -86,7 +88,7 @@ object HdfsSnapshot {
         StoreGlob.before(repo, store, latestDate)
       case Some((p, s, sm)) => for {
         o <- StoreGlob.between(repo, s, sm.date, latestDate) // read facts from already processed store from the last snapshot date to the latest date
-        sd = store --- s
+        sd = store diff s
         _  = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
         n <- StoreGlob.before(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
       } yield FactsetGlob.groupByVersion(o ++ n)

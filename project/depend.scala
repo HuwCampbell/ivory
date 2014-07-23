@@ -6,17 +6,12 @@ object depend {
                       "org.scalaz"           %% "scalaz-effect"   % "7.0.6")
 
   val scopt     = Seq("com.github.scopt"     %% "scopt"           % "3.2.0")
-
   val joda      = Seq("joda-time"            %  "joda-time"       % "2.1")
 
   val specs2    = Seq("specs2-core", "specs2-junit", "specs2-html", "specs2-matcher-extra", "specs2-scalacheck").map(c =>
-                      "org.specs2"           %% c                 % "2.3.12" % "test" excludeAll(
-    ExclusionRule(organization = "org.scalamacros")
-  ))
+                      "org.specs2"           %% c                 % "2.3.12" % "test" excludeAll ExclusionRule(organization = "org.scalamacros"))
 
-  val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll(
-    ExclusionRule(organization = "org.apache.httpcomponents")
-  ))
+  val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
   val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140709042001-6c1bfce" excludeAll(
     ExclusionRule(organization = "org.specs2"),
@@ -26,7 +21,7 @@ object depend {
   ))
 
   val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-store").map(c =>
-                      "com.ambiata"          %% c                 % "1.2.1-20140708033412-e6bdaf5") ++
+                      "com.ambiata"          %% c                 % "1.2.1-20140717072700-5f009f0") ++
                   Seq("com.ambiata"          %% "mundane-testing" % "1.2.1-20140708033412-e6bdaf5" % "test")
 
   val caliper   = Seq("com.google.caliper"   %  "caliper"         % "0.5-rc1",
@@ -37,10 +32,10 @@ object depend {
 
   def scoobi(version: String) =
     (if (version.contains("cdh4")) Seq(
-      "com.nicta" %% "scoobi" % "0.9.0-cdh4-20140610022328-7b2296d" intransitive(),
+      "com.nicta" %% "scoobi" % "0.9.0-cdh4-20140714070613-be7f9b6" intransitive(),
       "com.nicta" %% "scoobi-compatibility-cdh4" % "1.0.2" intransitive())
     else if (version.contains("cdh5")) Seq(
-      "com.nicta" %% "scoobi" % "0.9.0-cdh5-20140610021710-7b2296d" intransitive(),
+      "com.nicta" %% "scoobi" % "0.9.0-cdh5-20140714070058-be7f9b6" intransitive(),
       "com.nicta" %% "scoobi-compatibility-cdh5" % "1.0.2" intransitive())
     else
       sys.error(s"unsupported scoobi version, can not build for $version")

@@ -1,24 +1,20 @@
 package com.ambiata.ivory.storage.legacy
 
-import org.specs2._
-import org.specs2.matcher.{MustThrownMatchers, FileMatchers}
-import scalaz.{DList => _, _}, Scalaz._
 import java.io.File
-import java.net.URI
+
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.storage.legacy.IvoryStorage._
+import com.ambiata.ivory.storage.metadata.Metadata._
+import com.ambiata.ivory.storage.repository._
+import com.ambiata.mundane.io._
+import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.TempFiles
 import com.nicta.scoobi.testing.TestFiles._
-import com.ambiata.mundane.io._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import org.specs2.matcher.MustThrownMatchers
 
-import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.scoobi.FactFormats._
-import com.ambiata.ivory.scoobi.WireFormats._
-import com.ambiata.ivory.storage.legacy._
-import com.ambiata.ivory.storage.metadata.Metadata._
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.alien.hdfs._
-import IvoryStorage._
+import scalaz.{DList => _}
 
 trait SampleFacts extends MustThrownMatchers {
 
@@ -42,10 +38,10 @@ trait SampleFacts extends MustThrownMatchers {
   def createFacts(repo: HdfsRepository)(implicit sc: ScoobiConfiguration) = {
     val facts1 =
       fromLazySeq(Seq(StringFact ("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
-        StringFact ("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1),  Time(0), "def"),
-        IntFact    ("eid2", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
-        IntFact    ("eid2", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11),
-        BooleanFact("eid3", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
+        stringFact1,
+        intFact1,
+        intFact2,
+        booleanFact1))
 
     val facts2 =
       fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "ghi")))
@@ -56,6 +52,11 @@ trait SampleFacts extends MustThrownMatchers {
     storeToIvory(repo, FeatureStore(List(PrioritizedFactset(Factset("factset1"), Priority(1)), PrioritizedFactset(Factset("factset2"), Priority(2)))), "store1").run(sc) must beOk
 
   }
+
+  def stringFact1  = StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1),  Time(0), "def")
+  def intFact1     = IntFact("eid2", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10)
+  def intFact2     = IntFact("eid2", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11)
+  def booleanFact1 = BooleanFact("eid3", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)
 
   def createAll(dirName: String)(implicit sc: ScoobiConfiguration) = {
     val directory = path(TempFiles.createTempDir(dirName).getPath)

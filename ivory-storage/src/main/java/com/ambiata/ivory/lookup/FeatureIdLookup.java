@@ -4,7 +4,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package com.ambiata.ivory.extract;
+package com.ambiata.ivory.lookup;
 
 import org.apache.thrift.scheme.IScheme;
 import org.apache.thrift.scheme.SchemeFactory;
@@ -12,42 +12,30 @@ import org.apache.thrift.scheme.StandardScheme;
 
 import org.apache.thrift.scheme.TupleScheme;
 import org.apache.thrift.protocol.TTupleProtocol;
-import org.apache.thrift.protocol.TProtocolException;
-import org.apache.thrift.EncodingUtils;
-import org.apache.thrift.TException;
-import org.apache.thrift.async.AsyncMethodCallback;
-import org.apache.thrift.server.AbstractNonblockingServer.*;
-import java.util.List;
-import java.util.ArrayList;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.EnumMap;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.EnumSet;
 import java.util.Collections;
 import java.util.BitSet;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, FactsetLookup._Fields>, java.io.Serializable, Cloneable, Comparable<FactsetLookup> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("FactsetLookup");
+public class FeatureIdLookup implements org.apache.thrift.TBase<FeatureIdLookup, FeatureIdLookup._Fields>, java.io.Serializable, Cloneable, Comparable<FeatureIdLookup> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("FeatureIdLookup");
 
-  private static final org.apache.thrift.protocol.TField PRIORITIES_FIELD_DESC = new org.apache.thrift.protocol.TField("priorities", org.apache.thrift.protocol.TType.MAP, (short)1);
+  private static final org.apache.thrift.protocol.TField IDS_FIELD_DESC = new org.apache.thrift.protocol.TField("ids", org.apache.thrift.protocol.TType.MAP, (short)1);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new FactsetLookupStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new FactsetLookupTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new FeatureIdLookupStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new FeatureIdLookupTupleSchemeFactory());
   }
 
-  public Map<String,Short> priorities; // required
+  public Map<String,Integer> ids; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    PRIORITIES((short)1, "priorities");
+    IDS((short)1, "ids");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -62,8 +50,8 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // PRIORITIES
-          return PRIORITIES;
+        case 1: // IDS
+          return IDS;
         default:
           return null;
       }
@@ -107,85 +95,85 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.PRIORITIES, new org.apache.thrift.meta_data.FieldMetaData("priorities", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.IDS, new org.apache.thrift.meta_data.FieldMetaData("ids", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I16))));
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(FactsetLookup.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(FeatureIdLookup.class, metaDataMap);
   }
 
-  public FactsetLookup() {
+  public FeatureIdLookup() {
   }
 
-  public FactsetLookup(
-    Map<String,Short> priorities)
+  public FeatureIdLookup(
+    Map<String,Integer> ids)
   {
     this();
-    this.priorities = priorities;
+    this.ids = ids;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public FactsetLookup(FactsetLookup other) {
-    if (other.isSetPriorities()) {
-      Map<String,Short> __this__priorities = new HashMap<String,Short>(other.priorities);
-      this.priorities = __this__priorities;
+  public FeatureIdLookup(FeatureIdLookup other) {
+    if (other.isSetIds()) {
+      Map<String,Integer> __this__ids = new HashMap<String,Integer>(other.ids);
+      this.ids = __this__ids;
     }
   }
 
-  public FactsetLookup deepCopy() {
-    return new FactsetLookup(this);
+  public FeatureIdLookup deepCopy() {
+    return new FeatureIdLookup(this);
   }
 
   @Override
   public void clear() {
-    this.priorities = null;
+    this.ids = null;
   }
 
-  public int getPrioritiesSize() {
-    return (this.priorities == null) ? 0 : this.priorities.size();
+  public int getIdsSize() {
+    return (this.ids == null) ? 0 : this.ids.size();
   }
 
-  public void putToPriorities(String key, short val) {
-    if (this.priorities == null) {
-      this.priorities = new HashMap<String,Short>();
+  public void putToIds(String key, int val) {
+    if (this.ids == null) {
+      this.ids = new HashMap<String,Integer>();
     }
-    this.priorities.put(key, val);
+    this.ids.put(key, val);
   }
 
-  public Map<String,Short> getPriorities() {
-    return this.priorities;
+  public Map<String,Integer> getIds() {
+    return this.ids;
   }
 
-  public FactsetLookup setPriorities(Map<String,Short> priorities) {
-    this.priorities = priorities;
+  public FeatureIdLookup setIds(Map<String,Integer> ids) {
+    this.ids = ids;
     return this;
   }
 
-  public void unsetPriorities() {
-    this.priorities = null;
+  public void unsetIds() {
+    this.ids = null;
   }
 
-  /** Returns true if field priorities is set (has been assigned a value) and false otherwise */
-  public boolean isSetPriorities() {
-    return this.priorities != null;
+  /** Returns true if field ids is set (has been assigned a value) and false otherwise */
+  public boolean isSetIds() {
+    return this.ids != null;
   }
 
-  public void setPrioritiesIsSet(boolean value) {
+  public void setIdsIsSet(boolean value) {
     if (!value) {
-      this.priorities = null;
+      this.ids = null;
     }
   }
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case PRIORITIES:
+    case IDS:
       if (value == null) {
-        unsetPriorities();
+        unsetIds();
       } else {
-        setPriorities((Map<String,Short>)value);
+        setIds((Map<String,Integer>)value);
       }
       break;
 
@@ -194,8 +182,8 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case PRIORITIES:
-      return getPriorities();
+    case IDS:
+      return getIds();
 
     }
     throw new IllegalStateException();
@@ -208,8 +196,8 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
     }
 
     switch (field) {
-    case PRIORITIES:
-      return isSetPriorities();
+    case IDS:
+      return isSetIds();
     }
     throw new IllegalStateException();
   }
@@ -218,21 +206,21 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof FactsetLookup)
-      return this.equals((FactsetLookup)that);
+    if (that instanceof FeatureIdLookup)
+      return this.equals((FeatureIdLookup)that);
     return false;
   }
 
-  public boolean equals(FactsetLookup that) {
+  public boolean equals(FeatureIdLookup that) {
     if (that == null)
       return false;
 
-    boolean this_present_priorities = true && this.isSetPriorities();
-    boolean that_present_priorities = true && that.isSetPriorities();
-    if (this_present_priorities || that_present_priorities) {
-      if (!(this_present_priorities && that_present_priorities))
+    boolean this_present_ids = true && this.isSetIds();
+    boolean that_present_ids = true && that.isSetIds();
+    if (this_present_ids || that_present_ids) {
+      if (!(this_present_ids && that_present_ids))
         return false;
-      if (!this.priorities.equals(that.priorities))
+      if (!this.ids.equals(that.ids))
         return false;
     }
 
@@ -245,19 +233,19 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
   }
 
   @Override
-  public int compareTo(FactsetLookup other) {
+  public int compareTo(FeatureIdLookup other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
 
-    lastComparison = Boolean.valueOf(isSetPriorities()).compareTo(other.isSetPriorities());
+    lastComparison = Boolean.valueOf(isSetIds()).compareTo(other.isSetIds());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetPriorities()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.priorities, other.priorities);
+    if (isSetIds()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ids, other.ids);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -279,14 +267,14 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("FactsetLookup(");
+    StringBuilder sb = new StringBuilder("FeatureIdLookup(");
     boolean first = true;
 
-    sb.append("priorities:");
-    if (this.priorities == null) {
+    sb.append("ids:");
+    if (this.ids == null) {
       sb.append("null");
     } else {
-      sb.append(this.priorities);
+      sb.append(this.ids);
     }
     first = false;
     sb.append(")");
@@ -314,15 +302,15 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
     }
   }
 
-  private static class FactsetLookupStandardSchemeFactory implements SchemeFactory {
-    public FactsetLookupStandardScheme getScheme() {
-      return new FactsetLookupStandardScheme();
+  private static class FeatureIdLookupStandardSchemeFactory implements SchemeFactory {
+    public FeatureIdLookupStandardScheme getScheme() {
+      return new FeatureIdLookupStandardScheme();
     }
   }
 
-  private static class FactsetLookupStandardScheme extends StandardScheme<FactsetLookup> {
+  private static class FeatureIdLookupStandardScheme extends StandardScheme<FeatureIdLookup> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, FactsetLookup struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, FeatureIdLookup struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -332,22 +320,22 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
           break;
         }
         switch (schemeField.id) {
-          case 1: // PRIORITIES
+          case 1: // IDS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map0 = iprot.readMapBegin();
-                struct.priorities = new HashMap<String,Short>(2*_map0.size);
-                for (int _i1 = 0; _i1 < _map0.size; ++_i1)
+                org.apache.thrift.protocol.TMap _map20 = iprot.readMapBegin();
+                struct.ids = new HashMap<String,Integer>(2*_map20.size);
+                for (int _i21 = 0; _i21 < _map20.size; ++_i21)
                 {
-                  String _key2;
-                  short _val3;
-                  _key2 = iprot.readString();
-                  _val3 = iprot.readI16();
-                  struct.priorities.put(_key2, _val3);
+                  String _key22;
+                  int _val23;
+                  _key22 = iprot.readString();
+                  _val23 = iprot.readI32();
+                  struct.ids.put(_key22, _val23);
                 }
                 iprot.readMapEnd();
               }
-              struct.setPrioritiesIsSet(true);
+              struct.setIdsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -363,18 +351,18 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, FactsetLookup struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, FeatureIdLookup struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.priorities != null) {
-        oprot.writeFieldBegin(PRIORITIES_FIELD_DESC);
+      if (struct.ids != null) {
+        oprot.writeFieldBegin(IDS_FIELD_DESC);
         {
-          oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I16, struct.priorities.size()));
-          for (Map.Entry<String, Short> _iter4 : struct.priorities.entrySet())
+          oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I32, struct.ids.size()));
+          for (Map.Entry<String, Integer> _iter24 : struct.ids.entrySet())
           {
-            oprot.writeString(_iter4.getKey());
-            oprot.writeI16(_iter4.getValue());
+            oprot.writeString(_iter24.getKey());
+            oprot.writeI32(_iter24.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -386,52 +374,52 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
 
   }
 
-  private static class FactsetLookupTupleSchemeFactory implements SchemeFactory {
-    public FactsetLookupTupleScheme getScheme() {
-      return new FactsetLookupTupleScheme();
+  private static class FeatureIdLookupTupleSchemeFactory implements SchemeFactory {
+    public FeatureIdLookupTupleScheme getScheme() {
+      return new FeatureIdLookupTupleScheme();
     }
   }
 
-  private static class FactsetLookupTupleScheme extends TupleScheme<FactsetLookup> {
+  private static class FeatureIdLookupTupleScheme extends TupleScheme<FeatureIdLookup> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, FactsetLookup struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, FeatureIdLookup struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
-      if (struct.isSetPriorities()) {
+      if (struct.isSetIds()) {
         optionals.set(0);
       }
       oprot.writeBitSet(optionals, 1);
-      if (struct.isSetPriorities()) {
+      if (struct.isSetIds()) {
         {
-          oprot.writeI32(struct.priorities.size());
-          for (Map.Entry<String, Short> _iter5 : struct.priorities.entrySet())
+          oprot.writeI32(struct.ids.size());
+          for (Map.Entry<String, Integer> _iter25 : struct.ids.entrySet())
           {
-            oprot.writeString(_iter5.getKey());
-            oprot.writeI16(_iter5.getValue());
+            oprot.writeString(_iter25.getKey());
+            oprot.writeI32(_iter25.getValue());
           }
         }
       }
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, FactsetLookup struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, FeatureIdLookup struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map6 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I16, iprot.readI32());
-          struct.priorities = new HashMap<String,Short>(2*_map6.size);
-          for (int _i7 = 0; _i7 < _map6.size; ++_i7)
+          org.apache.thrift.protocol.TMap _map26 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I32, iprot.readI32());
+          struct.ids = new HashMap<String,Integer>(2*_map26.size);
+          for (int _i27 = 0; _i27 < _map26.size; ++_i27)
           {
-            String _key8;
-            short _val9;
-            _key8 = iprot.readString();
-            _val9 = iprot.readI16();
-            struct.priorities.put(_key8, _val9);
+            String _key28;
+            int _val29;
+            _key28 = iprot.readString();
+            _val29 = iprot.readI32();
+            struct.ids.put(_key28, _val29);
           }
         }
-        struct.setPrioritiesIsSet(true);
+        struct.setIdsIsSet(true);
       }
     }
   }
