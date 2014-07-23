@@ -10,7 +10,12 @@ object Validate {
       .getOrElse(s"Dictionary entry '${fact.featureId}' doesn't exist!".failure)
 
   def validateEncoding(value: Value, encoding: Encoding): Validation[String, Unit] =
-    if (value.encoding.exists(_ != encoding))
-      s"Not a valid ${Encoding.render(encoding)}!".failure
-    else Success(())
+    (value, encoding) match {
+      case (BooleanValue(_), BooleanEncoding)   => Success(())
+      case (IntValue(_),     IntEncoding)       => Success(())
+      case (LongValue(_),    LongEncoding)      => Success(())
+      case (DoubleValue(_),  DoubleEncoding)    => Success(())
+      case (StringValue(_),  StringEncoding)    => Success(())
+      case _                                    => s"Not a valid ${Encoding.render(encoding)}!".failure
+    }
 }
