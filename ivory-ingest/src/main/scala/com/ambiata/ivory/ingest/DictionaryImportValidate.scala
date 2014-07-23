@@ -15,16 +15,15 @@ object DictionaryImportValidate {
     def validateEncoding(e1: Encoding, e2: Encoding, path: ValidationPath): DictValidationUnit = {
       (e1, e2) match {
         case (StructEncoding(sm1), StructEncoding(sm2)) =>
-          sm1.toStream.foldMap[DictValidationUnit] {
-            case (name, _) => sm2.get(name).cata(_ => OK, MissingStructField(name :: path).failureNel)
-          } |+| sm2.toStream.foldMap {
-            case (name, sv2) => sm1.get(name).cata({
-              case sv1 if sv1 == sv2                   => OK
-              case sv1 if sv1.encoding != sv2.encoding => EncodingChanged(sv1.encoding, sv2.encoding, name :: path).failureNel
-              case _   if !sv2.optional                => NotOptionalStructField(name :: path).failureNel
-              case sv1                                 => validateEncoding(sv1.encoding, sv2.encoding, name :: path)
-            }, if (!sv2.optional)                         NotOptionalStructField(name :: path).failureNel else OK
-            )
+          Maps.outerJoin(sm1, sm2).toStream.foldMap {
+            case (name, \&/.This(_))                   => MissingStructField(name :: path).failureNel
+            case (name, \&/.That(sv2))                 => if (!sv2.optional) NotOptionalStructField(name :: path).failureNel else OK
+            case (name, \&/.Both(sv1, sv2))            => () match {
+              case _ if sv1 == sv2                     => OK
+              case _ if sv1.encoding != sv2.encoding   => EncodingChanged(sv1.encoding, sv2.encoding, name :: path).failureNel
+              case _ if !sv2.optional                  => NotOptionalStructField(name :: path).failureNel
+              case _                                   => validateEncoding(sv1.encoding, sv2.encoding, name :: path)
+            }
           }
         case _ if e1 != e2                             => EncodingChanged(e1, e2, path).failureNel
         case _ => OK
