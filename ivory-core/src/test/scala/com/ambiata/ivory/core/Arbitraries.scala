@@ -94,11 +94,11 @@ object Arbitraries {
     Arbitrary(Gen.oneOf(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding))
 
   implicit def StructEncodingArbitrary: Arbitrary[StructEncoding] =
-    Arbitrary(Gen.mapOf[String, StructValue](for {
+    Arbitrary(Gen.mapOf[String, StructEncodedValue](for {
       name <- arbitrary[DictId].map(_.s)
       enc <- arbitrary[PrimitiveEncoding]
       optional <- arbitrary[Boolean]
-    } yield name -> StructValue(enc, optional)).map(StructEncoding))
+    } yield name -> StructEncodedValue(enc, optional)).map(StructEncoding))
 
   implicit def TypeArbitrary: Arbitrary[Type] =
     Arbitrary(Gen.oneOf(NumericalType, ContinuousType, CategoricalType, BinaryType))

@@ -42,14 +42,14 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
 
   // At some point it might be worth investigating Prism's from Monocle to share this code with the actual logic
   private def structChecks(enc: PrimitiveEncoding, path: ValidationPath):
-      List[((Option[StructValue], Option[StructValue]), Option[DictionaryValidateFailure])] = List(
-    None                            -> Some(StructValue(enc).opt)     -> None,
-    None                            -> Some(StructValue(enc))         -> Some(NotOptionalStructField(path)),
-    Some(StructValue(enc).opt)      -> Some(StructValue(enc))         -> Some(NotOptionalStructField(path)),
-    Some(StructValue(enc))          -> Some(StructValue(enc))         -> None,
-    Some(StructValue(enc))          -> Some(StructValue(enc).opt)     -> None,
-    Some(StructValue(enc))          -> None                           -> Some(MissingStructField(path)),
-    Some(StructValue(LongEncoding)) -> Some(StructValue(IntEncoding)) -> Some(EncodingChanged(LongEncoding, IntEncoding, path))
+      List[((Option[StructEncodedValue], Option[StructEncodedValue]), Option[DictionaryValidateFailure])] = List(
+    None                                   -> Some(StructEncodedValue(enc).opt)     -> None,
+    None                                   -> Some(StructEncodedValue(enc))         -> Some(NotOptionalStructField(path)),
+    Some(StructEncodedValue(enc).opt)      -> Some(StructEncodedValue(enc))         -> Some(NotOptionalStructField(path)),
+    Some(StructEncodedValue(enc))          -> Some(StructEncodedValue(enc))         -> None,
+    Some(StructEncodedValue(enc))          -> Some(StructEncodedValue(enc).opt)     -> None,
+    Some(StructEncodedValue(enc))          -> None                                  -> Some(MissingStructField(path)),
+    Some(StructEncodedValue(LongEncoding)) -> Some(StructEncodedValue(IntEncoding)) -> Some(EncodingChanged(LongEncoding, IntEncoding, path))
   )
 
   private def dict(enc: Encoding) =
