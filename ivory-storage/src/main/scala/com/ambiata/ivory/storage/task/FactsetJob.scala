@@ -64,11 +64,9 @@ object FactsetJob {
     job.setOutputValueClass(classOf[BytesWritable])
 
     /* output */
+    job.setOutputFormatClass(classOf[SequenceFileOutputFormat[_, _]])
     LazyOutputFormat.setOutputFormatClass(job, classOf[SequenceFileOutputFormat[_, _]])
     MultipleOutputs.addNamedOutput(job, FactsetJobKeys.Out, classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable])
-    FileOutputFormat.setOutputPath(job, ctx.output)
-    job.setOutputFormatClass(classOf[SequenceFileOutputFormat[_, _]])
-
     FileOutputFormat.setOutputPath(job, ctx.output)
 
     /* compression */

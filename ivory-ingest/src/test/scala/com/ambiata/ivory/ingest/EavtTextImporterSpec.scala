@@ -42,7 +42,7 @@ class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2
 
     val errors = base </> "errors"
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onStore(repository, dictionary, Factset("factset1"), List("ns1"), input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None) must beOk
+    EavtTextImporter.onStore(repository, dictionary, Factset("00000"), List("ns1"), input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None) must beOk
 
     val expected = List(
       StringFact("pid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1),  Time(10), "v1"),
@@ -50,7 +50,7 @@ class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2
       DoubleFact("pid1", FeatureId("ns1", "fid3"), Date(2012, 3, 20),  Time(30), 3.0))
 
 
-    factsFromIvoryFactset(repository, Factset("factset1")).map(_.run.collect { case \/-(r) => r}).run(sc) must beOkLike(_ must containTheSameElementsAs(expected))
+    factsFromIvoryFactset(repository, Factset("00000")).map(_.run.collect { case \/-(r) => r}).run(sc) must beOkLike(_ must containTheSameElementsAs(expected))
   }
 
   def e2 = setup { setup: Setup =>
@@ -60,8 +60,11 @@ class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2
     val errors = base </> "errors"
 
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onStore(repository, dictionary, Factset("factset1"), List("ns1"), input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None) must beOk
-    valueFromSequenceFile[ParseError](errors.toString).run must not(beEmpty)
+    (for {
+      errorPath <- Reference.hdfsPath(errors)
+      _         <- EavtTextImporter.onStore(repository, dictionary, Factset("00000"), List("ns1"), input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None)
+      ret = valueFromSequenceFile[ParseError](errorPath.toString).run
+    } yield ret) must beOkLike(_ must not(beEmpty))
   }
 
   def setup: Fixture[Setup] = new Fixture[Setup] {
