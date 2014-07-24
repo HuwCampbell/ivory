@@ -39,7 +39,8 @@ object ingest extends IvoryApp {
 
     opt[String]('r', "repo")                 action { (x, c) => c.copy(repo = x) }             required() text "Path to an ivory repository."
     opt[String]('i', "input")                action { (x, c) => c.copy(input = x) }            required() text "Path to data to import."
-    opt[String]('n', "namespace")            action { (x, c) => c.copy(namespace = Some(x)) }  required() text "Namespace to import."
+    opt[String]('n', "namespace")            action { (x, c) => c.copy(namespace = Some(x)) }  optional() text
+      "Namespace to import. If set the input path is expected to contain partitioned factsets"
     opt[Long]('o', "optimal-input-chunk")    action { (x, c) => c.copy(optimal = x.bytes) }    text "Optimal size (in bytes) of input chunk.."
     opt[String]('z', "timezone")             action { (x, c) => c.copy(timezone = DateTimeZone.forID(x))   } required() text
       s"timezone for the dates (see http://joda-time.sourceforge.net/timezones.html, for example Sydney is Australia/Sydney)"
