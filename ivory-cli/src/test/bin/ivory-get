@@ -3,8 +3,8 @@
 # Downloads a specific version of ivory, caches the output and outputs the path to the executable
 
 VERSION=$1
+SCALA_VERSION=$2
 DIST=target/dist
-SCALA_VERSION=${SCALA_VERSION:-"2.10"}
 
 mkdir -p "$DIST"
 
