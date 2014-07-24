@@ -16,7 +16,7 @@ object Arbitraries {
       y <- Gen.choose(1970, 3000)
       m <- Gen.choose(1, 12)
       d <- Gen.choose(1, 31)
-      r = Date.create(y.toShort, m.toByte, d.toByte)
+      r = Stream.tabulate(4)(i => Date.create(y.toShort, m.toByte, (d - i).toByte)).dropWhile(!_.isDefined).headOption.flatten
       if r.isDefined
     } yield r.get)
 
