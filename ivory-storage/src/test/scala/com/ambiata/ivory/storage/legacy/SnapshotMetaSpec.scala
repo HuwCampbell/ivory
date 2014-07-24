@@ -16,6 +16,7 @@ import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 import com.ambiata.mundane.io._
 
 import scalaz._, Scalaz._
+import scalaz.scalacheck.ScalaCheckBinding._
 
 object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -27,19 +28,25 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
     s    <- Gen.choose(1, Priority.Max.toShort)
   } yield SnapshotMeta(date, fatrepo.ImportWorkflow.zeroPad(s)))
 
-  def e1 = prop((snaps: List[(SnapshotMeta, Identifier)], date: Date) => {
-    implicit val sc: ScoobiConfiguration = scoobiConfiguration
+  case class Snapshots(snaps: List[(SnapshotMeta, Identifier)])
+  implicit def SnapshotsArbitrary: Arbitrary[Snapshots] = Arbitrary(for {
+    ids <- arbitrary[IdentifierList]
+    sms <- ids.ids.traverseU(id => arbitrary[SnapshotMeta].map((_, id)))
+  } yield Snapshots(sms))
+
+  def e1 = prop((snaps: Snapshots, date: Date) => {
+    val sc: ScoobiConfiguration = scoobiConfiguration
 
     val base = FilePath(TempFiles.createTempDir("SnapshotMetaSpec.e1").getPath)
     val repo = Repository.fromHdfsPath(base </> "repo", sc)
 
-    val expected = snaps.filter(_._1.date <= date).sortBy(_._1.date).lastOption.map({ case (meta, id) =>
+    val expected = snaps.snaps.filter(_._1.date <= date).sortBy(_._1.date).lastOption.map({ case (meta, id) =>
       (repo.toReference(Repository.snapshots </> FilePath(id.render)), meta)
     })
 
-    seqToResult(snaps.map({ case (meta, id) =>
+    (snaps.snaps.traverse({ case (meta, id) =>
       val path = Repository.snapshots </> FilePath(id.render) </> SnapshotMeta.fname
-      repo.toReference(path).run(store => p => store.linesUtf8.write(p, meta.stringLines)) must beOk
-    })) and (SnapshotMeta.latest(repo.toReference(Repository.snapshots), date) must beOkValue(expected))
-  }).set(minTestsOk = 5) // Not too many runs are it will take a long time
+      repo.toReference(path).run(store => p => store.linesUtf8.write(p, meta.stringLines))
+    }) must beOk) and (SnapshotMeta.latest(repo.toReference(Repository.snapshots), date) must beOkValue(expected))
+  }) // TODO This takes around 30 seconds, needs investigation
 }
