@@ -34,6 +34,9 @@ case class ScoobiAction[+A](action: ActionT[IO, Unit, ScoobiConfiguration, A]) {
 
   def unless(condition: Boolean): ScoobiAction[Unit] =
     ScoobiAction.unless(condition)(this)
+
+  def log(f: A => String) =
+    flatMap((a: A) => ScoobiAction.log(f(a)))
 }
 
 
