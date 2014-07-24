@@ -2,6 +2,7 @@ package com.ambiata.ivory.data
 
 import org.specs2._, matcher._, specification._
 import org.scalacheck._, Arbitrary._
+import com.ambiata.ivory.data.Arbitraries._
 
 import scalaz._, Scalaz._
 
@@ -43,7 +44,4 @@ Identifier Properties
     import IvoryDataLiterals._
     Some(i"1234") must_== Identifier.parse("1234")
   }
-
-  implicit def IdentifierArbitrary: Arbitrary[Identifier] =
-    Arbitrary(Gen.choose(0, 200) map (n => (1 to n).foldLeft(Identifier.initial)((acc, _) => acc.next.get)))
 }

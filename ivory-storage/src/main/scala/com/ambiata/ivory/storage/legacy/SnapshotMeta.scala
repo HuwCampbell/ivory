@@ -1,30 +1,32 @@
 package com.ambiata.ivory.storage.legacy
 
-import scalaz._, Scalaz._
+import scalaz._, Scalaz._, \&/._, effect._
 
-import org.apache.hadoop.fs.Path
-import com.ambiata.mundane.io.Streams
+import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
+import com.ambiata.mundane.control._
 import com.ambiata.mundane.parse.ListParser
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.ivory.data._
+import com.ambiata.ivory.storage.store._
 
 case class SnapshotMeta(date: Date, store: String) {
 
-  def toHdfs(path: Path): Hdfs[Unit] =
-    Hdfs.writeWith(path, os => Streams.write(os, stringLines))
+  def toReference(ref: ReferenceIO): ResultTIO[Unit] =
+    ref.run(store => path => store.linesUtf8.write(path, stringLines))
 
-  lazy val stringLines: String =
-    date.string("-") + "\n" + store
+  lazy val stringLines: List[String] =
+    List(date.string("-"), store)
 }
 
 object SnapshotMeta {
 
-  val fname = ".snapmeta"
+  val fname = FilePath(".snapmeta")
 
-  def fromHdfs(path: Path): Hdfs[SnapshotMeta] = for {
-    raw <- Hdfs.readWith(path, is => Streams.read(is))
-    sm  <- Hdfs.fromValidation(parser.run(raw.lines.toList))
+  def fromReference(ref: ReferenceIO): ResultTIO[SnapshotMeta] = for {
+    lines <- ref.run(store => store.linesUtf8.read)
+    sm    <- ResultT.fromDisjunction[IO, SnapshotMeta](parser.run(lines).disjunction.leftMap(This.apply))
   } yield sm
 
   def parser: ListParser[SnapshotMeta] = {
@@ -35,12 +37,12 @@ object SnapshotMeta {
     } yield SnapshotMeta(Date.fromLocalDate(d), s)
   }
 
-  def latest(snapshots: Path, date: Date): Hdfs[Option[(Path, SnapshotMeta)]] = for {
-    paths <- Hdfs.globPaths(snapshots)
-    metas <- paths.traverse(p => {
-      val snapmeta = new Path(p, fname)
-      Hdfs.exists(snapmeta).flatMap(e =>
-        if(e) fromHdfs(snapmeta).map[Option[(Path, SnapshotMeta)]](sm => Some((p, sm))) else Hdfs.value(None))
+  def latest(snapshots: ReferenceIO, date: Date): ResultTIO[Option[(ReferenceIO, SnapshotMeta)]] = for {
+    paths <- snapshots.run(s => p => StoreDataUtil.listDir(s, p)).map(_.map(snapshots </> _.basename))
+    metas <- paths.traverseU(p => {
+      val snapmeta = p </> fname
+      snapmeta.run(store => path => store.exists(path).flatMap(e =>
+        if(e) fromReference(snapmeta).map(sm => Some((p, sm))) else ResultT.ok(None)))
     }).map(_.flatten)
   } yield metas.filter(_._2.date.isBeforeOrEqual(date)).sortBy(_._2.date).lastOption
 }

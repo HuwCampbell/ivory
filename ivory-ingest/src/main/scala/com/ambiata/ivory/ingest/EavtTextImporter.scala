@@ -9,6 +9,7 @@ import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.store._
 import scoobi._
 import scalaz.{DList => _, _}, Scalaz._, effect.IO
 import alien.hdfs._
@@ -28,23 +29,28 @@ import org.apache.hadoop.conf.Configuration
  * Import a text file, formatted as an EAVT file, into ivory.
  */
 object EavtTextImporter {
-  def onHdfs(
-    repository: HdfsRepository,
+  def onStore(
+    repository: Repository,
     dictionary: Dictionary,
     factset: Factset,
     namespace: List[String],
-    path: Path,
-    errorPath: Path,
+    inputRef: ReferenceIO,
+    errorRef: ReferenceIO,
     timezone: DateTimeZone,
     partitions: List[(String, BytesQuantity)],
     optimal: BytesQuantity,
     codec: Option[CompressionCodec]
-  ): ScoobiAction[Unit] = for {
-    sc <- ScoobiAction.scoobiConfiguration
-    _  <- ScoobiAction.fromHdfs(writeFactsetVersion(repository, List(factset)))
-    _  <- ScoobiAction.safe {
+  ): ResultTIO[Unit] = for {
+    c <- repository match {
+      case HdfsRepository(_, conf, _) => ResultT.ok[IO, Configuration](conf)
+      case _                          => ResultT.fail[IO, Configuration]("Repository must be HDFS")
+    }
+    path <- Reference.hdfsPath(inputRef)
+    errorPath <- Reference.hdfsPath(errorRef)
+    _  <- writeFactsetVersion(repository, List(factset))
+    _  <- ResultT.safe[IO, Unit] {
       IngestJob.run(
-        sc,
+        c,
         dictionary,
         ReducerLookups.createLookups(dictionary, partitions, optimal),
         timezone,

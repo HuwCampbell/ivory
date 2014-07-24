@@ -5,6 +5,7 @@ import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.TempFiles
 import com.ambiata.mundane.io._
+import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.extract._
 import com.ambiata.ivory.scoobi.TestConfigurations
@@ -31,7 +32,6 @@ class SnapshotSpec extends Specification with SampleFacts { def is = s2"""
     createFacts(repo)
 
     val testDir = "target/"+getClass.getSimpleName+"/"
-    val snapshot1 = HdfsSnapshot.takeSnapshot(repo.root.toHdfs, Date.fromLocalDate(LocalDate.now), false, None)
-    ok
+    Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false, None) must beOk
   }
 }

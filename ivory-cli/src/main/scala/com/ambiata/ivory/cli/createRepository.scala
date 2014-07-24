@@ -1,6 +1,6 @@
 package com.ambiata.ivory.cli
 
-import scalaz._, Scalaz._
+import scalaz._, Scalaz._, effect._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.parse._
@@ -34,8 +34,10 @@ object createRepository extends IvoryApp {
   val cmd = IvoryCmd[CliArguments](parser, CliArguments(), HadoopCmd { configuration => c =>
       println("Created configuration: " + configuration)
 
-      val actions =
-        CreateRepository.onHdfs(new Path(c.path)).run(configuration)
+      val actions = for {
+        repo <- Repository.fromUriResultTIO(c.path, configuration)
+        _    <- CreateRepository.onStore(repo)
+      } yield ()
 
       actions.map {
         case _ => List(s"Repository successfully created under ${c.path}.")

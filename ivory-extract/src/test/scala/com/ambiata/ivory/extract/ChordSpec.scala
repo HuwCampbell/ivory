@@ -1,8 +1,8 @@
 package com.ambiata.ivory.extract
 
 import org.specs2._
-import org.specs2.matcher.{MustThrownMatchers, FileMatchers}
-import scalaz.{DList => _, _}, Scalaz._
+import org.specs2.matcher.{MustThrownMatchers, FileMatchers, ThrownExpectations}
+import scalaz.{DList => _, _}, Scalaz._, \&/._, effect._
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.mutable._
 import com.nicta.scoobi.testing.SimpleJobs
@@ -10,6 +10,7 @@ import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.TempFiles
 import java.io.File
 import java.net.URI
+import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.parse.ListParser
 import com.ambiata.mundane.testing.ResultTIOMatcher._
@@ -20,11 +21,13 @@ import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.TestConfigurations._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.alien.hdfs._
 import IvoryStorage._
 
-class ChordSpec extends Specification with FileMatchers with SampleFacts { def is = s2"""
+class ChordSpec extends Specification with SampleFacts with ThrownExpectations { def is = s2"""
 
 ChordSpec
 -----------
@@ -42,14 +45,23 @@ ChordSpec
     createDictionary(repo)
     createFacts(repo)
 
-    Hdfs.mkdir(repo.snapshots.toHdfs).run(sc) must beOk
+    val outPath = directory+"/out"
 
-    val outPath = new Path(directory+"/out")
-    Chord.onHdfs(repo.root.toHdfs, new Path(directory+"/entities"), outPath, new Path(directory+"/tmp"), true, None).run(sc) must beOk
+    (for {
+      outRef      <- Reference.fromUriResultTIO(outPath, sc)
+      entitiesRef <- Reference.fromUriResultTIO(directory+"/entities", sc)
+      tmpRef      <- Reference.fromUriResultTIO(directory+"/tmp", sc)
+      res         <- Chord.onStore(repo, entitiesRef, outRef, tmpRef, true, None)
+    } yield res) must beOk
 
-    valueFromSequenceFile[Fact](outPath.toString).run.toList must containTheSameElementsAs(List(
+    valueFromSequenceFile[Fact](outPath).run.toList must containTheSameElementsAs(List(
       StringFact("eid1:2012-09-15", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "def"),
       StringFact("eid1:2012-11-01", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
       IntFact("eid2:2012-12-01", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11)))
+
+    (for {
+      dictRef <- Reference.fromUriResultTIO(outPath + "/.dictionary", sc)
+      dict    <- DictionaryTextStorageV2.fromStore(dictRef)
+    } yield dict) must beOkLike(d1 => dictionaryFromIvory(repo) must beOkValue(d1))
   }
 }

@@ -103,9 +103,9 @@ object Recreate {
   private def copyStore(from: HdfsRepository, to: HdfsRepository, clean: Boolean, dry: Boolean, filtered: Seq[String]) = (path: Path) =>
     for {
       _       <- Hdfs.log(s"Copy store ${path.getName} from ${from.storeByName(path.getName)} to ${to.storeByName(path.getName)}")
-      store   <- storeFromIvory(from, path.getName)
+      store   <- Hdfs.fromResultTIO(storeFromIvory(from, path.getName))
       cleaned <- cleanupStore(path.getName, store, filtered, clean)
-      _       <- storeToIvory(to, cleaned, path.getName).unless(dry)
+      _       <- Hdfs.fromResultTIO(storeToIvory(to, cleaned, path.getName)).unless(dry)
     } yield ()
 
   private def cleanupStore(name: String, store: FeatureStore, setsToKeep: Seq[String], clean: Boolean) = {
@@ -142,7 +142,7 @@ object Recreate {
       version       <- ScoobiAction.fromResultTIO(Versions.read(from, Factset(name)))
       _             <- {
         ScoobiAction.safe(RecreateFactsetJob.run(configuration, version, dictionary, namespaces, partitions, to.factset(Factset(name)).toHdfs, reducerSize, codec)) >>
-        ScoobiAction.fromHdfs(writeFactsetVersion(to, List(Factset(name))))
+        ScoobiAction.fromResultTIO(writeFactsetVersion(to, List(Factset(name))))
       }.unless(dry)
     } yield ()
 

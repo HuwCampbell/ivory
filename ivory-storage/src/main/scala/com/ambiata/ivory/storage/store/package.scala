@@ -4,6 +4,6 @@ import com.ambiata.mundane.control._
 
 package object store {
 
-  type StorePathIO = StorePath[ResultTIO]
-  type StorePathResultT[F[+_]] = StorePath[({ type l[a] = ResultT[F, a] })#l]
+  type ReferenceIO = Reference[ResultTIO]
+  type ReferenceResultT[F[+_]] = Reference[({ type l[a] = ResultT[F, a] })#l]
 }

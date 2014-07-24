@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.repository
 
-import scalaz.{Store => _, _}
+import scalaz.{Store => _, _}, effect.IO, \&/.This
 import org.apache.hadoop.conf.Configuration
 import com.amazonaws.services.s3.AmazonS3Client
 import com.ambiata.mundane.control._
@@ -15,8 +15,8 @@ import com.nicta.scoobi.Scoobi._
 
 sealed trait Repository {
   def toStore: Store[ResultTIO]
-  def toStorePath(path: FilePath): StorePathIO =
-    StorePath(toStore, path)
+  def toReference(path: FilePath): ReferenceIO =
+    Reference(toStore, path)
 
   def root: FilePath
   def errors: FilePath = root </> "errors"
@@ -64,14 +64,17 @@ object Repository {
   def factset(set: Factset): FilePath =  factsets </> set.name
   def namespace(set: Factset, namespace: String): FilePath =  factset(set) </> namespace
 
-  val defaultS3TmpDirectory = StoreUtil.defaultS3TmpDirectory
+  val defaultS3TmpDirectory = Reference.defaultS3TmpDirectory
 
   def fromUri(s: String, conf: ScoobiConfiguration): String \/ Repository =
-    StoreUtil.fromUri(s, conf).map {
+    Reference.storeFromUri(s, conf).map {
       case HdfsStore(config, base) => fromHdfsPath(base, config)
       case PosixStore(root) => fromLocalPath(root)
       case S3Store(bucket, base, client, cache) => fromS3WithTemp(bucket, base, cache, conf).copy(client = client)
     }
+
+  def fromUriResultTIO(s: String, conf: ScoobiConfiguration): ResultTIO[Repository] =
+    ResultT.fromDisjunction[IO, Repository](fromUri(s, conf).leftMap(This.apply))
 
   def fromHdfsPath(path: FilePath, conf: ScoobiConfiguration): HdfsRepository =
     HdfsRepository(path, conf, ScoobiRun(conf))
@@ -80,7 +83,7 @@ object Repository {
     LocalRepository(path)
 
   def fromS3(bucket: String, path: FilePath, conf: ScoobiConfiguration): S3Repository =
-    fromS3WithTemp(bucket, path, StoreUtil.defaultS3TmpDirectory, conf)
+    fromS3WithTemp(bucket, path, Reference.defaultS3TmpDirectory, conf)
 
   /** use a specific temporary directory to store ivory files before they are saved on S3 */
   def fromS3WithTemp(bucket: String, path: FilePath, tmp: FilePath, conf: ScoobiConfiguration): S3Repository =

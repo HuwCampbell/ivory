@@ -29,7 +29,7 @@ class DictionaryImporterSpec extends Specification { def is = s2"""
     Temporary.using(dir => for {
       _    <- Streams.write(new java.io.FileOutputStream((dir </> dictionaryPath).toFile), DictionaryTextStorageV2.delimitedString(dict))
       repo  = Repository.fromLocalPath(dir)
-      _    <- fromPath(repo, StorePath(repo.toStore, dictionaryPath), opts.copy(ty = Override))
+      _    <- fromPath(repo, Reference(repo.toStore, dictionaryPath), opts.copy(ty = Override))
       out  <- dictionaryFromIvory(repo)
     } yield out).run.unsafePerformIO() must beOkValue(dict)
   }

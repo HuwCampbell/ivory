@@ -12,9 +12,9 @@ object Version {
 
   private val VERSION = ".version".toFilePath
 
-  def read[F[+_] : Functor](path: StorePath[F]): F[Version] =
+  def read[F[+_] : Functor](path: Reference[F]): F[Version] =
     (path </> VERSION).run(_.utf8.read).map(v => new Version(v.trim))
 
-  def write[F[+_]](path: StorePath[F], version: Version): F[Unit] =
+  def write[F[+_]](path: Reference[F], version: Version): F[Unit] =
     (path </> VERSION).run(s => s.utf8.write(_, version.toString))
 }

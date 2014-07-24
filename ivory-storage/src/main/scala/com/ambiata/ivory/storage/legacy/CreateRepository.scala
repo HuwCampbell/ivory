@@ -3,15 +3,23 @@ package com.ambiata.ivory.storage.legacy
 import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.alien.hdfs._
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.mundane.control._
 import com.ambiata.saws.core._
 import com.ambiata.saws.s3._
 import java.io.File
 
+import scalaz._, Scalaz._, effect._
+
 object CreateRepository {
 
-  def onHdfs(path: Path): Hdfs[Boolean] = {
+  def onStore(repo: Repository): ResultTIO[Boolean] = repo match {
+    case HdfsRepository(root, conf, _) => onHdfs(root.toHdfs).run(conf)
+    case _                             => ResultT.fail[IO, Boolean]("Can only create HDFS repositories at the moment")
+  }
+
+  private def onHdfs(path: Path): Hdfs[Boolean] = {
     val meta = new Path(path, "metadata")
     val dict = new Path(meta, "dictionaries")
     val store = new Path(meta, "stores")
@@ -29,20 +37,4 @@ object CreateRepository {
       } yield true
     } yield r
   }
-
-  def onS3(repository: S3Repository): S3Action[S3Repository] = {
-    def create(name: String) =
-    for {
-      newFile <- S3Action.ok({val f = new File(name); f.createNewFile; f})
-      _       <- S3.putFile(repository.bucket, repository.root.path, newFile)
-      _       <- S3Action.ok(newFile.delete)
-    } yield ()
-
-    for {
-      _ <- create(repository.dictionaries.path)
-      _ <- create(repository.factsets.path)
-      _ <- create(repository.stores.path)
-    } yield repository
-  }
-
 }

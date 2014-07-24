@@ -31,7 +31,7 @@ object importDictionary extends IvoryApp {
   val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", update = false, force = false), HadoopCmd { configuration => c =>
       for {
         repository <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(c.repo, configuration).leftMap(\&/.This(_)))
-        source <- StorePath.fromUriResult(c.path, configuration)
+        source <- Reference.fromUriResultTIO(c.path, configuration)
         opts     = ImportOpts(if (c.update) Update else Override, c.force)
         result  <- DictionaryImporter.fromPath(repository, source, opts)
         _       <- result._1 match {

@@ -13,7 +13,7 @@ object DictionaryImporter {
 
   import DictionaryImportValidate._
 
-  def fromPath(repository: Repository, source: StorePathIO, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] =
+  def fromPath(repository: Repository, source: ReferenceIO, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] =
     DictionaryTextStorageV2.fromStore(source).flatMap(fromDictionary(repository, _, importOpts))
 
   def fromDictionary(repository: Repository, dictionary: Dictionary, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] = {

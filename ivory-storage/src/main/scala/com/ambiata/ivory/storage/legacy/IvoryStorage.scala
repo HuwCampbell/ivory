@@ -52,8 +52,8 @@ object IvoryStorage {
     case FactsetVersionTwo => PartitionFactThriftStorageV2.PartitionedMultiFactsetThriftLoader(path.toString, factsets, from, to)
   }
 
-  def writeFactsetVersion(repo: HdfsRepository, factsets: List[Factset]): Hdfs[Unit] =
-    Hdfs.fromResultTIO(Versions.writeAll(repo, factsets, factsetVersion))
+  def writeFactsetVersion(repo: Repository, factsets: List[Factset]): ResultTIO[Unit] =
+    Versions.writeAll(repo, factsets, factsetVersion)
 
   implicit class IvoryFactStorage(dlist: DList[Fact]) {
     def toIvoryFactset(repo: HdfsRepository, factset: Factset, codec: Option[CompressionCodec])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] =
@@ -61,19 +61,19 @@ object IvoryStorage {
   }
 
   /* Facts */
-  def factsFromIvoryStore(repo: HdfsRepository, store: FeatureStore): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] =
+  def factsFromIvoryStore(repo: Repository, store: FeatureStore): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] =
     factsFromIvoryStoreFor(repo, store, None, None)
 
-  def factsFromIvoryStoreFrom(repo: HdfsRepository, store: FeatureStore, from: Date): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] =
+  def factsFromIvoryStoreFrom(repo: Repository, store: FeatureStore, from: Date): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] =
     factsFromIvoryStoreFor(repo, store, Some(from), None)
 
-  def factsFromIvoryStoreTo(repo: HdfsRepository, store: FeatureStore, to: Date): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] =
+  def factsFromIvoryStoreTo(repo: Repository, store: FeatureStore, to: Date): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] =
     factsFromIvoryStoreFor(repo, store, None, Some(to))
 
-  def factsFromIvoryStoreBetween(repo: HdfsRepository, store: FeatureStore, from: Date, to: Date): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] =
+  def factsFromIvoryStoreBetween(repo: Repository, store: FeatureStore, from: Date, to: Date): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] =
     factsFromIvoryStoreFor(repo, store, Some(from), Some(to))
 
-  def factsFromIvoryStoreFor(repo: HdfsRepository, store: FeatureStore, from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] = for {
+  def factsFromIvoryStoreFor(repo: Repository, store: FeatureStore, from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] = for {
     sc       <- ScoobiAction.scoobiConfiguration
     factsets <- ScoobiAction.fromHdfs(store.factsets.traverse(factset => for {
                   ve <- Hdfs.exists(repo.version(factset.set).toHdfs)
@@ -85,19 +85,19 @@ object IvoryStorage {
     loaded = combined.map({ case (v, fss) => IvoryStorage.multiFactsetLoader(v, repo.factsets.toHdfs, fss, from, to).loadScoobi(sc) })
   } yield if(loaded.isEmpty) DList[ParseError \/ (Priority, Factset, Fact)]() else loaded.reduce(_++_)
 
-  def factsFromIvoryFactset(repo: HdfsRepository, factset: Factset): ScoobiAction[DList[ParseError \/ Fact]] =
+  def factsFromIvoryFactset(repo: Repository, factset: Factset): ScoobiAction[DList[ParseError \/ Fact]] =
     factsFromIvoryFactsetFor(repo, factset, None, None)
 
-  def factsFromIvoryFactsetFrom(repo: HdfsRepository, factset: Factset, from: Date): ScoobiAction[DList[ParseError \/ Fact]] =
+  def factsFromIvoryFactsetFrom(repo: Repository, factset: Factset, from: Date): ScoobiAction[DList[ParseError \/ Fact]] =
     factsFromIvoryFactsetFor(repo, factset, Some(from), None)
 
-  def factsFromIvoryFactsetTo(repo: HdfsRepository, factset: Factset, to: Date): ScoobiAction[DList[ParseError \/ Fact]] =
+  def factsFromIvoryFactsetTo(repo: Repository, factset: Factset, to: Date): ScoobiAction[DList[ParseError \/ Fact]] =
     factsFromIvoryFactsetFor(repo, factset, None, Some(to))
 
-  def factsFromIvoryFactsetBetween(repo: HdfsRepository, factset: Factset, from: Date, to: Date): ScoobiAction[DList[ParseError \/ Fact]] =
+  def factsFromIvoryFactsetBetween(repo: Repository, factset: Factset, from: Date, to: Date): ScoobiAction[DList[ParseError \/ Fact]] =
     factsFromIvoryFactsetFor(repo, factset, Some(from), Some(to))
 
-  def factsFromIvoryFactsetFor(repo: HdfsRepository, factset: Factset, from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ Fact]] = for {
+  def factsFromIvoryFactsetFor(repo: Repository, factset: Factset, from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ Fact]] = for {
     sc <- ScoobiAction.scoobiConfiguration
     v  <- ScoobiAction.fromResultTIO(Versions.read(repo, factset))
     l   = IvoryStorage.factsetLoader(v, repo.factset(factset).toHdfs, from, to)
