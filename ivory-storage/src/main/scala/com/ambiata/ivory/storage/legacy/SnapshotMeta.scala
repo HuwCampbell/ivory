@@ -18,11 +18,23 @@ case class SnapshotMeta(date: Date, store: String) {
 
   lazy val stringLines: List[String] =
     List(date.string("-"), store)
+
+  def order(other: SnapshotMeta): Ordering =
+    (date ?|? other.date) match {
+      case Ordering.EQ => store ?|? other.store
+      case o           => o
+    }
 }
 
 object SnapshotMeta {
 
   val fname = FilePath(".snapmeta")
+
+  implicit def SnapshotMetaOrder: Order[SnapshotMeta] =
+    Order.order(_ order _)
+
+  implicit def SnapshotMetaOrdering =
+    SnapshotMetaOrder.toScalaOrdering
 
   def fromReference(ref: ReferenceIO): ResultTIO[SnapshotMeta] = for {
     lines <- ref.run(store => store.linesUtf8.read)
@@ -44,5 +56,5 @@ object SnapshotMeta {
       snapmeta.run(store => path => store.exists(path).flatMap(e =>
         if(e) fromReference(snapmeta).map(sm => Some((p, sm))) else ResultT.ok(None)))
     }).map(_.flatten)
-  } yield metas.filter(_._2.date.isBeforeOrEqual(date)).sortBy(_._2.date).lastOption
+  } yield metas.filter(_._2.date.isBeforeOrEqual(date)).sortBy(_._2).lastOption
 }
