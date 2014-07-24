@@ -49,7 +49,7 @@ object ingest extends IvoryApp {
 
   def cmd = IvoryCmd[CliArguments](parser,
       CliArguments("", "", DateTimeZone.getDefault, 256.mb),
-      ScoobiCmd(configuration => c => for {
+      ScoobiRunner(configuration => c => for {
         repo     <- Repository.fromUriResultTIO(c.repo, configuration)
         inputRef <- Reference.fromUriResultTIO(c.input, configuration)
         factset  <- run(repo, inputRef, c.timezone, c.optimal, Codec())

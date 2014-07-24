@@ -27,7 +27,7 @@ object recreate extends IvoryApp {
 
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments(input = "", output = "", clean = true, dry = false, overwrite = false, recreateData = RecreateData.ALL, maxNumber = None, reducerSize = None),
-    ScoobiCmd { configuration => c =>
+    ScoobiRunner { configuration => c =>
       val rconf = RecreateConfig(from = Repository.fromHdfsPath(FilePath(c.input), configuration),
                                  to = Repository.fromHdfsPath(FilePath(c.output), configuration),
                                  sc = configuration,

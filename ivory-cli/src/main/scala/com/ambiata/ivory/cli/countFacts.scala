@@ -15,7 +15,7 @@ object countFacts extends IvoryApp {
     arg[String]("INPUT_PATH") action { (x, c) => c.copy(path = x) } required() text "Input path to snapshot"
   }
 
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), ScoobiCmd { configuration => c =>
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), ScoobiRunner { configuration => c =>
     FactCount.flatFacts(new Path(c.path, "*")).run(configuration).map(count => List(count.toString))
   })
 }

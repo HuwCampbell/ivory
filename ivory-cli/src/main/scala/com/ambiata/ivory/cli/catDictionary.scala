@@ -23,7 +23,7 @@ object catDictionary extends IvoryApp {
       s"For displaying the contents of an older dictionary"
   }
 
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), HadoopCmd { conf => {
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), HadoopRunner { conf => {
     case CliArguments(repo, nameOpt) =>
       for {
         repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, conf).leftMap(\&/.This(_)))

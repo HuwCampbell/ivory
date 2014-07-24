@@ -51,11 +51,11 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
 
   def run(args: Array[String]): IO[Option[Unit]] = {
     runner match {
-      case ActionCmd(f) => parseAndRun(args, f andThen (_.executeT(consoleLogging).map(_ => Nil)))
-      case HadoopCmd(f) => parseAndRun(args, f(new Configuration()))
+      case ActionRunner(f) => parseAndRun(args, f andThen (_.executeT(consoleLogging).map(_ => Nil)))
+      case HadoopRunner(f) => parseAndRun(args, f(new Configuration()))
       // TODO Simply usage of ScoobiApp where possible
       // https://github.com/ambiata/ivory/issues/27
-      case ScoobiCmd(f) => IO {
+      case ScoobiRunner(f) => IO {
         // Hack to avoid having to copy logic from ScoobiApp
         // To make this harder we need ScoobiApp to remove its own args before we begin
         // May Tony have mercy on my soul
@@ -82,9 +82,9 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
  * so that any required setup can be handled in a single place
  */
 sealed trait IvoryRunner[A]
-case class ActionCmd[A](f: A => IOAction[Unit]) extends IvoryRunner[A]
-case class HadoopCmd[A](f: Configuration => A => ResultTIO[List[String]]) extends IvoryRunner[A]
-case class ScoobiCmd[A](f: ScoobiConfiguration => A => ResultTIO[List[String]]) extends IvoryRunner[A]
+case class ActionRunner[A](f: A => IOAction[Unit]) extends IvoryRunner[A]
+case class HadoopRunner[A](f: Configuration => A => ResultTIO[List[String]]) extends IvoryRunner[A]
+case class ScoobiRunner[A](f: ScoobiConfiguration => A => ResultTIO[List[String]]) extends IvoryRunner[A]
 
 trait IvoryApp {
   def cmd: IvoryCmd[_]

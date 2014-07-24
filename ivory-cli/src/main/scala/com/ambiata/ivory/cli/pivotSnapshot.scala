@@ -40,7 +40,7 @@ object pivotSnapshot extends IvoryApp {
 
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", '|', "NA", new LocalDate), ScoobiCmd(conf => c => {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", '|', "NA", new LocalDate), ScoobiRunner(conf => c => {
       val banner = s"""======================= pivot =======================
                       |
                       |Arguments --
