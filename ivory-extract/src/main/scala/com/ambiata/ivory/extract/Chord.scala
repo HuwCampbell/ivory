@@ -172,6 +172,7 @@ object Chord {
       case None =>
         factsFromIvoryStoreTo(repo, store, latestDate)
       case Some((r, s, sm)) => for {
+        c <- ScoobiAction.scoobiConfiguration
         p <- r match {
           case Reference(HdfsStore(_, root), p) => ScoobiAction.ok((root </> p).toHdfs)
           case _                                => ScoobiAction.fail(s"Incremental path must point to HDFS, currently its ${r}")
@@ -180,7 +181,7 @@ object Chord {
         sd = store diff s
         _  = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
         n <- factsFromIvoryStoreTo(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
-      } yield o ++ n ++ valueFromSequenceFile[Fact](p.toString).map(fact => (Priority.Max, Factset(ChordName), fact).right[ParseError])
+      } yield o ++ n ++ FlatFactThriftStorageV1.FlatFactThriftLoader(p.toString).loadScoobi(c).map(_.map((Priority.Max, Factset(ChordName), _)))
     }
   }
 
