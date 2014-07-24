@@ -13,8 +13,9 @@ random() {
 # Lazily load a specific ivory version from S3 and execute with the supplied extra arguments
 ivory_run() {
     VERSION=$1
-    shift
-    IVORY_CMD=`${COMMON}/ivory-get "${VERSION}"`
+    SCALA_VERSION=$2
+    shift 2
+    IVORY_CMD=`${COMMON}/ivory-get "${VERSION}" "${SCALA_VERSION}"`
     ${IVORY_CMD} "$@"
 }
 
