@@ -108,12 +108,6 @@ trait WireFormats {
     def show(v: Validation[A, B]): String = v.toString
   }
 
-  implicit def DisjunctionWireFormat[A, B](implicit wf: WireFormat[Either[A, B]]) = new WireFormat[A \/ B] {
-    def toWire(v: A \/ B, out: DataOutput) = wf.toWire(v.toEither, out)
-    def fromWire(in: DataInput): A \/ B = wf.fromWire(in).disjunction
-    def show(v: A \/ B): String = v.toString
-  }
-
   implicit def DateMapWireFormat = AnythingFmt[java.util.HashMap[String, Array[Int]]]
 
   /* WARNING THIS IS NOT SAFE TO EXPOSE, DANGER LURKS, SEE ThriftFactWireFormat */

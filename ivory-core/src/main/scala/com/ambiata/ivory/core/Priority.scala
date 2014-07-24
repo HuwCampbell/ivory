@@ -34,9 +34,7 @@ object Priority {
   def create(priority: Short): Option[Priority] =
     (priority >= 0).option(unsafe(priority))
 
-  object Macros {
-    import scala.reflect.macros.Context
-    import language.experimental.macros
+  object Macros extends com.ambiata.ivory.reflect.MacrosCompat {
 
     def literal(c: Context)(priority: c.Expr[Short]): c.Expr[Priority] = {
       import c.universe._

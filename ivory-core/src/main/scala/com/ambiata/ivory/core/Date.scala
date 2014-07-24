@@ -132,9 +132,7 @@ object Date {
   def fromSeconds(s: Long): Option[(Date, Int)] =
     fromInt(((s >>> 32) & 0xffffffff).toInt).map(_ -> (s & 0xffffffff).toInt)
 
-  object Macros {
-    import scala.reflect.macros.Context
-    import language.experimental.macros
+  object Macros extends com.ambiata.ivory.reflect.MacrosCompat {
 
     def literal(c: Context)(year: c.Expr[Short], month: c.Expr[Byte], day: c.Expr[Byte]): c.Expr[Date] = {
       import c.universe._

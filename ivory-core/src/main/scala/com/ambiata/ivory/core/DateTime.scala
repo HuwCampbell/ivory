@@ -58,9 +58,7 @@ object DateTime {
   def fromJoda(dt: JodaDateTime): DateTime =
     unsafe(dt.getYear.toShort, dt.getMonthOfYear.toByte, dt.getDayOfMonth.toByte, dt.getSecondOfDay)
 
-  object Macros {
-    import scala.reflect.macros.Context
-    import language.experimental.macros
+  object Macros extends com.ambiata.ivory.reflect.MacrosCompat {
 
     def literal(c: Context)(year: c.Expr[Short], month: c.Expr[Byte], day: c.Expr[Byte], seconds: c.Expr[Int]): c.Expr[DateTime] = {
       import c.universe._

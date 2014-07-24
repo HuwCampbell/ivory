@@ -13,7 +13,7 @@ object depend {
 
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140709042001-6c1bfce" excludeAll(
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140718230620-63e75be" excludeAll(
     ExclusionRule(organization = "org.specs2"),
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec"),
@@ -32,10 +32,10 @@ object depend {
 
   def scoobi(version: String) =
     (if (version.contains("cdh4")) Seq(
-      "com.nicta" %% "scoobi" % "0.9.0-cdh4-20140714070613-be7f9b6" intransitive(),
+      "com.nicta" %% "scoobi" % "0.9.0-cdh4-20140722073640-fe6f152" intransitive(),
       "com.nicta" %% "scoobi-compatibility-cdh4" % "1.0.2" intransitive())
     else if (version.contains("cdh5")) Seq(
-      "com.nicta" %% "scoobi" % "0.9.0-cdh5-20140714070058-be7f9b6" intransitive(),
+      "com.nicta" %% "scoobi" % "0.9.0-cdh5-20140722073131-fe6f152" intransitive(),
       "com.nicta" %% "scoobi-compatibility-cdh5" % "1.0.2" intransitive())
     else
       sys.error(s"unsupported scoobi version, can not build for $version")
@@ -43,6 +43,10 @@ object depend {
       "com.thoughtworks.xstream" % "xstream" % "1.4.4" intransitive(),
       "javassist" %  "javassist" % "3.12.1.GA") ++ hadoop(version)
 
+
+  def reflect(version: String) =
+    Seq("org.scala-lang" % "scala-compiler" % version, "org.scala-lang" % "scala-reflect" % version) ++
+      (if (version.contains("2.10")) Seq("org.scalamacros" %% "quasiquotes" % "2.0.0") else Seq())
 
   def hadoop(version: String, hadoopVersion: String = "2.2.0") =
     if (version.contains("cdh4")) Seq("org.apache.hadoop" % "hadoop-client" % "2.0.0-mr1-cdh4.6.0" % "provided" exclude("asm", "asm"),
