@@ -54,19 +54,22 @@ object Fact {
       case LongValue(l)     => ThriftFactValue.l(l)
       case DoubleValue(d)   => ThriftFactValue.d(d)
       case TombstoneValue() => ThriftFactValue.t(new ThriftTombstone())
-      case StructValue(m)   =>
-        val structValues = m.mapValues {
-          // This duplication here is annoying/unfortunate - and will require a backwards-incompatible change
-          case StringValue(s)   => ThriftFactPrimitiveValue.s(s)
-          case BooleanValue(b)  => ThriftFactPrimitiveValue.b(b)
-          case IntValue(i)      => ThriftFactPrimitiveValue.i(i)
-          case LongValue(l)     => ThriftFactPrimitiveValue.l(l)
-          case DoubleValue(d)   => ThriftFactPrimitiveValue.d(d)
-          case TombstoneValue() => ThriftFactPrimitiveValue.t(new ThriftTombstone())
-        }
-        ThriftFactValue.structSparse(new ThriftFactStructSparse(structValues.asJava))
+      case ListValue(v)     => ThriftFactValue.lst(new ThriftFactList(v.map {
+        case p: PrimitiveValue  => ThriftFactListValue.p(primValue(p))
+        case StructValue(m)     => ThriftFactListValue.s(new ThriftFactStructSparse(m.mapValues(primValue).asJava))
+      }.asJava))
+      case StructValue(m)   => ThriftFactValue.structSparse(new ThriftFactStructSparse(m.mapValues(primValue).asJava))
     })
 
+  private def primValue(p: PrimitiveValue): ThriftFactPrimitiveValue = p match {
+    // This duplication here is annoying/unfortunate - and will require a backwards-incompatible change
+    case StringValue(s)   => ThriftFactPrimitiveValue.s(s)
+    case BooleanValue(b)  => ThriftFactPrimitiveValue.b(b)
+    case IntValue(i)      => ThriftFactPrimitiveValue.i(i)
+    case LongValue(l)     => ThriftFactPrimitiveValue.l(l)
+    case DoubleValue(d)   => ThriftFactPrimitiveValue.d(d)
+    case TombstoneValue() => ThriftFactPrimitiveValue.t(new ThriftTombstone())
+  }
 }
 
 trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
@@ -103,6 +106,11 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       case tv if tv.isSetT => TombstoneValue()
       case tv if tv.isSetStructSparse
                            => StructValue(tv.getStructSparse.getV.asScala.toMap.mapValues(factPrimitiveToValue))
+      case tv if tv.isSetLst
+                           => ListValue(tv.getLst.getL.asScala.map {
+        case l if l.isSetP => factPrimitiveToValue(l.getP)
+        case l if l.isSetS => StructValue(l.getS.getV.asScala.toMap.mapValues(factPrimitiveToValue))
+      }.toList)
       case _               => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
     }
 
@@ -182,7 +190,8 @@ object TombstoneFact {
 }
 
 sealed trait Value
-sealed trait PrimitiveValue extends Value
+sealed trait SubValue extends Value
+sealed trait PrimitiveValue extends SubValue
 
 case class BooleanValue(value: Boolean) extends PrimitiveValue
 case class IntValue(value: Int) extends PrimitiveValue
@@ -191,7 +200,8 @@ case class DoubleValue(value: Double) extends PrimitiveValue
 case class StringValue(value: String) extends PrimitiveValue
 case class TombstoneValue() extends PrimitiveValue
 
-case class StructValue(values: Map[String, PrimitiveValue]) extends Value
+case class StructValue(values: Map[String, PrimitiveValue]) extends SubValue
+case class ListValue(values: List[SubValue]) extends Value
 
 object Value {
   def validDouble(d: Double): Boolean =
@@ -208,13 +218,15 @@ object Value {
 
   def toString(v: Value, tombstoneValue: Option[String]): Option[String] = v match {
     case p: PrimitiveValue => toStringPrimitive(p) orElse tombstoneValue
-    // Currently we're ignoring structs in all text format (for now)
+    // Currently we're ignoring lists/structs in all text format (for now)
+    case _: ListValue      => None
     case StructValue(_)    => None
   }
 
   /** This is _not_ for general consumption - should only be use for testing or diffing */
   def toStringWithStruct(v: Value): String = v match {
     case p: PrimitiveValue   => toStringPrimitive(p).getOrElse("")
+    case ListValue(values)   => "[" + values.map(toStringWithStruct).mkString(",") + "]"
     case StructValue(values) =>
       "(" + values.map { case (k, p) => k + ":" + toStringPrimitive(p).getOrElse("")}.mkString(",") + ")"
   }

@@ -116,6 +116,11 @@ object Arbitraries {
     Arbitrary(Gen.oneOf(NumericalType, ContinuousType, CategoricalType, BinaryType))
 
   def valueOf(encoding: Encoding): Gen[Value] = encoding match {
+    case sub: SubEncoding  => valueOfSub(sub)
+    case ListEncoding(sub) => Gen.listOf(valueOfSub(sub)).map(ListValue)
+  }
+
+  def valueOfSub(encoding: SubEncoding): Gen[SubValue] = encoding match {
     case p: PrimitiveEncoding => valueOfPrim(p)
     case StructEncoding(s)    =>
       Gen.sequence[Seq, Option[(String, PrimitiveValue)]](s.map { case (k, v) =>
@@ -125,7 +130,6 @@ object Arbitraries {
           b <- if (v.optional) arbitrary[Boolean] else Gen.const(true)
         } yield if (b) Some(p) else None
       }).map(_.flatten.toMap).map(StructValue)
-    case l: ListEncoding      => sys.error("List encoding not supported yet") // TODO
   }
 
   def valueOfPrim(encoding: PrimitiveEncoding): Gen[PrimitiveValue] = encoding match {

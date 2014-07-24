@@ -16,6 +16,15 @@ struct ThriftFactStructSparse {
     1: map<string, ThriftFactPrimitiveValue> v;
 }
 
+union ThriftFactListValue {
+    1: ThriftFactPrimitiveValue p;
+    2: ThriftFactStructSparse s;
+}
+
+struct ThriftFactList {
+    1: list<ThriftFactListValue> l;
+}
+
 // NOTE: For the next Fact version remove the primitive values here and replace with ThriftFactPrimitiveValue
 union ThriftFactValue {
     1: string s;
@@ -25,6 +34,7 @@ union ThriftFactValue {
     5: bool b;
     6: ThriftTombstone t;
     7: ThriftFactStructSparse structSparse;
+    8: ThriftFactList lst;
 }
 
 struct ThriftFact {
