@@ -41,7 +41,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
 
   private def parseStruct: ValidationNel[String, StructEncoding] = struct.run().fold(
     formatError(_).failureNel, _.toList.traverseU {
-      case ((k, v), o) => DictionaryTextStorage.parseEncoding(v).map(enc => k -> StructValue(enc, optional = o)).toValidationNel
+      case ((k, v), o) => DictionaryTextStorage.parseEncoding(v).map(enc => k -> StructEncodedValue(enc, optional = o)).toValidationNel
     }.map(s => StructEncoding(s.toMap))
   )
 

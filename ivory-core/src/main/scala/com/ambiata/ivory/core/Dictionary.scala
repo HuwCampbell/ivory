@@ -46,11 +46,11 @@ case object StringEncoding    extends PrimitiveEncoding
 
 sealed trait SubEncoding extends Encoding
 
-case class StructEncoding(values: Map[String, StructValue]) extends SubEncoding
+case class StructEncoding(values: Map[String, StructEncodedValue]) extends SubEncoding
 
 // NOTE: For now we don't support nested structs
-case class StructValue(encoding: PrimitiveEncoding, optional: Boolean = false) {
-  def opt: StructValue =
+case class StructEncodedValue(encoding: PrimitiveEncoding, optional: Boolean = false) {
+  def opt: StructEncodedValue =
     if (optional) this else copy(optional = true)
 }
 

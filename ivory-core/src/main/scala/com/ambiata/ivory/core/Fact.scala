@@ -4,6 +4,7 @@ import scalaz._, Scalaz._
 import com.ambiata.mundane.parse._
 
 import com.ambiata.ivory.core.thrift._
+import scala.collection.JavaConverters._
 
 trait Fact {
   def entity: String
@@ -17,19 +18,6 @@ trait Fact {
   def toThrift: ThriftFact
 
   def toNamespacedThrift: NamespacedThriftFact with NamespacedThriftFactDerived
-
-  def safeCopy: Fact =
-    FatThriftFact.factWith(entity, namespace, feature, date, time, value match {
-      case BooleanValue(b)  => ThriftFactValue.b(b)
-      case IntValue(i)      => ThriftFactValue.i(i)
-      case LongValue(l)     => ThriftFactValue.l(l)
-      case DoubleValue(d)   => ThriftFactValue.d(d)
-      case StringValue(s)   => ThriftFactValue.s(s)
-      case TombstoneValue() => ThriftFactValue.t(new ThriftTombstone())
-    })
-
-  lazy val stringValue: Option[String] =
-    value.stringValue
 
   def coordinateString(delim: Char): String = {
     val fields = List(s"$entity", s"$featureId", s"${date.int}-${time}}")
@@ -66,6 +54,17 @@ object Fact {
       case LongValue(l)     => ThriftFactValue.l(l)
       case DoubleValue(d)   => ThriftFactValue.d(d)
       case TombstoneValue() => ThriftFactValue.t(new ThriftTombstone())
+      case StructValue(m)   =>
+        val structValues = m.mapValues {
+          // This duplication here is annoying/unfortunate - and will require a backwards-incompatible change
+          case StringValue(s)   => ThriftFactPrimitiveValue.s(s)
+          case BooleanValue(b)  => ThriftFactPrimitiveValue.b(b)
+          case IntValue(i)      => ThriftFactPrimitiveValue.i(i)
+          case LongValue(l)     => ThriftFactPrimitiveValue.l(l)
+          case DoubleValue(d)   => ThriftFactPrimitiveValue.d(d)
+          case TombstoneValue() => ThriftFactPrimitiveValue.t(new ThriftTombstone())
+        }
+        ThriftFactValue.structSparse(new ThriftFactStructSparse(structValues.asJava))
     })
 
 }
@@ -102,7 +101,19 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       case tv if tv.isSetL => LongValue(tv.getL)
       case tv if tv.isSetB => BooleanValue(tv.getB)
       case tv if tv.isSetT => TombstoneValue()
+      case tv if tv.isSetStructSparse
+                           => StructValue(tv.getStructSparse.getV.asScala.toMap.mapValues(factPrimitiveToValue))
       case _               => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
+    }
+
+    private def factPrimitiveToValue(v: ThriftFactPrimitiveValue): PrimitiveValue = v match {
+      case tsv if tsv.isSetD => DoubleValue(tsv.getD)
+      case tsv if tsv.isSetS => StringValue(tsv.getS)
+      case tsv if tsv.isSetI => IntValue(tsv.getI)
+      case tsv if tsv.isSetL => LongValue(tsv.getL)
+      case tsv if tsv.isSetB => BooleanValue(tsv.getB)
+      case tsv if tsv.isSetT => TombstoneValue()
+      case _                 => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
     }
 
     def toThrift: ThriftFact = fact
@@ -170,36 +181,42 @@ object TombstoneFact {
   val fromTuple = apply _ tupled
 }
 
-sealed trait Value {
-  def encoding: Option[Encoding]
-  def stringValue: Option[String]
-}
-case class BooleanValue(value: Boolean) extends Value {
-  val encoding = Some(BooleanEncoding)
-  val stringValue = Some(value.toString)
-}
-case class IntValue(value: Int) extends Value {
-  val encoding = Some(IntEncoding)
-  val stringValue = Some(value.toString)
-}
-case class LongValue(value: Long) extends Value {
-  val encoding = Some(LongEncoding)
-  val stringValue = Some(value.toString)
-}
-case class DoubleValue(value: Double) extends Value {
-  val encoding = Some(DoubleEncoding)
-  val stringValue = Some(value.toString)
-}
-case class StringValue(value: String) extends Value {
-  val encoding = Some(StringEncoding)
-  val stringValue = Some(value.toString)
-}
-case class TombstoneValue() extends Value {
-  val encoding = None
-  val stringValue = None
-}
+sealed trait Value
+sealed trait PrimitiveValue extends Value
+
+case class BooleanValue(value: Boolean) extends PrimitiveValue
+case class IntValue(value: Int) extends PrimitiveValue
+case class LongValue(value: Long) extends PrimitiveValue
+case class DoubleValue(value: Double) extends PrimitiveValue
+case class StringValue(value: String) extends PrimitiveValue
+case class TombstoneValue() extends PrimitiveValue
+
+case class StructValue(values: Map[String, PrimitiveValue]) extends Value
 
 object Value {
   def validDouble(d: Double): Boolean =
     !d.isNaN && !d.isNegInfinity && !d.isPosInfinity
+
+  def toStringPrimitive(v: PrimitiveValue): Option[String] = v match {
+    case BooleanValue(b)  => Some(b.toString)
+    case IntValue(i)      => Some(i.toString)
+    case LongValue(i)     => Some(i.toString)
+    case DoubleValue(d)   => Some(d.toString)
+    case StringValue(s)   => Some(s)
+    case TombstoneValue() => None
+  }
+
+  def toString(v: Value, tombstoneValue: Option[String]): Option[String] = v match {
+    case p: PrimitiveValue => toStringPrimitive(p) orElse tombstoneValue
+    // Currently we're ignoring structs in all text format (for now)
+    case StructValue(_)    => None
+  }
+
+  /** This is _not_ for general consumption - should only be use for testing or diffing */
+  def toStringWithStruct(v: Value): String = v match {
+    case p: PrimitiveValue   => toStringPrimitive(p).getOrElse("")
+    case StructValue(values) =>
+      "(" + values.map { case (k, p) => k + ":" + toStringPrimitive(p).getOrElse("")}.mkString(",") + ")"
+  }
+
 }

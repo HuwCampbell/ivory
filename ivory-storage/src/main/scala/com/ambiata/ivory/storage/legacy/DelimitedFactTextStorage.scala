@@ -19,7 +19,7 @@ object DelimitedFactTextStorage {
   case class DelimitedFactTextStorer(path: Path, delim: String = "|", tombstoneValue: Option[String] = Some("☠")) extends IvoryScoobiStorer[Fact, DList[String]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[String] =
     dlist.mapFlatten(f =>
-      valueToString(f.value, tombstoneValue).map(v => f.entity + delim + f.namespace + ":" + f.featureId.name + delim + v + delim + time(f.date, f.time.seconds).toString("yyyy-MM-dd HH:mm:ss"))
+      Value.toString(f.value, tombstoneValue).map(v => f.entity + delim + f.namespace + ":" + f.featureId.name + delim + v + delim + time(f.date, f.time.seconds).toString("yyyy-MM-dd HH:mm:ss"))
     ).toTextFile(path.toString, overwrite = true)
 
     def time(d: Date, s: Int): LocalDateTime =
@@ -49,15 +49,6 @@ object DelimitedFactTextStorage {
     } yield FeatureId(ns, name)
   }
 
-  def valueToString(v: Value, tombstoneValue: Option[String]): Option[String] = v match {
-    case BooleanValue(b)  => Some(b.toString)
-    case IntValue(i)      => Some(i.toString)
-    case LongValue(i)     => Some(i.toString)
-    case DoubleValue(d)   => Some(d.toString)
-    case StringValue(s)   => Some(s)
-    case TombstoneValue() => tombstoneValue
-  }
-
   def valueFromString(meta: FeatureMeta, raw: String): Validation[String, Value] = meta.encoding match {
     case _ if(meta.tombstoneValue.contains(raw)) => TombstoneValue().success[String]
     case BooleanEncoding                         => raw.parseBoolean.leftMap(_ => s"Value '$raw' is not a boolean").map(v => BooleanValue(v))
@@ -65,5 +56,6 @@ object DelimitedFactTextStorage {
     case LongEncoding                            => raw.parseLong.leftMap(_ => s"Value '$raw' is not a long").map(v => LongValue(v))
     case DoubleEncoding                          => raw.parseDouble.leftMap(_ => s"Value '$raw' is not a double").map(v => DoubleValue(v))
     case StringEncoding                          => StringValue(raw).success[String]
+    case _: StructEncoding                       => "Struct values as text not supported".failure
   }
 }

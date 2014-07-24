@@ -29,13 +29,13 @@ object DictionaryThriftConversion {
     val to: Encoding => (ThriftDictionaryEncoding, Option[ThriftDictionaryStruct]) = {
       case enc: PrimitiveEncoding => primitiveEncoding.to(enc) -> None
       case StructEncoding(v) => STRUCT -> Some(new ThriftDictionaryStruct(v.map {
-        case (name, StructValue(enc, optional)) => new ThriftDictionaryStructMeta(name, primitiveEncoding.to(enc),
+        case (name, StructEncodedValue(enc, optional)) => new ThriftDictionaryStructMeta(name, primitiveEncoding.to(enc),
           ThriftDictionaryStructMetaOpts.isOptional(optional))
       }.toList.asJava))
     }
     val from: ThriftDictionaryFeatureMeta => Encoding = meta => meta.getEncoding match {
       case STRUCT => StructEncoding(Option(meta.getValue).flatMap(v => Try(v.getStructValue).toOption).map(_.getValues.asScala).getOrElse(Nil).map {
-        meta => meta.getName -> StructValue(primitiveEncoding.from(meta.getEncoding),
+        meta => meta.getName -> StructEncodedValue(primitiveEncoding.from(meta.getEncoding),
           optional = Try(meta.getOpts.getIsOptional).toOption.getOrElse(false))
       }.toMap)
       case enc => primitiveEncoding.from(enc)
