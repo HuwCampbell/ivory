@@ -16,6 +16,7 @@ import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
 
+import scala.util.Sorting
 import scalaz._, Scalaz._
 import scalaz.scalacheck.ScalaCheckBinding._
 
