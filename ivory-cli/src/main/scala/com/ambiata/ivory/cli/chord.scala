@@ -40,7 +40,7 @@ object chord extends IvoryApp {
     opt[String]("tombstone")     action { (x, c) => c.copy(tombstone = x) }            text "Tombstone for pivot file, default 'NA'."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", "", true, false, '|', "NA"), ScoobiCmd { conf => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", "", true, false, '|', "NA"), ScoobiRunner { conf => c =>
     for {
       repo <- Repository.fromUriResultTIO(c.repo, conf)
       out  <- Reference.fromUriResultTIO(c.output, conf)

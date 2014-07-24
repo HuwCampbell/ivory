@@ -15,7 +15,7 @@ object convertDictionary extends IvoryApp {
     opt[String]('o', "output") action { (x, c) => c.copy(output = x) } required() text "File to output new dictionary to"
   }
 
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments("", ""), HadoopCmd { conf => {
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments("", ""), HadoopRunner { conf => {
     case CliArguments(input, output) =>
       for {
         in         <- Reference.fromUriResultTIO(input, conf)

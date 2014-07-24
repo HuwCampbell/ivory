@@ -19,7 +19,7 @@ object factDiff extends IvoryApp {
     opt[String]('o', "output") action { (x, c) => c.copy(output = x) } required() text s"Hdfs location to store the difference."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), ScoobiCmd { configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), ScoobiRunner { configuration => c =>
       val res = FactDiff.flatFacts(c.input1, c.input2, c.output)
       res.run(configuration).map {
         case _ => List(s"Any differences can be found in '${c.output}'")
