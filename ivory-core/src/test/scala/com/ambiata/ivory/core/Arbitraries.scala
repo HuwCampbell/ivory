@@ -16,7 +16,7 @@ object Arbitraries {
       y <- Gen.choose(1970, 3000)
       m <- Gen.choose(1, 12)
       d <- Gen.choose(1, 31)
-      r = Date.create(y.toShort, m.toByte, d.toByte)
+      r = Stream.tabulate(4)(i => Date.create(y.toShort, m.toByte, (d - i).toByte)).dropWhile(!_.isDefined).headOption.flatten
       if r.isDefined
     } yield r.get)
 
@@ -172,8 +172,15 @@ object Arbitraries {
   implicit def DictDescArbitrary: Arbitrary[DictDesc] =
     Arbitrary(arbitrary[String].map(_.trim).retryUntil(s => !s.contains("|") && !s.contains("\uFFFF") && s.forall(_ > 31)).map(DictDesc))
 
+  case class OldIdentifier(id: String)
+  implicit def OldIdentifierArbitrary: Arbitrary[OldIdentifier] =
+    Arbitrary(Gen.choose(1, Priority.Max.toShort).map(oldIdentifier).map(OldIdentifier.apply))
+
+  def oldIdentifier(i: Int): String =
+    "%05d".format(i)
+
   def oldIdentifiers(n: Int): List[String] =
-    (0 until n).map(i => "%05d".format(i)).toList
+    (0 until n).map(oldIdentifier).toList
 
   case class OldIdentifiers(ids: List[String])
   implicit def OldIdentitiersArbitrary: Arbitrary[OldIdentifiers] =

@@ -3,7 +3,8 @@ import Keys._
 
 object depend {
   val scalaz    = Seq("org.scalaz"           %% "scalaz-core"     % "7.0.6",
-                      "org.scalaz"           %% "scalaz-effect"   % "7.0.6")
+                      "org.scalaz"           %% "scalaz-effect"   % "7.0.6",
+                      "org.scalaz"           %% "scalaz-scalacheck-binding" % "7.0.6" % "test")
 
   val scopt     = Seq("com.github.scopt"     %% "scopt"           % "3.2.0")
   val joda      = Seq("joda-time"            %  "joda-time"       % "2.1")
