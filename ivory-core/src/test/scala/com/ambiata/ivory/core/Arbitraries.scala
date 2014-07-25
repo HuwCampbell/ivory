@@ -74,6 +74,10 @@ object Arbitraries {
   , FeatureId("vegetables", "peas") -> FeatureMeta(IntEncoding, Some(ContinuousType), "Greens", "?" :: Nil)
   ))
 
+  case class FeatureNamespace(namespace: String)
+  implicit def FeatureNamespaceArbitrary: Arbitrary[FeatureNamespace] =
+    Arbitrary(Gen.oneOf(TestDictionary.meta.map(_._1.namespace).toSeq).map(FeatureNamespace.apply))
+
   def testEntities(n: Int): List[String] =
     (1 to n).toList.map(i => "T+%05d".format(i))
 
@@ -204,4 +208,19 @@ object Arbitraries {
     value <- valueOf(enc)
   } yield EncodingAndValue(enc, value))
 
+  implicit def FactsetArbitrary: Arbitrary[Factset] =
+    Arbitrary(arbitrary[OldIdentifier].map(id => Factset(id.id)))
+
+  implicit def PartitionArbitrary: Arbitrary[Partition] = Arbitrary(for {
+    factset <- arbitrary[Factset]
+    ns      <- arbitrary[FeatureNamespace]
+    date    <- arbitrary[Date]
+  } yield Partition(factset, ns.namespace, date, None))
+
+  case class SingleFactsetPartitions(partitions: List[Partition])
+  implicit def SingleFactsetPartitionsArbitrary: Arbitrary[SingleFactsetPartitions] =
+    Arbitrary(for {
+      factset <- arbitrary[Factset]
+      dates   <- arbitrary[List[(Date, FeatureNamespace)]]
+    } yield SingleFactsetPartitions(dates.distinct.map({ case (d, FeatureNamespace(ns)) => Partition(factset, ns, d, None) })))
 }
