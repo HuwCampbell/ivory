@@ -40,9 +40,10 @@ class PivotSpec extends Specification with SampleFacts { def is = s2"""
     ((for {
       pivot <- Reference.fromUriResultTIO(directory+"/pivot", sc)
       snap  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false, None)
-      (_, s) = snap
+      (_, snapId) = snap
+      input = repo.toReference(Repository.snapshots </> FilePath(snapId.render))
       dict  <- dictionaryFromIvory(repo)
-      _     <- Pivot.withDictionary(repo, s, pivot, dict, '|', "NA")
+      _     <- Pivot.withDictionary(repo, input, pivot, dict, '|', "NA")
       lines <- readLines(pivot)
     } yield lines) must beOkLike { lines =>
       lines.mkString("\n").trim must_==

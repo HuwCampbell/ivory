@@ -32,17 +32,18 @@ import com.ambiata.mundane.store._
 object ExtractLatestWorkflow {
 
   type FeatureStoreName = String
-  type Incremental = Option[(ReferenceIO, SnapshotMeta)]
+  type Incremental = Option[(Identifier, SnapshotMeta)]
   type Extractor = (Repository, FeatureStoreName, Date, ReferenceIO, Incremental) => ResultTIO[Unit]
 
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.ExtractLatestWorkflow")
 
-  def onStore(repo: Repository, extractor: Extractor, date: Date, incremental: Boolean): ResultTIO[(String, ReferenceIO)] = {
+  def onStore(repo: Repository, extractor: Extractor, date: Date, incremental: Boolean): ResultTIO[(String, Identifier)] = {
     for {
       sname  <- latestStore(repo)
-      incr   <- if(incremental) SnapshotMeta.latest(repo.toReference(Repository.snapshots), date) else ResultT.ok[IO, Option[(ReferenceIO, SnapshotMeta)]](None)
+      incr   <- if(incremental) SnapshotMeta.latest(repo.toReference(Repository.snapshots), date) else ResultT.ok[IO, Option[(Identifier, SnapshotMeta)]](None)
       snap   <- decideSnapshot(repo, date, sname, incr)
-      (skip, output) = snap
+      (skip, outId) = snap
+      output = repo.toReference(Repository.snapshots </> FilePath(outId.render))
       _      <- if(skip) {
                   logger.info(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${sname}'")
                   ResultT.ok[IO, Unit](())
@@ -59,15 +60,15 @@ object ExtractLatestWorkflow {
                                  """.stripMargin)
                   extractor(repo, sname, date, output, incr)
                 }
-    } yield (sname, output)
+    } yield (sname, outId)
   }
 
-  def decideSnapshot(repo: Repository, date: Date, storeName: String, incr: Option[(ReferenceIO, SnapshotMeta)]): ResultTIO[(Boolean, ReferenceIO)] =
-  incr.collect({ case (r, sm) if sm.date <= date && sm.store == storeName => for {
+  def decideSnapshot(repo: Repository, date: Date, storeName: String, incr: Option[(Identifier, SnapshotMeta)]): ResultTIO[(Boolean, Identifier)] =
+  incr.collect({ case (id, sm) if sm.date <= date && sm.store == storeName => for {
     store      <- Metadata.storeFromIvory(repo, storeName)
     partitions <- StoreGlob.between(repo, store, sm.date, date).map(_.flatMap(_.partitions))
     filtered = partitions.filter(_.date.isAfter(sm.date)) // TODO this should probably be in StoreGlob.between, but not sure what else it will affect
-    skip       <- if(filtered.isEmpty) ResultT.ok[IO, (Boolean, ReferenceIO)]((true, r)) else outputDirectory(repo).map((false, _))
+    skip       <- if(filtered.isEmpty) ResultT.ok[IO, (Boolean, Identifier)]((true, id)) else outputDirectory(repo).map((false, _))
   } yield skip }).getOrElse(outputDirectory(repo).map((false, _)))
 
   def latestStore(repo: Repository): ResultTIO[String] = for {
@@ -77,10 +78,10 @@ object ExtractLatestWorkflow {
     _          = logger.info(s"Latest feature store is '${latest}'")
   } yield latest
 
-  def outputDirectory(repo: Repository): ResultTIO[ReferenceIO] = for {
+  def outputDirectory(repo: Repository): ResultTIO[Identifier] = for {
     store  <- ResultT.ok[IO, Store[ResultTIO]](repo.toStore)
     res    <- IdentifierStorage.write(FilePath(".allocated"), scodec.bits.ByteVector.empty)(store, Repository.snapshots)
-    (_, p) = res
-    _ = logger.info(s"New snapshot allocation is '$p'")
-  } yield Reference(store, p)
+    (id, _) = res
+    _ = logger.info(s"New snapshot allocation is '${id}'")
+  } yield id
 }

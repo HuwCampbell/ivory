@@ -12,6 +12,7 @@ import com.ambiata.mundane.parse._
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.core.thrift._
+import com.ambiata.ivory.data._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.SeqSchemas._
@@ -24,7 +25,7 @@ import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.alien.hdfs._
 import MemoryConversions._
 
-case class Snapshot(repo: Repository, store: String, entities: Option[ReferenceIO], snapshot: Date, output: ReferenceIO, incremental: Option[(ReferenceIO, SnapshotMeta)], codec: Option[CompressionCodec]) {
+case class Snapshot(repo: Repository, store: String, entities: Option[ReferenceIO], snapshot: Date, output: ReferenceIO, incremental: Option[(Identifier, SnapshotMeta)], codec: Option[CompressionCodec]) {
   import IvoryStorage._
 
   def run: ResultTIO[Unit] = for {
@@ -39,13 +40,13 @@ case class Snapshot(repo: Repository, store: String, entities: Option[ReferenceI
     d   <- dictionaryFromIvory(repo)
     s   <- storeFromIvory(repo, store)
     es  <- entities.traverseU(_.run(store => store.linesUtf8.read))
-    in  <- incremental.traverseU({ case (ref, sm) => for {
+    in  <- incremental.traverseU({ case (id, sm) => for {
             _ <- ResultT.ok[IO, Unit]({
                    println(s"Previous store was '${sm.store}'")
                    println(s"Previous date was '${sm.date.string("-")}'")
                  })
             s <- storeFromIvory(repo, sm.store)
-          } yield (ref.path.toHdfs, s, sm) })
+          } yield (repo.snapshot(id).toHdfs, s, sm) })
     _   <- job(hr, s, in, out, codec).run(hr.conf)
     _   <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), d)
     _   <- SnapshotMeta(snapshot, store).toReference(output </> SnapshotMeta.fname)
@@ -66,17 +67,17 @@ case class Snapshot(repo: Repository, store: String, entities: Option[ReferenceI
 object Snapshot {
   val SnapshotName: String = "ivory-incremental-snapshot"
 
-  def takeSnapshot(repo: Repository, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ResultTIO[(String, ReferenceIO)] =
+  def takeSnapshot(repo: Repository, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ResultTIO[(String, Identifier)] =
     fatrepo.ExtractLatestWorkflow.onStore(repo, extractLatest(codec), date, incremental)
 
   /* This is exposed through the external API */
   def snapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Path] = for {
     sc   <- ScoobiAction.scoobiConfiguration
     repo <- Repository.fromHdfsPath(repoPath.toString.toFilePath, sc).pure[ScoobiAction]
-    snap <- ScoobiAction.fromResultTIO(takeSnapshot(repo, date, incremental, codec).map(_._2.path.toHdfs))
+    snap <- ScoobiAction.fromResultTIO(takeSnapshot(repo, date, incremental, codec).map(res => repo.snapshot(res._2).toHdfs))
   } yield snap
 
-  def extractLatest(codec: Option[CompressionCodec])(repo: Repository, store: String, date: Date, output: ReferenceIO, incremental: Option[(ReferenceIO, SnapshotMeta)]): ResultTIO[Unit] =
+  def extractLatest(codec: Option[CompressionCodec])(repo: Repository, store: String, date: Date, output: ReferenceIO, incremental: Option[(Identifier, SnapshotMeta)]): ResultTIO[Unit] =
     Snapshot(repo, store, None, date, output, incremental, codec).run
 
   def storePaths(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ResultTIO[List[FactsetGlob]] =

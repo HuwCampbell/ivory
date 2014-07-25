@@ -9,6 +9,7 @@ import com.ambiata.mundane.store._
 import com.ambiata.saws.s3._
 import com.ambiata.saws.core._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.data._
 import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.ivory.storage.store._
 import com.nicta.scoobi.Scoobi._
@@ -29,6 +30,7 @@ sealed trait Repository {
   def storeByName(name: String): FilePath =  stores </> name
   def factset(set: Factset): FilePath =  factsets </> set.name
   def namespace(set: Factset, namespace: String): FilePath =  factset(set) </> namespace
+  def snapshot(id: Identifier): FilePath = snapshots </> FilePath(id.render)
   def version(set: Factset): FilePath =  factset(set) </> ".version"
 }
 
@@ -63,6 +65,7 @@ object Repository {
   def storeByName(name: String): FilePath =  stores </> name
   def factset(set: Factset): FilePath =  factsets </> set.name
   def namespace(set: Factset, namespace: String): FilePath =  factset(set) </> namespace
+  def snapshot(id: Identifier): FilePath = snapshots </> FilePath(id.render)
 
   val defaultS3TmpDirectory = Reference.defaultS3TmpDirectory
 
