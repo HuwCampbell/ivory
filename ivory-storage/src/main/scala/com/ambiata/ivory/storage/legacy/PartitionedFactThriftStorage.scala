@@ -1,5 +1,7 @@
 package com.ambiata.ivory.storage.legacy
 
+import com.ambiata.ivory.storage.fact.{FactsetVersionTwo, FactsetVersion, FactsetVersionOne}
+
 import scalaz.{DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.compress.CompressionCodec
@@ -120,6 +122,25 @@ object PartitionFactThriftStorageV2 {
       codec.map(partitioned.compressWith(_)).getOrElse(partitioned)
     }
   }
+}
+
+object PartitionFactThriftStorage {
+  def parseThriftFact(factsetVersion: FactsetVersion, path: String)(tfact: ThriftFact): ParseError \/ Fact =
+    factsetVersion match {
+      case FactsetVersionOne =>
+        import PartitionFactThriftStorageV1._
+        for {
+          partition <- parsePartition(path)
+          fact      <- parseFact(partition)(tfact)
+        } yield fact
+
+      case FactsetVersionTwo =>
+        import PartitionFactThriftStorageV2._
+        for {
+          partition <- parsePartition(path)
+          fact      <- parseFact(partition)(tfact)
+        } yield fact
+    }
 }
 
 // FIX delete this, should be using storage.fact.Partitions and/or storage.fact.StoreGlob

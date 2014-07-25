@@ -1,42 +1,59 @@
 package com.ambiata.ivory.tools
 
-import scalaz.stream.{Sink, io}
-import java.io.File
+import com.ambiata.ivory.alien.hdfs.Hdfs
+import com.ambiata.ivory.core.thrift.ThriftFact
+import com.ambiata.ivory.storage.fact.FactsetVersion
+import com.ambiata.ivory.storage.legacy._
+
+import scalaz.{\/-, -\/}
 import scalaz.concurrent.Task
-import scalaz.syntax.traverse._
-import scalaz.std.list._
-import org.apache.hadoop.io.{ByteWritable, SequenceFile, BytesWritable, NullWritable}
-import org.apache.avro.mapred.SequenceFileReader
-import scalaz.stream.Process
-import scalaz.stream.Process.End
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.{Value, Partition, Fact}
 import com.ambiata.mundane.io.{IOActions, IOAction, Logger}
 import scalaz.std.anyVal._
-import com.ambiata.ivory.scoobi.{ScoobiAction, SeqSchemas}
-import org.apache.hadoop.fs.{Path}
+import com.ambiata.ivory.scoobi._
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf.Configuration
 import IOActions._
-import com.ambiata.ivory.alien.hdfs.Hdfs
+import scalaz.syntax.traverse._
+import scalaz.std.list._
 
 /**
  * Read a facts sequence file and print it to screen
  */
 object PrintFacts {
 
-  def print(paths: List[Path], config: Configuration, delim: String, tombstone: String): IOAction[Unit] = for {
-    l <- IOActions.ask
-    _ <- Print.printPathsWith(paths, config, SeqSchemas.factSeqSchema, printFact(delim, tombstone, l))
+  def print(paths: List[Path], config: Configuration, delim: String, tombstone: String, version: FactsetVersion): IOAction[Unit] = for {
+    logger           <- IOActions.ask
+    isPartitionPath  <- paths.traverseU(isPartition(config)).map(_.contains(true))
+    _                <-
+      if (isPartitionPath)
+        Print.printPathsWith(paths, config, SeqSchemas.thriftFactSeqSchema, printThriftFact(delim, tombstone, logger, version))
+      else
+        Print.printPathsWith(paths, config, SeqSchemas.factSeqSchema, printFact(delim, tombstone, logger))
   } yield ()
 
-  def printFact(delim: String, tombstone: String, logger: Logger)(path: Path, f: Fact): Task[Unit] = Task.delay {
-    // We're ignoring structs here
-    val logged = Value.toString(f.value, Some(tombstone)).map { value =>
-      Seq(f.entity,
-          f.namespace,
-          f.feature,
-          value,
-          f.date.hyphenated+delim+f.time.hhmmss).mkString(delim)
+  private def printThriftFact(delim: String, tombstone: String, logger: Logger, version: FactsetVersion)(path: Path, tf: ThriftFact): Task[Unit] = Task.delay {
+    PartitionFactThriftStorage.parseThriftFact(version, path.toString)(tf) match {
+      case -\/(e) => Task.now(logger("Error! "+e.message+": "+e.line).unsafePerformIO)
+      case \/-(f) => printFact(delim, tombstone, logger)(path, f)
     }
-    logged.foreach(logger(_).unsafePerformIO())
+  }.flatMap(identity)
+
+  private def printFact(delim: String, tombstone: String, logger: Logger)(path: Path, f: Fact): Task[Unit] = Task.delay {
+     val logged =
+       Seq(f.entity,
+         f.namespace,
+         f.feature,
+         if(f.isTombstone) tombstone else Value.toStringWithStruct(f.value),
+         f.date.hyphenated+delim+f.time.hhmmss).mkString(delim)
+
+     logger(logged).unsafePerformIO
   }
+
+  /** @return true if the path is a partition */
+  private def isPartition(config: Configuration)(path: Path): IOAction[Boolean] = {
+    val (basePath, glob) = Hdfs.pathAndGlob(path)
+    IOActions.fromResultT(Hdfs.globFiles(basePath, glob).map(_.exists(p => Partition.parseWith(p.toUri.toString).toOption.isDefined)).run(config))
+  }
+
 }
