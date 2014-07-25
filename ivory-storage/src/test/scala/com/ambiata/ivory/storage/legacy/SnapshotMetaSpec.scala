@@ -16,7 +16,6 @@ import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
 
-import scala.util.Sorting
 import scalaz._, Scalaz._
 import scalaz.scalacheck.ScalaCheckBinding._
 
@@ -57,9 +56,9 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
   implicit def SnapshotsArbitrary: Arbitrary[Snapshots] = Arbitrary(for {
     ids <- arbitrary[IdentifierList]
     sms <- Gen.oneOf(genSnapshotMetas(ids) // random SnapshotMeta's
-                   , genSameDateSnapshotMetas(ids) // same date in all SnapshotMeta's
-                   , genSameStoreSnapshotMetas(ids) // same store in all SnapshotMeta's
-                   , genSameSnapshotMetas(ids)) // same SnapshotMeta's
+      , genSameDateSnapshotMetas(ids) // same date in all SnapshotMeta's
+      , genSameStoreSnapshotMetas(ids) // same store in all SnapshotMeta's
+      , genSameSnapshotMetas(ids)) // same SnapshotMeta's
   } yield Snapshots(sms))
 
   def e1 = prop((snaps: Snapshots, date: Date) => {
@@ -68,12 +67,12 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
     val expected = snaps.snaps.filter(_._1.date <= date).sorted.lastOption.map(_.swap)
 
     (snaps.snaps.traverse({ case (meta, id) => storeSnapshotMeta(repo, id, meta) }) must beOk) and
-    (SnapshotMeta.latest(repo, date) must beOkValue(expected))
+      (SnapshotMeta.latest(repo, date) must beOkValue(expected))
   }) // TODO This takes around 30 seconds, needs investigation
 
   def e2 =
     prop((snaps: List[SnapshotMeta])    => assertSortOrder(snaps)) and
-    prop((d: Date, ids: OldIdentifiers) => assertSortOrder(ids.ids.map(SnapshotMeta(d, _))))
+      prop((d: Date, ids: OldIdentifiers) => assertSortOrder(ids.ids.map(SnapshotMeta(d, _))))
 
   def createRepo(prefix: String): Repository = {
     val sc: ScoobiConfiguration = scoobiConfiguration
