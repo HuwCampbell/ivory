@@ -1,17 +1,19 @@
 package com.ambiata.ivory.cli
 
+import com.ambiata.ivory.storage.fact.FactsetVersion
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.tools.PrintFacts
 
 object catFacts extends IvoryApp {
-  case class CliArguments(delimiter: String = "|", tombstone: String = "NA", paths: List[String] = Nil)
+  case class CliArguments(delimiter: String = "|", tombstone: String = "NA", paths: List[String] = Nil, version: FactsetVersion = FactsetVersion.latest)
 
   val parser = new scopt.OptionParser[CliArguments]("cat-facts") {
     head("""
            |Print facts as text (ENTITY-NAMESPACE-ATTRIBUTE-VALUE-DATETIME) to standard out, delimited by '|' or explicitly set delimiter.
-           |The tombstone value is 'NA' by default.
+           |The tombstone value is 'NA' by default
+           |The file version is expected to be the latest by default
            |""".stripMargin)
 
     help("help") text "shows this usage text"
@@ -21,9 +23,11 @@ object catFacts extends IvoryApp {
       "Delimiter (`|` by default)"
     opt[String]('t', "tombstone")   action { (x, c) => c.copy(tombstone = x) }        optional()             text
       "Tombstone (NA by default)"
+    opt[String]('v', "version")   action { (x, c) => c.copy(version = FactsetVersion.fromStringOrLatest(x)) }            optional()             text
+      "Version (latest by default)"
   }
 
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), HadoopRunner { conf => c =>
-    PrintFacts.print(c.paths.map(new Path(_)), conf, c.delimiter, c.tombstone).executeT(consoleLogging).map(_ => Nil)
+    PrintFacts.print(c.paths.map(new Path(_)), conf, c.delimiter, c.tombstone, c.version).executeT(consoleLogging).map(_ => Nil)
   })
 }

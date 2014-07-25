@@ -10,4 +10,9 @@ object FactsetVersion {
     case "2" => Some(FactsetVersionTwo)
     case _   => None
   }
+
+  def fromStringOrLatest(str: String): FactsetVersion =
+    fromString(str).getOrElse(latest)
+
+  val latest = FactsetVersionTwo
 }

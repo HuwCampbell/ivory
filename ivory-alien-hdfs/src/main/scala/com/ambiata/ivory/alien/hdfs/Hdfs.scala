@@ -105,12 +105,15 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
 
   def globDirs(p: Path, glob: String = "*"): Hdfs[List[Path]] =
     filesystem.map(fs =>
-      if (fs.isFile(p)) List() else fs.globStatus(new Path(p, glob)).toList.filter(_.isDirectory).map(_.getPath)
+      if (fs.isFile(p)) List() else fs.globStatus(newPath(p, glob)).toList.filter(_.isDirectory).map(_.getPath)
     )
 
   def globPaths(p: Path, glob: String = "*"): Hdfs[List[Path]] =
     filesystem.map(fs =>
-      if(fs.isFile(p)) List(p) else fs.globStatus(new Path(p, glob)).toList.map(_.getPath))
+      if(fs.isFile(p)) List(p) else fs.globStatus(newPath(p, glob)).toList.map(_.getPath))
+
+  private def newPath(path: Path, glob: String) =
+    if (glob.isEmpty) path else new Path(path, glob)
 
   def globPathsRecursively(p: Path, glob: String = "*"): Hdfs[List[Path]] = {
     def getPaths(path: Path): FileSystem => List[Path] = { fs: FileSystem =>
