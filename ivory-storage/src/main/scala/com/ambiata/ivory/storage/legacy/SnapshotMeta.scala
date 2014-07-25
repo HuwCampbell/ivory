@@ -56,5 +56,6 @@ object SnapshotMeta {
       snapmeta.run(store => path => store.exists(path).flatMap(e =>
         if(e) fromReference(snapmeta).map(sm => Some((p, sm))) else ResultT.ok(None)))
     }).map(_.flatten)
-  } yield metas.filter(_._2.date.isBeforeOrEqual(date)).sortBy(_._2).lastOption
+    filtered = metas.filter(_._2.date.isBeforeOrEqual(date))
+  } yield filtered.sortBy({ case (r, sm) => (sm, r.path.basename.path) }).lastOption
 }
