@@ -47,8 +47,8 @@ object build extends Build {
     name := "ivory"
   , version in ThisBuild := s"""1.0.0-${Option(System.getenv("HADOOP_VERSION")).getOrElse("cdh5")}"""
   , organization := "com.ambiata"
-  , scalaVersion := "2.11.1"
-  , crossScalaVersions := Seq("2.10.4", "2.11.1")
+  , scalaVersion := "2.11.2"
+  , crossScalaVersions := Seq("2.10.4", scalaVersion.value)
   , fork in run  := true
   // https://gist.github.com/djspiewak/976cd8ac65e20e136f05
   , unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / s"scala-${scalaBinaryVersion.value}"
@@ -143,7 +143,7 @@ object build extends Build {
   , base = file("ivory-core")
   , settings = standardSettings ++ lib("core") ++ Seq[Settings](
       name := "ivory-core"
-    , addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0" cross CrossVersion.full)
+    , libraryDependencies ++= (if (scalaVersion.value.contains("2.10")) Seq(compilerPlugin("org.scalamacros" %% "paradise" % "2.0.0" cross CrossVersion.full)) else Nil)
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++
                                                depend.thrift ++ depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value))
   )
@@ -154,7 +154,7 @@ object build extends Build {
   , base = file("ivory-data")
   , settings = standardSettings ++ lib("data") ++ Seq[Settings](
       name := "ivory-data"
-    , addCompilerPlugin("org.scalamacros" %% "paradise" % "2.0.0" cross CrossVersion.full)
+    , libraryDependencies ++= (if (scalaVersion.value.contains("2.10")) Seq(compilerPlugin("org.scalamacros" %% "paradise" % "2.0.0" cross CrossVersion.full)) else Nil)
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.specs2 ++
                                                depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value))
   )
