@@ -53,13 +53,9 @@ object SnapshotMeta {
     } yield SnapshotMeta(Date.fromLocalDate(d), s)
   }
 
-  def latest(snapshots: ReferenceIO, date: Date): ResultTIO[Option[(Identifier, SnapshotMeta)]] = for {
-    paths <- snapshots.run(s => p => StoreDataUtil.listDir(s, p)).map(_.map(snapshots </> _.basename))
-    metas <- paths.traverseU(p => {
-      val snapmeta = p </> fname
-      snapmeta.run(store => path => store.exists(path).flatMap(e =>
-        if(e) fromReference(snapmeta).map(sm => Identifier.parse(p.path.basename.path).map((_, sm))) else ResultT.ok(None)))
-    }).map(_.flatten)
-    filtered = metas.filter(_._2.date.isBeforeOrEqual(date))
-  } yield filtered.sortBy({ case (id, sm) => (sm, id) }).lastOption
+  def latest(repo: Repository, date: Date): ResultTIO[Option[(Identifier, SnapshotMeta)]] = for {
+    ids   <- repo.toReference(Repository.snapshots).run(s => p => StoreDataUtil.listDir(s, p)).map(_.map(_.basename.path))
+    metas <- ids.traverseU(sid => Identifier.parse(sid).map(id => fromIdentifier(repo, id).map((id, _))).sequenceU)
+    filtered = metas.collect({ case Some((id, sm)) if sm.date.isBeforeOrEqual(date) => (id, sm) })
+  } yield filtered.sortBy(_.swap).lastOption
 }

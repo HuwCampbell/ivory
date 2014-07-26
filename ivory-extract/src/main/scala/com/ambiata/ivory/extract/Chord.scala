@@ -185,7 +185,7 @@ object Chord {
 
   def latestSnapshot(repo: Repository, date: Date): ResultTIO[(String, Option[Identifier])] = for {
     store  <- ExtractLatestWorkflow.latestStore(repo)
-    latest <- SnapshotMeta.latest(repo.toReference(Repository.snapshots), date)
+    latest <- SnapshotMeta.latest(repo, date)
   } yield (store, latest.map(_._1))
 
   def serialiseChords(ref: ReferenceIO, map: HashMap[String, Array[Int]]): ResultTIO[Unit] = {

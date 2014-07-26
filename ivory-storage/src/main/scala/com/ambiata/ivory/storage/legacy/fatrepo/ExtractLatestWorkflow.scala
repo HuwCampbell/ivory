@@ -40,10 +40,10 @@ object ExtractLatestWorkflow {
   def onStore(repo: Repository, extractor: Extractor, date: Date, incremental: Boolean): ResultTIO[(String, Identifier)] = {
     for {
       sname  <- latestStore(repo)
-      incr   <- if(incremental) SnapshotMeta.latest(repo.toReference(Repository.snapshots), date) else ResultT.ok[IO, Option[(Identifier, SnapshotMeta)]](None)
+      incr   <- if(incremental) SnapshotMeta.latest(repo, date) else ResultT.ok[IO, Option[(Identifier, SnapshotMeta)]](None)
       snap   <- decideSnapshot(repo, date, sname, incr)
       (skip, outId) = snap
-      output = repo.toReference(Repository.snapshots </> FilePath(outId.render))
+      output = repo.toReference(Repository.snapshot(outId))
       _      <- if(skip) {
                   logger.info(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${sname}'")
                   ResultT.ok[IO, Unit](())
