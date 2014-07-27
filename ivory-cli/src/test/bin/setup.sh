@@ -29,4 +29,5 @@ diff_test() {
 export TARGET="${PROJECT}/target/regression/"
 export REPOSITORY="/tmp/ivory-$(random)"
 export INPUT="${TEST}/input"
+rm -rf "${TARGET}"
 mkdir -p "${TARGET}"
