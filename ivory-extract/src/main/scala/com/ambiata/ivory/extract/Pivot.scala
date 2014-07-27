@@ -28,7 +28,8 @@ object Pivot {
 
   def onStoreFromSnapshot(repo: Repository, output: ReferenceIO, delim: Char, tombstone: String, date: Date, codec: Option[CompressionCodec]): ResultTIO[Unit] = for {
     snap <- Snapshot.takeSnapshot(repo, date, true, codec)
-    (store, ref) = snap
+    (store, snapId) = snap
+    ref = repo.toReference(Repository.snapshot(snapId))
     _    <- onStore(repo, ref, output, delim, tombstone)
   } yield ()
 

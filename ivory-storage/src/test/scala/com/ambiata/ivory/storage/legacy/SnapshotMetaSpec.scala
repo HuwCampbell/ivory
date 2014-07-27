@@ -64,12 +64,10 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
   def e1 = prop((snaps: Snapshots, date: Date) => {
     val repo = createRepo("SnapshotMetaSpec.e1")
 
-    val expected = snaps.snaps.filter(_._1.date <= date).sorted.lastOption.map({ case (meta, id) =>
-      (repo.toReference(Repository.snapshots </> FilePath(id.render)), meta)
-    })
+    val expected = snaps.snaps.filter(_._1.date <= date).sorted.lastOption.map(_.swap)
 
     (snaps.snaps.traverse({ case (meta, id) => storeSnapshotMeta(repo, id, meta) }) must beOk) and
-    (SnapshotMeta.latest(repo.toReference(Repository.snapshots), date) must beOkValue(expected))
+    (SnapshotMeta.latest(repo, date) must beOkValue(expected))
   }) // TODO This takes around 30 seconds, needs investigation
 
   def e2 =
