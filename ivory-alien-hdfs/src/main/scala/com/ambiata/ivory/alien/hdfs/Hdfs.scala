@@ -242,7 +242,7 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
    */
   def childrenSizes(path: Path, glob: String = "*"): Hdfs[List[(Path, BytesQuantity)]] =
     for {
-      children <- Hdfs.globPaths(path, glob)
+      children <- Hdfs.globPaths(path, glob).filterHidden
       sizes    <- children.traverse(c => totalSize(c).map((c, _)))
     } yield sizes
 

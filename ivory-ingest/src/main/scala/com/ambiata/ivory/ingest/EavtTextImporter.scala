@@ -34,6 +34,7 @@ object EavtTextImporter {
     dictionary: Dictionary,
     factset: Factset,
     namespace: List[String],
+    singleNamespace: Option[String],
     inputRef: ReferenceIO,
     errorRef: ReferenceIO,
     timezone: DateTimeZone,
@@ -45,10 +46,11 @@ object EavtTextImporter {
       case HdfsRepository(_, conf, _) => ResultT.ok[IO, Configuration](conf)
       case _                          => ResultT.fail[IO, Configuration]("Repository must be HDFS")
     }
-    path <- Reference.hdfsPath(inputRef)
+    path      <- Reference.hdfsPath(inputRef)
     errorPath <- Reference.hdfsPath(errorRef)
-    _  <- writeFactsetVersion(repository, List(factset))
-    _  <- ResultT.safe[IO, Unit] {
+    _         <- writeFactsetVersion(repository, List(factset))
+    paths     <- getAllInputPaths(path, partitions.map(_._1), singleNamespace.isDefined)(c)
+    _         <- ResultT.safe[IO, Unit] {
       IngestJob.run(
         c,
         dictionary,
@@ -56,12 +58,18 @@ object EavtTextImporter {
         timezone,
         timezone,
         path,
-        partitions.map(_._1).map(namespace => path.toString + "/" + namespace + "/*"),
+        singleNamespace,
+        paths,
         repository.factset(factset).toHdfs,
         errorPath,
         codec
       )
     }
   } yield ()
+
+
+  private def getAllInputPaths(path: Path, namespaceNames: List[String], isSingleNamespace: Boolean)(conf: Configuration): ResultTIO[List[Path]] =
+    if (isSingleNamespace) Hdfs.globFilesRecursively(path).filterHidden.run(conf)
+    else                   namespaceNames.map(ns => Hdfs.globFilesRecursively(new Path(path, ns)).filterHidden).sequence.map(_.flatten).run(conf)
 
 }

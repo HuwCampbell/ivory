@@ -39,10 +39,10 @@ import org.joda.time.DateTimeZone
  */
 object IngestJob {
   // FIX shouldn't need `root: Path` it is a workaround for poor namespace handling
-  def run(conf: Configuration, dictionary: Dictionary, reducerLookups: ReducerLookups, ivoryZone: DateTimeZone, ingestZone: DateTimeZone, root: Path, paths: List[String], target: Path, errors: Path, codec: Option[CompressionCodec]): Unit = {
+  def run(conf: Configuration, dictionary: Dictionary, reducerLookups: ReducerLookups, ivoryZone: DateTimeZone, ingestZone: DateTimeZone, root: Path, singleNamespace: Option[String], paths: List[Path], target: Path, errors: Path, codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
-    val ctx = FactsetJob.configureJob("ivory-ingest", job, dictionary, reducerLookups, paths.map(new Path(_)), target, codec)
+    val ctx = FactsetJob.configureJob("ivory-ingest", job, dictionary, reducerLookups, paths, target, codec)
 
     /* map */
     job.setMapperClass(classOf[IngestMapper])
@@ -57,6 +57,7 @@ object IngestJob {
     job.getConfiguration.set(Keys.IvoryZone, ivoryZone.getID)
     job.getConfiguration.set(Keys.IngestZone, ingestZone.getID)
     job.getConfiguration.set(Keys.IngestBase, FileSystem.get(conf).getFileStatus(root).getPath.toString)
+    singleNamespace.foreach(ns => job.getConfiguration.set(Keys.SingleNamespace, ns))
 
     /* run job */
     if (!job.waitForCompletion(true))
@@ -73,6 +74,7 @@ object IngestJob {
     val IvoryZone = "ivory.tz"
     val IngestZone = "ivory.ingest.tz"
     val IngestBase = "ivory.ingest.base"
+    val SingleNamespace = "ivory.ingest.singlenamespace"
     val Err = "err"
   }
 }
@@ -126,6 +128,9 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
   /* Path this mapper is processing */
   var splitPath: Path = null
 
+  /* name of the namespace being processed if there's only one */
+  var singleNamespace: Option[String] = None
+
   override def setup(context: Mapper[LongWritable, Text, LongWritable, BytesWritable]#Context): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     out = new MultipleOutputs(context.asInstanceOf[Mapper[LongWritable, Text, NullWritable, BytesWritable]#Context])
@@ -137,6 +142,7 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
     ingestZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IngestZone))
     base = context.getConfiguration.get(IngestJob.Keys.IngestBase)
     splitPath = MrContext.getSplitPath(context.getInputSplit)
+    singleNamespace = Option(context.getConfiguration.get(IngestJob.Keys.SingleNamespace))
   }
 
   override def cleanup(context: Mapper[LongWritable, Text, LongWritable, BytesWritable]#Context): Unit =
@@ -144,8 +150,9 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
 
   override def map(key: LongWritable, value: Text, context: Mapper[LongWritable, Text, LongWritable, BytesWritable]#Context): Unit = {
     val line = value.toString
+    val namespace = singleNamespace.fold(namespaces.getOrElseUpdate(splitPath.getParent.toString, findIt(splitPath)))(identity)
 
-    EavtParsers.parse(line, dict, namespaces.getOrElseUpdate(splitPath.getParent.toString, findIt(splitPath)), ingestZone) match {
+    EavtParsers.parse(line, dict, namespace, ingestZone) match {
       case Success(f) =>
 
         context.getCounter("ivory", "ingest.ok").increment(1)
