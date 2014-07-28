@@ -1,0 +1,22 @@
+#!/bin/sh -eu
+
+# Download the GSOD data via the official FTP site
+# Note that downloading the per-year tar file is 1000 faster than per-station gz file
+
+# http://www.infochimps.com/datasets/global-daily-weather-data-from-the-national-climate-data-center-
+# > WARNING: this is huge, and complex, and will make your computer unhappy unless you have specialized tools to work with data at this scale
+# Big data? You keep using that word, I do not think it means what you think it means...
+
+TARGET=$1
+START_YEAR=$2
+END_YEAR=$3
+
+for i in $(seq ${START_YEAR} ${END_YEAR}); do
+  OUT="${TARGET}/${i}"
+  if [ ! -e "${OUT}/gsod_${i}.tar" ]; then
+    wget ftp://ftp.ncdc.noaa.gov/pub/data/gsod/${i}/gsod_${i}.tar
+    mkdir -p ${OUT}
+    mv gsod_${i}.tar ${OUT}
+    tar xf ${OUT}/gsod_${i}.tar -C ${OUT}
+  fi
+done

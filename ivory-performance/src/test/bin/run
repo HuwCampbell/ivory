@@ -1,0 +1,84 @@
+#!/bin/sh -eux
+
+# Script that can be used to test Ivory end-to-end, keeping track of performance.
+# It can either be run with an AMR job by setting the $EMR_CLUSTER_ID env variable (see /bin/ci.perf).
+# Alternatively it can be run locally (eg. ./run "gsod" 1977 1982).
+
+DIR=$(dirname $0)
+PROJECT="${DIR}/../../.."
+export SCALA_VERSION="2.11"
+
+TEST=$1
+shift
+
+INPUT="${PROJECT}/target/input-$$"
+TIMES="${PROJECT}/target/times-$$.csv"
+DICTIONARY="${DIR}/tests/${TEST}/dictionary.psv"
+
+# Download hadoop
+export HADOOP=${PROJECT}/../bin/hadoop
+
+put() {
+  echo "$1"
+}
+
+# Setup Hadoop first so we can import files incrementally
+REPOSITORY="${PROJECT}/target/ivory-$$"
+if [ ! -z "${EMR_CLUSTER_ID-}" ]; then
+  # Use a cluster-aware hadoop command instead
+  export HADOOP=${DIR}/hadoop-cluster
+  # Make the directory first so that 'put' creates the sub-input folders by name
+  ${HADOOP} fs -Ddfs.block.size=16777216 -mkdir "/input-perf-$$" 1>&2
+  # Use a small block size to improve performance for small files
+  put() {
+    ${HADOOP} fs -Ddfs.block.size=16777216 -put $1 "/input-perf-$$" 1>&2
+    # Delete as we go to conserve space
+    rm -r $1
+    echo "/input-perf-$$/$(basename $1)"
+  }
+  REPOSITORY="/ivory-perf-$$"
+fi
+
+# Build ivory so we can use it
+if [ -z "${IVORY-}" ]; then
+  ${DIR}/build
+  export IVORY="${HADOOP} jar ${PROJECT}/../ivory-cli/target/scala-${SCALA_VERSION}/ivory-cli-*.jar"
+fi
+
+# CSV Column headers
+echo "step,time" > ${TIMES}
+
+# This is a _very_ poor (and temporary) substitute for real profiling support
+# https://github.com/ambiata/ivory/issues/26
+timeit() {
+    echo "$1,$SECONDS" >> ${TIMES}
+}
+
+timeit "start"
+
+$IVORY create-repository -p "${REPOSITORY}"
+timeit "create-repository"
+
+$IVORY import-dictionary -r "${REPOSITORY}" -p "file://${PWD}/${DICTIONARY}"
+timeit "import-dictionary"
+
+COUNT=0
+SNAPSHOT=5
+
+${DIR}/tests/${TEST}/input "$@" | while IFS= read -r local_path; do
+  path=$(put ${local_path})
+  # Ingest every subfolder
+  $IVORY ingest -Ddfs.block.size=16777216 -Dmapreduce.job.reduce.slowstart.completedmaps=0.95 -o 2000000000 -r "${REPOSITORY}" -z "Australia/Sydney" -i "${path}"
+  $HADOOP fs -rm -r "${path}"
+  timeit "ingest-$(basename ${path})"
+  # But only create snapshots every X iterations
+  if [ $(( ${COUNT} % ${SNAPSHOT} )) -eq 0 ]; then
+    $IVORY extract-snapshot -r "${REPOSITORY}"
+    timeit "extract-snapshot-$(basename ${path})"
+  fi
+  COUNT=$((COUNT+1))
+done
+
+timeit "end"
+
+cp "${TIMES}" "${PROJECT}/../target/times.csv"

@@ -1,0 +1,36 @@
+#!/bin/sh
+
+DIR=$(dirname $0)
+
+# Cluster-specific hadoop configurations.
+HADOOP_CONF_BASE=${DIR}/../../../target/hadoop-conf/
+export HADOOP_CONF_BASE
+
+# Get the private IP of an EMR's master node.
+function ip_from_cluster_id {
+  aws emr list-instances --instance-group-types MASTER --cluster-id $1 | grep PrivateIpAddress | awk '{ print $2 }' | sed 's/"\(.*\)"/\1/'
+}
+
+# Create specific Hadoop configuration files given a specific EMR master IP
+# based on templates located in the normal /etc/ directories.
+function setup_conf {
+  emr_cluster_id=$1
+
+  if [ -z "$emr_cluster_id" ]; then
+    echo "'EMR_CLUSTER_ID' must be set"
+    return 1
+  fi
+
+  conf_dir=$HADOOP_CONF_BASE/$emr_cluster_id
+
+  if [ ! -d $conf_dir ]; then
+    emr_master_ip=`ip_from_cluster_id $emr_cluster_id`
+    mkdir -p $conf_dir
+    for conf_file in ${DIR}/conf/*; do
+      sed "s/\${emr.master.ip}/$emr_master_ip/" $conf_file > $conf_dir/`basename $conf_file`
+    done
+  fi
+}
+
+setup_conf "${1:-$EMR_CLUSTER_ID}"
+echo ${HADOOP_CONF_BASE}/${EMR_CLUSTER_ID}
