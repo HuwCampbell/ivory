@@ -60,14 +60,14 @@ object ingest extends IvoryApp {
   def run(repo: Repository, input: ReferenceIO, namespace: Option[String], timezone: DateTimeZone, optimal: BytesQuantity, codec: Option[CompressionCodec]): ResultTIO[Factset] =
     fatrepo.ImportWorkflow.onStore(repo, importFeed(input, namespace, optimal, codec), timezone)
 
-  def importFeed(input: ReferenceIO, namespace: Option[String], optimal: BytesQuantity, codec: Option[CompressionCodec])(repo: Repository, factset: Factset, errorRef: ReferenceIO, timezone: DateTimeZone): ResultTIO[Unit] = for {
+  def importFeed(input: ReferenceIO, singleNamespace: Option[String], optimal: BytesQuantity, codec: Option[CompressionCodec])(repo: Repository, factset: Factset, errorRef: ReferenceIO, timezone: DateTimeZone): ResultTIO[Unit] = for {
     conf <- repo match {
       case HdfsRepository(_, c, _) => ResultT.ok[IO, Configuration](c)
       case _                       => ResultT.fail[IO, Configuration]("Currently only support HDFS repository")
     }
     dict <- dictionaryFromIvory(repo)
     path <- Reference.hdfsPath(input)
-    list <- Namespaces.namespaceSizes(path, namespace).run(conf)
-    _    <- EavtTextImporter.onStore(repo, dict, factset, list.map(_._1), input, errorRef, timezone, list.toMap.mapKeys(_.toString).toList, optimal, codec)
+    list <- Namespaces.namespaceSizes(path, singleNamespace).run(conf)
+    _    <- EavtTextImporter.onStore(repo, dict, factset, list.map(_._1), singleNamespace, input, errorRef, timezone, list.toMap.mapKeys(_.toString).toList, optimal, codec)
   } yield ()
 }
