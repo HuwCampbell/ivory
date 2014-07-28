@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.fact
 
-import com.ambiata.ivory.alien.hdfs.Hdfs
+import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.mundane.io.BytesQuantity
 import org.apache.hadoop.fs.Path
 

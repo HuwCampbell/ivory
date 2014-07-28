@@ -1,6 +1,6 @@
 package com.ambiata.ivory.ingest
 
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.{ReducerLookup, NamespaceLookup, FeatureIdLookup}

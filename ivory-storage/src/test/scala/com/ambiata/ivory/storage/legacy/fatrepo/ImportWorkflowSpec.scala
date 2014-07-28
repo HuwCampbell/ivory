@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.legacy.fatrepo
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 
 import org.specs2._
 import org.scalacheck._, Arbitraries._

@@ -7,7 +7,7 @@ import com.ambiata.mundane.store._
 import com.nicta.scoobi.Scoobi._
 
 import com.ambiata.ivory.core.IvorySyntax._
-import com.ambiata.ivory.alien.hdfs.HdfsStore
+import com.ambiata.poacher.hdfs.HdfsStore
 import com.ambiata.saws.s3.S3Store
 import com.ambiata.saws.core.Clients
 

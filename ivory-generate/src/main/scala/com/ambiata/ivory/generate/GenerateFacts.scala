@@ -11,7 +11,7 @@ import com.ambiata.mundane.io._
 import java.util.Random
 
 import com.ambiata.ivory.core.{Value => IValue, _}
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage.legacy._

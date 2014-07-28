@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.metadata
 
 import scalaz.{Value => _, _}, Scalaz._, \&/._, effect.IO
 import org.apache.hadoop.fs.Path
-import com.ambiata.ivory.alien.hdfs._, HdfsS3Action._
+import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.storage.store._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._

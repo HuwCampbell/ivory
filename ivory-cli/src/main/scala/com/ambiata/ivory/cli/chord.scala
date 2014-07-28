@@ -9,7 +9,7 @@ import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 
 import org.apache.hadoop.fs.Path
 import org.apache.commons.logging.LogFactory

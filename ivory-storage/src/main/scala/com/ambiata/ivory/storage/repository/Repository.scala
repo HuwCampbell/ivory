@@ -10,9 +10,10 @@ import com.ambiata.saws.s3._
 import com.ambiata.saws.core._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.data._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.storage.store._
 import com.nicta.scoobi.Scoobi._
+import com.ambiata.poacher.hdfs._
 
 sealed trait Repository {
   def toStore: Store[ResultTIO]

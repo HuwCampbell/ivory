@@ -14,13 +14,14 @@ import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.data._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
-import com.ambiata.ivory.scoobi.ScoobiAction
+import com.ambiata.poacher.scoobi._
+import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.legacy.fatrepo.ExtractLatestWorkflow
 import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 
 case class Chord(repo: Repository, store: String, entities: HashMap[String, Array[Int]], output: ReferenceIO, tmp: ReferenceIO, incremental: Option[Identifier], codec: Option[CompressionCodec]) {
   import IvoryStorage._

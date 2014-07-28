@@ -3,31 +3,29 @@ package com.ambiata.ivory.storage.legacy
 
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.alien.hdfs._, HdfsS3Action._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.scoobi.ScoobiAction
+import com.ambiata.poacher.scoobi._
+import com.ambiata.poacher.hdfs._
 import com.nicta.scoobi.{core, Scoobi}, Scoobi._
 import com.nicta.scoobi.core.{Emitter => _, _}
 import com.nicta.scoobi.io.sequence._
-import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 import com.nicta.scoobi.impl.util.DistCache
 
 import java.io.{DataInput, DataOutput}
-import org.apache.hadoop.fs.{Path, FileSystem}
+import org.apache.hadoop.fs.{Hdfs => _, _}
 import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.conf.Configuration
-import com.nicta.scoobi.Scoobi.DList
 import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 import com.nicta.scoobi.Scoobi.WireFormat
 import org.apache.hadoop.io.compress.CompressionCodec
-import org.apache.hadoop.io.SequenceFile.CompressionType
 import MemoryConversions._
 
 import scalaz._, Scalaz._
 import scala.collection.JavaConverters._
 import com.ambiata.ivory.scoobi.WireFormats.BytesQuantityWireFormat
+import com.ambiata.poacher.hdfs.Hdfs
 
 case class Stat(in: String, out: String, size: BytesQuantity, seq: Boolean) {
   def path = new Path(in)

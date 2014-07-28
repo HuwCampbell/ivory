@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.fact
 
-import com.ambiata.ivory.alien.hdfs.Hdfs
+import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._

@@ -17,7 +17,8 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.storage.metadata.Metadata._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
+import com.ambiata.poacher.scoobi._
 
 /**
  * Takes a snapshot containing EAVTs

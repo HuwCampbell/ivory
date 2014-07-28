@@ -17,7 +17,8 @@ import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
+import com.ambiata.poacher.scoobi._
 import com.ambiata.mundane.control._
 
 

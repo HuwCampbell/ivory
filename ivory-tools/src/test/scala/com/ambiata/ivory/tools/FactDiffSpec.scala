@@ -12,7 +12,7 @@ import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.scoobi._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 import FactFormats._
 
 class FactDiffSpec extends Specification with ThrownExpectations with FileMatchers { def is = s2"""

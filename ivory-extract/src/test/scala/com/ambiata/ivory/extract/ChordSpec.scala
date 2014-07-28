@@ -24,7 +24,7 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 import IvoryStorage._
 
 class ChordSpec extends Specification with SampleFacts with ThrownExpectations { def is = s2"""

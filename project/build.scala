@@ -29,7 +29,6 @@ object build extends Build {
     , scoobi
     , storage
     , tools
-    , alien_hdfs
     )
   )
   /* this should only ever export _api_, DO NOT add things to this list */
@@ -67,7 +66,7 @@ object build extends Build {
   , settings = standardSettings ++ lib("api") ++ mimaDefaultSettings ++ Seq[Settings](
       name := "ivory-api"
     , previousArtifact := Some("com.ambiata" %% "ivory-api" % "1.0.0-cdh5-20140703185823-2efc9c3")
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.slf4j)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.slf4j)
   )
   .dependsOn(generate, ingest, tools, extract)
 
@@ -132,7 +131,7 @@ object build extends Build {
       -keepclassmembers class * { ** serialVersionUID; }
     """
     , javaOptions in (Proguard, ProguardKeys.proguard) := Seq("-Xmx2G")
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2 ++ depend.slf4j)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.hadoop(version.value)  ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.slf4j)
       ++ addArtifact(Artifact("ivory", "dist", "tgz"), packageZipTarball in Universal)
       ++ addArtifact(Artifact("ivory", "dist", "zip"), packageBin in Universal)
   )
@@ -164,7 +163,7 @@ object build extends Build {
   , base = file("ivory-extract")
   , settings = standardSettings ++ lib("extract") ++ Seq[Settings](
       name := "ivory-extract"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2 ++ depend.mundane)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.mundane)
   )
   .dependsOn(core, scoobi, storage, mr, core % "test->test", scoobi % "test->test", storage % "test->test")
 
@@ -173,7 +172,7 @@ object build extends Build {
   , base = file("ivory-generate")
   , settings = standardSettings ++ lib("generate") ++ Seq[Settings](
       name := "ivory-generate"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.scoobi(version.value) ++ depend.specs2)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.specs2)
   )
   .dependsOn(core, storage)
 
@@ -182,53 +181,45 @@ object build extends Build {
   , base = file("ivory-ingest")
   , settings = standardSettings ++ lib("ingest") ++ Seq[Settings](
       name := "ivory-ingest"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.scoobi(version.value) ++ depend.saws ++ depend.mundane)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.saws ++ depend.mundane)
   )
-  .dependsOn(core, storage, alien_hdfs, scoobi, mr, scoobi % "test->test", core % "test->test")
+  .dependsOn(core, storage, scoobi, mr, scoobi % "test->test", core % "test->test")
 
   lazy val mr = Project(
     id = "mr"
   , base = file("ivory-mr")
   , settings = standardSettings ++ lib("mr") ++ Seq[Settings](
       name := "ivory-mr"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.thrift ++ depend.mundane ++ depend.scalaz ++ depend.specs2 ++ depend.hadoop(version.value))
+    ) ++ Seq[Settings](libraryDependencies ++= depend.thrift ++ depend.mundane ++ depend.scalaz ++ depend.specs2 ++ depend.poacher(version.value) ++ depend.hadoop(version.value))
   )
-  .dependsOn(core, alien_hdfs, core % "test->test")
+  .dependsOn(core, core % "test->test")
 
   lazy val scoobi = Project(
     id = "scoobi"
   , base = file("ivory-scoobi")
   , settings = standardSettings ++ lib("scoobi") ++ Seq[Settings](
       name := "ivory-scoobi"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.saws ++ depend.specs2 ++ depend.mundane)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.poacher(version.value) ++ depend.scoobi(version.value) ++ depend.saws ++ depend.specs2 ++ depend.mundane)
   )
-  .dependsOn(core, alien_hdfs)
+  .dependsOn(core)
 
   lazy val storage = Project(
     id = "storage"
   , base = file("ivory-storage")
   , settings = standardSettings ++ lib("storage") ++ Seq[Settings](
       name := "ivory-storage"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2 ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz  ++ depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.saws)
   )
-  .dependsOn(core, data, scoobi, alien_hdfs, mr, core % "test->test",  scoobi % "test->test", data % "test->test")
+  .dependsOn(core, data, scoobi, mr, core % "test->test",  scoobi % "test->test", data % "test->test")
 
   lazy val tools = Project(
     id = "tools"
   , base = file("ivory-tools")
   , settings = standardSettings ++ lib("tools") ++ Seq[Settings](
       name := "ivory-tools"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2 ++ depend.mundane)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.mundane)
   )
   .dependsOn(core, extract, scoobi, storage, core % "test->test", storage % "test->test")
-
-  lazy val alien_hdfs = Project(
-    id = "hdfs"
-  , base = file("ivory-alien-hdfs")
-  , settings = standardSettings ++ lib("alien.hdfs") ++ Seq[Settings](
-      name := "ivory-alien-hdfs"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.mundane ++ depend.saws ++ depend.scoobi(version.value) ++ depend.specs2)
-  )
 
   lazy val compilationSettings: Seq[Settings] = Seq(
     javaOptions ++= Seq("-Xmx3G", "-Xms512m", "-Xss4m")

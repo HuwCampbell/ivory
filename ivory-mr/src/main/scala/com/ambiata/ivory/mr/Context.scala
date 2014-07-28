@@ -7,7 +7,7 @@ import org.apache.hadoop.mapreduce.InputSplit
 import org.apache.hadoop.conf.Configuration
 import java.util.UUID
 
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 
 import scalaz.syntax.bind._
 

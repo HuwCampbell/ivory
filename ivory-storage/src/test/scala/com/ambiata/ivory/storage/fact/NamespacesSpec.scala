@@ -1,6 +1,5 @@
 package com.ambiata.ivory.storage.fact
 
-import com.ambiata.ivory.alien.hdfs.Hdfs
 import com.ambiata.mundane.io.{BytesQuantity, MemoryConversions, Streams}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
@@ -10,6 +9,7 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import Streams._
 import scalaz._, Scalaz._
 import MemoryConversions._
+import com.ambiata.poacher.hdfs._
 
 class NamespacesSpec extends Specification { def is = s2"""
 

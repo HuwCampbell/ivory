@@ -8,7 +8,7 @@ import com.ambiata.ivory.scoobi.SeqSchemas
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf.Configuration
 import IOActions._
-import com.ambiata.ivory.alien.hdfs.Hdfs
+import com.ambiata.poacher.hdfs.Hdfs
 
 /**
  * Read a ParseError sequence file and print it to screen

@@ -70,8 +70,4 @@ object Ivory
    * Debug
    */
   val printErrors = com.ambiata.ivory.tools.PrintErrors.print _
-  // MTH rename: printSnapshots
-  val printFacts = com.ambiata.ivory.tools.PrintFacts.print _
-  // MTH rename: printFactsets
-  val printInternalFacts = com.ambiata.ivory.tools.PrintInternalFacts.print _
 }

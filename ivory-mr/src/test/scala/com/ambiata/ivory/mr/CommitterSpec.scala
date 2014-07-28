@@ -5,7 +5,7 @@ import org.specs2.matcher.ThrownExpectations
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf.Configuration
 import scalaz._, Scalaz._

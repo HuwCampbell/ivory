@@ -31,18 +31,22 @@ object depend {
   // We _need_ 1.6 for running distributed jobs - otherwise libthrift brings in 1.5 and things break
   val slf4j     = Seq("org.slf4j"            % "slf4j-api"        % "1.6.4")
 
-  def scoobi(version: String) =
-    (if (version.contains("cdh4")) Seq(
-      "com.nicta" %% "scoobi" % "0.9.0-cdh4-20140722073640-fe6f152" intransitive(),
-      "com.nicta" %% "scoobi-compatibility-cdh4" % "1.0.2" intransitive())
-    else if (version.contains("cdh5")) Seq(
-      "com.nicta" %% "scoobi" % "0.9.0-cdh5-20140722073131-fe6f152" intransitive(),
-      "com.nicta" %% "scoobi-compatibility-cdh5" % "1.0.2" intransitive())
-    else
-      sys.error(s"unsupported scoobi version, can not build for $version")
-    ) ++ Seq(
+  def scoobi(version: String) = {
+    val jars =
+      if (version.contains("cdh4"))      Seq("com.nicta" %% "scoobi"                    % "0.9.0-cdh4-20140722073640-fe6f152",
+                                             "com.nicta" %% "scoobi-compatibility-cdh4" % "1.0.2")
+      else if (version.contains("cdh5")) Seq("com.nicta" %% "scoobi"                    % "0.9.0-cdh5-20140722073131-fe6f152",
+                                             "com.nicta" %% "scoobi-compatibility-cdh5" % "1.0.2")
+      else                               sys.error(s"unsupported scoobi version, can not build for $version")
+    jars.map(_ intransitive()) ++ Seq(
       "com.thoughtworks.xstream" % "xstream" % "1.4.4" intransitive(),
       "javassist" %  "javassist" % "3.12.1.GA") ++ hadoop(version)
+  }
+
+  def poacher(version: String) =
+    if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20140728065835-bbea485")
+    else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20140728065719-bbea485")
+    else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 
   def reflect(version: String) =
