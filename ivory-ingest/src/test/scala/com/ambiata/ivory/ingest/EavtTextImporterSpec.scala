@@ -22,7 +22,7 @@ import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.TestConfigurations
-import com.ambiata.ivory.alien.hdfs.HdfsStore
+import com.ambiata.poacher.hdfs.HdfsStore
 import com.ambiata.mundane.io._
 import org.specs2.specification.{Fixture, FixtureExample}
 import org.specs2.execute.{Result, AsResult}

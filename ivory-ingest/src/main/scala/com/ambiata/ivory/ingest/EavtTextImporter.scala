@@ -12,8 +12,8 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import scoobi._
 import scalaz.{DList => _, _}, Scalaz._, effect.IO
-import alien.hdfs._
-import ScoobiAction._
+import com.ambiata.poacher._
+import hdfs._
 import WireFormats._, FactFormats._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.{BytesQuantity, FilePath}

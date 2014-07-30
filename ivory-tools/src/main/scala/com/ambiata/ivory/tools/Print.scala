@@ -13,7 +13,7 @@ import scalaz.std.anyVal._
 import org.apache.hadoop.fs.{Path}
 import org.apache.hadoop.conf.Configuration
 import IOActions._
-import com.ambiata.ivory.alien.hdfs.Hdfs
+import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.mundane.control.Result
 import com.nicta.scoobi.io.sequence.SeqSchema
 

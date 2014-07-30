@@ -4,7 +4,7 @@ import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._, effect._
 import scala.math.{Ordering => SOrdering}
 import org.joda.time.LocalDate
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{Path}
 import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
@@ -22,7 +22,8 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.storage.store._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
+import com.ambiata.poacher.scoobi._
 import MemoryConversions._
 
 case class Snapshot(repo: Repository, store: String, entities: Option[ReferenceIO], snapshot: Date, output: ReferenceIO, incremental: Option[(Identifier, SnapshotMeta)], codec: Option[CompressionCodec]) {

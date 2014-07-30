@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.store
 
-import com.ambiata.ivory.alien.hdfs.HdfsStore
+import com.ambiata.poacher.hdfs.HdfsStore
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.store.PosixStore

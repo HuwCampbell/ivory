@@ -2,12 +2,13 @@ package com.ambiata.ivory
 package storage
 package repository
 
-import com.ambiata.ivory.alien.hdfs.Hdfs
+import com.ambiata.poacher.hdfs._
+import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.FactFormats._
-import com.ambiata.ivory.scoobi.ScoobiAction
-import com.ambiata.ivory.scoobi.ScoobiAction.scoobiJob
+import com.ambiata.poacher.scoobi.ScoobiAction
+import com.ambiata.poacher.scoobi.ScoobiAction.scoobiJob
 import com.ambiata.ivory.storage.fact.{Namespaces, Versions}
 import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.metadata.Metadata

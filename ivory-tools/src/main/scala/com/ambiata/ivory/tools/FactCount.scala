@@ -8,6 +8,7 @@ import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
 import WireFormats._
 import FactFormats._
+import com.ambiata.poacher.scoobi._
 
 object FactCount {
 

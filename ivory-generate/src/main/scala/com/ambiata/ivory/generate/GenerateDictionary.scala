@@ -9,7 +9,7 @@ import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 
 object GenerateDictionary {
   type Nel[A] = NonEmptyList[A]

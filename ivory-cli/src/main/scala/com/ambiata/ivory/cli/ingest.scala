@@ -12,7 +12,7 @@ import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
 import org.apache.hadoop.fs.Path
 import com.ambiata.ivory.storage.store._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.fs.Path

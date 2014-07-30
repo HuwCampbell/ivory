@@ -1,6 +1,6 @@
 package com.ambiata.ivory.mr
 
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._

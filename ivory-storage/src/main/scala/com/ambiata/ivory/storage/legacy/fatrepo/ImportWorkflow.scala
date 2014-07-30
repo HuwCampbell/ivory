@@ -10,12 +10,12 @@ import org.apache.commons.logging.LogFactory
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.data.StoreDataUtil
-import com.ambiata.ivory.scoobi.ScoobiAction
+import com.ambiata.poacher.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 

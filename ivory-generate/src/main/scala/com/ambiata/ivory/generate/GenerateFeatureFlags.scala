@@ -8,7 +8,7 @@ import com.ambiata.mundane.io._
 import com.ambiata.mundane.parse._
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 
 case class FeatureFlags(namespace: String, name: String, sparcity: Double, frequency: Frequency) {
 

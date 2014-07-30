@@ -3,7 +3,8 @@ package com.ambiata.ivory.storage.repository
 import scalaz._, Scalaz._, effect.IO
 import com.ambiata.saws.core._
 import com.ambiata.ivory.scoobi._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
+import com.ambiata.poacher.scoobi._
 import com.ambiata.mundane.control._
 import com.nicta.scoobi.core.ScoobiConfiguration
 
@@ -14,7 +15,7 @@ trait ScoobiRun {
 }
 
 trait S3Run extends ScoobiRun {
-  def runScoobiS3[A](action: ScoobiS3Action[A]): ResultT[IO, A]
+  def runScoobi[A](action: ScoobiAction[A]): ResultT[IO, A]
   def runS3[A](action: S3Action[A]): ResultT[IO, A]
 }
 
@@ -27,7 +28,6 @@ object ScoobiRun {
 object S3Run {
   def apply(c: ScoobiConfiguration): S3Run = new S3Run {
     def runScoobi[A](action: ScoobiAction[A]) = action.run(c)
-    def runScoobiS3[A](action: ScoobiS3Action[A]) = action.runScoobi(c).evalT
     def runS3[A](action: S3Action[A]): ResultT[IO, A] = action.evalT
 
   }

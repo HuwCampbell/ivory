@@ -6,7 +6,7 @@ import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
 
 import scalaz.Kleisli._
 import scalaz._, Scalaz._, \&/._

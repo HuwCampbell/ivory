@@ -11,8 +11,8 @@ object IvoryRetire {
      this component is generally how those API's are exposed, however
      in the future we will move to more general, implementation
      neutral APIs. */
-  type ScoobiAction[A] = com.ambiata.ivory.scoobi.ScoobiAction[A]
-  val ScoobiAction = com.ambiata.ivory.scoobi.ScoobiAction
+  type ScoobiAction[A] = com.ambiata.poacher.scoobi.ScoobiAction[A]
+  val ScoobiAction = com.ambiata.poacher.scoobi.ScoobiAction
   type HdfsRepository = com.ambiata.ivory.storage.repository.HdfsRepository
 
   /**

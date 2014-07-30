@@ -2,7 +2,7 @@ package com.ambiata.ivory.mr
 
 import org.apache.hadoop.fs.Path
 
-import com.ambiata.ivory.alien.hdfs.Hdfs
+import com.ambiata.poacher.hdfs.Hdfs
 
 import scalaz._, Scalaz._
 

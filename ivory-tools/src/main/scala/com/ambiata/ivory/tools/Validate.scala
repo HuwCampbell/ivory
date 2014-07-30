@@ -9,7 +9,8 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.poacher.hdfs._
+import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.repository._

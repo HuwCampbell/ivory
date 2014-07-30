@@ -1,6 +1,5 @@
 package com.ambiata.ivory.tools
 
-import com.ambiata.ivory.alien.hdfs.Hdfs
 import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.ivory.storage.fact.FactsetVersion
 import com.ambiata.ivory.storage.legacy._
@@ -11,11 +10,12 @@ import com.ambiata.ivory.core.{Value, Partition, Fact}
 import com.ambiata.mundane.io.{IOActions, IOAction, Logger}
 import scalaz.std.anyVal._
 import com.ambiata.ivory.scoobi._
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{Hdfs => _, _}
 import org.apache.hadoop.conf.Configuration
 import IOActions._
 import scalaz.syntax.traverse._
 import scalaz.std.list._
+import com.ambiata.poacher.hdfs.Hdfs
 
 /**
  * Read a facts sequence file and print it to screen
