@@ -22,22 +22,22 @@ import java.net.URI
 object PartitionFactThriftStorageV1 {
 
   def parseFact(partition: String, tfact: ThriftFact): ParseError \/ Fact =
-    parseFactWith(partition, tfact, (_: Factset, f: Fact) => f.right)
+    parseFactWith(partition, tfact, (_: FactsetId, f: Fact) => f.right)
 
   val parsePartition: String => ParseError \/ Partition = scalaz.Memo.mutableHashMapMemo { partition: String =>
     Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
   }
 
-  def parseFactWith[A](partition: String, tfact: ThriftFact, f: (Factset, Fact) => ParseError \/ A): ParseError \/ A =
+  def parseFactWith[A](partition: String, tfact: ThriftFact, f: (FactsetId, Fact) => ParseError \/ A): ParseError \/ A =
     parsePartition(partition).flatMap(p => parseFactWith(p, tfact, f))
 
   def parseFact(partition: Partition)(tfact: ThriftFact): ParseError \/ Fact =
-    parseFactWith(partition, tfact, (_: Factset, f: Fact) => f.right)
+    parseFactWith(partition, tfact, (_: FactsetId, f: Fact) => f.right)
 
-  def parseFactWith[A](partition: Partition, tfact: ThriftFact, f: (Factset, Fact) => ParseError \/ A): ParseError \/ A =
+  def parseFactWith[A](partition: Partition, tfact: ThriftFact, f: (FactsetId, Fact) => ParseError \/ A): ParseError \/ A =
     f(partition.factset, FatThriftFact(partition.namespace, partition.date, tfact))
 
-  def loadScoobiWith[A : WireFormat](paths: List[String], f: (Factset, Fact) => ParseError \/ A, from: Option[Date] = None, to: Option[Date] = None)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
+  def loadScoobiWith[A : WireFormat](paths: List[String], f: (FactsetId, Fact) => ParseError \/ A, from: Option[Date] = None, to: Option[Date] = None)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
     val filtered = PartitionExpansion.filterGlob(paths, from, to).toSeq
     if(filtered.nonEmpty)
       valueFromSequenceFileWithPaths[ThriftFact](filtered.toSeq).map({ case (partition, tfact) => parseFactWith(partition, tfact, f) })
@@ -50,12 +50,12 @@ object PartitionFactThriftStorageV1 {
       loadScoobiWith(paths.map(_+"/*/*/*/*"), (_, fact) => fact.right, from, to)
   }
 
-  case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[PrioritizedFactset], from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[(Priority, Factset, Fact)] {
-    lazy val factsetMap: Map[Factset, Priority] = factsets.map(fs => (fs.set, fs.priority)).toMap
+  case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[PrioritizedFactset], from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[(Priority, FactsetId, Fact)] {
+    lazy val factsetMap: Map[FactsetId, Priority] = factsets.map(fs => (fs.set, fs.priority)).toMap
 
-    def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Priority, Factset, Fact)] = {
+    def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Priority, FactsetId, Fact)] = {
       loadScoobiWith(factsets.map(base + "/" + _.set.name + "/*/*/*/*"), (fs, fact) =>
-        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(fs.name, s"Factset '${fs}' not found in expected list '${factsets}'").left), from, to)
+        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(fs.name, s"FactsetId '${fs}' not found in expected list '${factsets}'").left), from, to)
     }
   }
 
@@ -72,22 +72,22 @@ object PartitionFactThriftStorageV1 {
 object PartitionFactThriftStorageV2 {
 
   def parseFact(partition: String, tfact: ThriftFact): ParseError \/ Fact =
-    parseFactWith(partition, tfact, (_: Factset, f: Fact) => f.right)
+    parseFactWith(partition, tfact, (_: FactsetId, f: Fact) => f.right)
 
   val parsePartition: String => ParseError \/ Partition = scalaz.Memo.mutableHashMapMemo { partition: String =>
     Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
   }
 
-  def parseFactWith[A](partition: String, tfact: ThriftFact, f: (Factset, Fact) => ParseError \/ A): ParseError \/ A =
+  def parseFactWith[A](partition: String, tfact: ThriftFact, f: (FactsetId, Fact) => ParseError \/ A): ParseError \/ A =
     parsePartition(partition).flatMap(p => parseFactWith(p, tfact, f))
 
   def parseFact(partition: Partition)(tfact: ThriftFact): ParseError \/ Fact =
-    parseFactWith(partition, tfact, (_: Factset, f: Fact) => f.right)
+    parseFactWith(partition, tfact, (_: FactsetId, f: Fact) => f.right)
 
-  def parseFactWith[A](partition: Partition, tfact: ThriftFact, f: (Factset, Fact) => ParseError \/ A): ParseError \/ A =
+  def parseFactWith[A](partition: Partition, tfact: ThriftFact, f: (FactsetId, Fact) => ParseError \/ A): ParseError \/ A =
     f(partition.factset, FatThriftFact(partition.namespace, partition.date, tfact))
 
-  def loadScoobiWith[A : WireFormat](paths: List[String], f: (Factset, Fact) => ParseError \/ A, from: Option[Date] = None, to: Option[Date] = None)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
+  def loadScoobiWith[A : WireFormat](paths: List[String], f: (FactsetId, Fact) => ParseError \/ A, from: Option[Date] = None, to: Option[Date] = None)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
     val filtered = PartitionExpansion.filterGlob(paths, from, to).toSeq
     if(filtered.nonEmpty)
       valueFromSequenceFileWithPaths[ThriftFact](filtered.toSeq).map({ case (partition, tfact) => parseFactWith(partition, tfact, f) })
@@ -101,12 +101,12 @@ object PartitionFactThriftStorageV2 {
 
   }
 
-  case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[PrioritizedFactset], from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[(Priority, Factset, Fact)] {
-    lazy val factsetMap: Map[Factset, Priority] = factsets.map(fs => (fs.set, fs.priority)).toMap
+  case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[PrioritizedFactset], from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[(Priority, FactsetId, Fact)] {
+    lazy val factsetMap: Map[FactsetId, Priority] = factsets.map(fs => (fs.set, fs.priority)).toMap
 
-    def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Priority, Factset, Fact)] = {
+    def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Priority, FactsetId, Fact)] = {
       loadScoobiWith(factsets.map(base + "/" + _.set.name + "/*/*/*/*"), (fs, fact) =>
-        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(fs.name, s"Factset '${fs}' not found in expected list '${factsets}'").left), from, to)
+        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(fs.name, s"FactsetId '${fs}' not found in expected list '${factsets}'").left), from, to)
     }
   }
 

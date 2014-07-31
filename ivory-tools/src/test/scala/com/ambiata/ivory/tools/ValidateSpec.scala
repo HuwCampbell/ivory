@@ -45,10 +45,10 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
                        BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
     val facts2 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "def")))
 
-    persist(facts1.toIvoryFactset(repo, Factset("factset1"), None), facts2.toIvoryFactset(repo, Factset("factset2"), None))
-    writeFactsetVersion(repo, List(Factset("factset1"), Factset("factset2"))) must beOk
+    persist(facts1.toIvoryFactset(repo, FactsetId("factset1"), None), facts2.toIvoryFactset(repo, FactsetId("factset2"), None))
+    writeFactsetVersion(repo, List(FactsetId("factset1"), FactsetId("factset2"))) must beOk
 
-    val store = FeatureStore(List(PrioritizedFactset(Factset("factset1"), Priority(1)), PrioritizedFactset(Factset("factset2"), Priority(2))))
+    val store = FeatureStore(List(PrioritizedFactset(FactsetId("factset1"), Priority(1)), PrioritizedFactset(FactsetId("factset2"), Priority(2))))
 
     ValidateStoreHdfs(repo, store, dict, false).exec(new Path(outpath)).run(sc) must beOk
 
@@ -78,10 +78,10 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
                        IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
                        BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
 
-    facts1.toIvoryFactset(repo, Factset("factset1"), None).persist
-    writeFactsetVersion(repo, List(Factset("factset1"))) must beOk
+    facts1.toIvoryFactset(repo, FactsetId("factset1"), None).persist
+    writeFactsetVersion(repo, List(FactsetId("factset1"))) must beOk
 
-    ValidateFactSetHdfs(repo, Factset("factset1"), dict).exec(new Path(outpath)).run(sc) must beOk
+    ValidateFactSetHdfs(repo, FactsetId("factset1"), dict).exec(new Path(outpath)).run(sc) must beOk
 
     val res = fromTextFile(outpath).run.toList
     res must have size(1)

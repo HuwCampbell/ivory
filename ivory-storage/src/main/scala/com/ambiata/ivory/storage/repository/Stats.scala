@@ -28,12 +28,12 @@ object Stats {
   def metadataSize: StatAction[BytesQuantity] =
     (dictionariesSize |@| storesSize)(Seq(_, _).sum)
 
-  def factsetSize(factset: Factset): StatAction[BytesQuantity] = repository.flatMap {
+  def factsetSize(factset: FactsetId): StatAction[BytesQuantity] = repository.flatMap {
     case r: HdfsRepository => fromHdfs(totalSize(r.factset(factset).toHdfs))
     case _                 => fail("Unsupported repository!")
   }
 
-  def factsetFiles(factset: Factset): StatAction[Int] = repository.flatMap {
+  def factsetFiles(factset: FactsetId): StatAction[Int] = repository.flatMap {
     case r: HdfsRepository => fromHdfs(numberOfFilesRecursively(r.factset(factset).toHdfs))
     case _                 => fail("Unsupported repository!")
   }

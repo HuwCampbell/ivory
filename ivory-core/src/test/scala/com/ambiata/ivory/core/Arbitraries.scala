@@ -197,7 +197,7 @@ object Arbitraries {
   implicit def FeatureStoreArbitrary: Arbitrary[FeatureStore] = Arbitrary(
     arbitrary[OldIdentifiers].map(ids =>
       FeatureStore(ids.ids.zipWithIndex.map({ case (id, i) =>
-         PrioritizedFactset(Factset(id), Priority.unsafe((i + 1).toShort))
+         PrioritizedFactset(FactsetId(id), Priority.unsafe((i + 1).toShort))
       }).toList)
     ))
 
@@ -208,11 +208,11 @@ object Arbitraries {
     value <- valueOf(enc)
   } yield EncodingAndValue(enc, value))
 
-  implicit def FactsetArbitrary: Arbitrary[Factset] =
-    Arbitrary(arbitrary[OldIdentifier].map(id => Factset(id.id)))
+  implicit def FactsetArbitrary: Arbitrary[FactsetId] =
+    Arbitrary(arbitrary[OldIdentifier].map(id => FactsetId(id.id)))
 
   implicit def PartitionArbitrary: Arbitrary[Partition] = Arbitrary(for {
-    factset <- arbitrary[Factset]
+    factset <- arbitrary[FactsetId]
     ns      <- arbitrary[FeatureNamespace]
     date    <- arbitrary[Date]
   } yield Partition(factset, ns.namespace, date, None))
@@ -220,7 +220,7 @@ object Arbitraries {
   case class SingleFactsetPartitions(partitions: List[Partition])
   implicit def SingleFactsetPartitionsArbitrary: Arbitrary[SingleFactsetPartitions] =
     Arbitrary(for {
-      factset <- arbitrary[Factset]
+      factset <- arbitrary[FactsetId]
       dates   <- arbitrary[List[(Date, FeatureNamespace)]]
     } yield SingleFactsetPartitions(dates.distinct.map({ case (d, FeatureNamespace(ns)) => Partition(factset, ns, d, None) })))
 }

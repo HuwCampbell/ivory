@@ -142,14 +142,14 @@ object Recreate { outer =>
                   from: HdfsRepository, to: HdfsRepository,
                   codec: Option[CompressionCodec], reducerSize: BytesQuantity, dry: Boolean): String => ScoobiAction[Unit] = (name: String) =>
     for {
-      _             <- ScoobiAction.log(s"Copy factset $name from ${from.factset(Factset(name))} to ${to.factset(Factset(name))}")
+      _             <- ScoobiAction.log(s"Copy factset $name from ${from.factset(FactsetId(name))} to ${to.factset(FactsetId(name))}")
       configuration <- ScoobiAction.scoobiConfiguration
-      namespaces    <- ScoobiAction.fromHdfs(namespaceSizes(from.factset(Factset(name)).toHdfs, singleNamespace = None))
-      partitions    <- ScoobiAction.fromHdfs(Hdfs.globFiles(from.factset(Factset(name)).toHdfs, "*/*/*/*/*").filterHidden)
-      version       <- ScoobiAction.fromResultTIO(Versions.read(from, Factset(name)))
+      namespaces    <- ScoobiAction.fromHdfs(namespaceSizes(from.factset(FactsetId(name)).toHdfs, singleNamespace = None))
+      partitions    <- ScoobiAction.fromHdfs(Hdfs.globFiles(from.factset(FactsetId(name)).toHdfs, "*/*/*/*/*").filterHidden)
+      version       <- ScoobiAction.fromResultTIO(Versions.read(from, FactsetId(name)))
       _             <- {
-        ScoobiAction.safe(RecreateFactsetJob.run(configuration, version, dictionary, namespaces, partitions, to.factset(Factset(name)).toHdfs, reducerSize, codec)) >>
-        ScoobiAction.fromResultTIO(writeFactsetVersion(to, List(Factset(name))))
+        ScoobiAction.safe(RecreateFactsetJob.run(configuration, version, dictionary, namespaces, partitions, to.factset(FactsetId(name)).toHdfs, reducerSize, codec)) >>
+        ScoobiAction.fromResultTIO(writeFactsetVersion(to, List(FactsetId(name))))
       }.unless(dry)
     } yield ()
 

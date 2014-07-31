@@ -7,7 +7,7 @@ import com.ambiata.mundane.parse.ListParser
 import scalaz.Scalaz._
 import scalaz._
 
-case class Partition(factset: Factset, namespace: String, date: Date, base: Option[String] = None) {
+case class Partition(factset: FactsetId, namespace: String, date: Date, base: Option[String] = None) {
 
   lazy val path: String =
     base.map(_ + "/").getOrElse("") + factset.name + "/" + namespace + "/" + "%4d/%02d/%02d".format(date.year, date.month, date.day)
@@ -41,7 +41,7 @@ object Partition {
       ns      <- string
       factset <- string
       rest    <- ListParser((pos, str) => (str.length, Nil, str.reverse.mkString("/")).success)
-    } yield Partition(Factset(factset), ns, date, Some(rest))
+    } yield Partition(FactsetId(factset), ns, date, Some(rest))
   }
 
   def pathPieces(path: String): List[String] =

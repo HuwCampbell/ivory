@@ -76,7 +76,7 @@ case class Chord(repo: Repository, store: String, entities: HashMap[String, Arra
    */
   def scoobiJob(repo: Repository, dict: Dictionary, store: FeatureStore, chordReference: ReferenceIO, latestDate: Date, incremental: Option[(Identifier, FeatureStore, SnapshotMeta)], outputPath: Path, codec: Option[CompressionCodec]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      lazy val factsetMap: Map[Priority, Factset] = store.factsets.map(fs => (fs.priority, fs.set)).toMap
+      lazy val factsetMap: Map[Priority, FactsetId] = store.factsets.map(fs => (fs.priority, fs.set)).toMap
 
       Chord.readFacts(repo, store, latestDate, incremental).map { input =>
 
@@ -85,12 +85,12 @@ case class Chord(repo: Repository, store: String, entities: HashMap[String, Arra
         val facts: DList[(Priority, Fact)] = input.map({
           case -\/(e) => sys.error("A critical error has occured, where we could not determine priority and namespace from partitioning: " + e)
           case \/-(v) => v
-        }).parallelDo(new DoFn[(Priority, Factset, Fact), (Priority, Fact)] {
+        }).parallelDo(new DoFn[(Priority, FactsetId, Fact), (Priority, Fact)] {
           var mappings: Mappings = null
           override def setup() {
             mappings = Chord.getMappings(chordReference)
           }
-          override def process(input: (Priority, Factset, Fact), emitter: Emitter[(Priority, Fact)]) {
+          override def process(input: (Priority, FactsetId, Fact), emitter: Emitter[(Priority, Fact)]) {
             input match { case (p, _, f) =>
               if(DateMap.keep(mappings, f.entity, f.date.year, f.date.month, f.date.day)) emitter.emit((p, f))
             }
@@ -168,7 +168,7 @@ object Chord {
     _                   <- Chord(repo, store, es, output, tmp, id, codec).run
   } yield ()
 
-  def readFacts(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[(Identifier, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] = {
+  def readFacts(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[(Identifier, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Priority, FactsetId, Fact)]] = {
     import IvoryStorage._
     incremental match {
       case None =>
@@ -180,7 +180,7 @@ object Chord {
         sd = store diff s
         _  = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
         n <- factsFromIvoryStoreTo(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
-      } yield o ++ n ++ FlatFactThriftStorageV1.FlatFactThriftLoader(p.toString).loadScoobi(c).map(_.map((Priority.Max, Factset(ChordName), _)))
+      } yield o ++ n ++ FlatFactThriftStorageV1.FlatFactThriftLoader(p.toString).loadScoobi(c).map(_.map((Priority.Max, FactsetId(ChordName), _)))
     }
   }
 

@@ -29,10 +29,10 @@ sealed trait Repository {
   def stores: FilePath = metadata </> "stores"
   def dictionaryByName(name: String): FilePath =  dictionaries </> name
   def storeByName(name: String): FilePath =  stores </> name
-  def factset(set: Factset): FilePath =  factsets </> set.name
-  def namespace(set: Factset, namespace: String): FilePath =  factset(set) </> namespace
+  def factset(set: FactsetId): FilePath =  factsets </> set.name
+  def namespace(set: FactsetId, namespace: String): FilePath =  factset(set) </> namespace
   def snapshot(id: Identifier): FilePath = snapshots </> FilePath(id.render)
-  def version(set: Factset): FilePath =  factset(set) </> ".version"
+  def version(set: FactsetId): FilePath =  factset(set) </> ".version"
 }
 
 case class HdfsRepository(root: FilePath, conf: Configuration, run: ScoobiRun) extends Repository {
@@ -64,8 +64,8 @@ object Repository {
   def stores: FilePath = metadata </> "stores"
   def dictionaryByName(name: String): FilePath =  dictionaries </> name
   def storeByName(name: String): FilePath =  stores </> name
-  def factset(set: Factset): FilePath =  factsets </> set.name
-  def namespace(set: Factset, namespace: String): FilePath =  factset(set) </> namespace
+  def factset(set: FactsetId): FilePath =  factsets </> set.name
+  def namespace(set: FactsetId, namespace: String): FilePath =  factset(set) </> namespace
   def snapshot(id: Identifier): FilePath = snapshots </> FilePath(id.render)
 
   val defaultS3TmpDirectory = Reference.defaultS3TmpDirectory

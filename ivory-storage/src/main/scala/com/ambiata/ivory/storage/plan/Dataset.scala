@@ -5,7 +5,7 @@ import com.ambiata.ivory.data.Identifier
 
 sealed trait Dataset
 
-case class FactsetDataset(factset: Factset, partitions: List[Partition]) extends Dataset {
+case class FactsetDataset(factset: FactsetId, partitions: List[Partition]) extends Dataset {
   def partitionsBefore(date: Date): FactsetDataset =
     copy(partitions = partitions.filter(_.date.isBefore(date)))
 
