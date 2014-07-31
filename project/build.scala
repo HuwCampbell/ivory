@@ -147,7 +147,7 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++
                                                depend.thrift ++ depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value))
   )
-  .dependsOn(data)
+  .dependsOn(data, data % "test->test")
 
   lazy val data = Project(
     id = "data"
