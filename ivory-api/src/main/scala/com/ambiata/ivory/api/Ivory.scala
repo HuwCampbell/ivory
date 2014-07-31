@@ -19,8 +19,8 @@ object Ivory
   val StringValue = com.ambiata.ivory.core.StringValue
   val TombstoneValue = com.ambiata.ivory.core.TombstoneValue
 
-  type Factset = com.ambiata.ivory.core.Factset
-  val Factset = com.ambiata.ivory.core.Factset
+  type FactsetId = com.ambiata.ivory.core.FactsetId
+  val FactsetId = com.ambiata.ivory.core.FactsetId
 
   type Priority = com.ambiata.ivory.core.Priority
   val Priority = com.ambiata.ivory.core.Priority

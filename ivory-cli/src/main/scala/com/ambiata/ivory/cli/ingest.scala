@@ -57,10 +57,10 @@ object ingest extends IvoryApp {
         factset  <- run(repo, inputRef, c.namespace, c.timezone, c.optimal, Codec())
       } yield List(s"Successfully imported '${c.input}' as ${factset} into '${c.repo}'")))
 
-  def run(repo: Repository, input: ReferenceIO, namespace: Option[String], timezone: DateTimeZone, optimal: BytesQuantity, codec: Option[CompressionCodec]): ResultTIO[Factset] =
+  def run(repo: Repository, input: ReferenceIO, namespace: Option[String], timezone: DateTimeZone, optimal: BytesQuantity, codec: Option[CompressionCodec]): ResultTIO[FactsetId] =
     fatrepo.ImportWorkflow.onStore(repo, importFeed(input, namespace, optimal, codec), timezone)
 
-  def importFeed(input: ReferenceIO, singleNamespace: Option[String], optimal: BytesQuantity, codec: Option[CompressionCodec])(repo: Repository, factset: Factset, errorRef: ReferenceIO, timezone: DateTimeZone): ResultTIO[Unit] = for {
+  def importFeed(input: ReferenceIO, singleNamespace: Option[String], optimal: BytesQuantity, codec: Option[CompressionCodec])(repo: Repository, factset: FactsetId, errorRef: ReferenceIO, timezone: DateTimeZone): ResultTIO[Unit] = for {
     conf <- repo match {
       case HdfsRepository(_, c, _) => ResultT.ok[IO, Configuration](c)
       case _                       => ResultT.fail[IO, Configuration]("Currently only support HDFS repository")

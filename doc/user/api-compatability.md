@@ -3,6 +3,10 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-2433ce9
+
+- `Factset` has been renamed to `FactsetId`
+
 ## 1.0.0-*-66d4ed3
 
 - `createFeatureStore` and `importFeatureStore` has been removed.

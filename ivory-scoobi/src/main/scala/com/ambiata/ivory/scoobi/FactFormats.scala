@@ -15,8 +15,8 @@ trait FactFormats {
   /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   implicit def ThriftFactSeqSchema: SeqSchema[ThriftFact] = SeqSchemas.thriftFactSeqSchema
 
-  implicit def FactsetWireFormat: WireFormat[Factset] =
-    implicitly[WireFormat[String]].xmap(Factset, _.name)
+  implicit def FactsetWireFormat: WireFormat[FactsetId] =
+    implicitly[WireFormat[String]].xmap(FactsetId, _.name)
 
   implicit def PriorityWireFormat: WireFormat[Priority] =
     implicitly[WireFormat[Short]].xmap(Priority.unsafe, _.toShort)

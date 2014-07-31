@@ -49,15 +49,15 @@ case class ValidateStoreHdfs(repo: HdfsRepository, store: FeatureStore, dict: Di
         case -\/(e) => e.message
       }, counterGroup, parseErrorCounterName)
 
-      val facts: DList[(Priority, Factset, Fact)] = input.collect {
+      val facts: DList[(Priority, FactsetId, Fact)] = input.collect {
         case \/-(s) => s
       }
 
       // remove duplicates, taking the fact with the highest priority
-      val reduced: DList[(Factset, Fact)] =
+      val reduced: DList[(FactsetId, Fact)] =
         if(!includeOverridden && store.factsets.size > 1) {
           val byKey = facts.map({ case (p, fs, f) => (f.coordinateString('|'), (p, fs, f)) }).groupByKey
-          val ord: Order[(Priority, Factset, Fact)] = Order.orderBy({ case (p, _, _) => p })
+          val ord: Order[(Priority, FactsetId, Fact)] = Order.orderBy({ case (p, _, _) => p })
           byKey.reduceValues(Reduction.minimum(ord)).map({ case (_, (p, fs, f)) => (fs, f) })
         } else {
           facts.map({ case (_, fs, f) => (fs, f) })
@@ -78,7 +78,7 @@ case class ValidateStoreHdfs(repo: HdfsRepository, store: FeatureStore, dict: Di
     })
 }
 
-case class ValidateFactSetHdfs(repo: HdfsRepository, factset: Factset, dict: Dictionary) extends Validate {
+case class ValidateFactSetHdfs(repo: HdfsRepository, factset: FactsetId, dict: Dictionary) extends Validate {
 
   def scoobiJob: ScoobiAction[DList[String]] =
     factsFromIvoryFactset(repo, factset).map(input => {
@@ -109,7 +109,7 @@ object Validate {
     c <- ValidateStoreHdfs(r, s, d, includeOverridden).exec(output)
   } yield c
 
-  def validateHdfsFactSet(repoPath: Path, factset: Factset, output: Path): ScoobiAction[Long] = for {
+  def validateHdfsFactSet(repoPath: Path, factset: FactsetId, output: Path): ScoobiAction[Long] = for {
     r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
     d <- ScoobiAction.fromResultTIO(dictionaryFromIvory(r))
     c <- ValidateFactSetHdfs(r, factset, d).exec(output)

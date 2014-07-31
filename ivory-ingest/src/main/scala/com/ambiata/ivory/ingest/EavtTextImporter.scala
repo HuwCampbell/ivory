@@ -32,7 +32,7 @@ object EavtTextImporter {
   def onStore(
     repository: Repository,
     dictionary: Dictionary,
-    factset: Factset,
+    factset: FactsetId,
     namespace: List[String],
     singleNamespace: Option[String],
     inputRef: ReferenceIO,

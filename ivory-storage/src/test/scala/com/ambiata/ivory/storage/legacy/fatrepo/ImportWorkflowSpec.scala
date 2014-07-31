@@ -32,7 +32,7 @@ object ImportWorkflowSpec extends Specification with ScalaCheck { def is = s2"""
     seqToResult(ids.ids.map(id => {
       val path = repo.factsets </> FilePath(id) </> FilePath(".allocated")
       Hdfs.writeWith(path.toHdfs, os => Streams.write(os, "")).run(sc.configuration) must beOk
-    })) and (ImportWorkflow.nextFactset(repo) must beOkLike(_ must_== Factset(ImportWorkflow.nextName(ids.ids))))
+    })) and (ImportWorkflow.nextFactset(repo) must beOkLike(_ must_== FactsetId(ImportWorkflow.nextName(ids.ids))))
   }).set(minTestsOk = 5) // Not too many runs are it will take a long time
 
   // TODO fix after factset id migrated to Identifier

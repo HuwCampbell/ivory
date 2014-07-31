@@ -34,11 +34,11 @@ import com.ambiata.mundane.io._
  */
 object ImportWorkflow {
 
-  type ImportFactsFunc = (Repository, Factset, ReferenceIO, DateTimeZone) => ResultTIO[Unit]
+  type ImportFactsFunc = (Repository, FactsetId, ReferenceIO, DateTimeZone) => ResultTIO[Unit]
 
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.Import")
 
-  def onStore(repo: Repository, importFacts: ImportFactsFunc, timezone: DateTimeZone): ResultTIO[Factset] = {
+  def onStore(repo: Repository, importFacts: ImportFactsFunc, timezone: DateTimeZone): ResultTIO[FactsetId] = {
     val start = System.currentTimeMillis
     for {
       _        <- createRepo(repo)
@@ -82,13 +82,13 @@ object ImportWorkflow {
     }
   } yield ()
 
-  def nextFactset(repo: Repository): ResultTIO[Factset] = for {
+  def nextFactset(repo: Repository): ResultTIO[FactsetId] = for {
     factsetPaths <- StoreDataUtil.listDir(repo.toStore, Repository.factsets)
-  } yield Factset(nextName(factsetPaths.map(_.basename.path)))
+  } yield FactsetId(nextName(factsetPaths.map(_.basename.path)))
 
   // TODO change this to use IdentifierStorage
   // TODO handle locking
-  def createFactSet(repo: Repository): ResultTIO[Factset] = for {
+  def createFactSet(repo: Repository): ResultTIO[FactsetId] = for {
     factset <- nextFactset(repo)
     _       <- repo.toStore.bytes.write(Repository.factsets </> FilePath(factset.name) </> ".allocated", scodec.bits.ByteVector.empty)
   } yield factset
@@ -100,7 +100,7 @@ object ImportWorkflow {
     listStores(repo).map(latestName)
 
   // TODO handle locking
-  def createStore(repo: Repository, factset: Factset): ResultTIO[String] = for {
+  def createStore(repo: Repository, factset: FactsetId): ResultTIO[String] = for {
     names  <- listStores(repo)
     latest  = latestName(names)
     name    = nextName(names)

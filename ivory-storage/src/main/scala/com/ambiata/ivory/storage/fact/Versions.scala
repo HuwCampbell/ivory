@@ -8,22 +8,22 @@ import com.ambiata.mundane.control._
 import scalaz._, Scalaz._, effect.IO
 
 object Versions {
-  def read(repository: Repository, factset: Factset): ResultT[IO, FactsetVersion] =
+  def read(repository: Repository, factset: FactsetId): ResultT[IO, FactsetVersion] =
     Version.read(repository.toReference(Repository.factset(factset))).flatMap(parse(factset, _))
 
-  def write(repository: Repository, factset: Factset, version: FactsetVersion): ResultT[IO, Unit] =
+  def write(repository: Repository, factset: FactsetId, version: FactsetVersion): ResultT[IO, Unit] =
     Version.write(repository.toReference(Repository.factset(factset)), Version(version.toString))
 
-  def readAll(repository: Repository, factsets: List[Factset]): ResultT[IO, List[(Factset, FactsetVersion)]] =
+  def readAll(repository: Repository, factsets: List[FactsetId]): ResultT[IO, List[(FactsetId, FactsetVersion)]] =
     factsets.traverseU(factset => read(repository, factset).map(factset -> _))
 
-  def writeAll(repository: Repository, factsets: List[Factset], version: FactsetVersion): ResultT[IO, Unit] =
+  def writeAll(repository: Repository, factsets: List[FactsetId], version: FactsetVersion): ResultT[IO, Unit] =
     factsets.traverseU(write(repository, _, version)).void
 
   def readPrioritized(repository: Repository, factsets: List[PrioritizedFactset]): ResultT[IO, List[(PrioritizedFactset, FactsetVersion)]] =
     factsets.traverseU(factset => read(repository, factset.set).map(factset -> _))
 
-  def parse(factset: Factset, version: Version): ResultT[IO, FactsetVersion] =
+  def parse(factset: FactsetId, version: Version): ResultT[IO, FactsetVersion] =
     FactsetVersion.fromString(version.toString) match {
       case None =>
         ResultT.fail(s"Factset version '${version}' in factset '${factset}' not found.")

@@ -16,18 +16,18 @@ case class FactsetGlob(version: FactsetVersion, factsets: List[(PrioritizedFacts
 }
 
 object FactsetGlob {
-  def select(repository: Repository, factset: Factset): ResultT[IO, List[Partition]] = for {
+  def select(repository: Repository, factset: FactsetId): ResultT[IO, List[Partition]] = for {
     paths <- repository.toStore.list(Repository.factset(factset) </> "/*/*/*/*")
     parts <- paths.traverseU(path => ResultT.fromDisjunction[IO, Partition](Partition.parseWith((repository.root </> path).path).disjunction.leftMap(This.apply)))
   } yield parts.distinct
 
-  def before(repository: Repository, factset: Factset, to: Date): ResultT[IO, List[Partition]] =
+  def before(repository: Repository, factset: FactsetId, to: Date): ResultT[IO, List[Partition]] =
     select(repository, factset).map(_.filter(_.date.isBeforeOrEqual(to)))
 
-  def after(repository: Repository, factset: Factset, from: Date): ResultT[IO, List[Partition]] =
+  def after(repository: Repository, factset: FactsetId, from: Date): ResultT[IO, List[Partition]] =
     select(repository, factset).map(_.filter(_.date.isAfterOrEqual(from)))
 
-  def between(repository: Repository, factset: Factset, from: Date, to: Date): ResultT[IO, List[Partition]] =
+  def between(repository: Repository, factset: FactsetId, from: Date, to: Date): ResultT[IO, List[Partition]] =
     select(repository, factset).map(_.filter(p => p.date.isBeforeOrEqual(to) && p.date.isAfterOrEqual(from)))
 
   def groupByVersion(globs: List[FactsetGlob]): List[FactsetGlob] =
