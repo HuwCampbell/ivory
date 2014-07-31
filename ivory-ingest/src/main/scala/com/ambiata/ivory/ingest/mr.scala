@@ -16,10 +16,10 @@ import org.apache.hadoop.conf._
 import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce._
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat
+import org.apache.hadoop.mapreduce.lib.input.{SequenceFileInputFormat, TextInputFormat}
 import org.apache.hadoop.mapreduce.lib.output.{MultipleOutputs, SequenceFileOutputFormat}
 import org.apache.thrift.protocol.TCompactProtocol
-import org.apache.thrift.TSerializer
+import org.apache.thrift.{TException, TSerializer}
 
 import org.joda.time.DateTimeZone
 
@@ -28,16 +28,24 @@ import org.joda.time.DateTimeZone
  */
 object IngestJob {
   // FIX shouldn't need `root: Path` it is a workaround for poor namespace handling
-  def run(conf: Configuration, dictionary: Dictionary, reducerLookups: ReducerLookups, ivoryZone: DateTimeZone, ingestZone: DateTimeZone, root: Path, singleNamespace: Option[String], paths: List[Path], target: Path, errors: Path, codec: Option[CompressionCodec]): Unit = {
+  def run(conf: Configuration, dictionary: Dictionary, reducerLookups: ReducerLookups, ivoryZone: DateTimeZone,
+          ingestZone: DateTimeZone, root: Path, singleNamespace: Option[String], paths: List[Path], target: Path,
+          errors: Path, format: Format, codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
     val ctx = FactsetJob.configureJob("ivory-ingest", job, dictionary, reducerLookups, paths, target, codec)
 
     /* map */
-    job.setMapperClass(classOf[IngestMapper])
+    job.setMapperClass(format match {
+      case TextFormat   => classOf[TextIngestMapper]
+      case ThriftFormat => classOf[ThriftIngestMapper]
+    })
 
     /* input */
-    job.setInputFormatClass(classOf[TextInputFormat])
+    job.setInputFormatClass(format match {
+      case TextFormat   => classOf[TextInputFormat]
+      case ThriftFormat => classOf[SequenceFileInputFormat[_, _]]
+    })
 
     /* output */
     MultipleOutputs.addNamedOutput(job, Keys.Err,  classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable])
@@ -56,7 +64,7 @@ object IngestJob {
     Committer.commit(ctx, {
       case "errors"  => errors
       case "factset" => target
-    }, true).run(conf).run.unsafePerformIO
+    }, true).run(conf).run.unsafePerformIO()
   }
 
   object Keys {
@@ -178,5 +186,24 @@ class TextIngestMapper extends IngestMapper[LongWritable, Text] {
   override def parse(namespace: String, value: Text): Validation[ParseError, Fact] = {
     val line = value.toString
     EavtParsers.parse(line, dict, namespace, ingestZone).leftMap(TextParseError(line, _))
+  }
+}
+
+class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {
+
+  import com.ambiata.ivory.ingest.thrift._
+  import scodec.bits.ByteVector
+
+  val deserializer = ThriftSerialiser()
+  val thrift = new ThriftFact
+
+  override def parse(namespace: String, value: BytesWritable): Validation[ParseError, Fact] = {
+    thrift.clear()
+    ((try deserializer.fromBytesViewUnsafe(thrift, value.getBytes, 0, value.getLength).right catch {
+      case e: TException => e.left
+    }) match {
+      case -\/(e)  => e.getMessage.failure
+      case \/-(_)  => Conversion.thrift2fact(namespace, thrift, ingestZone, ivoryZone).validation
+    }).leftMap(ParseError("", _))
   }
 }

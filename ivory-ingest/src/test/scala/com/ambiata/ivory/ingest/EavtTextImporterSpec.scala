@@ -16,13 +16,15 @@ import com.ambiata.mundane.parse.ListParser
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
 import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core.thrift.ThriftSerialiser
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.FactFormats._
-import com.ambiata.ivory.scoobi.TestConfigurations
+import com.ambiata.ivory.scoobi.{SequenceUtil, TestConfigurations}
 import com.ambiata.poacher.hdfs.HdfsStore
+import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import org.specs2.specification.{Fixture, FixtureExample}
 import org.specs2.execute.{Result, AsResult}
@@ -30,25 +32,47 @@ import MemoryConversions._
 
 class EavtTextImporterSpec extends Specification with ThrownExpectations with FileMatchers { def is = s2"""
 
-  MR job runs and creates expected data $e1
+  MR job runs and creates expected text data $e1
+
+  MR job runs and creates expected thrift data $thrift
 
   When there are errors, they must be saved as a Thrift record containing the full record + the error message $e2
 
   """
+
+  // This needs to be a function otherwise Scoobi will serialise with xstream :(
+  def expected = List(
+    StringFact("pid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1),  Time(10), "v1"),
+    IntFact(   "pid1", FeatureId("ns1", "fid2"), Date(2012, 10, 15), Time(20), 2),
+    DoubleFact("pid1", FeatureId("ns1", "fid3"), Date(2012, 3, 20),  Time(30), 3.0))
+
   def e1 = setup { setup: Setup =>
     import setup._
 
     saveInputFile
 
+    run(setup, TextFormat)
+  }
+
+  def thrift = setup { setup: Setup =>
+    import com.ambiata.ivory.ingest.thrift._
+    import setup._
+
+    val serializer = ThriftSerialiser()
+
+    SequenceUtil.writeBytes(namespaced.toFilePath </> java.util.UUID.randomUUID().toString, None) {
+      writer => ResultT.safe(expected.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
+    }.run(setup.sc) must beOk
+
+    run(setup, ThriftFormat)
+  }
+
+  def run(setup: Setup, format: Format) = {
+    import setup._
+
     val errors = base </> "errors"
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onStore(repository, dictionary, FactsetId("00000"), List("ns1"), None, input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None) must beOk
-
-    val expected = List(
-      StringFact("pid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1),  Time(10), "v1"),
-      IntFact(   "pid1", FeatureId("ns1", "fid2"), Date(2012, 10, 15), Time(20), 2),
-      DoubleFact("pid1", FeatureId("ns1", "fid3"), Date(2012, 3, 20),  Time(30), 3.0))
-
+    EavtTextImporter.onStore(repository, dictionary, FactsetId("00000"), List("ns1"), None, input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, format, None) must beOk
 
     factsFromIvoryFactset(repository, FactsetId("00000")).map(_.run.collect { case \/-(r) => r}).run(sc) must beOkLike(_ must containTheSameElementsAs(expected))
   }
@@ -62,7 +86,7 @@ class EavtTextImporterSpec extends Specification with ThrownExpectations with Fi
     // run the scoobi job to import facts on Hdfs
     (for {
       errorPath <- Reference.hdfsPath(errors)
-      _         <- EavtTextImporter.onStore(repository, dictionary, FactsetId("00000"), List("ns1"), None, input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, None)
+      _         <- EavtTextImporter.onStore(repository, dictionary, FactsetId("00000"), List("ns1"), None, input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, TextFormat, None)
       ret = valueFromSequenceFile[ParseError](errorPath.toString).run
     } yield ret) must beOkLike(_ must not(beEmpty))
   }

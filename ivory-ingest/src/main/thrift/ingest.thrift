@@ -1,0 +1,26 @@
+struct ThriftTombstone {}
+
+union ThriftFactPrimitiveValue {
+    1: string s;
+    2: i32 i;
+    3: i64 l;
+    4: double d;
+    5: bool b;
+    6: ThriftTombstone t;
+}
+
+struct ThriftFactStruct {
+    1: map<string, ThriftFactPrimitiveValue> v;
+}
+
+union ThriftFactValue {
+    1: ThriftFactPrimitiveValue primitive;
+    2: ThriftFactStruct strct;
+}
+
+struct ThriftFact {
+    1: string entity;
+    2: string attribute;
+    3: ThriftFactValue value;
+    4: string datetime;
+}
