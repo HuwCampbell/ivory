@@ -78,7 +78,7 @@ object IngestJob {
  *
  * The output value is the already serialized bytes of the fact ready to write.
  */
-class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritable] {
+trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
   /* Context object contains tmp paths and dist cache */
   var ctx: MrContext = null
 
@@ -120,9 +120,9 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
   /* name of the namespace being processed if there's only one */
   var singleNamespace: Option[String] = None
 
-  override def setup(context: Mapper[LongWritable, Text, LongWritable, BytesWritable]#Context): Unit = {
+  override def setup(context: Mapper[K, I, LongWritable, BytesWritable]#Context): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
-    out = new MultipleOutputs(context.asInstanceOf[Mapper[LongWritable, Text, NullWritable, BytesWritable]#Context])
+    out = new MultipleOutputs(context.asInstanceOf[Mapper[LongWritable, I, NullWritable, BytesWritable]#Context])
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.FeatureIdLookup, lookup)
     val dictThrift = new ThriftDictionary
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.Dictionary, dictThrift)
@@ -134,14 +134,13 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
     singleNamespace = Option(context.getConfiguration.get(IngestJob.Keys.SingleNamespace))
   }
 
-  override def cleanup(context: Mapper[LongWritable, Text, LongWritable, BytesWritable]#Context): Unit =
+  override def cleanup(context: Mapper[K, I, LongWritable, BytesWritable]#Context): Unit =
     out.close()
 
-  override def map(key: LongWritable, value: Text, context: Mapper[LongWritable, Text, LongWritable, BytesWritable]#Context): Unit = {
-    val line = value.toString
+  override def map(key: K, value: I, context: Mapper[K, I, LongWritable, BytesWritable]#Context): Unit = {
     val namespace = singleNamespace.fold(namespaces.getOrElseUpdate(splitPath.getParent.toString, findIt(splitPath)))(identity)
 
-    EavtParsers.parse(line, dict, namespace, ingestZone) match {
+    parse(namespace, value) match {
       case Success(f) =>
 
         context.getCounter("ivory", "ingest.ok").increment(1)
@@ -158,16 +157,26 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
 
         context.getCounter("ivory", "ingest.error").increment(1)
 
-        val v = serializer.serialize(new ThriftParseError(line, e))
+        val v = serializer.serialize(e.toThrift)
         vout.set(v, 0, v.length)
 
         out.write(IngestJob.Keys.Err, NullWritable.get, vout, "errors/part")
     }
   }
 
+  def parse(namespace: String, v: I): Validation[ParseError, Fact]
+
   def findIt(p: Path): String =
     if (p.getParent.toString == base)
       p.getName
     else
       findIt(p.getParent)
+}
+
+class TextIngestMapper extends IngestMapper[LongWritable, Text] {
+
+  override def parse(namespace: String, value: Text): Validation[ParseError, Fact] = {
+    val line = value.toString
+    EavtParsers.parse(line, dict, namespace, ingestZone).leftMap(TextParseError(line, _))
+  }
 }
