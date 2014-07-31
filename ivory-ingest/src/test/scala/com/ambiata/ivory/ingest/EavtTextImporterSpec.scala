@@ -1,7 +1,7 @@
 package com.ambiata.ivory.ingest
 
 import org.specs2._
-import org.specs2.matcher.FileMatchers
+import org.specs2.matcher.{FileMatchers, ThrownExpectations}
 import scalaz.{DList => _, _}, Scalaz._, \&/._
 import org.joda.time.DateTimeZone
 import com.nicta.scoobi.Scoobi._
@@ -28,7 +28,7 @@ import org.specs2.specification.{Fixture, FixtureExample}
 import org.specs2.execute.{Result, AsResult}
 import MemoryConversions._
 
-class EavtTextImporterSpec extends Specification with FileMatchers { def is = s2"""
+class EavtTextImporterSpec extends Specification with ThrownExpectations with FileMatchers { def is = s2"""
 
   MR job runs and creates expected data $e1
 
