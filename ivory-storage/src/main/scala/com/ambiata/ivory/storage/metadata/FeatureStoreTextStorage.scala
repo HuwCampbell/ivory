@@ -12,11 +12,11 @@ object FeatureStoreTextStorage extends TextStorage[PrioritizedFactset, FeatureSt
 
   val name = "feature store"
 
-  def fromName(repository: Repository, name: String): ResultTIO[FeatureStore] =
-    fromReference(repository.toReference(Repository.storeByName(name)))
+  def fromId(repository: Repository, id: FeatureStoreId): ResultTIO[FeatureStore] =
+    fromReference(repository.toReference(Repository.storeById(id)))
 
-  def toName(repository: Repository, name: String, fstore: FeatureStore): ResultTIO[Unit] =
-    toReference(repository.toReference(Repository.storeByName(name)), fstore)
+  def toId(repository: Repository, id: FeatureStoreId, fstore: FeatureStore): ResultTIO[Unit] =
+    toReference(repository.toReference(Repository.storeById(id)), fstore)
 
   def fromReference(ref: ReferenceIO): ResultTIO[FeatureStore] =
     ref.run(store => path => store.linesUtf8.read(path).flatMap(lines =>
@@ -42,4 +42,14 @@ object FeatureStoreTextStorage extends TextStorage[PrioritizedFactset, FeatureSt
 
   def fromFactsets(sets: List[FactsetId]): FeatureStore =
     FeatureStore(PrioritizedFactset.fromFactsets(sets))
+
+  def listIds(repo: Repository): ResultTIO[List[FeatureStoreId]] = for {
+    paths <- repo.toStore.list(Repository.stores)
+    ids   <- paths.traverseU(p =>
+               ResultT.fromOption[IO, FeatureStoreId](FeatureStoreId.parse(p.basename.path),
+                                                      s"Can not parse Feature Store id '${p}'"))
+  } yield ids
+
+  def latestId(repo: Repository): ResultTIO[Option[FeatureStoreId]] =
+    listIds(repo).map(_.sorted.lastOption)
 }

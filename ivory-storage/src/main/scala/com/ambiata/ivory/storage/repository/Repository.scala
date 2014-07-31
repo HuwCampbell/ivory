@@ -28,7 +28,7 @@ sealed trait Repository {
   def dictionaries: FilePath = metadata </> "dictionaries"
   def stores: FilePath = metadata </> "stores"
   def dictionaryByName(name: String): FilePath =  dictionaries </> name
-  def storeByName(name: String): FilePath =  stores </> name
+  def storeById(id: FeatureStoreId): FilePath =  stores </> id.render
   def factset(set: FactsetId): FilePath =  factsets </> set.name
   def namespace(set: FactsetId, namespace: String): FilePath =  factset(set) </> namespace
   def snapshot(id: Identifier): FilePath = snapshots </> FilePath(id.render)
@@ -63,7 +63,7 @@ object Repository {
   def dictionaries: FilePath = metadata </> "dictionaries"
   def stores: FilePath = metadata </> "stores"
   def dictionaryByName(name: String): FilePath =  dictionaries </> name
-  def storeByName(name: String): FilePath =  stores </> name
+  def storeById(id: FeatureStoreId): FilePath =  stores </> id.render
   def factset(set: FactsetId): FilePath =  factsets </> set.name
   def namespace(set: FactsetId, namespace: String): FilePath =  factset(set) </> namespace
   def snapshot(id: Identifier): FilePath = snapshots </> FilePath(id.render)

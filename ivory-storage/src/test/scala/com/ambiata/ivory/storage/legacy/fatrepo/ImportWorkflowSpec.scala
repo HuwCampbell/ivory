@@ -21,8 +21,6 @@ object ImportWorkflowSpec extends Specification with ScalaCheck { def is = s2"""
 
   Can find next factset on hdfs                  $e1
   Next name increments by one                    $e2
-  Can list all stores on Hdfs                    $e3
-  Can find latest name                           $e4
                                                  """
 
   def e1 = prop((ids: SmallOldIdentifierList) => {
@@ -42,23 +40,4 @@ object ImportWorkflowSpec extends Specification with ScalaCheck { def is = s2"""
     val names = (0 to i).map(ImportWorkflow.zeroPad).toList
     ImportWorkflow.nextName(names) must_== ImportWorkflow.zeroPad(i.toInt + 1)
   })
-
-  def e3 = prop((ids: SmallOldIdentifierList) => {
-    implicit val sc: ScoobiConfiguration = scoobiConfiguration
-
-    val base = FilePath(TempFiles.createTempDir("ImportWorkflowSpec.e2").getPath)
-    val repo = Repository.fromHdfsPath(base </> "repo", sc)
-
-    seqToResult(ids.ids.map(id => {
-      val path = repo.stores </> FilePath(id.render)
-      Hdfs.writeWith(path.toHdfs, os => Streams.write(os, "")).run(sc.configuration) must beOk
-    })) and (ImportWorkflow.listStores(repo) must beOkLike(_ must_== ids.ids.map(_.render)))
-  }).set(minTestsOk = 5)
-
-  // TODO fix after factset id migrated to Identifier
-  def e4 = prop((i: Short) => i >= 0 ==> {
-    val names = (0 to i).map(ImportWorkflow.zeroPad).toList
-    ImportWorkflow.latestName(names) must_== Some(ImportWorkflow.zeroPad(i))
-  }) and
-  (ImportWorkflow.latestName(Nil) must_== None)
 }

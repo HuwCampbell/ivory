@@ -3,6 +3,8 @@ package com.ambiata.ivory.storage.legacy
 import java.io.File
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.data.OldIdentifier
+import com.ambiata.ivory.data.IvoryDataLiterals._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.metadata.Metadata._
@@ -49,7 +51,7 @@ trait SampleFacts extends MustThrownMatchers {
     persist(facts1.toIvoryFactset(repo, FactsetId("00000"), None), facts2.toIvoryFactset(repo, FactsetId("00001"), None))
     writeFactsetVersion(repo, List(FactsetId("00000"), FactsetId("00001"))) must beOk
 
-    storeToIvory(repo, FeatureStore(List(PrioritizedFactset(FactsetId("00000"), Priority(1)), PrioritizedFactset(FactsetId("00001"), Priority(2)))), "00000") must beOk
+    storeToIvory(repo, FeatureStore(List(PrioritizedFactset(FactsetId("00000"), Priority(1)), PrioritizedFactset(FactsetId("00001"), Priority(2)))), FeatureStoreId(oi"00000")) must beOk
 
   }
 

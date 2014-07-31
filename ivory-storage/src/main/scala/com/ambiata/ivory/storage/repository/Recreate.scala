@@ -109,16 +109,17 @@ object Recreate { outer =>
 
   private def copyStore(from: HdfsRepository, to: HdfsRepository, clean: Boolean, dry: Boolean, filtered: Seq[String]) = (path: Path) =>
     for {
-      _       <- Hdfs.log(s"Copy store ${path.getName} from ${from.storeByName(path.getName)} to ${to.storeByName(path.getName)}")
-      store   <- Hdfs.fromResultTIO(storeFromIvory(from, path.getName))
-      cleaned <- cleanupStore(path.getName, store, filtered, clean)
-      _       <- Hdfs.fromResultTIO(storeToIvory(to, cleaned, path.getName)).unless(dry)
+      storeId <- Hdfs.fromOption(FeatureStoreId.parse(path.getName), s"Could not parse '${path.getName}'")
+      _       <- Hdfs.log(s"Copy store ${storeId} from ${from.storeById(storeId)} to ${to.storeById(storeId)}")
+      store   <- Hdfs.fromResultTIO(storeFromIvory(from, storeId))
+      cleaned <- cleanupStore(storeId, store, filtered, clean)
+      _       <- Hdfs.fromResultTIO(storeToIvory(to, cleaned, storeId)).unless(dry)
     } yield ()
 
-  private def cleanupStore(name: String, store: FeatureStore, setsToKeep: Seq[String], clean: Boolean) = {
+  private def cleanupStore(id: FeatureStoreId, store: FeatureStore, setsToKeep: Seq[String], clean: Boolean) = {
     val cleaned = if (clean) store.filter(setsToKeep.toSet) else store
     val removed = store.diff(cleaned).factsets.map(_.name)
-    Hdfs.log(s"Removed factsets '${removed.mkString(",")}' from feature store '$name' as they are empty.").unless(removed.isEmpty) >>
+    Hdfs.log(s"Removed factsets '${removed.mkString(",")}' from feature store '${id.render}' as they are empty.").unless(removed.isEmpty) >>
     Hdfs.safe(cleaned)
   }
 

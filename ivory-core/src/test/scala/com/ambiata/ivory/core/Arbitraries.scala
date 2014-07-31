@@ -178,6 +178,13 @@ object Arbitraries {
   implicit def DictDescArbitrary: Arbitrary[DictDesc] =
     Arbitrary(arbitrary[String].map(_.trim).retryUntil(s => !s.contains("|") && !s.contains("\uFFFF") && s.forall(_ > 31)).map(DictDesc))
 
+  implicit def FeatureStoreIdArbitrary: Arbitrary[FeatureStoreId] =
+    Arbitrary(arbitrary[OldIdentifier].map(FeatureStoreId.apply))
+
+  case class SmallFeatureStoreIdList(ids: List[FeatureStoreId])
+  implicit def SmallFeatureStoreIdListArbitrary: Arbitrary[SmallFeatureStoreIdList] =
+    Arbitrary(arbitrary[SmallOldIdentifierList].map(ids => SmallFeatureStoreIdList(ids.ids.map(FeatureStoreId.apply))))
+
   implicit def FeatureStoreArbitrary: Arbitrary[FeatureStore] = Arbitrary(
     arbitrary[OldIdentifierList].map(ids =>
       FeatureStore(ids.ids.zipWithIndex.map({ case (id, i) =>
