@@ -1,4 +1,4 @@
-namespace java com.ambiata.ivory.ingest
+namespace java com.ambiata.ivory.lookup
 
 struct NamespaceLookup {
     1: map<i32, string> namespaces;
