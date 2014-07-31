@@ -26,6 +26,7 @@ object build extends Build {
     , generate
     , ingest
     , mr
+    , performance
     , scoobi
     , storage
     , tools
@@ -193,6 +194,15 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.thrift ++ depend.mundane ++ depend.scalaz ++ depend.specs2 ++ depend.poacher(version.value) ++ depend.hadoop(version.value))
   )
   .dependsOn(core, core % "test->test")
+
+  lazy val performance = Project(
+    id = "performance"
+    , base = file("ivory-performance")
+    , settings = standardSettings ++ app("performance") ++ Seq[Settings](
+      name := "ivory-performance"
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane)
+  )
+    .dependsOn(core)
 
   lazy val scoobi = Project(
     id = "scoobi"

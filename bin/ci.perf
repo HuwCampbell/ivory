@@ -1,0 +1,21 @@
+#!/bin/sh -eu
+
+# A full end-to-end test of Ivory using an EMR cluster
+
+# TODO Currently this doesn't work unless the client machine has direct access to the master node
+# Options for fixing are:
+# - Create SSH an SSH tunnel with the appropriate ports for hadoop to work (and modifying the conf xml files accordingly)
+# - Move the relevant Ivory files to the master node and run directly
+
+DIR=$(dirname $0)/../ivory-performance/src/test/bin
+
+# Start an instance of EMR just for this test
+# WARNING: This needs to be sourced - do not execute this script
+. ${DIR}/emr-start.sh
+
+${DIR}/run "gsod" "$@"
+
+VERSION=$(git log -n 1 --format=%h)
+# Technically we only need the SHA1, but having a date is good for sorting
+DATE=$(date '+%Y%m%d%H%M%S')
+aws s3 cp "$(dirname $0)/../target/times.csv" s3://ambiata-ivory/perf/${DATE}-${VERSION}/times.csv

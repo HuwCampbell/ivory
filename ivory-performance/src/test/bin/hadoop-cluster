@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ -z "$EMR_CLUSTER_ID" ]; then
+  echo "'EMR_CLUSTER_ID' must be set"
+  return 1
+fi
+
+DIR=$(dirname $0)
+HADOOP_CONF_DIR=`${DIR}/hadoop-conf-builder $EMR_CLUSTER_ID` || exit $?
+
+env HADOOP_CONF_DIR=$HADOOP_CONF_DIR HADOOP_USER_NAME=hadoop ${DIR}/../../../../bin/hadoop "$@"

@@ -1,0 +1,19 @@
+#!/bin/sh -eu
+
+# Handles all the GSOD specific inputs one at a time, uploading as it goes
+
+DIR=$(dirname $0)
+
+# The data only really starts from 1929 - the tar files prior to that are empty
+START_YEAR=${1:-1929}
+END_YEAR=${2:-2013}
+INPUT=${DIR}/../../../../../target/gsod-cache
+OUTPUT=${DIR}/../../../../../target/gsod-temp
+
+# We're optimizing for space so this may take a little longer
+for year in $(seq ${START_YEAR} ${END_YEAR}); do
+  ${DIR}/download ${INPUT} ${year} ${year}
+  ${DIR}/../../perf-run "com.ambiata.ivory.performance.Gsod" ${INPUT} ${year} ${year} ${OUTPUT} 1>&2
+  rm -r "${INPUT}/${year}"
+  echo "${OUTPUT}/${year}"
+done

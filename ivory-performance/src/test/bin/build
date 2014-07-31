@@ -1,0 +1,10 @@
+#!/bin/sh -eu
+
+DIR=$(dirname $0)
+
+# Build jar
+ROOT=${DIR}/../../../..
+# Remote the old jars so we know which one to run
+rm -rf ${ROOT}/ivory-cli/target/scala-*/*.jar
+rm -rf ${ROOT}/ivory-performance/target/scala-*/*.jar
+${ROOT}/sbt "; project cli; assembly; project performance; assembly"
