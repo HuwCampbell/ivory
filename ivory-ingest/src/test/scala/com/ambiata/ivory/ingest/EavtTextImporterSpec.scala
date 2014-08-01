@@ -1,34 +1,29 @@
 package com.ambiata.ivory.ingest
 
-import org.specs2._
-import org.specs2.matcher.{FileMatchers, ThrownExpectations}
-import scalaz.{DList => _, _}, Scalaz._, \&/._
-import org.joda.time.DateTimeZone
-import com.nicta.scoobi.Scoobi._
-import com.nicta.scoobi.testing.mutable._
-import com.nicta.scoobi.testing.TestFiles._
-import com.nicta.scoobi.testing.{TempFiles, SimpleJobs}
 import java.io.File
-import java.net.URI
-import org.apache.hadoop.fs.Path
 
-import com.ambiata.mundane.parse.ListParser
-import com.ambiata.mundane.testing.ResultTIOMatcher._
-
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift.ThriftSerialiser
+import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.scoobi.{SequenceUtil, TestConfigurations}
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
-import com.ambiata.ivory.scoobi.WireFormats._
-import com.ambiata.ivory.scoobi.FactFormats._
-import com.ambiata.ivory.scoobi.{SequenceUtil, TestConfigurations}
-import com.ambiata.poacher.hdfs.HdfsStore
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.io._
-import org.specs2.specification.{Fixture, FixtureExample}
-import org.specs2.execute.{Result, AsResult}
-import MemoryConversions._
+import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.poacher.hdfs.HdfsStore
+import com.nicta.scoobi.Scoobi._
+import com.nicta.scoobi.testing.TempFiles
+import com.nicta.scoobi.testing.TestFiles._
+import org.joda.time.DateTimeZone
+import org.specs2._
+import org.specs2.execute.{AsResult, Result}
+import org.specs2.matcher.{FileMatchers, ThrownExpectations}
+import org.specs2.specification.Fixture
+
+import scalaz.{DList => _, _}
 
 class EavtTextImporterSpec extends Specification with ThrownExpectations with FileMatchers { def is = s2"""
 
