@@ -55,9 +55,22 @@ struct PriorityTag {
     2: binary bytes;
 }
 
-struct ThriftParseError {
+struct ThriftV1ErrorData {
+    1: binary bytes;
+}
+
+struct TextErrorData {
     1: string line;
-    2: string message;
+}
+
+union ParseErrorData {
+    1: TextErrorData text;
+    2: ThriftV1ErrorData thriftV1;
+}
+
+struct ThriftParseError {
+    1: string message;
+    2: ParseErrorData data;
 }
 
 enum ThriftDictionaryEncoding {

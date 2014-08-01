@@ -6,7 +6,7 @@ import com.ambiata.ivory.storage.legacy._
 
 import scalaz.{\/-, -\/}
 import scalaz.concurrent.Task
-import com.ambiata.ivory.core.{Value, Partition, Fact}
+import com.ambiata.ivory.core.{TextError, ThriftError, Value, Partition, Fact}
 import com.ambiata.mundane.io.{IOActions, IOAction, Logger}
 import scalaz.std.anyVal._
 import com.ambiata.ivory.scoobi._
@@ -34,7 +34,10 @@ object PrintFacts {
 
   private def printThriftFact(delim: String, tombstone: String, logger: Logger, version: FactsetVersion)(path: Path, tf: ThriftFact): Task[Unit] = Task.delay {
     PartitionFactThriftStorage.parseThriftFact(version, path.toString)(tf) match {
-      case -\/(e) => Task.now(logger("Error! "+e.message+": "+e.line).unsafePerformIO)
+      case -\/(e) => Task.now(logger("Error! "+e.message+ (e.data match {
+        case TextError(line) => ": " + line
+        case _: ThriftError  => ""
+      })).unsafePerformIO())
       case \/-(f) => printFact(delim, tombstone, logger)(path, f)
     }
   }.flatMap(identity)

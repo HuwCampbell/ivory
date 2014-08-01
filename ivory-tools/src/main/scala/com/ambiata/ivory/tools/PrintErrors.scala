@@ -1,7 +1,7 @@
 package com.ambiata.ivory.tools
 
 import scalaz.concurrent.Task
-import com.ambiata.ivory.core.ParseError
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.io.{IOActions, IOAction, Logger}
 import scalaz.std.anyVal._
 import com.ambiata.ivory.scoobi.SeqSchemas
@@ -21,7 +21,10 @@ object PrintErrors {
   } yield ()
 
   def printParseError(delim: String, logger: Logger)(path: Path, p: ParseError): Task[Unit] = Task.delay {
-    val logged = Seq(p.line, p.message).mkString(delim)
-    logger(logged).unsafePerformIO
+    val logged = p.data match {
+      case TextError(line) => Seq(line, p.message).mkString(delim)
+      case _: ThriftError  => p.message
+    }
+    logger(logged).unsafePerformIO()
   }
 }

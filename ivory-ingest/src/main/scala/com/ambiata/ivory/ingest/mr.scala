@@ -185,7 +185,7 @@ class TextIngestMapper extends IngestMapper[LongWritable, Text] {
 
   override def parse(namespace: String, value: Text): Validation[ParseError, Fact] = {
     val line = value.toString
-    EavtParsers.parse(line, dict, namespace, ingestZone).leftMap(TextParseError(line, _))
+    EavtParsers.parse(line, dict, namespace, ingestZone).leftMap(ParseError(_, TextError(line)))
   }
 }
 
@@ -204,6 +204,7 @@ class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {
     }) match {
       case -\/(e)  => e.getMessage.failure
       case \/-(_)  => Conversion.thrift2fact(namespace, thrift, ingestZone, ivoryZone).validation
-    }).leftMap(ParseError("", _))
+    // TODO Use ByteView.view() when it has length
+    }).leftMap(ParseError(_, ThriftError(ThriftErrorDataVersionV1, ByteVector(value.getBytes))))
   }
 }
