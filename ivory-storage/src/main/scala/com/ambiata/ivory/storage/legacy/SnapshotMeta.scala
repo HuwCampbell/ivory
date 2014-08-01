@@ -42,7 +42,7 @@ object SnapshotMeta {
     sm    <- ResultT.fromDisjunction[IO, SnapshotMeta](parser.run(lines).disjunction.leftMap(This.apply))
   } yield sm
 
-  def fromIdentifier(repo: Repository, id: Identifier): ResultTIO[SnapshotMeta] =
+  def fromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[SnapshotMeta] =
     fromReference(repo.toReference(Repository.snapshots </> FilePath(id.render) </> fname))
 
   def parser: ListParser[SnapshotMeta] = {
@@ -53,9 +53,14 @@ object SnapshotMeta {
     } yield SnapshotMeta(Date.fromLocalDate(d), s)
   }
 
-  def latest(repo: Repository, date: Date): ResultTIO[Option[(Identifier, SnapshotMeta)]] = for {
+  def allocateId(repo: Repository): ResultTIO[SnapshotId] = for {
+    res <- IdentifierStorage.write(FilePath(".allocated"), scodec.bits.ByteVector.empty)(repo.toStore, Repository.snapshots)
+    (id, _) = res
+  } yield SnapshotId(id)
+
+  def latest(repo: Repository, date: Date): ResultTIO[Option[(SnapshotId, SnapshotMeta)]] = for {
     ids   <- repo.toReference(Repository.snapshots).run(s => p => StoreDataUtil.listDir(s, p)).map(_.map(_.basename.path))
-    metas <- ids.traverseU(sid => Identifier.parse(sid).map(id => fromIdentifier(repo, id).map((id, _))).sequenceU)
+    metas <- ids.traverseU(sid => SnapshotId.parse(sid).map(id => fromIdentifier(repo, id).map((id, _))).sequenceU)
     filtered = metas.collect({ case Some((id, sm)) if sm.date.isBeforeOrEqual(date) => (id, sm) })
   } yield filtered.sortBy(_.swap).lastOption
 }

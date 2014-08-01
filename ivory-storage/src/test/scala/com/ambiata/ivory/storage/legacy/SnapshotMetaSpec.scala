@@ -33,28 +33,28 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
     store <- arbitrary[FeatureStoreId]
   } yield SnapshotMeta(date, store))
 
-  def genSnapshotMetas(ids: IdentifierList): Gen[List[(SnapshotMeta, Identifier)]] =
+  def genSnapshotMetas(ids: SmallSnapshotIdList): Gen[List[(SnapshotMeta, SnapshotId)]] =
     ids.ids.traverseU(id => arbitrary[SnapshotMeta].map((_, id)))
 
-  def genSameDateSnapshotMetas(ids: IdentifierList): Gen[List[(SnapshotMeta, Identifier)]] = for {
+  def genSameDateSnapshotMetas(ids: SmallSnapshotIdList): Gen[List[(SnapshotMeta, SnapshotId)]] = for {
     date  <- arbitrary[Date]
     snaps <- ids.ids.traverseU(id => arbitrary[FeatureStoreId].map(sid => (SnapshotMeta(date, sid), id)))
   } yield snaps
 
-  def genSameStoreSnapshotMetas(ids: IdentifierList): Gen[List[(SnapshotMeta, Identifier)]] = for {
+  def genSameStoreSnapshotMetas(ids: SmallSnapshotIdList): Gen[List[(SnapshotMeta, SnapshotId)]] = for {
     store <- arbitrary[FeatureStoreId]
     snaps <- ids.ids.traverseU(id => arbitrary[Date].map(d => (SnapshotMeta(d, store), id)))
   } yield snaps
 
-  def genSameSnapshotMetas(ids: IdentifierList): Gen[List[(SnapshotMeta, Identifier)]] = for {
+  def genSameSnapshotMetas(ids: SmallSnapshotIdList): Gen[List[(SnapshotMeta, SnapshotId)]] = for {
     date  <- arbitrary[Date]
     store <- arbitrary[FeatureStoreId]
     snaps <- ids.ids.map(id => (SnapshotMeta(date, store), id))
   } yield snaps
 
-  case class Snapshots(snaps: List[(SnapshotMeta, Identifier)])
+  case class Snapshots(snaps: List[(SnapshotMeta, SnapshotId)])
   implicit def SnapshotsArbitrary: Arbitrary[Snapshots] = Arbitrary(for {
-    ids <- arbitrary[IdentifierList]
+    ids <- arbitrary[SmallSnapshotIdList]
     sms <- Gen.oneOf(genSnapshotMetas(ids) // random SnapshotMeta's
       , genSameDateSnapshotMetas(ids) // same date in all SnapshotMeta's
       , genSameStoreSnapshotMetas(ids) // same store in all SnapshotMeta's
@@ -81,7 +81,7 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
     Repository.fromHdfsPath(base </> "repo", sc)
   }
 
-  def storeSnapshotMeta(repo: Repository, id: Identifier, meta: SnapshotMeta): ResultTIO[Unit] = {
+  def storeSnapshotMeta(repo: Repository, id: SnapshotId, meta: SnapshotMeta): ResultTIO[Unit] = {
     val path = Repository.snapshots </> FilePath(id.render) </> SnapshotMeta.fname
     repo.toReference(path).run(store => p => store.linesUtf8.write(p, meta.stringLines))
   }
