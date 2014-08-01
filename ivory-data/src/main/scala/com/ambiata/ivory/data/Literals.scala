@@ -9,6 +9,9 @@ object IvoryDataLiterals {
 
     def i(): Identifier =
       macro IvoryDataLiteralsMacros.identifierMacro
+
+    def oi(): OldIdentifier =
+      macro IvoryDataLiteralsMacros.oldIdentifierMacro
   }
 }
 
@@ -29,6 +32,15 @@ object IvoryDataLiteralsMacros extends com.ambiata.ivory.reflect.MacrosCompat {
       case Apply(_,List(Apply(_,List(Literal(Constant(str: String)))))) =>
         Identifier.parse(str).getOrElse(c.abort(c.enclosingPosition, s"Invalid Identifier[$str]"))
         c.Expr[Identifier](q"Identifier.parse($str).get")
+    }
+  }
+
+  def oldIdentifierMacro(c: Context)(): c.Expr[OldIdentifier] = {
+    import c.universe._
+    c.prefix.tree match {
+      case Apply(_,List(Apply(_,List(Literal(Constant(str: String)))))) =>
+        OldIdentifier.parse(str).getOrElse(c.abort(c.enclosingPosition, s"Invalid OldIdentifier[$str]"))
+        c.Expr[OldIdentifier](q"OldIdentifier.parse($str).get")
     }
   }
 }

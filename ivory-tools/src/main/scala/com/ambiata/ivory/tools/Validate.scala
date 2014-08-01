@@ -102,7 +102,7 @@ case class ValidateFactSetHdfs(repo: HdfsRepository, factset: FactsetId, dict: D
 
 object Validate {
 
-  def validateHdfsStore(repoPath: Path, store: String, output: Path, includeOverridden: Boolean): ScoobiAction[Long] = for {
+  def validateHdfsStore(repoPath: Path, store: FeatureStoreId, output: Path, includeOverridden: Boolean): ScoobiAction[Long] = for {
     r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
     d <- ScoobiAction.fromResultTIO(dictionaryFromIvory(r))
     s <- ScoobiAction.fromResultTIO(storeFromIvory(r, store))

@@ -23,7 +23,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import com.ambiata.poacher.hdfs._
 
-case class Chord(repo: Repository, store: String, entities: HashMap[String, Array[Int]], output: ReferenceIO, tmp: ReferenceIO, incremental: Option[Identifier], codec: Option[CompressionCodec]) {
+case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[String, Array[Int]], output: ReferenceIO, tmp: ReferenceIO, incremental: Option[Identifier], codec: Option[CompressionCodec]) {
   import IvoryStorage._
 
   type PackedDate = Int
@@ -184,7 +184,7 @@ object Chord {
     }
   }
 
-  def latestSnapshot(repo: Repository, date: Date): ResultTIO[(String, Option[Identifier])] = for {
+  def latestSnapshot(repo: Repository, date: Date): ResultTIO[(FeatureStoreId, Option[Identifier])] = for {
     store  <- ExtractLatestWorkflow.latestStore(repo)
     latest <- SnapshotMeta.latest(repo, date)
   } yield (store, latest.map(_._1))

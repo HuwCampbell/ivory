@@ -59,7 +59,7 @@ object ImportWorkflow {
         println(s"imported fact set in ${x - t3}ms")
         x
       }
-      sname    <- createStore(repo, factset)
+      _        <- CreateFeatureStore.increment(repo, factset)
       t5 = {
         val x = System.currentTimeMillis
         println(s"created store in ${x - t4}ms")
@@ -92,25 +92,6 @@ object ImportWorkflow {
     factset <- nextFactset(repo)
     _       <- repo.toStore.bytes.write(Repository.factsets </> FilePath(factset.name) </> ".allocated", scodec.bits.ByteVector.empty)
   } yield factset
-
-  def listStores(repo: Repository): ResultTIO[List[String]] =
-    repo.toStore.list(Repository.stores).map(_.map(_.basename.path))
-
-  def latestStore(repo: Repository): ResultTIO[Option[String]] =
-    listStores(repo).map(latestName)
-
-  // TODO handle locking
-  def createStore(repo: Repository, factset: FactsetId): ResultTIO[String] = for {
-    names  <- listStores(repo)
-    latest  = latestName(names)
-    name    = nextName(names)
-    _       = logger.debug(s"Going to create feature store '${name}'" + latest.map(l => s" based off feature store '${l}'").getOrElse(""))
-    _      <- CreateFeatureStore.inRepository(repo, name, List(factset), latest)
-  } yield name
-
-  // TODO Replace all the below with Identifier
-  def latestName(names: List[String]): Option[String] =
-    latestNameWith(names, identity)
 
   def latestNameWith(names: List[String], incr: Int => Int): Option[String] = {
     val offsets = names.map(_.parseInt).collect({ case Success(i) => i })

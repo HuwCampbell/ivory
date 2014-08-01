@@ -30,26 +30,26 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
 
   implicit def SnapshotMetaArbitrary: Arbitrary[SnapshotMeta] = Arbitrary(for {
     date  <- arbitrary[Date]
-    store <- arbitrary[OldIdentifier]
-  } yield SnapshotMeta(date, store.render))
+    store <- arbitrary[FeatureStoreId]
+  } yield SnapshotMeta(date, store))
 
   def genSnapshotMetas(ids: IdentifierList): Gen[List[(SnapshotMeta, Identifier)]] =
     ids.ids.traverseU(id => arbitrary[SnapshotMeta].map((_, id)))
 
   def genSameDateSnapshotMetas(ids: IdentifierList): Gen[List[(SnapshotMeta, Identifier)]] = for {
     date  <- arbitrary[Date]
-    snaps <- ids.ids.traverseU(id => arbitrary[OldIdentifier].map(sid => (SnapshotMeta(date, sid.render), id)))
+    snaps <- ids.ids.traverseU(id => arbitrary[FeatureStoreId].map(sid => (SnapshotMeta(date, sid), id)))
   } yield snaps
 
   def genSameStoreSnapshotMetas(ids: IdentifierList): Gen[List[(SnapshotMeta, Identifier)]] = for {
-    store <- arbitrary[OldIdentifier]
-    snaps <- ids.ids.traverseU(id => arbitrary[Date].map(d => (SnapshotMeta(d, store.render), id)))
+    store <- arbitrary[FeatureStoreId]
+    snaps <- ids.ids.traverseU(id => arbitrary[Date].map(d => (SnapshotMeta(d, store), id)))
   } yield snaps
 
   def genSameSnapshotMetas(ids: IdentifierList): Gen[List[(SnapshotMeta, Identifier)]] = for {
     date  <- arbitrary[Date]
-    store <- arbitrary[OldIdentifier]
-    snaps <- ids.ids.map(id => (SnapshotMeta(date, store.render), id))
+    store <- arbitrary[FeatureStoreId]
+    snaps <- ids.ids.map(id => (SnapshotMeta(date, store), id))
   } yield snaps
 
   case class Snapshots(snaps: List[(SnapshotMeta, Identifier)])
@@ -71,8 +71,8 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
   }) // TODO This takes around 30 seconds, needs investigation
 
   def e2 =
-    prop((snaps: List[SnapshotMeta])         => assertSortOrder(snaps)) and
-    prop((d: Date, ids: List[OldIdentifier]) => assertSortOrder(ids.map(id => SnapshotMeta(d, id.render))))
+    prop((snaps: List[SnapshotMeta])          => assertSortOrder(snaps)) and
+    prop((d: Date, ids: List[FeatureStoreId]) => assertSortOrder(ids.map(id => SnapshotMeta(d, id))))
 
   def createRepo(prefix: String): Repository = {
     val sc: ScoobiConfiguration = scoobiConfiguration
