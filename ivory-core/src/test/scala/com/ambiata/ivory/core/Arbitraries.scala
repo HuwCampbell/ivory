@@ -1,6 +1,8 @@
 package com.ambiata.ivory.core
 
 import org.scalacheck._, Arbitrary._
+import com.ambiata.ivory.data.Arbitraries._
+import com.ambiata.ivory.data.OldIdentifier
 
 import org.joda.time.DateTimeZone
 import scala.collection.JavaConverters._
@@ -176,28 +178,10 @@ object Arbitraries {
   implicit def DictDescArbitrary: Arbitrary[DictDesc] =
     Arbitrary(arbitrary[String].map(_.trim).retryUntil(s => !s.contains("|") && !s.contains("\uFFFF") && s.forall(_ > 31)).map(DictDesc))
 
-  case class OldIdentifier(id: String)
-  implicit def OldIdentifierArbitrary: Arbitrary[OldIdentifier] =
-    Arbitrary(Gen.choose(1, Priority.Max.toShort).map(oldIdentifier).map(OldIdentifier.apply))
-
-  def oldIdentifier(i: Int): String =
-    "%05d".format(i)
-
-  def oldIdentifiers(n: Int): List[String] =
-    (0 until n).map(oldIdentifier).toList
-
-  case class OldIdentifiers(ids: List[String])
-  implicit def OldIdentitiersArbitrary: Arbitrary[OldIdentifiers] =
-    Arbitrary(Gen.choose(1, Priority.Max.toShort).map(n => OldIdentifiers(oldIdentifiers(n))))
-
-  case class SmallOldIdentifiers(ids: List[String])
-  implicit def SmallOldIdentifiersArbitrary: Arbitrary[SmallOldIdentifiers] =
-    Arbitrary(Gen.choose(1, 100).map(n => SmallOldIdentifiers(oldIdentifiers(n))))
-
   implicit def FeatureStoreArbitrary: Arbitrary[FeatureStore] = Arbitrary(
-    arbitrary[OldIdentifiers].map(ids =>
+    arbitrary[OldIdentifierList].map(ids =>
       FeatureStore(ids.ids.zipWithIndex.map({ case (id, i) =>
-         PrioritizedFactset(FactsetId(id), Priority.unsafe((i + 1).toShort))
+         PrioritizedFactset(FactsetId(id.render), Priority.unsafe((i + 1).toShort))
       }).toList)
     ))
 
@@ -209,7 +193,7 @@ object Arbitraries {
   } yield EncodingAndValue(enc, value))
 
   implicit def FactsetArbitrary: Arbitrary[FactsetId] =
-    Arbitrary(arbitrary[OldIdentifier].map(id => FactsetId(id.id)))
+    Arbitrary(arbitrary[OldIdentifier].map(id => FactsetId(id.render)))
 
   implicit def PartitionArbitrary: Arbitrary[Partition] = Arbitrary(for {
     factset <- arbitrary[FactsetId]

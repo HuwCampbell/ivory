@@ -7,7 +7,7 @@ import com.ambiata.poacher.hdfs._
 import org.specs2._
 import org.scalacheck._, Arbitrary._, Arbitraries._
 import com.ambiata.ivory.data.Arbitraries._
-import com.ambiata.ivory.data.Identifier
+import com.ambiata.ivory.data.{Identifier, OldIdentifier}
 import com.ambiata.ivory.scoobi.TestConfigurations._
 import com.nicta.scoobi.testing.TempFiles
 import com.ambiata.mundane.testing.ResultTIOMatcher._
@@ -31,25 +31,25 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
   implicit def SnapshotMetaArbitrary: Arbitrary[SnapshotMeta] = Arbitrary(for {
     date  <- arbitrary[Date]
     store <- arbitrary[OldIdentifier]
-  } yield SnapshotMeta(date, store.id))
+  } yield SnapshotMeta(date, store.render))
 
   def genSnapshotMetas(ids: IdentifierList): Gen[List[(SnapshotMeta, Identifier)]] =
     ids.ids.traverseU(id => arbitrary[SnapshotMeta].map((_, id)))
 
   def genSameDateSnapshotMetas(ids: IdentifierList): Gen[List[(SnapshotMeta, Identifier)]] = for {
     date  <- arbitrary[Date]
-    snaps <- ids.ids.traverseU(id => arbitrary[OldIdentifier].map(sid => (SnapshotMeta(date, sid.id), id)))
+    snaps <- ids.ids.traverseU(id => arbitrary[OldIdentifier].map(sid => (SnapshotMeta(date, sid.render), id)))
   } yield snaps
 
   def genSameStoreSnapshotMetas(ids: IdentifierList): Gen[List[(SnapshotMeta, Identifier)]] = for {
     store <- arbitrary[OldIdentifier]
-    snaps <- ids.ids.traverseU(id => arbitrary[Date].map(d => (SnapshotMeta(d, store.id), id)))
+    snaps <- ids.ids.traverseU(id => arbitrary[Date].map(d => (SnapshotMeta(d, store.render), id)))
   } yield snaps
 
   def genSameSnapshotMetas(ids: IdentifierList): Gen[List[(SnapshotMeta, Identifier)]] = for {
     date  <- arbitrary[Date]
     store <- arbitrary[OldIdentifier]
-    snaps <- ids.ids.map(id => (SnapshotMeta(date, store.id), id))
+    snaps <- ids.ids.map(id => (SnapshotMeta(date, store.render), id))
   } yield snaps
 
   case class Snapshots(snaps: List[(SnapshotMeta, Identifier)])
@@ -71,8 +71,8 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
   }) // TODO This takes around 30 seconds, needs investigation
 
   def e2 =
-    prop((snaps: List[SnapshotMeta])    => assertSortOrder(snaps)) and
-      prop((d: Date, ids: OldIdentifiers) => assertSortOrder(ids.ids.map(SnapshotMeta(d, _))))
+    prop((snaps: List[SnapshotMeta])         => assertSortOrder(snaps)) and
+    prop((d: Date, ids: List[OldIdentifier]) => assertSortOrder(ids.map(id => SnapshotMeta(d, id.render))))
 
   def createRepo(prefix: String): Repository = {
     val sc: ScoobiConfiguration = scoobiConfiguration
