@@ -2,7 +2,6 @@ package com.ambiata.ivory.core.thrift
 
 import com.ambiata.ivory.core._
 import scala.collection.JavaConverters._
-import scala.util.Try
 import scalaz._, Scalaz._, BijectionT._
 
 object DictionaryThriftConversion {
@@ -33,7 +32,7 @@ object DictionaryThriftConversion {
     val from: ThriftDictionaryStruct => StructEncoding = enc =>
       StructEncoding(Option(enc.getValues).map(_.asScala).getOrElse(Nil).map {
         meta => meta.getName -> StructEncodedValue(primitiveEncoding.from(meta.getEncoding),
-          optional = Try(meta.getOpts.getIsOptional).toOption.getOrElse(false))
+          optional = meta.getOpts.isSetIsOptional && meta.getOpts.getIsOptional)
       }.toMap)
   }
 
