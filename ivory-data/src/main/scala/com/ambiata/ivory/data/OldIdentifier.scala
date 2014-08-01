@@ -3,7 +3,10 @@ package com.ambiata.ivory.data
 import com.ambiata.mundane.parse.ListParser
 import scalaz._, Scalaz._
 
-/* This only exists for backwards compatibility */
+/*
+ * TODO Delete this as part of the migration to the new Identifier format
+ *      see https://github.com/ambiata/ivory/issues/56
+ */
 class OldIdentifier private (val n: Int) extends AnyVal {
   def render: String =
     String.format("%05d", java.lang.Integer.valueOf(n))
