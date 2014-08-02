@@ -22,8 +22,6 @@ import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat, SequenceFileInputFormat}
 import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, LazyOutputFormat, MultipleOutputs, SequenceFileOutputFormat}
-import org.apache.thrift.protocol.TCompactProtocol
-import org.apache.thrift.{TDeserializer, TSerializer}
 
 import scalaz.{Reducer => _, _}
 
@@ -111,19 +109,16 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, LongWrit
       else                                                               PartitionFactThriftStorageV1.parseFact(partition)
   }
 
-  /** Thrift deserializer. */
-  val deserializer = new TDeserializer(new TCompactProtocol.Factory)
-  /* Value serializer. */
-  val serializer = new TSerializer(new TCompactProtocol.Factory)
+  val serializer = ThriftSerialiser()
 
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
-    deserializer.deserialize(thrift, value.copyBytes())
+    serializer.fromBytesViewUnsafe(thrift, value.getBytes, 0, value.getLength)
     parseFact(thrift).toOption.foreach { fact =>
       val k = featureIdLookup.ids.get(fact.featureId.toString).toInt
 
       kout.set((k.toLong << 32) | fact.date.int.toLong)
 
-      val v = serializer.serialize(fact.toThrift)
+      val v = serializer.toBytes(fact.toThrift)
       vout.set(v, 0, v.length)
 
       context.write(kout, vout)
