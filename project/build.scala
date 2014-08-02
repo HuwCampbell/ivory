@@ -258,5 +258,6 @@ object build extends Build {
     , base / "src" / "main"/ "bin" / "ivory" -> "bin/ivory"
     , base / ".." / "NOTICE.txt" -> "NOTICE.txt"
     , base / ".." / "README.md" -> "README.md"
+    , base / ".." / "etc" / "thrift-NOTICE.txt" -> "thrift-NOTICE.txt"
     ) })
 }
