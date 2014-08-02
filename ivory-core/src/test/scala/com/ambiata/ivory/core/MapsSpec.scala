@@ -17,7 +17,7 @@ Maps outerJoin
   import Maps._
 
   def keysInput = prop((m1: Map[String, String], m2: Map[String, Int]) =>
-    outerJoin(m1, m2).keySet ==== (m1.keySet ++ m2.keySet)
+    outerJoin(m1, m2).map(_._1).toSet ==== (m1.keySet ++ m2.keySet)
   )
 
   def leftMapValues = prop((m1: Map[String, String], m2: Map[String, Int]) =>
