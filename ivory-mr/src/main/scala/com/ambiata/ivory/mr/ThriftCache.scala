@@ -30,7 +30,7 @@ case class ThriftCache(base: Path, id: ContextId) {
      to ThriftCache#push has prepared everything. This fails _hard_ if anything
      goes wrong. NOTE: argument is updated, rather than a new value returned. */
   def pop[A](conf: Configuration, key: ThriftCache.Key, a: A)(implicit ev: A <:< ThriftLike): Unit = {
-    distCache.pop(conf, DistCache.Key(key.value), bytes => \/.fromTryCatch(serializer.fromBytesUnsafe(a, bytes)).leftMap(_.toString))
+    distCache.pop(conf, DistCache.Key(key.value), bytes => \/.fromTryCatchNonFatal(serializer.fromBytesUnsafe(a, bytes)).leftMap(_.toString))
     ()
   }
 }
