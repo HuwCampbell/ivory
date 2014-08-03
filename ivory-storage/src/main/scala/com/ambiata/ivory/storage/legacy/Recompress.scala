@@ -120,7 +120,7 @@ object Recompress {
     }.map(_.toList).toList
 
   def maxSize[A](sizeOf: A => BytesQuantity): (A, A) => Boolean =
-    (a, b) => sizeOf(a) > sizeOf(b)
+    (a, b) => implicitly[Numeric[BytesQuantity]].gt(sizeOf(a), sizeOf(b))
 }
 
 
