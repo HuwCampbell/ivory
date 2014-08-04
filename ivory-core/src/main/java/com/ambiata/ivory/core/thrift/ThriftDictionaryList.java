@@ -32,15 +32,19 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ThriftDictionaryFeatureValue extends org.apache.thrift.TUnion<ThriftDictionaryFeatureValue, ThriftDictionaryFeatureValue._Fields> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftDictionaryFeatureValue");
-  private static final org.apache.thrift.protocol.TField STRUCT_VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("structValue", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-  private static final org.apache.thrift.protocol.TField LIST_VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("listValue", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+public class ThriftDictionaryList extends org.apache.thrift.TUnion<ThriftDictionaryList, ThriftDictionaryList._Fields> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftDictionaryList");
+  private static final org.apache.thrift.protocol.TField ENCODING_FIELD_DESC = new org.apache.thrift.protocol.TField("encoding", org.apache.thrift.protocol.TType.I32, (short)1);
+  private static final org.apache.thrift.protocol.TField STRUCT_ENCODING_FIELD_DESC = new org.apache.thrift.protocol.TField("structEncoding", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    STRUCT_VALUE((short)1, "structValue"),
-    LIST_VALUE((short)2, "listValue");
+    /**
+     * 
+     * @see ThriftDictionaryEncoding
+     */
+    ENCODING((short)1, "encoding"),
+    STRUCT_ENCODING((short)2, "structEncoding");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -55,10 +59,10 @@ public class ThriftDictionaryFeatureValue extends org.apache.thrift.TUnion<Thrif
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // STRUCT_VALUE
-          return STRUCT_VALUE;
-        case 2: // LIST_VALUE
-          return LIST_VALUE;
+        case 1: // ENCODING
+          return ENCODING;
+        case 2: // STRUCT_ENCODING
+          return STRUCT_ENCODING;
         default:
           return null;
       }
@@ -101,38 +105,38 @@ public class ThriftDictionaryFeatureValue extends org.apache.thrift.TUnion<Thrif
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.STRUCT_VALUE, new org.apache.thrift.meta_data.FieldMetaData("structValue", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.ENCODING, new org.apache.thrift.meta_data.FieldMetaData("encoding", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, ThriftDictionaryEncoding.class)));
+    tmpMap.put(_Fields.STRUCT_ENCODING, new org.apache.thrift.meta_data.FieldMetaData("structEncoding", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftDictionaryStruct.class)));
-    tmpMap.put(_Fields.LIST_VALUE, new org.apache.thrift.meta_data.FieldMetaData("listValue", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftDictionaryList.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftDictionaryFeatureValue.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftDictionaryList.class, metaDataMap);
   }
 
-  public ThriftDictionaryFeatureValue() {
+  public ThriftDictionaryList() {
     super();
   }
 
-  public ThriftDictionaryFeatureValue(_Fields setField, Object value) {
+  public ThriftDictionaryList(_Fields setField, Object value) {
     super(setField, value);
   }
 
-  public ThriftDictionaryFeatureValue(ThriftDictionaryFeatureValue other) {
+  public ThriftDictionaryList(ThriftDictionaryList other) {
     super(other);
   }
-  public ThriftDictionaryFeatureValue deepCopy() {
-    return new ThriftDictionaryFeatureValue(this);
+  public ThriftDictionaryList deepCopy() {
+    return new ThriftDictionaryList(this);
   }
 
-  public static ThriftDictionaryFeatureValue structValue(ThriftDictionaryStruct value) {
-    ThriftDictionaryFeatureValue x = new ThriftDictionaryFeatureValue();
-    x.setStructValue(value);
+  public static ThriftDictionaryList encoding(ThriftDictionaryEncoding value) {
+    ThriftDictionaryList x = new ThriftDictionaryList();
+    x.setEncoding(value);
     return x;
   }
 
-  public static ThriftDictionaryFeatureValue listValue(ThriftDictionaryList value) {
-    ThriftDictionaryFeatureValue x = new ThriftDictionaryFeatureValue();
-    x.setListValue(value);
+  public static ThriftDictionaryList structEncoding(ThriftDictionaryStruct value) {
+    ThriftDictionaryList x = new ThriftDictionaryList();
+    x.setStructEncoding(value);
     return x;
   }
 
@@ -140,16 +144,16 @@ public class ThriftDictionaryFeatureValue extends org.apache.thrift.TUnion<Thrif
   @Override
   protected void checkType(_Fields setField, Object value) throws ClassCastException {
     switch (setField) {
-      case STRUCT_VALUE:
+      case ENCODING:
+        if (value instanceof ThriftDictionaryEncoding) {
+          break;
+        }
+        throw new ClassCastException("Was expecting value of type ThriftDictionaryEncoding for field 'encoding', but got " + value.getClass().getSimpleName());
+      case STRUCT_ENCODING:
         if (value instanceof ThriftDictionaryStruct) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type ThriftDictionaryStruct for field 'structValue', but got " + value.getClass().getSimpleName());
-      case LIST_VALUE:
-        if (value instanceof ThriftDictionaryList) {
-          break;
-        }
-        throw new ClassCastException("Was expecting value of type ThriftDictionaryList for field 'listValue', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type ThriftDictionaryStruct for field 'structEncoding', but got " + value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -160,22 +164,21 @@ public class ThriftDictionaryFeatureValue extends org.apache.thrift.TUnion<Thrif
     _Fields setField = _Fields.findByThriftId(field.id);
     if (setField != null) {
       switch (setField) {
-        case STRUCT_VALUE:
-          if (field.type == STRUCT_VALUE_FIELD_DESC.type) {
-            ThriftDictionaryStruct structValue;
-            structValue = new ThriftDictionaryStruct();
-            structValue.read(iprot);
-            return structValue;
+        case ENCODING:
+          if (field.type == ENCODING_FIELD_DESC.type) {
+            ThriftDictionaryEncoding encoding;
+            encoding = ThriftDictionaryEncoding.findByValue(iprot.readI32());
+            return encoding;
           } else {
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
-        case LIST_VALUE:
-          if (field.type == LIST_VALUE_FIELD_DESC.type) {
-            ThriftDictionaryList listValue;
-            listValue = new ThriftDictionaryList();
-            listValue.read(iprot);
-            return listValue;
+        case STRUCT_ENCODING:
+          if (field.type == STRUCT_ENCODING_FIELD_DESC.type) {
+            ThriftDictionaryStruct structEncoding;
+            structEncoding = new ThriftDictionaryStruct();
+            structEncoding.read(iprot);
+            return structEncoding;
           } else {
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
@@ -192,13 +195,13 @@ public class ThriftDictionaryFeatureValue extends org.apache.thrift.TUnion<Thrif
   @Override
   protected void standardSchemeWriteValue(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
     switch (setField_) {
-      case STRUCT_VALUE:
-        ThriftDictionaryStruct structValue = (ThriftDictionaryStruct)value_;
-        structValue.write(oprot);
+      case ENCODING:
+        ThriftDictionaryEncoding encoding = (ThriftDictionaryEncoding)value_;
+        oprot.writeI32(encoding.getValue());
         return;
-      case LIST_VALUE:
-        ThriftDictionaryList listValue = (ThriftDictionaryList)value_;
-        listValue.write(oprot);
+      case STRUCT_ENCODING:
+        ThriftDictionaryStruct structEncoding = (ThriftDictionaryStruct)value_;
+        structEncoding.write(oprot);
         return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
@@ -210,16 +213,15 @@ public class ThriftDictionaryFeatureValue extends org.apache.thrift.TUnion<Thrif
     _Fields setField = _Fields.findByThriftId(fieldID);
     if (setField != null) {
       switch (setField) {
-        case STRUCT_VALUE:
-          ThriftDictionaryStruct structValue;
-          structValue = new ThriftDictionaryStruct();
-          structValue.read(iprot);
-          return structValue;
-        case LIST_VALUE:
-          ThriftDictionaryList listValue;
-          listValue = new ThriftDictionaryList();
-          listValue.read(iprot);
-          return listValue;
+        case ENCODING:
+          ThriftDictionaryEncoding encoding;
+          encoding = ThriftDictionaryEncoding.findByValue(iprot.readI32());
+          return encoding;
+        case STRUCT_ENCODING:
+          ThriftDictionaryStruct structEncoding;
+          structEncoding = new ThriftDictionaryStruct();
+          structEncoding.read(iprot);
+          return structEncoding;
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -231,13 +233,13 @@ public class ThriftDictionaryFeatureValue extends org.apache.thrift.TUnion<Thrif
   @Override
   protected void tupleSchemeWriteValue(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
     switch (setField_) {
-      case STRUCT_VALUE:
-        ThriftDictionaryStruct structValue = (ThriftDictionaryStruct)value_;
-        structValue.write(oprot);
+      case ENCODING:
+        ThriftDictionaryEncoding encoding = (ThriftDictionaryEncoding)value_;
+        oprot.writeI32(encoding.getValue());
         return;
-      case LIST_VALUE:
-        ThriftDictionaryList listValue = (ThriftDictionaryList)value_;
-        listValue.write(oprot);
+      case STRUCT_ENCODING:
+        ThriftDictionaryStruct structEncoding = (ThriftDictionaryStruct)value_;
+        structEncoding.write(oprot);
         return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
@@ -247,10 +249,10 @@ public class ThriftDictionaryFeatureValue extends org.apache.thrift.TUnion<Thrif
   @Override
   protected org.apache.thrift.protocol.TField getFieldDesc(_Fields setField) {
     switch (setField) {
-      case STRUCT_VALUE:
-        return STRUCT_VALUE_FIELD_DESC;
-      case LIST_VALUE:
-        return LIST_VALUE_FIELD_DESC;
+      case ENCODING:
+        return ENCODING_FIELD_DESC;
+      case STRUCT_ENCODING:
+        return STRUCT_ENCODING_FIELD_DESC;
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -271,58 +273,66 @@ public class ThriftDictionaryFeatureValue extends org.apache.thrift.TUnion<Thrif
   }
 
 
-  public ThriftDictionaryStruct getStructValue() {
-    if (getSetField() == _Fields.STRUCT_VALUE) {
+  /**
+   * 
+   * @see ThriftDictionaryEncoding
+   */
+  public ThriftDictionaryEncoding getEncoding() {
+    if (getSetField() == _Fields.ENCODING) {
+      return (ThriftDictionaryEncoding)getFieldValue();
+    } else {
+      throw new RuntimeException("Cannot get field 'encoding' because union is currently set to " + getFieldDesc(getSetField()).name);
+    }
+  }
+
+  /**
+   * 
+   * @see ThriftDictionaryEncoding
+   */
+  public void setEncoding(ThriftDictionaryEncoding value) {
+    if (value == null) throw new NullPointerException();
+    setField_ = _Fields.ENCODING;
+    value_ = value;
+  }
+
+  public ThriftDictionaryStruct getStructEncoding() {
+    if (getSetField() == _Fields.STRUCT_ENCODING) {
       return (ThriftDictionaryStruct)getFieldValue();
     } else {
-      throw new RuntimeException("Cannot get field 'structValue' because union is currently set to " + getFieldDesc(getSetField()).name);
+      throw new RuntimeException("Cannot get field 'structEncoding' because union is currently set to " + getFieldDesc(getSetField()).name);
     }
   }
 
-  public void setStructValue(ThriftDictionaryStruct value) {
+  public void setStructEncoding(ThriftDictionaryStruct value) {
     if (value == null) throw new NullPointerException();
-    setField_ = _Fields.STRUCT_VALUE;
+    setField_ = _Fields.STRUCT_ENCODING;
     value_ = value;
   }
 
-  public ThriftDictionaryList getListValue() {
-    if (getSetField() == _Fields.LIST_VALUE) {
-      return (ThriftDictionaryList)getFieldValue();
-    } else {
-      throw new RuntimeException("Cannot get field 'listValue' because union is currently set to " + getFieldDesc(getSetField()).name);
-    }
-  }
-
-  public void setListValue(ThriftDictionaryList value) {
-    if (value == null) throw new NullPointerException();
-    setField_ = _Fields.LIST_VALUE;
-    value_ = value;
-  }
-
-  public boolean isSetStructValue() {
-    return setField_ == _Fields.STRUCT_VALUE;
+  public boolean isSetEncoding() {
+    return setField_ == _Fields.ENCODING;
   }
 
 
-  public boolean isSetListValue() {
-    return setField_ == _Fields.LIST_VALUE;
+  public boolean isSetStructEncoding() {
+    return setField_ == _Fields.STRUCT_ENCODING;
   }
 
 
   public boolean equals(Object other) {
-    if (other instanceof ThriftDictionaryFeatureValue) {
-      return equals((ThriftDictionaryFeatureValue)other);
+    if (other instanceof ThriftDictionaryList) {
+      return equals((ThriftDictionaryList)other);
     } else {
       return false;
     }
   }
 
-  public boolean equals(ThriftDictionaryFeatureValue other) {
+  public boolean equals(ThriftDictionaryList other) {
     return other != null && getSetField() == other.getSetField() && getFieldValue().equals(other.getFieldValue());
   }
 
   @Override
-  public int compareTo(ThriftDictionaryFeatureValue other) {
+  public int compareTo(ThriftDictionaryList other) {
     int lastComparison = org.apache.thrift.TBaseHelper.compareTo(getSetField(), other.getSetField());
     if (lastComparison == 0) {
       return org.apache.thrift.TBaseHelper.compareTo(getFieldValue(), other.getFieldValue());

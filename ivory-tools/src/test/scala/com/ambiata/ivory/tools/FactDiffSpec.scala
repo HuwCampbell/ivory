@@ -20,6 +20,7 @@ class FactDiffSpec extends Specification with ThrownExpectations with FileMatche
   FactDiff finds difference with all facts $e1
   FactDiff finds no difference $e2
   FactDiff finds difference with structs   $structs
+  FactDiff finds difference with list      $list
 
   """
 
@@ -48,6 +49,14 @@ class FactDiffSpec extends Specification with ThrownExpectations with FileMatche
   def structs = {
     def fact(v: String) =
       fromLazySeq(Seq(Fact.newFact("eid1", "ns1", "fid1", Date(2012, 10, 1), Time(0), StructValue(Map("a" -> StringValue(v))))))
+
+    val (output, sc) = diff(fact("b"), fact("c"))
+    fromTextFile(output).run(sc).toList must have size 2
+  }
+
+  def list = {
+    def fact(v: String) =
+      fromLazySeq(Seq(Fact.newFact("eid1", "ns1", "fid1", Date(2012, 10, 1), Time(0), ListValue(List(StringValue(v))))))
 
     val (output, sc) = diff(fact("b"), fact("c"))
     fromTextFile(output).run(sc).toList must have size 2

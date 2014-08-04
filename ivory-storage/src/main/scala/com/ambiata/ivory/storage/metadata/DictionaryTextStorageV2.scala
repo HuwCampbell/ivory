@@ -38,6 +38,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
 
   private def structEntry      = rule(zeroOrMore((entry(":") ~ ":" ~ entry(",*)") ~ capture(optional("*"))) ~> ((k, v, o) => (k.trim, v.trim) -> (o == "*"))).separatedBy(","))
   private def struct           = rule("(" ~ structEntry ~ ")")
+  private def list             = rule("[" ~ entry("]") ~ "]")
 
   private def parseStruct: ValidationNel[String, StructEncoding] = struct.run().fold(
     formatError(_).failureNel, _.toList.traverseU {
@@ -45,9 +46,15 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
     }.map(s => StructEncoding(s.toMap))
   )
 
+  private def parseList: ValidationNel[String, Encoding] = list.run().fold(formatError(_).failureNel, s =>
+    (DictionaryTextStorage.parseEncoding(s).toValidationNel ||| DictionaryTextStorageV2(s, DELIMITER).parseStruct).map(ListEncoding)
+  )
+
   private def metaFromMap(m: Map[String, String]): ValidationNel[String, FeatureMeta] = {
     val enc = m.get("encoding").map { s =>
-      DictionaryTextStorage.parseEncoding(s).toValidationNel ||| DictionaryTextStorageV2(s, DELIMITER).parseStruct
+      DictionaryTextStorage.parseEncoding(s).toValidationNel |||
+        DictionaryTextStorageV2(s, DELIMITER).parseList |||
+        DictionaryTextStorageV2(s, DELIMITER).parseStruct
     }.getOrElse("Encoding not specified".failureNel)
     val ty = m.get("type").cata(DictionaryTextStorage.parseType(_).map(some), None.success).toValidationNel
     val desc = m.getOrElse("description", "")
