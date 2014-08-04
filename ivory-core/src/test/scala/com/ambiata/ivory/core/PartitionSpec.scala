@@ -1,6 +1,8 @@
 package com.ambiata.ivory.core
 
 import org.specs2._, matcher._, specification._
+import org.scalacheck._, Arbitrary._
+import com.ambiata.ivory.core.Arbitraries._
 import java.io.File
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.apache.hadoop.conf.Configuration
@@ -8,37 +10,33 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 
 import scalaz._, Scalaz._
 
-class PartitionSpec extends Specification { def is = s2"""
+class PartitionSpec extends Specification with ScalaCheck { def is = s2"""
 
 Partition Tests
 ----------
 
-  Glob pattern for partitions works       $glob
+  Paths between two dates       $between
+  Paths before a date           $before
+  Paths after a date            $after
 
 """
 
-  lazy val conf = new Configuration
-  lazy val filesystem = FileSystem.get(conf)
+  def between = prop((partitions: SmallPartitionList, dates: TwoDifferentDates) => {
+    val ps = partitions.partitions
+    val expected = ps.filter(p => p.date.isAfterOrEqual(dates.earlier) && p.date.isBeforeOrEqual(dates.later))
 
-  val basedir = "target/test/PartitionSpec/" + java.util.UUID.randomUUID()
+    Partitions.pathsBetween(ps, dates.earlier, dates.later) must_== expected
+  })
 
-  def glob = {
-    val base = basedir + "/compress"
-    val partitions = List(Partition(FactsetId("fs1"), "ns1", Date(2012, 1, 1), Some(base)),
-                          Partition(FactsetId("fs1"), "ns1", Date(2012, 2, 1), Some(base)),
-                          Partition(FactsetId("fs1"), "ns1", Date(2012, 3, 1), Some(base)),
-                          Partition(FactsetId("fs1"), "ns2", Date(2012, 4, 1), Some(base)),
-                          Partition(FactsetId("fs2"), "ns2", Date(2012, 5, 1), Some(base)))
+  def before = prop((partitions: SmallPartitionList, date: Date) => {
+    val ps = partitions.partitions
 
-    partitions.foreach(p => {
-      new File(p.path).mkdirs
-      new File(p.path + "/f1").createNewFile
-      new File(p.path + "/f2").createNewFile
-    })
+    Partitions.pathsBeforeOrEqual(ps, date) must_== ps.filter(_.date.isBeforeOrEqual(date))
+  })
 
-    val actual = Partitions.pathsBetween(partitions, Date(2012, 2, 1), Date(2012, 4, 1))
-    actual must containTheSameElementsAs(List(Partition(FactsetId("fs1"), "ns1", Date(2012, 2, 1), Some(base)),
-                        Partition(FactsetId("fs1"), "ns1", Date(2012, 3, 1), Some(base)),
-                        Partition(FactsetId("fs1"), "ns2", Date(2012, 4, 1), Some(base))))
-  }
+  def after = prop((partitions: SmallPartitionList, date: Date) => {
+    val ps = partitions.partitions
+
+    Partitions.pathsAfterOrEqual(ps, date) must_== ps.filter(_.date.isAfterOrEqual(date))
+  })
 }

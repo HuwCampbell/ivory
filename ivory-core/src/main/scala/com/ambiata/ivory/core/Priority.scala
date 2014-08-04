@@ -34,6 +34,9 @@ object Priority {
   def create(priority: Short): Option[Priority] =
     (priority >= 0).option(unsafe(priority))
 
+  def parseInt(priority: Int): Option[Priority] =
+    (priority <= Max.toShort).option(create(priority.toShort)).flatten
+
   object Macros extends com.ambiata.ivory.reflect.MacrosCompat {
 
     def literal(c: Context)(priority: c.Expr[Short]): c.Expr[Priority] = {

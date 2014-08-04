@@ -11,8 +11,8 @@ import scalaz._, Scalaz._, effect.IO, \&/._
 object StoreGlob {
   def select(repository: Repository, store: FeatureStore): ResultT[IO, List[FactsetGlob]] = for {
     globs <- store.factsets.traverseU(factset => for {
-      fv <- Versions.read(repository, factset.set)
-      ps <- FactsetGlob.select(repository, factset.set)
+      fv <- Versions.read(repository, factset.factsetId)
+      ps <- FactsetGlob.select(repository, factset.factsetId)
     } yield FactsetGlob(fv, List((factset, ps))))
   } yield FactsetGlob.groupByVersion(globs)
 

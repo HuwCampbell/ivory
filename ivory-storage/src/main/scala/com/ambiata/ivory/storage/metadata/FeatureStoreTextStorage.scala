@@ -31,14 +31,13 @@ object FeatureStoreTextStorage extends TextStorage[PrioritizedFactset, FeatureSt
   def toList(store: FeatureStore): List[PrioritizedFactset] =
     store.factsets.sortBy(_.priority)
 
-  def parseLine(i: Int, l: String): ValidationNel[String, PrioritizedFactset] = {
-    val pri = if(i <= Priority.Max.toShort) Priority.create(i.toShort) else None
-    pri.map(p => PrioritizedFactset(FactsetId(l), p).success)
-       .getOrElse("Given list of factset ids is too large to fit into a FeatureStore!".failureNel)
-  }
+  def parseLine(i: Int, l: String): ValidationNel[String, PrioritizedFactset] = for {
+    pri <- Priority.parseInt(i).toSuccess(NonEmptyList(s"Can not parse priority '${i}'"))
+    fid <- FactsetId.parse(l).toSuccess(NonEmptyList(s"Can not parse Factset Id '${l}'"))
+  } yield PrioritizedFactset(fid, pri)
 
   def toLine(f: PrioritizedFactset): String =
-    f.set.name
+    f.factsetId.render
 
   def fromFactsets(sets: List[FactsetId]): FeatureStore =
     FeatureStore(PrioritizedFactset.fromFactsets(sets))

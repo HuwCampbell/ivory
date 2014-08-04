@@ -21,7 +21,7 @@ object Versions {
     factsets.traverseU(write(repository, _, version)).void
 
   def readPrioritized(repository: Repository, factsets: List[PrioritizedFactset]): ResultT[IO, List[(PrioritizedFactset, FactsetVersion)]] =
-    factsets.traverseU(factset => read(repository, factset.set).map(factset -> _))
+    factsets.traverseU(factset => read(repository, factset.factsetId).map(factset -> _))
 
   def parse(factset: FactsetId, version: Version): ResultT[IO, FactsetVersion] =
     FactsetVersion.fromString(version.toString) match {
