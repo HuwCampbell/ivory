@@ -31,7 +31,7 @@ sealed trait Repository {
   def storeById(id: FeatureStoreId): FilePath =  stores </> id.render
   def factset(set: FactsetId): FilePath =  factsets </> set.name
   def namespace(set: FactsetId, namespace: String): FilePath =  factset(set) </> namespace
-  def snapshot(id: Identifier): FilePath = snapshots </> FilePath(id.render)
+  def snapshot(id: SnapshotId): FilePath = snapshots </> FilePath(id.render)
   def version(set: FactsetId): FilePath =  factset(set) </> ".version"
 }
 
@@ -66,7 +66,7 @@ object Repository {
   def storeById(id: FeatureStoreId): FilePath =  stores </> id.render
   def factset(set: FactsetId): FilePath =  factsets </> set.name
   def namespace(set: FactsetId, namespace: String): FilePath =  factset(set) </> namespace
-  def snapshot(id: Identifier): FilePath = snapshots </> FilePath(id.render)
+  def snapshot(id: SnapshotId): FilePath = snapshots </> FilePath(id.render)
 
   val defaultS3TmpDirectory = Reference.defaultS3TmpDirectory
 

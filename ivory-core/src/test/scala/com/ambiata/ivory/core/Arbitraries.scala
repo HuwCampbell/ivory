@@ -2,7 +2,7 @@ package com.ambiata.ivory.core
 
 import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.data.Arbitraries._
-import com.ambiata.ivory.data.OldIdentifier
+import com.ambiata.ivory.data._
 
 import org.joda.time.DateTimeZone
 import scala.collection.JavaConverters._
@@ -191,6 +191,13 @@ object Arbitraries {
          PrioritizedFactset(FactsetId(id.render), Priority.unsafe((i + 1).toShort))
       }).toList)
     ))
+
+  implicit def SnapshotIdArbitrary: Arbitrary[SnapshotId] =
+    Arbitrary(arbitrary[Identifier].map(SnapshotId.apply))
+
+  case class SmallSnapshotIdList(ids: List[SnapshotId])
+  implicit def SmallSnapshotIdListArbitrary: Arbitrary[SmallSnapshotIdList] =
+    Arbitrary(arbitrary[SmallIdentifierList].map(ids => SmallSnapshotIdList(ids.ids.map(SnapshotId.apply))))
 
   case class EncodingAndValue(enc: Encoding, value: Value)
 
