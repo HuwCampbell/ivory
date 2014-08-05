@@ -390,13 +390,13 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
   }
 }
 
-/****************** !!!!!! WARNING !!!!!! ******************
+/* ***************** !!!!!! WARNING !!!!!! ******************
  *
  * There is some nasty mutation in here that can corrupt data
  * without knowing, so double/triple check with others when
  * changing.
  *
- ***********************************************************/
+ ********************************************************** */
 object SnapshotReducer {
   type ReducerContext = Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context
 
