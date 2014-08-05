@@ -1,0 +1,15 @@
+#!/bin/sh -eux
+
+DIR=$(dirname $0)
+. "${DIR}/../../setup.sh"
+
+V2="ivory_run $IVORY_V2"
+$V2 create-repository -p "${REPOSITORY}"
+$V2 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
+$V2 ingest -r "${REPOSITORY}" -i "${INPUT}/facts" -z "Australia/Sydney" -f "thrift"
+
+### SNAPSHOT ###
+
+$IVORY extract-snapshot -r "${REPOSITORY}"
+$IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
+diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
