@@ -35,8 +35,8 @@ import org.slf4j.LoggerFactory;
 public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseError, ThriftParseError._Fields>, java.io.Serializable, Cloneable, Comparable<ThriftParseError> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftParseError");
 
-  private static final org.apache.thrift.protocol.TField LINE_FIELD_DESC = new org.apache.thrift.protocol.TField("line", org.apache.thrift.protocol.TType.STRING, (short)1);
-  private static final org.apache.thrift.protocol.TField MESSAGE_FIELD_DESC = new org.apache.thrift.protocol.TField("message", org.apache.thrift.protocol.TType.STRING, (short)2);
+  private static final org.apache.thrift.protocol.TField MESSAGE_FIELD_DESC = new org.apache.thrift.protocol.TField("message", org.apache.thrift.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift.protocol.TField DATA_FIELD_DESC = new org.apache.thrift.protocol.TField("data", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -44,13 +44,13 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
     schemes.put(TupleScheme.class, new ThriftParseErrorTupleSchemeFactory());
   }
 
-  public String line; // required
   public String message; // required
+  public ParseErrorData data; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    LINE((short)1, "line"),
-    MESSAGE((short)2, "message");
+    MESSAGE((short)1, "message"),
+    DATA((short)2, "data");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -65,10 +65,10 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // LINE
-          return LINE;
-        case 2: // MESSAGE
+        case 1: // MESSAGE
           return MESSAGE;
+        case 2: // DATA
+          return DATA;
         default:
           return null;
       }
@@ -112,10 +112,10 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.LINE, new org.apache.thrift.meta_data.FieldMetaData("line", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.MESSAGE, new org.apache.thrift.meta_data.FieldMetaData("message", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.DATA, new org.apache.thrift.meta_data.FieldMetaData("data", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ParseErrorData.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftParseError.class, metaDataMap);
   }
@@ -124,23 +124,23 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
   }
 
   public ThriftParseError(
-    String line,
-    String message)
+    String message,
+    ParseErrorData data)
   {
     this();
-    this.line = line;
     this.message = message;
+    this.data = data;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
   public ThriftParseError(ThriftParseError other) {
-    if (other.isSetLine()) {
-      this.line = other.line;
-    }
     if (other.isSetMessage()) {
       this.message = other.message;
+    }
+    if (other.isSetData()) {
+      this.data = new ParseErrorData(other.data);
     }
   }
 
@@ -150,32 +150,8 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
 
   @Override
   public void clear() {
-    this.line = null;
     this.message = null;
-  }
-
-  public String getLine() {
-    return this.line;
-  }
-
-  public ThriftParseError setLine(String line) {
-    this.line = line;
-    return this;
-  }
-
-  public void unsetLine() {
-    this.line = null;
-  }
-
-  /** Returns true if field line is set (has been assigned a value) and false otherwise */
-  public boolean isSetLine() {
-    return this.line != null;
-  }
-
-  public void setLineIsSet(boolean value) {
-    if (!value) {
-      this.line = null;
-    }
+    this.data = null;
   }
 
   public String getMessage() {
@@ -202,16 +178,32 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
     }
   }
 
+  public ParseErrorData getData() {
+    return this.data;
+  }
+
+  public ThriftParseError setData(ParseErrorData data) {
+    this.data = data;
+    return this;
+  }
+
+  public void unsetData() {
+    this.data = null;
+  }
+
+  /** Returns true if field data is set (has been assigned a value) and false otherwise */
+  public boolean isSetData() {
+    return this.data != null;
+  }
+
+  public void setDataIsSet(boolean value) {
+    if (!value) {
+      this.data = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case LINE:
-      if (value == null) {
-        unsetLine();
-      } else {
-        setLine((String)value);
-      }
-      break;
-
     case MESSAGE:
       if (value == null) {
         unsetMessage();
@@ -220,16 +212,24 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
       }
       break;
 
+    case DATA:
+      if (value == null) {
+        unsetData();
+      } else {
+        setData((ParseErrorData)value);
+      }
+      break;
+
     }
   }
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case LINE:
-      return getLine();
-
     case MESSAGE:
       return getMessage();
+
+    case DATA:
+      return getData();
 
     }
     throw new IllegalStateException();
@@ -242,10 +242,10 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
     }
 
     switch (field) {
-    case LINE:
-      return isSetLine();
     case MESSAGE:
       return isSetMessage();
+    case DATA:
+      return isSetData();
     }
     throw new IllegalStateException();
   }
@@ -263,21 +263,21 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
     if (that == null)
       return false;
 
-    boolean this_present_line = true && this.isSetLine();
-    boolean that_present_line = true && that.isSetLine();
-    if (this_present_line || that_present_line) {
-      if (!(this_present_line && that_present_line))
-        return false;
-      if (!this.line.equals(that.line))
-        return false;
-    }
-
     boolean this_present_message = true && this.isSetMessage();
     boolean that_present_message = true && that.isSetMessage();
     if (this_present_message || that_present_message) {
       if (!(this_present_message && that_present_message))
         return false;
       if (!this.message.equals(that.message))
+        return false;
+    }
+
+    boolean this_present_data = true && this.isSetData();
+    boolean that_present_data = true && that.isSetData();
+    if (this_present_data || that_present_data) {
+      if (!(this_present_data && that_present_data))
+        return false;
+      if (!this.data.equals(that.data))
         return false;
     }
 
@@ -297,22 +297,22 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
 
     int lastComparison = 0;
 
-    lastComparison = Boolean.valueOf(isSetLine()).compareTo(other.isSetLine());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetLine()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.line, other.line);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     lastComparison = Boolean.valueOf(isSetMessage()).compareTo(other.isSetMessage());
     if (lastComparison != 0) {
       return lastComparison;
     }
     if (isSetMessage()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.message, other.message);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetData()).compareTo(other.isSetData());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetData()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.data, other.data);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -337,19 +337,19 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
     StringBuilder sb = new StringBuilder("ThriftParseError(");
     boolean first = true;
 
-    sb.append("line:");
-    if (this.line == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.line);
-    }
-    first = false;
-    if (!first) sb.append(", ");
     sb.append("message:");
     if (this.message == null) {
       sb.append("null");
     } else {
       sb.append(this.message);
+    }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("data:");
+    if (this.data == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.data);
     }
     first = false;
     sb.append(")");
@@ -395,18 +395,19 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
           break;
         }
         switch (schemeField.id) {
-          case 1: // LINE
+          case 1: // MESSAGE
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.line = iprot.readString();
-              struct.setLineIsSet(true);
+              struct.message = iprot.readString();
+              struct.setMessageIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // MESSAGE
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.message = iprot.readString();
-              struct.setMessageIsSet(true);
+          case 2: // DATA
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+              struct.data = new ParseErrorData();
+              struct.data.read(iprot);
+              struct.setDataIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -426,14 +427,14 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.line != null) {
-        oprot.writeFieldBegin(LINE_FIELD_DESC);
-        oprot.writeString(struct.line);
-        oprot.writeFieldEnd();
-      }
       if (struct.message != null) {
         oprot.writeFieldBegin(MESSAGE_FIELD_DESC);
         oprot.writeString(struct.message);
+        oprot.writeFieldEnd();
+      }
+      if (struct.data != null) {
+        oprot.writeFieldBegin(DATA_FIELD_DESC);
+        struct.data.write(oprot);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -454,18 +455,18 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
     public void write(org.apache.thrift.protocol.TProtocol prot, ThriftParseError struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
-      if (struct.isSetLine()) {
+      if (struct.isSetMessage()) {
         optionals.set(0);
       }
-      if (struct.isSetMessage()) {
+      if (struct.isSetData()) {
         optionals.set(1);
       }
       oprot.writeBitSet(optionals, 2);
-      if (struct.isSetLine()) {
-        oprot.writeString(struct.line);
-      }
       if (struct.isSetMessage()) {
         oprot.writeString(struct.message);
+      }
+      if (struct.isSetData()) {
+        struct.data.write(oprot);
       }
     }
 
@@ -474,12 +475,13 @@ public class ThriftParseError implements org.apache.thrift.TBase<ThriftParseErro
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
-        struct.line = iprot.readString();
-        struct.setLineIsSet(true);
-      }
-      if (incoming.get(1)) {
         struct.message = iprot.readString();
         struct.setMessageIsSet(true);
+      }
+      if (incoming.get(1)) {
+        struct.data = new ParseErrorData();
+        struct.data.read(iprot);
+        struct.setDataIsSet(true);
       }
     }
   }

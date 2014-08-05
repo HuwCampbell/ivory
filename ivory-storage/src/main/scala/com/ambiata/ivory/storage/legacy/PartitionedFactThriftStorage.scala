@@ -55,7 +55,7 @@ object PartitionFactThriftStorageV1 {
 
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Priority, FactsetId, Fact)] = {
       loadScoobiWith(factsets.map(base + "/" + _.set.name + "/*/*/*/*"), (fs, fact) =>
-        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(fs.name, s"FactsetId '${fs}' not found in expected list '${factsets}'").left), from, to)
+        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(s"FactsetId '${fs}' not found in expected list '${factsets}'", TextError(fs.name)).left), from, to)
     }
   }
 
@@ -106,7 +106,7 @@ object PartitionFactThriftStorageV2 {
 
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Priority, FactsetId, Fact)] = {
       loadScoobiWith(factsets.map(base + "/" + _.set.name + "/*/*/*/*"), (fs, fact) =>
-        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(fs.name, s"FactsetId '${fs}' not found in expected list '${factsets}'").left), from, to)
+        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(s"FactsetId '${fs}' not found in expected list '${factsets}'", TextError(fs.name)).left), from, to)
     }
   }
 

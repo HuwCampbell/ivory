@@ -1,0 +1,8 @@
+#!/bin/sh -eu
+
+# brew install thrift
+
+DIR=$(dirname $0)/../../..
+echo "namespace java com.ambiata.ivory.ingest.thrift" > ${DIR}/target/ingest.thrift
+cat ${DIR}/src/main/thrift/ingest.thrift >> ${DIR}/target/ingest.thrift
+thrift -r -out ${DIR}/src/main/java/ --gen java ${DIR}/target/ingest.thrift

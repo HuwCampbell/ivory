@@ -40,6 +40,7 @@ object EavtTextImporter {
     timezone: DateTimeZone,
     partitions: List[(String, BytesQuantity)],
     optimal: BytesQuantity,
+    format: Format,
     codec: Option[CompressionCodec]
   ): ResultTIO[Unit] = for {
     c <- repository match {
@@ -62,6 +63,7 @@ object EavtTextImporter {
         paths,
         repository.factset(factset).toHdfs,
         errorPath,
+        format,
         codec
       )
     }
