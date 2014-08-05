@@ -59,7 +59,7 @@ case class Snapshot(repo: Repository, store: FeatureStoreId, entities: Option[Re
     paths  = globs.flatMap(_.partitions.map(p => new Path(p.path))) ++ incremental.map(_._1).toList
     size  <- paths.traverse(Hdfs.size).map(_.sum)
     _     = println(s"Total input size: ${size}")
-    reducers = size.toBytes.value / 768.mb.toBytes.value + 1 // one reducer per 768MB of input
+    reducers = size.toBytes.value / 2.gb.toBytes.value + 1 // one reducer per 2GB of input
     _     = println(s"Number of reducers: ${reducers}")
     _     <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshot, globs, outputPath, incremental.map(_._1), codec))
   } yield ()
