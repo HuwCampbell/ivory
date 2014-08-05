@@ -11,3 +11,7 @@ struct ReducerLookup {
 struct FeatureIdLookup {
     1: map<string, i32> ids;
 }
+
+struct FactsetLookup {
+    1: map<string, i16> priorities;
+}
