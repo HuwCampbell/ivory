@@ -35,10 +35,10 @@ object build extends Build {
   /* this should only ever export _api_, DO NOT add things to this list */
   .dependsOn(api)
 
-  lazy val standardSettings = Defaults.defaultSettings ++
-                              projectSettings          ++
-                              compilationSettings      ++
-                              testingSettings          ++
+  lazy val standardSettings = Defaults.coreDefaultSettings ++
+                              projectSettings              ++
+                              compilationSettings          ++
+                              testingSettings              ++
                               Seq[Settings](
                                 resolvers := depend.resolvers
                               )
