@@ -1,0 +1,2 @@
+halibut:mandatory|encoding=(b: boolean, i: int, l: long, d: double, s: string)
+halibut:optional|encoding=(b: boolean*, i: int*, l: long*, d: double*, s: string*)
