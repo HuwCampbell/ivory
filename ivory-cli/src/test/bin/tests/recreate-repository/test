@@ -10,5 +10,5 @@ $IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts"
 $IVORY recreate -i "${REPOSITORY}" -o "${TARGET}/out" -t factset
 
 ### check factsets ###
-$IVORY cat-facts "${TARGET}/out/factsets/00000/factset/halibut/2014/*/*/*" | sort > "${TARGET}/facts.psv"
+$IVORY cat-facts "${TARGET}/out/factsets/00000/halibut/2014/*/*/*" | sort > "${TARGET}/facts.psv"
 diff_test "${DIR}/expected/halibut-facts.psv" "${TARGET}/facts.psv"

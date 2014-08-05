@@ -207,8 +207,8 @@ object Recreate { outer =>
    */
 
   /** create actions */
-  private def fromStat[A](repo: Repository, action: StatAction[A]) =
-    fromScoobi(ScoobiAction.scoobiConfiguration.map(sc => action.run(StatConfig(sc.configuration, repo))))
+  private def fromStat[A](repo: Repository, action: StatAction[A]): RecreateAction[A] =
+    fromScoobi(ScoobiAction.scoobiConfiguration.flatMap(sc => ScoobiAction.fromResultTIO(action.run(StatConfig(sc.configuration, repo)))))
 
   private implicit def createKleisli[A](f: RecreateConfig => ResultTIO[A]): RecreateAction[A] =
     kleisli[ResultTIO, RecreateConfig, A](f)

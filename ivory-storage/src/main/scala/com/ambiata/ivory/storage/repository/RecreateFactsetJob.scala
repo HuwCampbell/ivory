@@ -60,7 +60,7 @@ object RecreateFactsetJob {
 
     /* commit files to factset */
     Committer.commit(ctx, {
-      case path => new Path(target, path)
+      case "factset" => target
     }, true).run(conf).run.unsafePerformIO
   }
 

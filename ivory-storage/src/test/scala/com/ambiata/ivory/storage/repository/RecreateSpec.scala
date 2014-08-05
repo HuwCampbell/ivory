@@ -53,7 +53,7 @@ class RecreateSpec extends Specification with HadoopSpecificationLike with Sampl
 
     // check that it has been properly created
     Versions.read(to, factset) must beOk
-    Hdfs.globFiles(to.factset(factset).toHdfs, "*/*/*/*/*/*").run(sc) must beOkLike((_:List[_]) must not(beEmpty))
+    Hdfs.globFiles(to.factset(factset).toHdfs, "*/*/*/*/*").run(sc) must beOkLike((_:List[_]) must not(beEmpty))
   }
 
 }
