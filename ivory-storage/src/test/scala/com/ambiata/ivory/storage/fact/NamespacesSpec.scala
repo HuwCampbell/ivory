@@ -1,12 +1,13 @@
 package com.ambiata.ivory.storage.fact
 
-import com.ambiata.mundane.io.{BytesQuantity, MemoryConversions, Streams}
+import com.ambiata.ivory.core.IvorySyntax._
+import com.ambiata.mundane.control._
+import com.ambiata.mundane.io._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.specs2.Specification
 import Namespaces._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
-import Streams._
 import scalaz._, Scalaz._
 import MemoryConversions._
 import com.ambiata.poacher.hdfs._
@@ -20,33 +21,22 @@ class NamespacesSpec extends Specification { def is = s2"""
    as the directory for namespace being named <singleNamespace>                 $e2
 """
 
-  def e1 = {
-    prepare.runNow must beOk
+  def e1 = prepare { factsetPath =>
+    namespaceSizes(factsetPath, singleNamespace = None)
+  } must beOkLike((_: List[(String, BytesQuantity)]) must contain (("ns1", 4.bytes), ("ns2", 4.bytes)))
 
-    val factsetPath = new Path(testDir)
-    namespaceSizes(factsetPath, singleNamespace = None).runNow must beOkLike((_: List[(String, BytesQuantity)]) must contain (("ns1", 4.bytes), ("ns2", 4.bytes)))
+  def e2 = prepare { factsetPath =>
+    namespaceSizes(new Path(factsetPath, "ns1"), singleNamespace = Some("namespace"))
+  } must beOkValue(List(("namespace", 4.bytes)))
+
+  def prepare[A](f: Path => Hdfs[A]): ResultTIO[A] = Temporary.using { dir =>
+    val ns1     = dir </> "ns1"
+    val ns2     = dir </> "ns2"
+    (List(ns1, ns2).traverse(f => Hdfs.mkdir(f.toHdfs)) >>
+    List(ns1+"/f1", ns2+"/f2").traverse(createFile) >>
+    f(dir.toHdfs)).run(new Configuration)
   }
-
-  def e2 =  {
-    prepare.runNow must beOk
-
-    val factsetPath = new Path(testDir)
-    namespaceSizes(new Path(factsetPath, "ns1"), singleNamespace = Some("namespace")).runNow must beOkValue(List(("namespace", 4.bytes)))
-  }
-
-  implicit class runHdfs[A](hdfs: Hdfs[A]) {
-    def runNow = hdfs.run(new Configuration)
-  }
-
-  def prepare =
-    List(testDir, ns1, ns2).traverse(p => Hdfs.mkdir(new Path(p))) >>
-    List(ns1+"/f1", ns2+"/f2").traverse(createFile)
 
   def createFile(path: String): Hdfs[Unit] =
     Hdfs.writeWith(new Path(path), out => Streams.write(out, "test"))
-
-  val testDir = s"target/${getClass.getSimpleName}"
-  val ns1     = s"$testDir/ns1"
-  val ns2     = s"$testDir/ns2"
-
 }
