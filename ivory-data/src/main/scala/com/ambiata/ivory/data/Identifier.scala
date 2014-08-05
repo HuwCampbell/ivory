@@ -9,6 +9,9 @@ class Identifier private (val n: Int) extends AnyVal {
   override def toString: String =
     render
 
+  def toInt: Int =
+    n
+
   def next: Option[Identifier] =
     (n != 0xffffffff).option(new Identifier(n + 1))
 
@@ -19,6 +22,9 @@ class Identifier private (val n: Int) extends AnyVal {
 object Identifier {
   def initial: Identifier =
     new Identifier(0)
+
+  def unsafe(i: Int): Identifier =
+    new Identifier(i)
 
   def parse(s: String): Option[Identifier] = try {
     val l = java.lang.Long.parseLong(s, 16)

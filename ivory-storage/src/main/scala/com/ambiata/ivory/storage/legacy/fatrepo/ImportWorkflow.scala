@@ -11,6 +11,7 @@ import org.apache.commons.logging.LogFactory
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.data.StoreDataUtil
 import com.ambiata.poacher.scoobi.ScoobiAction
+import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
@@ -47,13 +48,13 @@ object ImportWorkflow {
         println(s"created repository in ${x - start}ms")
         x
       }
-      factset  <- createFactSet(repo)
+      factset  <- Factsets.allocateId(repo)
       t3 = {
         val x = System.currentTimeMillis
         println(s"created fact set in ${x - t1}ms")
         x
       }
-      _        <- importFacts(repo, factset, repo.toReference(repo.errors </> factset.name), timezone)
+      _        <- importFacts(repo, factset, repo.toReference(repo.errors </> factset.render), timezone)
       t4 = {
         val x = System.currentTimeMillis
         println(s"imported fact set in ${x - t3}ms")
@@ -81,29 +82,4 @@ object ImportWorkflow {
       ResultT.ok[IO, Unit](())
     }
   } yield ()
-
-  def nextFactset(repo: Repository): ResultTIO[FactsetId] = for {
-    factsetPaths <- StoreDataUtil.listDir(repo.toStore, Repository.factsets)
-  } yield FactsetId(nextName(factsetPaths.map(_.basename.path)))
-
-  // TODO change this to use IdentifierStorage
-  // TODO handle locking
-  def createFactSet(repo: Repository): ResultTIO[FactsetId] = for {
-    factset <- nextFactset(repo)
-    _       <- repo.toStore.bytes.write(Repository.factsets </> FilePath(factset.name) </> ".allocated", scodec.bits.ByteVector.empty)
-  } yield factset
-
-  def latestNameWith(names: List[String], incr: Int => Int): Option[String] = {
-    val offsets = names.map(_.parseInt).collect({ case Success(i) => i })
-    if(offsets.isEmpty) None else Some(zeroPad(incr(offsets.max)))
-  }
-
-  def firstName: String =
-    zeroPad(0)
-
-  def nextName(names: List[String]): String =
-    latestNameWith(names, _ + 1).getOrElse(firstName)
-
-  def zeroPad(i: Int): String =
-    "%05d".format(i)
 }

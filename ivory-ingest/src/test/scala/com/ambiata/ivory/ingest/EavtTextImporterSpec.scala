@@ -67,9 +67,9 @@ class EavtTextImporterSpec extends Specification with ThrownExpectations with Fi
 
     val errors = base </> "errors"
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onStore(repository, dictionary, FactsetId("00000"), List("ns1"), None, input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, format, None) must beOk
+    EavtTextImporter.onStore(repository, dictionary, FactsetId.initial, List("ns1"), None, input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, format, None) must beOk
 
-    factsFromIvoryFactset(repository, FactsetId("00000")).map(_.run.collect { case \/-(r) => r}).run(sc) must beOkLike(_ must containTheSameElementsAs(expected))
+    factsFromIvoryFactset(repository, FactsetId.initial).map(_.run.collect { case \/-(r) => r}).run(sc) must beOkLike(_ must containTheSameElementsAs(expected))
   }
 
   def e2 = setup { setup: Setup =>
@@ -81,7 +81,7 @@ class EavtTextImporterSpec extends Specification with ThrownExpectations with Fi
     // run the scoobi job to import facts on Hdfs
     (for {
       errorPath <- Reference.hdfsPath(errors)
-      _         <- EavtTextImporter.onStore(repository, dictionary, FactsetId("00000"), List("ns1"), None, input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, TextFormat, None)
+      _         <- EavtTextImporter.onStore(repository, dictionary, FactsetId.initial, List("ns1"), None, input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, TextFormat, None)
       ret = valueFromSequenceFile[ParseError](errorPath.toString).run
     } yield ret) must beOkLike(_ must not(beEmpty))
   }

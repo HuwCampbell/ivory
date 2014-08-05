@@ -76,7 +76,8 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
    */
   def scoobiJob(repo: Repository, dict: Dictionary, store: FeatureStore, chordReference: ReferenceIO, latestDate: Date, incremental: Option[(SnapshotId, FeatureStore, SnapshotMeta)], outputPath: Path, codec: Option[CompressionCodec]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      lazy val factsetMap: Map[Priority, FactsetId] = store.factsets.map(fs => (fs.priority, fs.set)).toMap
+      lazy val factsetMap: Map[Priority, SnapshotId \/ FactsetId] =
+        (incremental.map(i => (Priority.Max, i._1.left)).toList ++ store.factsets.map(fs => (fs.priority, fs.factsetId.right))).toMap
 
       Chord.readFacts(repo, store, latestDate, incremental).map { input =>
 
@@ -85,12 +86,12 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
         val facts: DList[(Priority, Fact)] = input.map({
           case -\/(e) => sys.error("A critical error has occured, where we could not determine priority and namespace from partitioning: " + e)
           case \/-(v) => v
-        }).parallelDo(new DoFn[(Priority, FactsetId, Fact), (Priority, Fact)] {
+        }).parallelDo(new DoFn[(Priority, SnapshotId \/ FactsetId, Fact), (Priority, Fact)] {
           var mappings: Mappings = null
           override def setup() {
             mappings = Chord.getMappings(chordReference)
           }
-          override def process(input: (Priority, FactsetId, Fact), emitter: Emitter[(Priority, Fact)]) {
+          override def process(input: (Priority, SnapshotId \/ FactsetId, Fact), emitter: Emitter[(Priority, Fact)]) {
             input match { case (p, _, f) =>
               if(DateMap.keep(mappings, f.entity, f.date.year, f.date.month, f.date.day)) emitter.emit((p, f))
             }
@@ -138,7 +139,10 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
             })
 
         val validated: DList[Fact] = latest.map({ case (p, f) =>
-          Validate.validateFact(f, dict).disjunction.leftMap(e => e + " - Factset " + factsetMap.get(p).getOrElse("Unknown, priority " + p))
+          Validate.validateFact(f, dict).disjunction.leftMap(e => e + " - " + factsetMap.get(p).map({
+            case -\/(snapId)    => s"Snapshot '${snapId.render}'"
+            case \/-(factsetId) => s"Factset '${factsetId.render}'"
+          }).getOrElse("Unknown, priority " + p))
         }).map({
           case -\/(e) => sys.error("A critical error has occurred, a value in ivory no longer matches the dictionary: " + e)
           case \/-(v) => v
@@ -168,11 +172,11 @@ object Chord {
     _                   <- Chord(repo, store, es, output, tmp, id, codec).run
   } yield ()
 
-  def readFacts(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[(SnapshotId, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Priority, FactsetId, Fact)]] = {
+  def readFacts(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[(SnapshotId, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Priority, SnapshotId \/ FactsetId, Fact)]] = {
     import IvoryStorage._
     incremental match {
       case None =>
-        factsFromIvoryStoreTo(repo, store, latestDate)
+        factsFromIvoryStoreTo(repo, store, latestDate).map(_.map(_.map({ case (p, fid, f) => (p, fid.right[SnapshotId], f) })))
       case Some((snapId, s, sm)) => for {
         c <- ScoobiAction.scoobiConfiguration
         p = repo.snapshot(snapId).toHdfs
@@ -180,7 +184,8 @@ object Chord {
         sd = store diff s
         _  = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
         n <- factsFromIvoryStoreTo(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
-      } yield o ++ n ++ FlatFactThriftStorageV1.FlatFactThriftLoader(p.toString).loadScoobi(c).map(_.map((Priority.Max, FactsetId(ChordName), _)))
+        factsetData = (o ++ n).map(_.map({ case (p, fid, f) => (p, fid.right[SnapshotId], f) }))
+      } yield factsetData ++ FlatFactThriftStorageV1.FlatFactThriftLoader(p.toString).loadScoobi(c).map(_.map((Priority.Max, snapId.left[FactsetId], _)))
     }
   }
 

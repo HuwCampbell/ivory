@@ -102,7 +102,7 @@ object SnapshotJob {
   def priorityTable(globs: List[FactsetGlob]): FactsetLookup = {
     val lookup = new FactsetLookup
     globs.foreach(_.factsets.foreach({ case (pfs, _) =>
-      lookup.putToPriorities(pfs.set.name, pfs.priority.toShort)
+      lookup.putToPriorities(pfs.factsetId.render, pfs.priority.toShort)
     }))
     lookup
   }
@@ -211,7 +211,7 @@ abstract class SnapshotFactsetBaseMapper extends Mapper[NullWritable, BytesWrita
       case Success(p) => p
       case Failure(e) => sys.error(s"Can not parse partition ${e}")
     }
-    val priority = lookup.priorities.get(partition.factset.name)
+    val priority = lookup.priorities.get(partition.factset.render)
     vstate = ValueState(Priority.unsafe(priority))
   }
 }

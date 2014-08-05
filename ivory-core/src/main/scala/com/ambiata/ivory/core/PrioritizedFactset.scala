@@ -2,20 +2,20 @@ package com.ambiata.ivory.core
 
 import scalaz._, Scalaz._
 
-case class PrioritizedFactset(set: FactsetId, priority: Priority) {
+case class PrioritizedFactset(factsetId: FactsetId, priority: Priority) {
   def globPath: String =
-    set.name + "/*/*/*/*/*"
+    factsetId.render + "/*/*/*/*/*"
 
-  def name = set.name
+  def render = factsetId.render
 }
 
 object PrioritizedFactset {
-  def fromFactsets(sets: List[FactsetId]): List[PrioritizedFactset] =
-    sets.zipWithIndex.map({ case (set, i) => PrioritizedFactset(set, Priority.unsafe(i.toShort)) })
+  def fromFactsets(ids: List[FactsetId]): List[PrioritizedFactset] =
+    ids.zipWithIndex.map({ case (id, i) => PrioritizedFactset(id, Priority.unsafe(i.toShort)) })
 
   def concat(init: List[PrioritizedFactset], tail: List[PrioritizedFactset]): List[PrioritizedFactset] =
     (init ++ tail).zipWithIndex.map({ case (PrioritizedFactset(n, _), p) => PrioritizedFactset(n, Priority.unsafe(p.toShort)) })
 
   def diff(factsets: List[PrioritizedFactset], other: List[PrioritizedFactset]): List[PrioritizedFactset] =
-    factsets.map(_.set.name).diff(other.map(_.set.name)).zipWithIndex.map({ case (n, p) => PrioritizedFactset(FactsetId(n), Priority.unsafe(p.toShort)) })
+    factsets.map(_.factsetId).diff(other.map(_.factsetId)).zipWithIndex.map({ case (fid, p) => PrioritizedFactset(fid, Priority.unsafe(p.toShort)) })
 }

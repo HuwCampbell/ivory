@@ -51,11 +51,11 @@ object PartitionFactThriftStorageV1 {
   }
 
   case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[PrioritizedFactset], from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[(Priority, FactsetId, Fact)] {
-    lazy val factsetMap: Map[FactsetId, Priority] = factsets.map(fs => (fs.set, fs.priority)).toMap
+    lazy val factsetMap: Map[FactsetId, Priority] = factsets.map(fs => (fs.factsetId, fs.priority)).toMap
 
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Priority, FactsetId, Fact)] = {
-      loadScoobiWith(factsets.map(base + "/" + _.set.name + "/*/*/*/*"), (fs, fact) =>
-        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(s"FactsetId '${fs}' not found in expected list '${factsets}'", TextError(fs.name)).left), from, to)
+      loadScoobiWith(factsets.map(base + "/" + _.factsetId.render + "/*/*/*/*"), (fs, fact) =>
+        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(s"FactsetId '${fs.render}' not found in expected list '${factsets}'", TextError(fs.render)).left), from, to)
     }
   }
 
@@ -102,11 +102,11 @@ object PartitionFactThriftStorageV2 {
   }
 
   case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[PrioritizedFactset], from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[(Priority, FactsetId, Fact)] {
-    lazy val factsetMap: Map[FactsetId, Priority] = factsets.map(fs => (fs.set, fs.priority)).toMap
+    lazy val factsetMap: Map[FactsetId, Priority] = factsets.map(fs => (fs.factsetId, fs.priority)).toMap
 
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Priority, FactsetId, Fact)] = {
-      loadScoobiWith(factsets.map(base + "/" + _.set.name + "/*/*/*/*"), (fs, fact) =>
-        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(s"FactsetId '${fs}' not found in expected list '${factsets}'", TextError(fs.name)).left), from, to)
+      loadScoobiWith(factsets.map(base + "/" + _.factsetId.render + "/*/*/*/*"), (fs, fact) =>
+        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(s"FactsetId '${fs.render}' not found in expected list '${factsets}'", TextError(fs.render)).left), from, to)
     }
   }
 

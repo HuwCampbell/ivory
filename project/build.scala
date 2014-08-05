@@ -212,7 +212,7 @@ object build extends Build {
       name := "ivory-scoobi"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.poacher(version.value) ++ depend.scoobi(version.value) ++ depend.saws ++ depend.specs2 ++ depend.mundane)
   )
-  .dependsOn(core)
+.dependsOn(core, core % "test->test")
 
   lazy val storage = Project(
     id = "storage"

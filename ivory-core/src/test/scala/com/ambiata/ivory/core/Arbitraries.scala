@@ -13,14 +13,25 @@ object Arbitraries {
   implicit def PriorityArbitrary: Arbitrary[Priority] =
     Arbitrary(Gen.choose(Priority.Min.toShort, Priority.Max.toShort).map(Priority.unsafe))
 
+  def genDate(from: Date, to: Date): Gen[Date] = for {
+    y <- Gen.choose(from.year, to.year)
+    m <- Gen.choose(from.month, to.month)
+    d <- Gen.choose(from.day, to.day)
+    r = Stream.tabulate(4)(i => Date.create(y.toShort, m.toByte, (d - i).toByte)).dropWhile(!_.isDefined).headOption.flatten
+    if r.isDefined
+  } yield r.get
+
   implicit def DateArbitrary: Arbitrary[Date] =
+    Arbitrary(genDate(Date(1970, 1, 1), Date(3000, 12, 31)))
+
+  case class TwoDifferentDates(earlier: Date, later: Date)
+  implicit def TwoDifferentDatesArbitrary: Arbitrary[TwoDifferentDates] =
     Arbitrary(for {
-      y <- Gen.choose(1970, 3000)
-      m <- Gen.choose(1, 12)
-      d <- Gen.choose(1, 31)
-      r = Stream.tabulate(4)(i => Date.create(y.toShort, m.toByte, (d - i).toByte)).dropWhile(!_.isDefined).headOption.flatten
-      if r.isDefined
-    } yield r.get)
+      d1     <- genDate(Date(1970, 1, 1), Date(2100, 12, 31))
+      offset <- Gen.choose(1, 100)
+      d2 = Date.fromLocalDate(d1.localDate.plusDays(offset))
+      dd = TwoDifferentDates(d1, d2)
+    } yield dd)
 
   implicit def TimeArbitrary: Arbitrary[Time] =
     Arbitrary(Gen.frequency(
@@ -199,7 +210,7 @@ object Arbitraries {
   implicit def FeatureStoreArbitrary: Arbitrary[FeatureStore] = Arbitrary(
     arbitrary[OldIdentifierList].map(ids =>
       FeatureStore(ids.ids.zipWithIndex.map({ case (id, i) =>
-         PrioritizedFactset(FactsetId(id.render), Priority.unsafe((i + 1).toShort))
+         PrioritizedFactset(FactsetId(id), Priority.unsafe((i + 1).toShort))
       }).toList)
     ))
 
@@ -217,8 +228,12 @@ object Arbitraries {
     value <- valueOf(enc)
   } yield EncodingAndValue(enc, value))
 
-  implicit def FactsetArbitrary: Arbitrary[FactsetId] =
-    Arbitrary(arbitrary[OldIdentifier].map(id => FactsetId(id.render)))
+  implicit def FactsetIdArbitrary: Arbitrary[FactsetId] =
+    Arbitrary(arbitrary[OldIdentifier].map(id => FactsetId(id)))
+
+  case class SmallFactsetIdList(ids: List[FactsetId])
+  implicit def SmallFactsetIdListArbitrary: Arbitrary[SmallFactsetIdList] =
+    Arbitrary(arbitrary[SmallOldIdentifierList].map(ids => SmallFactsetIdList(ids.ids.map(FactsetId.apply))))
 
   implicit def PartitionArbitrary: Arbitrary[Partition] = Arbitrary(for {
     factset <- arbitrary[FactsetId]
@@ -232,4 +247,11 @@ object Arbitraries {
       factset <- arbitrary[FactsetId]
       dates   <- arbitrary[List[(Date, FeatureNamespace)]]
     } yield SingleFactsetPartitions(dates.distinct.map({ case (d, FeatureNamespace(ns)) => Partition(factset, ns, d, None) })))
+
+  case class SmallPartitionList(partitions: List[Partition])
+  implicit def SmallPartitionListArbitrary: Arbitrary[SmallPartitionList] =
+    Arbitrary(for {
+      n          <- Gen.choose(1, 20)
+      partitions <- Gen.listOfN(n, arbitrary[Partition])
+    } yield SmallPartitionList(partitions.distinct))
 }

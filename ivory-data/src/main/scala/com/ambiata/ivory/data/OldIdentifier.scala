@@ -30,6 +30,9 @@ object OldIdentifier {
 
   val max = new OldIdentifier(99999)
 
+  def unsafe(id: Int): OldIdentifier =
+    new OldIdentifier(id)
+
   def parse(s: String): Option[OldIdentifier] = try {
     val i = java.lang.Integer.parseInt(s)
     if (i > max.n) None else Some(new OldIdentifier(i))
