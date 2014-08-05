@@ -4,20 +4,24 @@ DIR=$(dirname $0)
 
 PROJECT="${DIR}/../../../.." . "${DIR}/build.sh"
 
-EXIT=0
+FAILED=""
 
 # Run all the tests, capturing any failures
 for TEST in ${DIR}/tests/*; do
     echo "*** Executing `basename ${TEST}` ***"
     echo
-    "${TEST}/test" || EXIT=1
+    "${TEST}/test" || {
+        FAILED="${FAILED}${TEST} "
+    }
     echo
 done
 
-if [ ${EXIT} -gt 0 ]; then
+if [ -n "${FAILED}" ]; then
     echo "Tests failed!"
+    for TEST in ${FAILED}; do echo "* ${TEST}"; done
+    exit 1
 else
     echo "Tests passed!"
 fi
 
-exit ${EXIT}
+
