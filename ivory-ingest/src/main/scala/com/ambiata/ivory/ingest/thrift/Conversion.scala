@@ -37,6 +37,10 @@ object Conversion {
     fact match {
       case x if x.isSetPrimitive => convertPrim1(x.getPrimitive)
       case x if x.isSetStrct     => ct.ThriftFactValue.structSparse(new ct.ThriftFactStructSparse(x.getStrct.getV.asScala.mapValues(convertPrim).asJava))
+      case x if x.isSetLst       => ct.ThriftFactValue.lst(new ct.ThriftFactList(x.getLst.getL.asScala.map {
+        case lv if lv.isSetP     => ct.ThriftFactListValue.p(convertPrim(lv.getP))
+        case lv if lv.isSetS     => ct.ThriftFactListValue.s(new ct.ThriftFactStructSparse(lv.getS.getV.asScala.mapValues(convertPrim).asJava))
+      }.asJava))
     }
   }
 
@@ -66,6 +70,10 @@ object Conversion {
     }
     value match {
       case x if x.isSetStructSparse => ThriftFactValue.strct(new ThriftFactStruct(x.getStructSparse.getV.asScala.mapValues(convertPrim).asJava))
+      case x if x.isSetLst          => ThriftFactValue.lst(new ThriftFactList(x.getLst.getL.asScala.map {
+        case lv if lv.isSetP        => ThriftFactListValue.p(convertPrim(lv.getP))
+        case lv if lv.isSetS        => ThriftFactListValue.s(new ThriftFactStruct(lv.getS.getV.asScala.mapValues(convertPrim).asJava))
+      }.asJava))
       case _                        => ThriftFactValue.primitive(convertPrim1(value))
     }
   }
