@@ -17,3 +17,5 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "0.7.1")
 addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "0.1.6")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-proguard" % "0.2.2" )
+
+addSbtPlugin("org.scoverage" %% "sbt-scoverage" % "0.99.7.1")
