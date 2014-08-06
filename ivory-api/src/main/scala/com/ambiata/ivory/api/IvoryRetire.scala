@@ -38,7 +38,7 @@ object IvoryRetire {
    * ivory, without concern for the current implementation.
    */
   val importWorkflow = com.ambiata.ivory.storage.legacy.fatrepo.ImportWorkflow.onStore _
-  val importDictionary = com.ambiata.ivory.ingest.DictionaryImporter.fromPath _
+  val importDictionary = com.ambiata.ivory.operation.ingestion.DictionaryImporter.fromPath _
 
   implicit def DListToIvoryFactStorage(dlist: com.nicta.scoobi.core.DList[Ivory.Fact]): com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage =
     com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage(dlist)

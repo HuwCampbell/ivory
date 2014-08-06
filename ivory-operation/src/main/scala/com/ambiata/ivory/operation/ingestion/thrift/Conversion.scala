@@ -1,4 +1,4 @@
-package com.ambiata.ivory.ingest.thrift
+package com.ambiata.ivory.operation.ingestion.thrift
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.{thrift => ct}

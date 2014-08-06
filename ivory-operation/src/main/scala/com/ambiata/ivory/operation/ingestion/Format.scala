@@ -1,4 +1,4 @@
-package com.ambiata.ivory.ingest
+package com.ambiata.ivory.operation.ingestion
 
 sealed trait Format
 case object TextFormat extends Format

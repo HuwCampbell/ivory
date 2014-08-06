@@ -1,7 +1,7 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.ingest._
+import com.ambiata.ivory.operation.ingestion._
 import com.ambiata.ivory.storage.fact.Namespaces
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata.Metadata._

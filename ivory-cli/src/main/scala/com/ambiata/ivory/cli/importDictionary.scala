@@ -2,7 +2,7 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.ivory.ingest._, DictionaryImporter._
+import com.ambiata.ivory.operation.ingestion._, DictionaryImporter._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import com.nicta.scoobi.Scoobi._

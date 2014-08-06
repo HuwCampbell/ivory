@@ -1,5 +1,4 @@
-package com.ambiata.ivory
-package ingest
+package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.lookup.{ReducerLookup, NamespaceLookup, FeatureIdLookup}
 import com.ambiata.ivory.storage.lookup.ReducerLookups

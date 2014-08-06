@@ -1,4 +1,4 @@
-package com.ambiata.ivory.ingest
+package com.ambiata.ivory.operation.ingestion
 
 import java.io.File
 
@@ -50,7 +50,7 @@ class EavtTextImporterSpec extends Specification with ThrownExpectations with Fi
   }
 
   def thrift = setup { setup: Setup =>
-    import com.ambiata.ivory.ingest.thrift._
+    import com.ambiata.ivory.operation.ingestion.thrift._
     import setup._
 
     val serializer = ThriftSerialiser()

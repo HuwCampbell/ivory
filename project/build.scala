@@ -23,7 +23,6 @@ object build extends Build {
     , core
     , data
     , generate
-    , ingest
     , mr
     , operation
     , performance
@@ -69,7 +68,7 @@ object build extends Build {
     , previousArtifact := Some("com.ambiata" %% "ivory-api" % "1.0.0-cdh5-20140703185823-2efc9c3")
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.slf4j)
   )
-  .dependsOn(generate, ingest, operation)
+  .dependsOn(generate, operation)
 
   lazy val benchmark = Project(
     id = "benchmark"
@@ -176,15 +175,6 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.specs2)
   )
   .dependsOn(core, storage)
-
-  lazy val ingest = Project(
-    id = "ingest"
-  , base = file("ivory-ingest")
-  , settings = standardSettings ++ lib("ingest") ++ Seq[Settings](
-      name := "ivory-ingest"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.saws ++ depend.mundane)
-  )
-  .dependsOn(core, storage, scoobi, mr, scoobi % "test->test", core % "test->test")
 
   lazy val mr = Project(
     id = "mr"

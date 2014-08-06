@@ -1,4 +1,4 @@
-package com.ambiata.ivory.ingest
+package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
@@ -191,7 +191,7 @@ class TextIngestMapper extends IngestMapper[LongWritable, Text] {
 
 class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {
 
-  import com.ambiata.ivory.ingest.thrift._
+  import com.ambiata.ivory.operation.ingestion.thrift._
   import scodec.bits.ByteVector
 
   val deserializer = ThriftSerialiser()

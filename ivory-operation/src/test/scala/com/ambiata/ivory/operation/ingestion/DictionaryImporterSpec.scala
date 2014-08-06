@@ -1,4 +1,4 @@
-package com.ambiata.ivory.ingest
+package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
