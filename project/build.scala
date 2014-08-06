@@ -22,7 +22,6 @@ object build extends Build {
     , cli
     , core
     , data
-    , extract
     , generate
     , ingest
     , mr
@@ -30,7 +29,6 @@ object build extends Build {
     , performance
     , scoobi
     , storage
-    , tools
     )
   )
   /* this should only ever export _api_, DO NOT add things to this list */
@@ -71,7 +69,7 @@ object build extends Build {
     , previousArtifact := Some("com.ambiata" %% "ivory-api" % "1.0.0-cdh5-20140703185823-2efc9c3")
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.slf4j)
   )
-  .dependsOn(generate, ingest, tools, extract)
+  .dependsOn(generate, ingest, operation)
 
   lazy val benchmark = Project(
     id = "benchmark"
@@ -161,15 +159,6 @@ object build extends Build {
                                                depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value))
   )
 
-  lazy val extract = Project(
-    id = "extract"
-  , base = file("ivory-extract")
-  , settings = standardSettings ++ lib("extract") ++ Seq[Settings](
-      name := "ivory-extract"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.mundane)
-  )
-  .dependsOn(core, scoobi, storage, mr, core % "test->test", scoobi % "test->test", storage % "test->test")
-
   lazy val operation = Project(
     id = "operation"
   , base = file("ivory-operation")
@@ -232,15 +221,6 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz  ++ depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.saws)
   )
   .dependsOn(core, data, scoobi, mr, core % "test->test",  scoobi % "test->test", data % "test->test")
-
-  lazy val tools = Project(
-    id = "tools"
-  , base = file("ivory-tools")
-  , settings = standardSettings ++ lib("tools") ++ Seq[Settings](
-      name := "ivory-tools"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.mundane)
-  )
-  .dependsOn(core, extract, scoobi, storage, core % "test->test", storage % "test->test")
 
   lazy val compilationSettings: Seq[Settings] = Seq(
     javaOptions ++= Seq("-Xmx3G", "-Xms512m", "-Xss4m")

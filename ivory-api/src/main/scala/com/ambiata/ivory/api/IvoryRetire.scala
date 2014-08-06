@@ -15,7 +15,7 @@ object IvoryRetire {
   val ScoobiAction = com.ambiata.poacher.scoobi.ScoobiAction
   type HdfsRepository = com.ambiata.ivory.storage.repository.HdfsRepository
 
-  /**
+  /*
    * Storage types. These components expose the internal representations of ivory.
    * They are likely to be highly volatile, and will be changing in the near future.
    * They will be replaced by a safer, stable API that lets users interact with
@@ -31,7 +31,7 @@ object IvoryRetire {
 
   val createRepository = com.ambiata.ivory.storage.legacy.CreateRepository.onStore _
 
-  /**
+  /*
    * Ingest types. These components expose the internal representations of ivory.
    * They are likely to be highly volatile, and will be changing in the near future.
    * They will be replaced by a safer, stable API that lets users interact with
@@ -43,14 +43,22 @@ object IvoryRetire {
   implicit def DListToIvoryFactStorage(dlist: com.nicta.scoobi.core.DList[Ivory.Fact]): com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage =
     com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage(dlist)
 
-  /**
+  /*
    * Extract types. These components expose the internal representations of ivory.
    * They are likely to be highly volatile, and will be changing in the near future.
    * They will be replaced by a safer, stable API that lets users interact with
    * ivory, without concern for the current implementation.
    */
-  val snapshot = com.ambiata.ivory.extract.Snapshot.snapshot _
-  val extractChord = com.ambiata.ivory.extract.Chord.onStore _
-  val pivot = com.ambiata.ivory.extract.Pivot.onStore _
+  val snapshot = com.ambiata.ivory.operation.extraction.Snapshot.snapshot _
+  val takeSnapshot = com.ambiata.ivory.operation.extraction.Snapshot.takeSnapshot _
+  val chord = com.ambiata.ivory.operation.extraction.Chord.onStore _
+  val pivot = com.ambiata.ivory.operation.extraction.Pivot.onStore _
+  val pivotFromSnapshot = com.ambiata.ivory.operation.extraction.Pivot.onStoreFromSnapshot _
 
+
+  /*
+   * Bespoke debugging tools.
+   */
+  val countFacts = com.ambiata.ivory.operation.statistics.FactCount.flatFacts _
+  val diffFacts = com.ambiata.ivory.operation.diff.FactDiff.flatFacts _
 }

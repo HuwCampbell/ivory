@@ -2,6 +2,7 @@ package com.ambiata.ivory.benchmark
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
+import com.ambiata.ivory.operation.extraction._
 import com.ambiata.ivory.mr.Writables
 import com.google.caliper._
 import org.apache.hadoop.io._

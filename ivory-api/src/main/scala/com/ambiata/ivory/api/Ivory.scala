@@ -69,5 +69,6 @@ object Ivory
   /**
    * Debug
    */
-  val printErrors = com.ambiata.ivory.tools.PrintErrors.print _
+  val printErrors = com.ambiata.ivory.operation.display.PrintErrors.print _
+  val printFacts = com.ambiata.ivory.operation.display.PrintFacts.print _
 }

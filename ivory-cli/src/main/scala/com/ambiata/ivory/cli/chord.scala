@@ -51,10 +51,10 @@ object chord extends IvoryApp {
     val denseRef = output </> FilePath("dense")
     val tmpRef = tmp </> FilePath("chord")
     for {
-      _    <- Chord.onStore(repo, entities, thriftRef, tmpRef, takeSnapshot, Codec())
+      _    <- IvoryRetire.chord(repo, entities, thriftRef, tmpRef, takeSnapshot, Codec())
       _    <- if(pivot) {
                 println(s"Pivoting extracted chord in '${thriftRef.path}' to '${denseRef.path}'")
-                Pivot.onStore(repo, thriftRef, denseRef, delim, tombstone)
+                IvoryRetire.pivot(repo, thriftRef, denseRef, delim, tombstone)
               } else ResultT.ok[IO, Unit](())
     } yield ()
   }
