@@ -7,31 +7,28 @@ import com.ambiata.mundane.io._
 
 import scalaz._, Scalaz._, effect.IO, \&/._
 
-case class FactsetGlob(version: FactsetVersion, factsets: List[(PrioritizedFactset, List[Partition])]) {
-  def filterByPartition(f: Partition => Boolean): FactsetGlob =
-    copy(factsets = factsets.map({ case (pf, ps) => (pf, ps.filter(f)) }).filter(!_._2.isEmpty))
+// TODO remove once plan api is created
+case class FactsetGlob(repo: Repository, factset: FactsetId, version: FactsetVersion, partitions: List[Partition]) {
+  def filterPartitions(f: Partition => Boolean): FactsetGlob =
+    copy(partitions = partitions.filter(f))
 
-  def partitions: List[Partition] =
-    factsets.flatMap(_._2)
+  def paths: List[FilePath] =
+    partitions.map(p => repo.factset(factset) </> p.path)
 }
 
 object FactsetGlob {
-  def select(repository: Repository, factset: FactsetId): ResultT[IO, List[Partition]] = for {
+  def select(repository: Repository, factset: FactsetId): ResultT[IO, FactsetGlob] = for {
+    v     <- Versions.read(repository, factset)
     paths <- repository.toStore.list(Repository.factset(factset) </> "/*/*/*/*")
-    parts <- paths.traverseU(path => ResultT.fromDisjunction[IO, Partition](Partition.parseWith((repository.root </> path).path).disjunction.leftMap(This.apply)))
-  } yield parts.distinct
+    parts <- paths.traverseU(path => ResultT.fromDisjunction[IO, Partition](Partition.parseFile((repository.root </> path)).disjunction.leftMap(This.apply)))
+  } yield FactsetGlob(repository, factset, v, parts.distinct)
 
-  def before(repository: Repository, factset: FactsetId, to: Date): ResultT[IO, List[Partition]] =
-    select(repository, factset).map(_.filter(_.date.isBeforeOrEqual(to)))
+  def before(repository: Repository, factset: FactsetId, to: Date): ResultT[IO, FactsetGlob] =
+    select(repository, factset).map(_.filterPartitions(_.date.isBeforeOrEqual(to)))
 
-  def after(repository: Repository, factset: FactsetId, from: Date): ResultT[IO, List[Partition]] =
-    select(repository, factset).map(_.filter(_.date.isAfterOrEqual(from)))
+  def after(repository: Repository, factset: FactsetId, from: Date): ResultT[IO, FactsetGlob] =
+    select(repository, factset).map(_.filterPartitions(_.date.isAfterOrEqual(from)))
 
-  def between(repository: Repository, factset: FactsetId, from: Date, to: Date): ResultT[IO, List[Partition]] =
-    select(repository, factset).map(_.filter(p => p.date.isBeforeOrEqual(to) && p.date.isAfterOrEqual(from)))
-
-  def groupByVersion(globs: List[FactsetGlob]): List[FactsetGlob] =
-    globs.groupBy(_.version).toList.map({ case (v, gs) =>
-      FactsetGlob(v, gs.flatMap(_.factsets))
-    })
+  def between(repository: Repository, factset: FactsetId, from: Date, to: Date): ResultT[IO, FactsetGlob] =
+    select(repository, factset).map(_.filterPartitions(p => p.date.isBeforeOrEqual(to) && p.date.isAfterOrEqual(from)))
 }

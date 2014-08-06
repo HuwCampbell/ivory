@@ -65,7 +65,7 @@ object ExtractLatestWorkflow {
   def decideSnapshot(repo: Repository, date: Date, storeId: FeatureStoreId, incr: Option[(SnapshotId, SnapshotMeta)]): ResultTIO[(Boolean, SnapshotId)] =
   incr.collect({ case (id, sm) if sm.date <= date && sm.store == storeId => for {
     store      <- Metadata.storeFromIvory(repo, storeId)
-    partitions <- StoreGlob.between(repo, store, sm.date, date).map(_.flatMap(_.partitions))
+    partitions <- StoreGlob.between(repo, store, sm.date, date).map(_.globs.flatMap(_.value.partitions))
     filtered = partitions.filter(_.date.isAfter(sm.date)) // TODO this should probably be in StoreGlob.between, but not sure what else it will affect
     skip       <- if(filtered.isEmpty) ResultT.ok[IO, (Boolean, SnapshotId)]((true, id)) else SnapshotMeta.allocateId(repo).map((false, _))
   } yield skip }).getOrElse(SnapshotMeta.allocateId(repo).map((false, _)))

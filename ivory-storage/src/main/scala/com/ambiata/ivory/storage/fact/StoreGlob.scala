@@ -7,21 +7,24 @@ import com.ambiata.mundane.io._
 
 import scalaz._, Scalaz._, effect.IO, \&/._
 
-// FIX suspicously dup-y with Partitions.
+// TODO This needs to be removed once we create the plan api
+case class StoreGlob(repository: Repository, store: FeatureStore, globs: List[Prioritized[FactsetGlob]]) {
+  def filterPartitions(f: Partition => Boolean): StoreGlob =
+    copy(globs = globs.map(_.map(fg => fg.filterPartitions(f))).filter(!_.value.partitions.isEmpty))
+}
+
 object StoreGlob {
-  def select(repository: Repository, store: FeatureStore): ResultT[IO, List[FactsetGlob]] = for {
-    globs <- store.factsets.traverseU(factset => for {
-      fv <- Versions.read(repository, factset.factsetId)
-      ps <- FactsetGlob.select(repository, factset.factsetId)
-    } yield FactsetGlob(fv, List((factset, ps))))
-  } yield FactsetGlob.groupByVersion(globs)
+  def select(repository: Repository, store: FeatureStore): ResultTIO[StoreGlob] =
+    store.factsets.traverseU(factset =>
+      FactsetGlob.select(repository, factset.factsetId).map(Prioritized(factset.priority, _))
+    ).map(globs => StoreGlob(repository, store, globs))
 
-  def before(repository: Repository, store: FeatureStore, to: Date): ResultT[IO, List[FactsetGlob]] =
-    select(repository, store).map(_.map(_.filterByPartition(_.date.isBeforeOrEqual(to))).filter(!_.factsets.isEmpty))
+  def before(repository: Repository, store: FeatureStore, to: Date): ResultTIO[StoreGlob] =
+    select(repository, store).map(_.filterPartitions(_.date.isBeforeOrEqual(to)))
 
-  def after(repository: Repository, store: FeatureStore, from: Date): ResultT[IO, List[FactsetGlob]] =
-    select(repository, store).map(_.map(_.filterByPartition(_.date.isAfterOrEqual(from))).filter(!_.factsets.isEmpty))
+  def after(repository: Repository, store: FeatureStore, from: Date): ResultTIO[StoreGlob] =
+    select(repository, store).map(_.filterPartitions(_.date.isAfterOrEqual(from)))
 
-  def between(repository: Repository, store: FeatureStore, from: Date, to: Date): ResultT[IO, List[FactsetGlob]] =
-    select(repository, store).map(_.map(_.filterByPartition(p => p.date.isBeforeOrEqual(to) && p.date.isAfterOrEqual(from))).filter(!_.factsets.isEmpty))
+  def between(repository: Repository, store: FeatureStore, from: Date, to: Date): ResultTIO[StoreGlob] =
+    select(repository, store).map(_.filterPartitions(p => p.date.isBeforeOrEqual(to) && p.date.isAfterOrEqual(from)))
 }

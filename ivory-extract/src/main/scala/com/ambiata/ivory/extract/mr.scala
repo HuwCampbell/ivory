@@ -1,13 +1,14 @@
 package com.ambiata.ivory.extract
 
 import com.ambiata.poacher.hdfs._
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.FactsetLookup
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.parse._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.mr._
+import com.ambiata.mundane.io.FilePath
 
 import java.lang.{Iterable => JIterable}
 import java.util.{Iterator => JIterator}
@@ -33,7 +34,7 @@ import org.apache.thrift.{TSerializer, TDeserializer}
  * This is a hand-coded MR job to squeeze the most out of snapshot performance.
  */
 object SnapshotJob {
-  def run(conf: Configuration, reducers: Int, date: Date, inputs: List[FactsetGlob], output: Path, incremental: Option[Path], codec: Option[CompressionCodec]): Unit = {
+  def run(conf: Configuration, reducers: Int, date: Date, inputs: List[Prioritized[FactsetGlob]], output: Path, incremental: Option[Path], codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
     val ctx = MrContext.newContext("ivory-snapshot", job)
@@ -57,15 +58,13 @@ object SnapshotJob {
 
     /* input */
     val mappers = inputs.map({
-      case FactsetGlob(FactsetVersionOne, factsets) => (classOf[SnapshotFactsetVersionOneMapper], factsets)
-      case FactsetGlob(FactsetVersionTwo, factsets) => (classOf[SnapshotFactsetVersionTwoMapper], factsets)
+      case Prioritized(_, g @ FactsetGlob(_,_, FactsetVersionOne, _)) => (classOf[SnapshotFactsetVersionOneMapper], g)
+      case Prioritized(_, g @ FactsetGlob(_,_, FactsetVersionTwo, _)) => (classOf[SnapshotFactsetVersionTwoMapper], g)
     })
-    mappers.foreach({ case (clazz, factsets) =>
-      factsets.foreach({ case (_, ps) =>
-        ps.foreach(p => {
-          println(s"Input path: ${p.path}")
-          MultipleInputs.addInputPath(job, new Path(p.path), classOf[SequenceFileInputFormat[_, _]], clazz)
-        })
+    mappers.foreach({ case (clazz, factsetGlob) =>
+      factsetGlob.paths.foreach(path => {
+        println(s"Input path: ${path.path}")
+        MultipleInputs.addInputPath(job, path.toHdfs, classOf[SequenceFileInputFormat[_, _]], clazz)
       })
     })
 
@@ -99,11 +98,9 @@ object SnapshotJob {
     }, true).run(conf).run.unsafePerformIO
   }
 
-  def priorityTable(globs: List[FactsetGlob]): FactsetLookup = {
+  def priorityTable(globs: List[Prioritized[FactsetGlob]]): FactsetLookup = {
     val lookup = new FactsetLookup
-    globs.foreach(_.factsets.foreach({ case (pfs, _) =>
-      lookup.putToPriorities(pfs.factsetId.render, pfs.priority.toShort)
-    }))
+    globs.foreach(p => lookup.putToPriorities(p.value.factset.render, p.priority.toShort))
     lookup
   }
 
@@ -198,20 +195,23 @@ abstract class SnapshotFactsetBaseMapper extends Mapper[NullWritable, BytesWrita
   /* Partition created from input split path, only created once per mapper */
   var partition: Partition = null
 
+  /* FactsetId created from input split path, only created once per mapper */
+  var factsetId: FactsetId = null
+
   /* Input split path, only created once per mapper */
-  var stringPath: String = null
+  var path: FilePath = null
 
   override def setup(context: MapperContext): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, lookup)
-    stringPath = MrContext.getSplitPath(context.getInputSplit).toString
-    partition = Partition.parseWith(stringPath) match {
-      case Success(p) => p
-      case Failure(e) => sys.error(s"Can not parse partition ${e}")
+    path = FilePath(MrContext.getSplitPath(context.getInputSplit).toString)
+    Factset.parseFile(path) match {
+      case Success((fid, p)) => factsetId = fid; partition = p
+      case Failure(e)        => sys.error(s"Can not parse factset path ${e}")
     }
-    val priority = lookup.priorities.get(partition.factset.render)
+    val priority = lookup.priorities.get(factsetId.render)
     vstate = ValueState(Priority.unsafe(priority))
   }
 }
@@ -228,12 +228,8 @@ trait SnapshotFactsetThiftMapper[A <: ThriftLike] extends SnapshotFactsetBaseMap
   /* Version string provided from sub class and to be used for counter names, created once per mapper */
   val version: String
 
-  /* Function to parse a fact given the path to the file containing the fact and the thrift fact.
-   * Defined in the sub class */
-  val parseFact: (String, A) => ParseError \/ Fact
-
-  /* This is set through the setup method and will call parseFact above with the string path */
-  var parse: A => ParseError \/ Fact = null
+  /* Function to create a fact given the thrift fact. Defined in the sub class */
+  val createFact: A => Fact
 
   var counterNameOk: String = null
   var counterNameSkip: String = null
@@ -247,7 +243,6 @@ trait SnapshotFactsetThiftMapper[A <: ThriftLike] extends SnapshotFactsetBaseMap
     super.setup(context)
     counterNameOk = s"snapshot.${version}.ok"
     counterNameSkip = s"snapshot.${version}.skip"
-    parse = (a: A) => parseFact(stringPath, a)
   }
 
   /*
@@ -259,7 +254,7 @@ trait SnapshotFactsetThiftMapper[A <: ThriftLike] extends SnapshotFactsetBaseMap
    */
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
     context.getCounter(counterGroup, counterNameOk).increment(1)
-    if(!SnapshotFactsetThriftMapper.map(thrift, date, parse, value.copyBytes,
+    if(!SnapshotFactsetThriftMapper.map(thrift, date, createFact, value.copyBytes,
                                         kstate, vstate, kout, vout, commit(context), deserializer))
       context.getCounter(counterGroup, counterNameSkip).increment(1)
   }
@@ -268,20 +263,16 @@ trait SnapshotFactsetThiftMapper[A <: ThriftLike] extends SnapshotFactsetBaseMap
 object SnapshotFactsetThriftMapper {
   import SnapshotMapper._
 
-  def map[A <: ThriftLike](thrift: A, date: Date, parseFact: A => ParseError \/ Fact, bytes: Array[Byte],
+  def map[A <: ThriftLike](thrift: A, date: Date, createFact: A => Fact, bytes: Array[Byte],
                            kstate: KeyState, vstate: ValueState, kout: BytesWritable, vout: BytesWritable,
                            commit: () => Unit, deserializer: TDeserializer): Boolean = {
     deserializer.deserialize(thrift, bytes)
-    parseFact(thrift) match {
-      case \/-(f) =>
-        if(f.date > date)
-          false
-        else {
-          SnapshotMapper.map(f, kstate, vstate, kout, vout, commit, deserializer)
-          true
-        }
-      case -\/(e) =>
-        sys.error(s"Can not read fact - ${e}")
+    val f = createFact(thrift)
+    if(f.date > date)
+      false
+    else {
+      SnapshotMapper.map(f, kstate, vstate, kout, vout, commit, deserializer)
+      true
     }
   }
 }
@@ -292,8 +283,8 @@ object SnapshotFactsetThriftMapper {
 class SnapshotFactsetVersionOneMapper extends SnapshotFactsetThiftMapper[ThriftFact] {
   val thrift = new ThriftFact
   val version = "v1"
-  val parseFact: (String, ThriftFact) => ParseError \/ Fact =
-    PartitionFactThriftStorageV1.parseFact _
+  val createFact: ThriftFact => Fact = (tfact: ThriftFact) =>
+    PartitionFactThriftStorageV1.createFact(partition, tfact)
 }
 
 /*
@@ -302,8 +293,8 @@ class SnapshotFactsetVersionOneMapper extends SnapshotFactsetThiftMapper[ThriftF
 class SnapshotFactsetVersionTwoMapper extends SnapshotFactsetThiftMapper[ThriftFact] {
   val thrift = new ThriftFact
   val version = "v2"
-  val parseFact: (String, ThriftFact) => ParseError \/ Fact =
-    PartitionFactThriftStorageV2.parseFact _
+  val createFact: ThriftFact => Fact = (tfact: ThriftFact) =>
+    PartitionFactThriftStorageV2.createFact(partition, tfact)
 }
 
 /*
