@@ -1,7 +1,6 @@
 package com.ambiata.ivory.ingest.thrift
 
-import com.ambiata.ivory.core.Arbitraries._
-import com.ambiata.ivory.core.Fact
+import com.ambiata.ivory.core._, Arbitraries._
 import org.joda.time.DateTimeZone
 import org.specs2.{ScalaCheck, Specification}
 
@@ -16,12 +15,12 @@ Conversion
 
   import Conversion._
 
-  val tz = DateTimeZone.getDefault
-
-  def conversion = prop((fact: Fact) => {
-    thrift2fact(fact.namespace, fact2thrift(fact), tz, tz).toEither must beRight(fact)
+  def conversion = prop((se: SparseEntities) => {
+    import se._
+    thrift2fact(fact.namespace, fact2thrift(fact), zone, zone).toEither must beRight(fact)
   })
 
-  def invalid =
+  def invalid = prop((tz: DateTimeZone) =>
     thrift2fact("", new ThriftFact, tz, tz).toEither must beLeft
+  )
 }

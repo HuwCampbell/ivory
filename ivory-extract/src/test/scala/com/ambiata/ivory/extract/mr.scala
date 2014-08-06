@@ -11,7 +11,7 @@ import org.apache.hadoop.io.{BytesWritable, NullWritable}
 import org.apache.thrift.protocol.TCompactProtocol
 import org.apache.thrift.{TSerializer, TDeserializer}
 import java.nio.ByteBuffer
-import java.util.{Iterator => JIterator}
+import scalaz.{Value => _, _}, Scalaz._
 
 import scala.collection.JavaConverters._
 
@@ -74,8 +74,13 @@ SnapshotMapperSpec
 
     seqToResult(fs.map(f => {
       map(empty, serializer.serialize(f.toNamespacedThrift), kstate, vstate, kout, vout, setActual, deserializer)
+
+      val tag = new PriorityTag <| (x => deserializer.deserialize(x, actualVout.copyBytes()))
+      val f2 = new NamespacedThriftFact <| (x => deserializer.deserialize(x, tag.bytes.array()))
       (actualKout.copyBytes must_== f.entity.getBytes ++ f.namespace.getBytes ++ f.feature.getBytes) and
-      (actualVout.copyBytes must_== serializer.serialize(new PriorityTag(priority.toShort, ByteBuffer.wrap(serializer.serialize(f.toNamespacedThrift)))))
+      tag.priority ==== priority.toShort and
+      // Previously we would just compare the bytes, but Structs contain a map that can/will reorder on read/write
+      f2 ==== f.toNamespacedThrift
     }))
   }
 }
@@ -96,13 +101,13 @@ SnapshotReducerSpec
   def priorityDateTimeValue(m: FeatureMeta): Gen[PriorityDateTimeValue] = for {
     p  <- arbitrary[Priority]
     dt <- arbitrary[DateTime]
-    v  <- Gen.frequency(1 -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding))
+    v  <- Gen.frequency(1 -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding, m.tombstoneValue))
   } yield PriorityDateTimeValue(p, dt, v)
 
   case class ReducerFacts(facts: List[(Fact, PriorityTag)])
   implicit def ReducerInputArbitrary: Arbitrary[ReducerFacts] =
     Arbitrary(for {
-      (f, m) <- Gen.oneOf(TestDictionary.meta.toList)
+      (f, m) <- arbitrary[(FeatureId, FeatureMeta)]
       e = "T+00001"
       dtvs   <- Gen.nonEmptyListOf(priorityDateTimeValue(m))
       pfacts = dtvs.map(dtv => (dtv.priority, Fact.newFact(e, f.namespace, f.name, dtv.datetime.date, dtv.datetime.time, dtv.value)))
