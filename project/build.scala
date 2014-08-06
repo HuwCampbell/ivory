@@ -26,6 +26,7 @@ object build extends Build {
     , generate
     , ingest
     , mr
+    , operation
     , performance
     , scoobi
     , storage
@@ -166,6 +167,15 @@ object build extends Build {
   , settings = standardSettings ++ lib("extract") ++ Seq[Settings](
       name := "ivory-extract"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.mundane)
+  )
+  .dependsOn(core, scoobi, storage, mr, core % "test->test", scoobi % "test->test", storage % "test->test")
+
+  lazy val operation = Project(
+    id = "operation"
+  , base = file("ivory-operation")
+  , settings = standardSettings ++ lib("operation") ++ Seq[Settings](
+      name := "ivory-operation"
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.mundane)
   )
   .dependsOn(core, scoobi, storage, mr, core % "test->test", scoobi % "test->test", storage % "test->test")
 
