@@ -79,30 +79,32 @@ object Arbitraries {
     DateTime.unsafe(dt.date.year, dt.date.month, d.toByte, (h * 60 * 60) + (m * 60) + s)
   }
 
-  lazy val TestDictionary: Dictionary = Dictionary(Map(
-    FeatureId("fruit", "apple") -> FeatureMeta(LongEncoding, Some(ContinuousType), "Reds and Greens", "?" :: Nil)
-  , FeatureId("fruit", "orange") -> FeatureMeta(StringEncoding, Some(CategoricalType), "Oranges", "?" :: Nil)
-  , FeatureId("vegetables", "potatoe") -> FeatureMeta(DoubleEncoding, Some(ContinuousType), "Browns", "?" :: Nil)
-  , FeatureId("vegetables", "yams") -> FeatureMeta(BooleanEncoding, Some(CategoricalType), "Sweets", "?" :: Nil)
-  , FeatureId("vegetables", "peas") -> FeatureMeta(IntEncoding, Some(ContinuousType), "Greens", "?" :: Nil)
-  ))
-
   case class FeatureNamespace(namespace: String)
   implicit def FeatureNamespaceArbitrary: Arbitrary[FeatureNamespace] =
-    Arbitrary(Gen.oneOf(TestDictionary.meta.map(_._1.namespace).toSeq).map(FeatureNamespace.apply))
+    Arbitrary(Gen.alphaStr.map(FeatureNamespace.apply))
 
   def testEntities(n: Int): List[String] =
     (1 to n).toList.map(i => "T+%05d".format(i))
 
-  implicit def DictionaryArbitrary: Arbitrary[Dictionary] =
-    Arbitrary(Gen.mapOf[FeatureId, FeatureMeta](for {
+  implicit def FeatureIdArbitrary: Arbitrary[FeatureId] =
+    Arbitrary(for {
       ns    <- arbitrary[DictId].map(_.s)
       name  <- arbitrary[DictId].map(_.s)
-      enc   <- arbitrary[Encoding]
+    } yield FeatureId(ns, name))
+
+  def featureMetaGen(genc: Gen[Encoding]): Gen[FeatureMeta] =
+    for {
+      enc   <- genc
       ty    <- arbitrary[Option[Type]]
       desc  <- arbitrary[DictDesc].map(_.s)
       tombs <- Gen.listOf(arbitrary[DictTomb].map(_.s))
-    } yield FeatureId(ns, name) -> FeatureMeta(enc, ty, desc, tombs)).map(Dictionary))
+    } yield FeatureMeta(enc, ty, desc, tombs)
+
+  implicit def FeatureMetaArbitrary: Arbitrary[FeatureMeta] =
+    Arbitrary(featureMetaGen(arbitrary[Encoding]))
+
+  implicit def DictionaryArbitrary: Arbitrary[Dictionary] =
+    Arbitrary(Gen.mapOf[FeatureId, FeatureMeta](arbitrary[(FeatureId, FeatureMeta)]).map(Dictionary))
 
   implicit def EncodingArbitrary: Arbitrary[Encoding] =
     Arbitrary(Gen.oneOf(arbitrary[SubEncoding], arbitrary[ListEncoding]))
@@ -126,24 +128,24 @@ object Arbitraries {
   implicit def TypeArbitrary: Arbitrary[Type] =
     Arbitrary(Gen.oneOf(NumericalType, ContinuousType, CategoricalType, BinaryType))
 
-  def valueOf(encoding: Encoding): Gen[Value] = encoding match {
-    case sub: SubEncoding  => valueOfSub(sub)
-    case ListEncoding(sub) => Gen.listOf(valueOfSub(sub)).map(ListValue)
+  def valueOf(encoding: Encoding, tombstones: List[String]): Gen[Value] = encoding match {
+    case sub: SubEncoding  => valueOfSub(sub, tombstones)
+    case ListEncoding(sub) => Gen.listOf(valueOfSub(sub, tombstones)).map(ListValue)
   }
 
-  def valueOfSub(encoding: SubEncoding): Gen[SubValue] = encoding match {
-    case p: PrimitiveEncoding => valueOfPrim(p)
+  def valueOfSub(encoding: SubEncoding, tombstones: List[String]): Gen[SubValue] = encoding match {
+    case p: PrimitiveEncoding => valueOfPrim(p, tombstones)
     case StructEncoding(s)    =>
       Gen.sequence[Seq, Option[(String, PrimitiveValue)]](s.map { case (k, v) =>
         for {
-          p <- valueOfPrim(v.encoding).map(k ->)
+          p <- valueOfPrim(v.encoding, tombstones).map(k ->)
           // _Sometimes_ generate a value for optional fields :)
           b <- if (v.optional) arbitrary[Boolean] else Gen.const(true)
         } yield if (b) Some(p) else None
       }).map(_.flatten.toMap).map(StructValue)
   }
 
-  def valueOfPrim(encoding: PrimitiveEncoding): Gen[PrimitiveValue] = encoding match {
+  def valueOfPrim(encoding: PrimitiveEncoding, tombstones: List[String]): Gen[PrimitiveValue] = (encoding match {
     case BooleanEncoding =>
       arbitrary[Boolean].map(BooleanValue)
     case IntEncoding =>
@@ -154,26 +156,30 @@ object Arbitraries {
       arbitrary[Double].retryUntil(Value.validDouble).map(DoubleValue)
     case StringEncoding =>
       arbitrary[String].map(StringValue)
-   }
+   }).flatMap { v =>
+    if (Value.toStringPrimitive(v).exists(tombstones.contains))
+      if (tombstones.nonEmpty) Gen.const(TombstoneValue())
+      // There's really nothing we can do here - need to try again
+      else valueOfPrim(encoding, tombstones)
+    else Gen.const(v)
+  }
 
-  def factWithZoneGen(entity: Gen[String]): Gen[(Fact, DateTimeZone)] = for {
+  def factWithZoneGen(entity: Gen[String], mgen: Gen[FeatureMeta]): Gen[(FeatureMeta, Fact, DateTimeZone)] = for {
     e      <- entity
-    (f, m) <- Gen.oneOf(TestDictionary.meta.toList)
+    f      <- arbitrary[FeatureId]
+    m      <- mgen
     dtz    <- arbitrary[DateTimeWithZone]
-    v      <- Gen.frequency(1 -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding))
-  } yield (Fact.newFact(e, f.namespace, f.name, dtz.datetime.date, dtz.datetime.time, v), dtz.zone)
+    // Don't generate a Tombstone if it's not possible
+    v      <- Gen.frequency((if (m.tombstoneValue.nonEmpty) 1 else 0) -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding, m.tombstoneValue))
+  } yield (m, Fact.newFact(e, f.namespace, f.name, dtz.datetime.date, dtz.datetime.time, v), dtz.zone)
 
-  case class SparseEntities(fact: Fact, zone: DateTimeZone)
-  case class DenseEntities(fact: Fact, zone: DateTimeZone)
+  case class SparseEntities(meta: FeatureMeta, fact: Fact, zone: DateTimeZone)
 
   /**
    * Create an arbitrary fact and timezone such that the time in the fact is valid given the timezone
    */
   implicit def SparseEntitiesArbitrary: Arbitrary[SparseEntities] =
-   Arbitrary(factWithZoneGen(Gen.oneOf(testEntities(1000))).map(SparseEntities.tupled))
-
-  implicit def DenseEntitiesArbitrary: Arbitrary[DenseEntities] =
-   Arbitrary(factWithZoneGen(Gen.oneOf(testEntities(50))).map(DenseEntities.tupled))
+   Arbitrary(factWithZoneGen(Gen.oneOf(testEntities(1000)), arbitrary[FeatureMeta]).map(SparseEntities.tupled))
 
   implicit def FactArbitrary: Arbitrary[Fact] = Arbitrary(for {
     es <- arbitrary[SparseEntities]
@@ -188,10 +194,10 @@ object Arbitraries {
   case class DictTomb(s: String)
 
   implicit def DictIdArbitrary: Arbitrary[DictId] = Arbitrary(
-    Gen.frequency(
+    Gen.nonEmptyListOf(Gen.frequency(
       1 -> Gen.const("_"),
-      99 -> Gen.listOf(Gen.alphaNumChar).map(_.mkString)
-    ).map(DictId)
+      99 -> Gen.alphaNumChar
+    )).map(_.mkString).map(DictId)
   )
 
   implicit def DictTombArbitrary: Arbitrary[DictTomb] =
@@ -225,7 +231,7 @@ object Arbitraries {
 
   implicit def EncodingAndValueArbitrary: Arbitrary[EncodingAndValue] = Arbitrary(for {
     enc   <- arbitrary[Encoding]
-    value <- valueOf(enc)
+    value <- valueOf(enc, List())
   } yield EncodingAndValue(enc, value))
 
   implicit def FactsetIdArbitrary: Arbitrary[FactsetId] =

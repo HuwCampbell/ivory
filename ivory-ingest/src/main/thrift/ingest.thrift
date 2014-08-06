@@ -13,9 +13,19 @@ struct ThriftFactStruct {
     1: map<string, ThriftFactPrimitiveValue> v;
 }
 
+union ThriftFactListValue {
+    1: ThriftFactPrimitiveValue p;
+    2: ThriftFactStruct s;
+}
+
+struct ThriftFactList {
+    1: list<ThriftFactListValue> l;
+}
+
 union ThriftFactValue {
     1: ThriftFactPrimitiveValue primitive;
     2: ThriftFactStruct strct;
+    3: ThriftFactList lst;
 }
 
 struct ThriftFact {
