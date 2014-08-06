@@ -254,7 +254,6 @@ object build extends Build {
   , cancelable := true
   , fork in test := true
   , testOptions in Test += Tests.Setup(() => System.setProperty("log4j.configuration", "file:etc/log4j-test.properties"))
-  , javaOptions += "-Xmx3G"
   ) ++ instrumentSettings ++ Seq(ScoverageKeys.highlighting := true)
 
   lazy val prompt = shellPrompt in ThisBuild := { state =>
