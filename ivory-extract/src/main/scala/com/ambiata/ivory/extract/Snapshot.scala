@@ -56,7 +56,7 @@ case class Snapshot(repo: Repository, store: FeatureStoreId, entities: Option[Re
   def job(repo: HdfsRepository, store: FeatureStore, incremental: Option[(Path, FeatureStore, SnapshotMeta)], outputPath: Path, codec: Option[CompressionCodec]): Hdfs[Unit] = for {
     conf  <- Hdfs.configuration
     globs <- Hdfs.fromResultTIO(Snapshot.storePaths(repo, store, snapshot, incremental))
-    paths  = globs.flatMap(_.partitions.map(p => new Path(p.path))) ++ incremental.map(_._1).toList
+    paths  = globs.flatMap(_.value.paths.map(_.toHdfs)) ++ incremental.map(_._1).toList
     size  <- paths.traverse(Hdfs.size).map(_.sum)
     _     = println(s"Total input size: ${size}")
     reducers = size.toBytes.value / 2.gb.toBytes.value + 1 // one reducer per 2GB of input
@@ -81,15 +81,17 @@ object Snapshot {
   def extractLatest(codec: Option[CompressionCodec])(repo: Repository, store: FeatureStoreId, date: Date, output: ReferenceIO, incremental: Option[(SnapshotId, SnapshotMeta)]): ResultTIO[Unit] =
     Snapshot(repo, store, None, date, output, incremental, codec).run
 
-  def storePaths(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ResultTIO[List[FactsetGlob]] =
+  def storePaths(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ResultTIO[List[Prioritized[FactsetGlob]]] =
     incremental match {
       case None =>
-        StoreGlob.before(repo, store, latestDate)
+        StoreGlob.before(repo, store, latestDate).map(_.globs)
       case Some((p, s, sm)) => for {
-        o <- StoreGlob.between(repo, s, sm.date, latestDate) // read facts from already processed store from the last snapshot date to the latest date
+        // read facts from already processed store from the last snapshot date to the latest date
+        o <- StoreGlob.between(repo, s, sm.date, latestDate).map(_.globs)
         sd = store diff s
         _  = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
-        n <- StoreGlob.before(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
-      } yield FactsetGlob.groupByVersion(o ++ n)
+        // read factsets which haven't been seen up until the 'latest' date
+        n <- StoreGlob.before(repo, sd, latestDate).map(_.globs)
+      } yield o ++ n
     }
 }

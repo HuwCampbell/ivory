@@ -2,54 +2,50 @@ package com.ambiata.ivory.core
 
 import java.io.File
 
+import com.ambiata.ivory.core.IvorySyntax._
+import com.ambiata.mundane.io.FilePath
 import com.ambiata.mundane.parse.ListParser
 
 import scalaz.Scalaz._
 import scalaz._
 
-case class Partition(factset: FactsetId, namespace: String, date: Date, base: Option[String] = None) {
-
-  lazy val path: String =
-    base.map(_ + "/").getOrElse("") + factset.render + "/" + namespace + "/" + "%4d/%02d/%02d".format(date.year, date.month, date.day)
+case class Partition(namespace: String, date: Date) {
+  def path: FilePath =
+    FilePath(Partition.stringPath(namespace, date))
 }
 
 object Partition {
+  def parseDir(dir: FilePath): Validation[String, Partition] =
+    listParser.flatMap(p => ListParser.consumeRest.map(_ => p)).run(dir.components.reverse)
 
-  type Namespace = String
-  type Base = String
+  def parseFile(file: FilePath): Validation[String, Partition] = for {
+    parent    <- file.parent.toSuccess(s"Expecting parent in path '${file}', but got none")
+    partition <- parseDir(parent)
+  } yield partition
 
-  def parseFilename(file: File): Validation[String, Partition] =
-    parseWith(file.toURI.getPath)
-
-  def parseDir(path: String): Validation[String, Partition] =
-    pathParser(false).run(pathPieces(path))
-
-  def parseWith(f: String): Validation[String, Partition] =
-    pathParser(true).run(pathPieces(f))
-
-  def pathParser(withFile: Boolean): ListParser[Partition] = {
+  def listParser: ListParser[Partition] = {
     import com.ambiata.mundane.parse.ListParser._
+    // TODO remove once we denend on a version of mundane which contains this combinator
+    def byte: ListParser[Byte] = for {
+      s         <- string
+      position  <- getPosition
+      result    <- value(s.parseByte.leftMap(_ => s"""not a byte: '$s'"""))
+    } yield result
+
     for {
-      _         <- if(withFile) consume(1) else consume(0)
-      d         <- short
-      m         <- short
-      y         <- short
-      date      <- Date.create(y, m.toByte, d.toByte) match {
+      d    <- byte
+      m    <- byte
+      y    <- short
+      date <- Date.create(y, m, d) match {
         case None       => ListParser((position, _) => (position, s"""not a valid date ($y-$m-$d)""").failure)
         case Some(date) => date.point[ListParser]
       }
-      ns        <- string
-      factsetId <- FactsetId.listParser
-      rest      <- ListParser((pos, str) => (str.length, Nil, str.reverse.mkString("/")).success)
-    } yield Partition(factsetId, ns, date, Some(rest))
+      ns   <- string
+    } yield Partition(ns, date)
   }
 
-  def pathPieces(path: String): List[String] =
-    path.split("/").toList.reverse
-
-  def path(ns: Namespace, date: Date): String = {
+  def stringPath(ns: String, date: Date): String =
     ns + "/" + "%4d/%02d/%02d".format(date.year, date.month, date.day)
-  }
 }
 
 object Partitions {

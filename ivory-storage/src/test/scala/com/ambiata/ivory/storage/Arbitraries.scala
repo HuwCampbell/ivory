@@ -11,11 +11,8 @@ import plan._
 
 object Arbitraries {
 
-  implicit def FactsetDatasetArbitrary: Arbitrary[FactsetDataset] = Arbitrary(for {
-    partitions <- arbitrary[SingleFactsetPartitions]
-    // TODO change to just arbitrary[FactsetId] when factset is no longer part of partition
-    factset    <- partitions.partitions.headOption.map(p => Gen.const(p.factset)).getOrElse(arbitrary[FactsetId])
-  } yield FactsetDataset(factset, partitions.partitions))
+  implicit def FactsetDatasetArbitrary: Arbitrary[FactsetDataset] =
+    Arbitrary(arbitrary[SingleFactsetPartitions].map(p => FactsetDataset(p.factset, p.partitions)))
 
   implicit def SnapshotDatasetArbitrary: Arbitrary[SnapshotDataset] =
     Arbitrary(arbitrary[Identifier].map(SnapshotDataset.apply))

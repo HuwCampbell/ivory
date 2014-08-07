@@ -1,6 +1,5 @@
 package com.ambiata.ivory.storage.lookup
 
-import com.ambiata.ivory.core.Partition.Namespace
 import com.ambiata.ivory.core.{Date, FeatureId, Skew, Dictionary}
 import com.ambiata.ivory.lookup.{ReducerLookup, FeatureIdLookup, NamespaceLookup}
 import com.ambiata.ivory.mr.ThriftCache
@@ -26,7 +25,7 @@ object ReducerLookups {
    * @param optimal
    * @return
    */
-  def createLookups(dictionary: Dictionary, paths: List[(Namespace, BytesQuantity)], optimal: BytesQuantity): ReducerLookups = {
+  def createLookups(dictionary: Dictionary, paths: List[(String, BytesQuantity)], optimal: BytesQuantity): ReducerLookups = {
     val (reducersNb, allocations) = Skew.calculate(dictionary, paths, optimal)
 
     val (namespaces, features) = index(dictionary)

@@ -5,6 +5,7 @@ import scalaz.{DList => _, Value => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path
 import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
+import com.ambiata.mundane.io.FilePath
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.scoobi._
@@ -14,20 +15,18 @@ import FactFormats._
 object FactDiff {
 
   def partitionFacts(input1: String, input2: String, outputPath: String): ScoobiAction[Unit] = for {
-    res <- ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-             val dlist1 = PartitionFactThriftStorageV1.PartitionedFactThriftLoader(List(input1)).loadScoobi.map({
-               case -\/(e) => sys.error(s"Can not parse fact - ${e}")
-               case \/-(f) => f
-             })
-             val dlist2 = PartitionFactThriftStorageV1.PartitionedFactThriftLoader(List(input2)).loadScoobi.map({
-               case -\/(e) => sys.error(s"Can not parse fact - ${e}")
-               case \/-(f) => f
-             })
-             (dlist1, dlist2)
-           })
-    (dlist1, dlist2) = res
-    _   <- scoobiJob(dlist1, dlist2, outputPath)
+    dlist1 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(FilePath(input1 + "/*/*/*/*"))).flatMap(parseError)
+    dlist2 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(FilePath(input2 + "/*/*/*/*"))).flatMap(parseError)
+    _      <- scoobiJob(dlist1, dlist2, outputPath)
   } yield ()
+
+  def parseError(dlist: DList[ParseError \/ Fact]): ScoobiAction[DList[Fact]] =
+    ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
+      dlist.map({
+        case -\/(e) => sys.error(s"Can not parse fact - ${e}")
+        case \/-(f) => f
+      })
+    })
 
   def flatFacts(input1: String, input2: String, outputPath: String): ScoobiAction[Unit] = for {
     res <- ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
@@ -42,7 +41,7 @@ object FactDiff {
   def scoobiJob(first_facts: DList[Fact], second_facts: DList[Fact], outputPath: String): ScoobiAction[Unit] = {
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
 
-      val facts = first_facts.map((true, _)) ++ second_facts.map((false, _))
+      val facts = (first_facts.map((true, _)) ++ second_facts.map((false, _)))
 
       val grp = facts.groupBy({ case (flag, fact) => (fact.entity, fact.featureId.toString, fact.date.int, fact.time.seconds, Value.toStringWithStruct(fact.value)) })
 

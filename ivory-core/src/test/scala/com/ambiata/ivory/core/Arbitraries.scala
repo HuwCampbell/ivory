@@ -242,17 +242,16 @@ object Arbitraries {
     Arbitrary(arbitrary[SmallOldIdentifierList].map(ids => SmallFactsetIdList(ids.ids.map(FactsetId.apply))))
 
   implicit def PartitionArbitrary: Arbitrary[Partition] = Arbitrary(for {
-    factset <- arbitrary[FactsetId]
     ns      <- arbitrary[FeatureNamespace]
     date    <- arbitrary[Date]
-  } yield Partition(factset, ns.namespace, date, None))
+  } yield Partition(ns.namespace, date))
 
-  case class SingleFactsetPartitions(partitions: List[Partition])
+  case class SingleFactsetPartitions(factset: FactsetId, partitions: List[Partition])
   implicit def SingleFactsetPartitionsArbitrary: Arbitrary[SingleFactsetPartitions] =
     Arbitrary(for {
       factset <- arbitrary[FactsetId]
       dates   <- arbitrary[List[(Date, FeatureNamespace)]]
-    } yield SingleFactsetPartitions(dates.distinct.map({ case (d, FeatureNamespace(ns)) => Partition(factset, ns, d, None) })))
+    } yield SingleFactsetPartitions(factset, dates.distinct.map({ case (d, FeatureNamespace(ns)) => Partition(ns, d) })))
 
   case class SmallPartitionList(partitions: List[Partition])
   implicit def SmallPartitionListArbitrary: Arbitrary[SmallPartitionList] =

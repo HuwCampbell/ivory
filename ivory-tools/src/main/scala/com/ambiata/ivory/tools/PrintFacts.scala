@@ -7,7 +7,7 @@ import com.ambiata.ivory.storage.legacy._
 import scalaz.{\/-, -\/}
 import scalaz.concurrent.Task
 import com.ambiata.ivory.core.{TextError, ThriftError, Value, Partition, Fact}
-import com.ambiata.mundane.io.{IOActions, IOAction, Logger}
+import com.ambiata.mundane.io.{IOActions, IOAction, Logger, FilePath}
 import scalaz.std.anyVal._
 import com.ambiata.ivory.scoobi._
 import org.apache.hadoop.fs.{Hdfs => _, _}
@@ -56,7 +56,7 @@ object PrintFacts {
   /** @return true if the path is a partition */
   private def isPartition(config: Configuration)(path: Path): IOAction[Boolean] = {
     val (basePath, glob) = Hdfs.pathAndGlob(path)
-    IOActions.fromResultT(Hdfs.globFiles(basePath, glob).map(_.exists(p => Partition.parseWith(p.toUri.toString).toOption.isDefined)).run(config))
+    IOActions.fromResultT(Hdfs.globFiles(basePath, glob).map(_.exists(p => Partition.parseFile(FilePath(p.toUri.toString)).toOption.isDefined)).run(config))
   }
 
 }
