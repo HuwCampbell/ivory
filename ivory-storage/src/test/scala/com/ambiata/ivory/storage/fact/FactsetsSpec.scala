@@ -5,9 +5,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.poacher.hdfs._
 
 import org.specs2._
-import org.scalacheck._
 import com.ambiata.ivory.core.Arbitraries._
-import com.ambiata.ivory.data.Arbitraries._
 import com.ambiata.ivory.scoobi.TestConfigurations._
 import com.nicta.scoobi.testing.TempFiles
 import com.ambiata.mundane.testing.ResultTIOMatcher._

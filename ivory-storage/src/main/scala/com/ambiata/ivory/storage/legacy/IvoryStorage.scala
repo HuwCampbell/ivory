@@ -7,14 +7,11 @@ import scalaz.{DList => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
-import com.ambiata.saws.core._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.scoobi.FactFormats._
-import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.poacher.hdfs._

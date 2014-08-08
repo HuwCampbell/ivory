@@ -2,7 +2,6 @@ package com.ambiata.ivory.storage.metadata
 
 import scalaz._, Scalaz._, effect._
 import org.apache.hadoop.fs.Path
-import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
 import org.apache.commons.logging.LogFactory
 

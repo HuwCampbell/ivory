@@ -1,10 +1,10 @@
 package com.ambiata.ivory.core
 
 import com.ambiata.ivory.core.Arbitraries._
-import org.specs2._, matcher._, specification._
+import org.specs2._
 import org.scalacheck._, Arbitrary._
 import org.joda.time._, format.DateTimeFormat
-import scalaz._, Scalaz._
+import scalaz._
 
 class DatesSpec extends Specification with ScalaCheck { def is = s2"""
 

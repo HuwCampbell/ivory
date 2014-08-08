@@ -3,9 +3,8 @@ package com.ambiata.ivory.storage.fact
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
 
-import scalaz._, Scalaz._, effect.IO, \&/._
+import scalaz._, Scalaz._, effect.IO
 
 // TODO This needs to be removed once we create the plan api
 case class StoreGlob(repository: Repository, store: FeatureStore, globs: List[Prioritized[FactsetGlob]]) {

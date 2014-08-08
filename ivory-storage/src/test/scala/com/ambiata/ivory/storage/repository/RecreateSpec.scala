@@ -20,8 +20,6 @@ import org.apache.hadoop.io.compress._
 import org.joda.time.LocalDate
 import org.specs2.Specification
 
-import scalaz._
-
 class RecreateSpec extends Specification with HadoopSpecificationLike with SampleFacts { def is = s2"""
   recompression of a factset $e1
 """
@@ -57,4 +55,3 @@ class RecreateSpec extends Specification with HadoopSpecificationLike with Sampl
   }
 
 }
-

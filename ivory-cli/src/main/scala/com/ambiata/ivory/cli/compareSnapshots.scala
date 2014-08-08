@@ -2,12 +2,10 @@ package com.ambiata.ivory.cli
 
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.lib.Relational
-import scalaz.{DList => _, Value => _, _}, Scalaz._
+import scalaz.{DList => _, Value => _, _}
 import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.api._, Ivory._, IvoryRetire._
-
-import scala.collection.JavaConverters._
 
 object compareSnapshots extends IvoryApp {
 
@@ -65,4 +63,3 @@ object compareSnapshots extends IvoryApp {
     case \/-(f) => (s"${f.entity}|${f.namespace}|${f.feature}|${f.datetime.localIso8601}", f.value.toString)
   }
 }
-

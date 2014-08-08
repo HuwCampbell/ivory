@@ -1,6 +1,6 @@
 package com.ambiata.ivory.core
 
-import scalaz._, Scalaz._
+import scalaz._
 
 case class Prioritized[A](priority: Priority, value: A) {
   def map[B](f: A => B): Prioritized[B] =

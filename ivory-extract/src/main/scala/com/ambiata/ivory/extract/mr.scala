@@ -1,11 +1,9 @@
 package com.ambiata.ivory.extract
 
-import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.FactsetLookup
 import com.ambiata.ivory.storage.fact._
-import com.ambiata.ivory.storage.parse._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.mr._
 import com.ambiata.mundane.io.FilePath
@@ -21,7 +19,6 @@ import org.apache.hadoop.conf._
 import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce._
-import org.apache.hadoop.util._
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs

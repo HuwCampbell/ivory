@@ -1,19 +1,14 @@
 package com.ambiata.ivory.generate
 
 import com.nicta.scoobi.Scoobi._
-import scalaz.{DList => _, _}, Scalaz._, effect._
-import com.nicta.rng._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.joda.time.{LocalDate, Days, Weeks, Months}
-import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
 import java.util.Random
 
 import com.ambiata.ivory.core.{Value => IValue, _}
 import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.scoobi.FactFormats._
-import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.metadata.Metadata._

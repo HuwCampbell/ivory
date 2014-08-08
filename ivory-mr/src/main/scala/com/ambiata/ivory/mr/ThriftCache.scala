@@ -1,14 +1,11 @@
 package com.ambiata.ivory.mr
 
-import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
 
 import java.net.URI
 import java.util.UUID
 
-import scalaz._, Scalaz._, effect.IO
+import scalaz._, effect.IO
 
 import org.apache.thrift.protocol.TCompactProtocol
 import org.apache.thrift.{TSerializer, TDeserializer}

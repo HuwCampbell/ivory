@@ -2,7 +2,6 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.ingest._
-import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.fact.Namespaces
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata.Metadata._
@@ -12,7 +11,6 @@ import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
 import org.apache.hadoop.fs.Path
 import com.ambiata.ivory.storage.store._
-import com.ambiata.poacher.hdfs._
 
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.fs.Path

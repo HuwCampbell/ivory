@@ -6,11 +6,9 @@ import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
-import com.ambiata.saws.core._
-import com.ambiata.saws.s3._
 import java.io.File
 
-import scalaz._, Scalaz._, effect._
+import scalaz.effect.IO
 
 object CreateRepository {
 

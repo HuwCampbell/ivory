@@ -2,9 +2,7 @@ package com.ambiata.ivory.tools
 
 import org.specs2._
 import org.specs2.matcher.{ThrownExpectations, FileMatchers}
-import scalaz.{DList => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
-import com.nicta.scoobi.testing.mutable._
 import com.nicta.scoobi.testing.SimpleJobs
 import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.TempFiles
@@ -15,7 +13,7 @@ import com.ambiata.mundane.parse.ListParser
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.apache.hadoop.fs.Path
 
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._

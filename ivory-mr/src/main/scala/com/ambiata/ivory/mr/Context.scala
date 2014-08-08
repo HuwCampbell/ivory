@@ -9,8 +9,6 @@ import java.util.UUID
 
 import com.ambiata.poacher.hdfs._
 
-import scalaz.syntax.bind._
-
 case class ContextId(value: String)
 
 object ContextId {

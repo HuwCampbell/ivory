@@ -1,14 +1,11 @@
 package com.ambiata.ivory.core
 
-import org.specs2._, matcher._, specification._
+import org.specs2._
 import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.Arbitraries._
 import java.io.File
-import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
-
-import scalaz._, Scalaz._
 
 class PartitionSpec extends Specification with ScalaCheck { def is = s2"""
 

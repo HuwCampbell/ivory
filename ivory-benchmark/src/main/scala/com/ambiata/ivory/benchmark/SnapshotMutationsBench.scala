@@ -2,13 +2,11 @@ package com.ambiata.ivory.benchmark
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.extract._
 import com.ambiata.ivory.mr.Writables
 import com.google.caliper._
 import org.apache.hadoop.io._
 import org.apache.thrift.protocol.TCompactProtocol
 import org.apache.thrift.{TSerializer, TDeserializer}
-import scalaz._, Scalaz._
 
 object SnapshotMutationsBenchApp extends App {
   Runner.main(classOf[SnapshotMutationsBench], args)

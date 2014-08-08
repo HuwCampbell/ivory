@@ -3,10 +3,7 @@ package com.ambiata.ivory.mr
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.mundane.io._
 
-import scalaz._, Scalaz._
-
-import org.specs2._, matcher._, specification.{Text => _, _}
-import org.scalacheck._, Arbitrary._
+import org.specs2._, matcher._
 
 import org.apache.hadoop.conf._
 import org.apache.hadoop.io._
@@ -15,7 +12,6 @@ import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
-import org.apache.hadoop.util._
 
 
 class ThriftCacheSpec extends Specification with ScalaCheck { def is = s2"""

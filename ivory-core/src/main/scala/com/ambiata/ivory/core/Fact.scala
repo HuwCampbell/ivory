@@ -1,8 +1,5 @@
 package com.ambiata.ivory.core
 
-import scalaz._, Scalaz._
-import com.ambiata.mundane.parse._
-
 import com.ambiata.ivory.core.thrift._
 import scala.collection.JavaConverters._
 

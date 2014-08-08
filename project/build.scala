@@ -246,8 +246,26 @@ object build extends Build {
     javaOptions ++= Seq("-Xmx3G", "-Xms512m", "-Xss4m")
   , javacOptions ++= Seq("-source", "1.6", "-target", "1.6")
   , maxErrors := 20
-  , scalacOptions ++= Seq("-target:jvm-1.6", "-deprecation", "-unchecked", "-feature", "-language:_", "-Xlint", "-Xfatal-warnings", "-Yinline-warnings")
+  , scalacOptions ++= Seq(
+      "-target:jvm-1.6"
+    , "-deprecation"
+    , "-unchecked"
+    , "-feature"
+    , "-language:_"
+    , "-Xlint"
+    , "-Xfatal-warnings"
+    , "-Yinline-warnings"
+    ) ++ importWarnings(scalaBinaryVersion.value)
   )
+
+  def importWarnings(version: String) =
+    if (version == "2.11")
+      Seq(
+        "-Ywarn-unused-import"
+      // , "-Ywarn-unused" -- this would be nice, but breaks on synthetics from pattern matching, retry with 2.11.3
+      )
+    else
+      Seq()
 
   lazy val testingSettings: Seq[Settings] = Seq(
     logBuffered := false

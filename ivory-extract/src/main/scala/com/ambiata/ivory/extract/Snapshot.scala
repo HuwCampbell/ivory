@@ -1,6 +1,5 @@
 package com.ambiata.ivory.extract
 
-import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._, effect._
 import scala.math.{Ordering => SOrdering}
 import org.joda.time.LocalDate
@@ -8,15 +7,8 @@ import org.apache.hadoop.fs.{Path}
 import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.parse._
 
 import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.data._
-import com.ambiata.ivory.scoobi.WireFormats._
-import com.ambiata.ivory.scoobi.FactFormats._
-import com.ambiata.ivory.scoobi.SeqSchemas._
-import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.fact._
@@ -27,8 +19,6 @@ import com.ambiata.poacher.scoobi._
 import MemoryConversions._
 
 case class Snapshot(repo: Repository, store: FeatureStoreId, entities: Option[ReferenceIO], snapshot: Date, output: ReferenceIO, incremental: Option[(SnapshotId, SnapshotMeta)], codec: Option[CompressionCodec]) {
-  import IvoryStorage._
-
   def run: ResultTIO[Unit] = for {
     hr  <- repo match {
       case h: HdfsRepository => ResultT.ok[IO, HdfsRepository](h)

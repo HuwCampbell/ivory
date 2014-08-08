@@ -1,11 +1,9 @@
 package com.ambiata.ivory.storage.metadata
 
-import scalaz.{Value => _, _}, Scalaz._, \&/._, effect.IO
+import scalaz.{Value => _, _}, Scalaz._, effect.IO
 import org.apache.hadoop.fs.Path
-import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.storage.store._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
 import com.ambiata.saws.s3.S3
 
 trait TextStorage[L, T] {

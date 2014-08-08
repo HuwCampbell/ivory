@@ -6,21 +6,16 @@ import scalaz.{DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.hadoop.fs.Path
-import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.storage.repository.Repository
 import com.ambiata.ivory.storage.fact.FactsetGlob
-import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.scoobi._
-import WireFormats._
 import FactFormats._
-import SeqSchemas._
 
-import scala.collection.JavaConverters._
 import java.net.URI
 
 trait PartitionFactThriftStorage {

@@ -2,7 +2,6 @@ package com.ambiata.ivory.scoobi
 
 import scalaz.Ordering._
 import com.nicta.scoobi.Scoobi._
-import com.ambiata.ivory.core._
 
 object Groupings {
   type EntityId = String

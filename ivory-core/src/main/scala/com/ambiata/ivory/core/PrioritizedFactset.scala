@@ -1,7 +1,5 @@
 package com.ambiata.ivory.core
 
-import scalaz._, Scalaz._
-
 case class PrioritizedFactset(factsetId: FactsetId, priority: Priority) {
   def globPath: String =
     factsetId.render + "/*/*/*/*/*"

@@ -5,7 +5,7 @@ import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import com.nicta.scoobi.Scoobi._
-import scalaz._, Scalaz._, effect._
+import scalaz._, effect._
 
 object catDictionary extends IvoryApp {
 

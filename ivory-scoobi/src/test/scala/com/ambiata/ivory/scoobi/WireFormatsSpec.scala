@@ -9,9 +9,6 @@ import com.ambiata.ivory.core.thrift._
 import com.nicta.scoobi._, Scoobi._
 
 import FactFormats._
-import WireFormats._
-
-import scala.collection.JavaConverters._
 
 class WireFormatsSpec extends Specification with matcher.ThrownExpectations { def is = s2"""
   Can serialise/deserialise thrift             $e1

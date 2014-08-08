@@ -8,16 +8,14 @@ import org.joda.time.LocalDate
 import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.store._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.TestConfigurations
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
-import IvoryStorage._
-import scalaz.{Store => _, _}, Scalaz._, effect._, \&/._
+import scalaz.{Store => _, _}, Scalaz._
 import org.specs2._
 
 class PivotSpec extends Specification with SampleFacts { def is = s2"""

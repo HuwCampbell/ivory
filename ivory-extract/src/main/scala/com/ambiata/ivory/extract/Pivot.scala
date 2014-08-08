@@ -1,18 +1,14 @@
 package com.ambiata.ivory.extract
 
 import com.nicta.scoobi.Scoobi._
-import scalaz.{DList => _, _}, Scalaz._, effect._
+import scalaz.{DList => _, _}, effect._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi._
-import WireFormats._
 import FactFormats._
-import SeqSchemas._
-import com.ambiata.ivory.storage._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._

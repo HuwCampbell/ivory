@@ -1,6 +1,6 @@
 package com.ambiata.ivory.core
 
-import org.specs2._, matcher._, specification._
+import org.specs2._
 import org.scalacheck._, Arbitrary._, Arbitraries._
 
 import scalaz._, Scalaz._

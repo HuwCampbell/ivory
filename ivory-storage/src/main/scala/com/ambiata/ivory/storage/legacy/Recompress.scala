@@ -2,13 +2,10 @@ package com.ambiata.ivory.storage.legacy
 
 
 import com.ambiata.mundane.io._
-import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.storage.repository._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.poacher.hdfs._
 import com.nicta.scoobi.{core, Scoobi}, Scoobi._
 import com.nicta.scoobi.core.{Emitter => _, _}
-import com.nicta.scoobi.io.sequence._
 import com.nicta.scoobi.impl.util.DistCache
 
 import java.io.{DataInput, DataOutput}

@@ -1,6 +1,5 @@
 package com.ambiata.ivory.mr
 
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.hadoop.io.SequenceFile
 import org.apache.hadoop.mapreduce.Job

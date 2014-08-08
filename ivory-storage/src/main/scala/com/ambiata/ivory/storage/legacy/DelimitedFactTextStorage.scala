@@ -7,7 +7,7 @@ import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.parse._
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
+import com.ambiata.ivory.scoobi._, FactFormats._
 
 object DelimitedFactTextStorage {
   case class DelimitedFactTextLoader(path: String, dict: Dictionary) extends IvoryScoobiLoader[Fact] {
