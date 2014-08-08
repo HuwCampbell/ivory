@@ -1,8 +1,7 @@
 package com.ambiata.ivory.core
 
 import com.ambiata.mundane.io.MemoryConversions
-import org.specs2._, matcher._, specification._
-import org.scalacheck._, Arbitrary._
+import org.specs2._
 
 import scalaz._, Scalaz._
 import MemoryConversions._
@@ -12,7 +11,7 @@ class SkewSpec extends Specification with ScalaCheck { def is = s2"""
 Skew Tests
 ----------
 
- If each namespace has a smaller size than the optimal size per reducer, 
+ If each namespace has a smaller size than the optimal size per reducer,
  we allocate one reducer per namespace $small
 
  If a namespace has a larger size than optimal _and_ there is more than one feature in that namespace, that
@@ -36,7 +35,7 @@ Skew Tests
 
   def spread = {
     val (_, r) = Skew.calculate(dictionary, largeNamespace, optimalSize)
-    
+
     largeNamespace.forall { case (name, size) =>
       val all = r.filter(_._1 == name)
       val reducers = all.map(_._3).distinct.size
@@ -76,5 +75,5 @@ Skew Tests
     (1 to 10).map(n => FeatureId("widgets", "w" + n)).toList ++
     (1 to 10).map(n => FeatureId("knobs", "k" + n)).toList ++
     (1 to 10).map(n => FeatureId("flavours", "f" + n)).toList
-  
+
 }

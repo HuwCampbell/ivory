@@ -12,7 +12,6 @@ import com.nicta.scoobi.testing.TempFiles
 import scalaz._, Scalaz._
 import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.Arbitraries._
-import com.ambiata.ivory.data.Arbitraries._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
 class FeatureStoreTextStorageSpec extends Specification with ScalaCheck { def is = s2"""

@@ -1,9 +1,7 @@
 package com.ambiata.ivory.storage.repository
 
-import scalaz._, Scalaz._, effect.IO
+import scalaz._, effect.IO
 import com.ambiata.saws.core._
-import com.ambiata.ivory.scoobi._
-import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.mundane.control._
 import com.nicta.scoobi.core.ScoobiConfiguration

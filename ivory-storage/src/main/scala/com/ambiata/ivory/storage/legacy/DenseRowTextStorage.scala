@@ -3,13 +3,11 @@ package com.ambiata.ivory.storage.legacy
 import scalaz.{DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
-import com.ambiata.mundane.parse._
 import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.poacher.hdfs._
-import WireFormats._
 import FactFormats._
 
 object DenseRowTextStorageV1 {

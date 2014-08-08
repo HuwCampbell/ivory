@@ -3,7 +3,7 @@ package com.ambiata.ivory.storage.metadata
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
 
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
 
 object Metadata {

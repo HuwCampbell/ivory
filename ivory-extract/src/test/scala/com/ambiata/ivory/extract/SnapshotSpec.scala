@@ -6,8 +6,7 @@ import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.TempFiles
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
-import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.extract._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.TestConfigurations
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.legacy._

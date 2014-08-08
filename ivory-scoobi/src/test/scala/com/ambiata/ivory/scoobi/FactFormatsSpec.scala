@@ -1,6 +1,6 @@
 package com.ambiata.ivory.scoobi
 
-import org.specs2._, matcher._, specification._
+import org.specs2._
 import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.Arbitraries._
 import java.io._

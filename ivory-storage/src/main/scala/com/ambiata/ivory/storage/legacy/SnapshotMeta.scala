@@ -1,16 +1,15 @@
 package com.ambiata.ivory.storage.legacy
 
-import scalaz._, Scalaz._, \&/._, effect._
+import scalaz._, Scalaz._, \&/._, effect.IO
 
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.store._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.parse.ListParser
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.data._
-import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.store._
 
 case class SnapshotMeta(date: Date, store: FeatureStoreId) {
 
@@ -55,8 +54,7 @@ object SnapshotMeta {
 
   def allocateId(repo: Repository): ResultTIO[SnapshotId] = for {
     res <- IdentifierStorage.write(FilePath(".allocated"), scodec.bits.ByteVector.empty)(repo.toStore, Repository.snapshots)
-    (id, _) = res
-  } yield SnapshotId(id)
+  } yield { val (id, _) = res; SnapshotId(id) }
 
   def latest(repo: Repository, date: Date): ResultTIO[Option[(SnapshotId, SnapshotMeta)]] = for {
     ids   <- repo.toReference(Repository.snapshots).run(s => p => StoreDataUtil.listDir(s, p)).map(_.map(_.basename.path))

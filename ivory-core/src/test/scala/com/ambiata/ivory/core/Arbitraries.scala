@@ -7,8 +7,6 @@ import com.ambiata.ivory.data._
 import org.joda.time.DateTimeZone
 import scala.collection.JavaConverters._
 
-import scalaz._, Scalaz._
-
 object Arbitraries {
   implicit def PriorityArbitrary: Arbitrary[Priority] =
     Arbitrary(Gen.choose(Priority.Min.toShort, Priority.Max.toShort).map(Priority.unsafe))

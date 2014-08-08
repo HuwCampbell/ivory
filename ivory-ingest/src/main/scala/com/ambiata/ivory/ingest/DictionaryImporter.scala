@@ -6,7 +6,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import scalaz._, Scalaz._, effect._
+import scalaz._, Scalaz._
 
 // FIX move to com.ambiata.ivory.ingest.internal
 object DictionaryImporter {

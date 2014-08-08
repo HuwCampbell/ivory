@@ -1,14 +1,13 @@
 package com.ambiata.ivory.storage.legacy.fatrepo
 
-import com.nicta.scoobi.Scoobi._
-import scalaz.{DList => _, _}, Scalaz._, effect._
+import scalaz.{DList => _, _}, effect._
 import scala.math.{Ordering => SOrdering}
 import org.apache.hadoop.fs.Path
 import org.joda.time.{DateTimeZone, LocalDate}
 import org.joda.time.format.DateTimeFormat
 import org.apache.commons.logging.LogFactory
 
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.data.StoreDataUtil
 import com.ambiata.poacher.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.fact._
@@ -16,9 +15,7 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
-import com.ambiata.poacher.hdfs._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
 
 /**
  * This workflow is designed to import features into an fat ivory repository,

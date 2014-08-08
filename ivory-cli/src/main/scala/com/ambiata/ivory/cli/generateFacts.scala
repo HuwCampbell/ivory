@@ -1,17 +1,13 @@
 package com.ambiata.ivory.cli
 
 import com.nicta.scoobi.Scoobi._
-import scalaz.{DList => _, _}, Scalaz._, effect._
 import org.apache.hadoop.fs.Path
 import org.joda.time.LocalDate
 import java.util.Calendar
-import com.ambiata.mundane.parse._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 
-import com.ambiata.ivory.core._
 import com.ambiata.ivory.generate._
-import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.storage.repository._
 
 object generateFacts extends IvoryApp {

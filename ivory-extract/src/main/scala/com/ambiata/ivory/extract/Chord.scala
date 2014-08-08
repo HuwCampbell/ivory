@@ -7,13 +7,10 @@ import java.util.HashMap
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.parse._
 import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.data._
 import com.ambiata.ivory.scoobi.FactFormats._
-import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.storage.legacy._
@@ -24,7 +21,6 @@ import com.ambiata.ivory.storage.store._
 import com.ambiata.poacher.hdfs._
 
 case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[String, Array[Int]], output: ReferenceIO, tmp: ReferenceIO, incremental: Option[SnapshotId], codec: Option[CompressionCodec]) {
-  import IvoryStorage._
 
   type PackedDate = Int
   // mappings of each entity to an array of target dates, represented as Ints and sorted from more recent to least
@@ -206,7 +202,7 @@ object Chord {
   // TODO Change to thrift serialization, see #131
   def deserialiseChords(ref: ReferenceIO): ResultTIO[HashMap[String, Array[Int]]] = {
     import java.io.{ByteArrayInputStream, ObjectInputStream}
-    ref.run(store => path => store.bytes.read(path).flatMap(bytes => 
+    ref.run(store => path => store.bytes.read(path).flatMap(bytes =>
       ResultT.safe((new ObjectInputStream(new ByteArrayInputStream(bytes.toArray))).readObject.asInstanceOf[HashMap[String, Array[Int]]])))
   }
 

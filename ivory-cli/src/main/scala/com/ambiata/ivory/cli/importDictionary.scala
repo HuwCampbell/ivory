@@ -6,7 +6,7 @@ import com.ambiata.ivory.ingest._, DictionaryImporter._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import com.nicta.scoobi.Scoobi._
-import scalaz._, Scalaz._, effect._
+import scalaz._, effect._
 
 object importDictionary extends IvoryApp {
 

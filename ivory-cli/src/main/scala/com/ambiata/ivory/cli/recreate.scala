@@ -2,8 +2,6 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
-import com.nicta.scoobi.Scoobi._
-import org.apache.hadoop.io.compress._
 import MemoryConversions._
 
 object recreate extends IvoryApp {
@@ -44,5 +42,3 @@ object recreate extends IvoryApp {
     })
 
 }
-
-

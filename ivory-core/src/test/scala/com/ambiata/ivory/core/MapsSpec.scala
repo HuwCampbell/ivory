@@ -1,7 +1,6 @@
 package com.ambiata.ivory.core
 
 import org.specs2._
-import scalaz._
 
 class MapsSpec extends Specification with ScalaCheck { def is = s2"""
 

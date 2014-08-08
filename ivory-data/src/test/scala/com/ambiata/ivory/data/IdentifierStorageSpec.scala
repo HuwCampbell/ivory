@@ -1,6 +1,5 @@
 package com.ambiata.ivory.data
 
-import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.store.PosixStore
 import com.ambiata.mundane.testing.ResultMatcher._

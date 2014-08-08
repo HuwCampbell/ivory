@@ -7,7 +7,6 @@ import scalaz.std.anyVal._
 import com.ambiata.ivory.scoobi.SeqSchemas
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf.Configuration
-import IOActions._
 import com.ambiata.poacher.hdfs.Hdfs
 
 /**

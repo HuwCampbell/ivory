@@ -9,9 +9,8 @@ import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.poacher.hdfs._
 
 import scalaz.Kleisli._
-import scalaz._, Scalaz._, \&/._
+import scalaz._, Scalaz._
 import scalaz.effect.IO
-import MemoryConversions._
 import Hdfs.{totalSize, numberOfFilesRecursively}
 
 /**
@@ -79,9 +78,6 @@ object Stats {
 
   private def fromHdfs[A](action: Hdfs[A]): StatAction[A] =
     (c: StatConfig) => action.run(c.conf)
-
-  private def fromResultTIO[A](res: ResultTIO[A]): StatAction[A] =
-    (c: StatConfig) => res
 
   implicit def createKleisli[A](f: StatConfig => ResultTIO[A]): StatAction[A] =
     kleisli[ResultTIO, StatConfig, A](f)

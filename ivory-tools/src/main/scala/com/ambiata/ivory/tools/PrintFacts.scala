@@ -12,7 +12,6 @@ import scalaz.std.anyVal._
 import com.ambiata.ivory.scoobi._
 import org.apache.hadoop.fs.{Hdfs => _, _}
 import org.apache.hadoop.conf.Configuration
-import IOActions._
 import scalaz.syntax.traverse._
 import scalaz.std.list._
 import com.ambiata.poacher.hdfs.Hdfs

@@ -1,9 +1,8 @@
 package com.ambiata.ivory.core
 
-import org.specs2._, matcher._, specification._
-import org.scalacheck._, Arbitrary._
+import org.specs2._
+import org.scalacheck._
 
-import scalaz._, Scalaz._
 
 class DateSpec extends Specification with ScalaCheck { def is = s2"""
 

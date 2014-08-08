@@ -13,7 +13,7 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.repository.RecreateFactsetJob.Keys
 import com.ambiata.ivory.storage.repository.RecreateFactsetMapper._
-import com.ambiata.ivory.storage.task.{FactsetJob, FactsPartitioner, FactsReducer}
+import com.ambiata.ivory.storage.task.FactsetJob
 import com.ambiata.mundane.io.{BytesQuantity, FilePath}
 import org.apache.hadoop.conf._
 import org.apache.hadoop.fs.Path
@@ -37,7 +37,7 @@ object RecreateFactsetJob {
    * In order to reduce the amount of transferred data between the mappers and the reducers we use
    * the dictionary and create lookup tables for each fact
    *
-   * 
+   *
    *
    *
    */
@@ -87,7 +87,7 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, LongWrit
 
   /* Input split path, only created once per mapper */
   var path: FilePath = null
-  
+
   var featureIdLookup = new FeatureIdLookup
 
   var createFact: ThriftFact => Fact = null
@@ -131,4 +131,3 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, LongWrit
 object RecreateFactsetMapper {
   type MapperContext = Mapper[NullWritable, BytesWritable, LongWritable, BytesWritable]#Context
 }
-

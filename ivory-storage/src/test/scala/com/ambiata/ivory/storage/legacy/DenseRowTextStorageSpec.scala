@@ -1,15 +1,13 @@
 package com.ambiata.ivory.storage.legacy
 
-import scalaz.{DList => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
-import com.nicta.scoobi.testing.mutable._
 import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.TempFiles
 
 import org.specs2._
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
+import com.ambiata.ivory.scoobi._, FactFormats._
 import com.ambiata.ivory.scoobi.TestConfigurations
 
 class DenseRowTextStorageSpec extends Specification { def is = s2"""

@@ -30,7 +30,7 @@ case class DistCache(base: Path, contextId: ContextId) {
     val tmp = s"${base}/${nskey.combined}"
     val uri = new URI(tmp + "#" + nskey.combined)
     (Hdfs.writeWith(new Path(tmp), Streams.writeBytes(_, bytes)) >> Hdfs.safe {
-      addCacheFile(new URI(tmp + "#" + nskey.combined), job)
+      addCacheFile(uri, job)
     }).run(job.getConfiguration).run.unsafePerformIO match {
       case Ok(_) =>
         ()

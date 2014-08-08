@@ -10,7 +10,6 @@ import org.joda.time.LocalDate
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 
-import scala.collection.JavaConverters._
 import MemoryConversions._
 
 trait WireFormats {

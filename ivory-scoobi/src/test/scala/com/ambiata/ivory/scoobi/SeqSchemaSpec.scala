@@ -1,13 +1,8 @@
 package com.ambiata.ivory.scoobi
 
 import org.specs2._
-import java.io._
 
-import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
-import SeqSchemas._
-
-import scala.collection.JavaConverters._
 
 class SeqSchemaSpec extends Specification with matcher.ThrownExpectations { def is = s2"""
   Can convert ThriftFact to/from writable using SeqSchema     $e1
