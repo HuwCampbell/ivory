@@ -8,6 +8,19 @@ import org.joda.time.DateTimeZone
 import scala.collection.JavaConverters._
 
 object Arbitraries {
+  case class Entity(value: String)
+  implicit def EntityArbitrary: Arbitrary[Entity] =
+    Arbitrary(Gen.identifier map Entity.apply)
+
+  implicit def ValueArbitrary: Arbitrary[Value] =
+    Arbitrary(Gen.frequency(
+      1 -> (Gen.identifier map StringValue.apply)
+    , 2 -> (arbitrary[Int] map IntValue.apply)
+    , 2 -> (arbitrary[Long] map LongValue.apply)
+    , 2 -> (arbitrary[Double] map DoubleValue.apply)
+    , 2 -> (arbitrary[Boolean] map BooleanValue.apply)
+    ))
+
   implicit def PriorityArbitrary: Arbitrary[Priority] =
     Arbitrary(Gen.choose(Priority.Min.toShort, Priority.Max.toShort).map(Priority.unsafe))
 
