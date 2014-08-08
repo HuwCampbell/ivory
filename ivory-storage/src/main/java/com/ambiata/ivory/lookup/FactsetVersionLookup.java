@@ -32,22 +32,22 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReducerLookup implements org.apache.thrift.TBase<ReducerLookup, ReducerLookup._Fields>, java.io.Serializable, Cloneable, Comparable<ReducerLookup> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ReducerLookup");
+public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVersionLookup, FactsetVersionLookup._Fields>, java.io.Serializable, Cloneable, Comparable<FactsetVersionLookup> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("FactsetVersionLookup");
 
-  private static final org.apache.thrift.protocol.TField REDUCERS_FIELD_DESC = new org.apache.thrift.protocol.TField("reducers", org.apache.thrift.protocol.TType.MAP, (short)1);
+  private static final org.apache.thrift.protocol.TField VERSIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("versions", org.apache.thrift.protocol.TType.MAP, (short)1);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new ReducerLookupStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new ReducerLookupTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new FactsetVersionLookupStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new FactsetVersionLookupTupleSchemeFactory());
   }
 
-  public Map<Integer,Integer> reducers; // required
+  public Map<String,Byte> versions; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    REDUCERS((short)1, "reducers");
+    VERSIONS((short)1, "versions");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -62,8 +62,8 @@ public class ReducerLookup implements org.apache.thrift.TBase<ReducerLookup, Red
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // REDUCERS
-          return REDUCERS;
+        case 1: // VERSIONS
+          return VERSIONS;
         default:
           return null;
       }
@@ -107,85 +107,85 @@ public class ReducerLookup implements org.apache.thrift.TBase<ReducerLookup, Red
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.REDUCERS, new org.apache.thrift.meta_data.FieldMetaData("reducers", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.VERSIONS, new org.apache.thrift.meta_data.FieldMetaData("versions", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32), 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32))));
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ReducerLookup.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(FactsetVersionLookup.class, metaDataMap);
   }
 
-  public ReducerLookup() {
+  public FactsetVersionLookup() {
   }
 
-  public ReducerLookup(
-    Map<Integer,Integer> reducers)
+  public FactsetVersionLookup(
+    Map<String,Byte> versions)
   {
     this();
-    this.reducers = reducers;
+    this.versions = versions;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public ReducerLookup(ReducerLookup other) {
-    if (other.isSetReducers()) {
-      Map<Integer,Integer> __this__reducers = new HashMap<Integer,Integer>(other.reducers);
-      this.reducers = __this__reducers;
+  public FactsetVersionLookup(FactsetVersionLookup other) {
+    if (other.isSetVersions()) {
+      Map<String,Byte> __this__versions = new HashMap<String,Byte>(other.versions);
+      this.versions = __this__versions;
     }
   }
 
-  public ReducerLookup deepCopy() {
-    return new ReducerLookup(this);
+  public FactsetVersionLookup deepCopy() {
+    return new FactsetVersionLookup(this);
   }
 
   @Override
   public void clear() {
-    this.reducers = null;
+    this.versions = null;
   }
 
-  public int getReducersSize() {
-    return (this.reducers == null) ? 0 : this.reducers.size();
+  public int getVersionsSize() {
+    return (this.versions == null) ? 0 : this.versions.size();
   }
 
-  public void putToReducers(int key, int val) {
-    if (this.reducers == null) {
-      this.reducers = new HashMap<Integer,Integer>();
+  public void putToVersions(String key, byte val) {
+    if (this.versions == null) {
+      this.versions = new HashMap<String,Byte>();
     }
-    this.reducers.put(key, val);
+    this.versions.put(key, val);
   }
 
-  public Map<Integer,Integer> getReducers() {
-    return this.reducers;
+  public Map<String,Byte> getVersions() {
+    return this.versions;
   }
 
-  public ReducerLookup setReducers(Map<Integer,Integer> reducers) {
-    this.reducers = reducers;
+  public FactsetVersionLookup setVersions(Map<String,Byte> versions) {
+    this.versions = versions;
     return this;
   }
 
-  public void unsetReducers() {
-    this.reducers = null;
+  public void unsetVersions() {
+    this.versions = null;
   }
 
-  /** Returns true if field reducers is set (has been assigned a value) and false otherwise */
-  public boolean isSetReducers() {
-    return this.reducers != null;
+  /** Returns true if field versions is set (has been assigned a value) and false otherwise */
+  public boolean isSetVersions() {
+    return this.versions != null;
   }
 
-  public void setReducersIsSet(boolean value) {
+  public void setVersionsIsSet(boolean value) {
     if (!value) {
-      this.reducers = null;
+      this.versions = null;
     }
   }
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case REDUCERS:
+    case VERSIONS:
       if (value == null) {
-        unsetReducers();
+        unsetVersions();
       } else {
-        setReducers((Map<Integer,Integer>)value);
+        setVersions((Map<String,Byte>)value);
       }
       break;
 
@@ -194,8 +194,8 @@ public class ReducerLookup implements org.apache.thrift.TBase<ReducerLookup, Red
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case REDUCERS:
-      return getReducers();
+    case VERSIONS:
+      return getVersions();
 
     }
     throw new IllegalStateException();
@@ -208,8 +208,8 @@ public class ReducerLookup implements org.apache.thrift.TBase<ReducerLookup, Red
     }
 
     switch (field) {
-    case REDUCERS:
-      return isSetReducers();
+    case VERSIONS:
+      return isSetVersions();
     }
     throw new IllegalStateException();
   }
@@ -218,21 +218,21 @@ public class ReducerLookup implements org.apache.thrift.TBase<ReducerLookup, Red
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof ReducerLookup)
-      return this.equals((ReducerLookup)that);
+    if (that instanceof FactsetVersionLookup)
+      return this.equals((FactsetVersionLookup)that);
     return false;
   }
 
-  public boolean equals(ReducerLookup that) {
+  public boolean equals(FactsetVersionLookup that) {
     if (that == null)
       return false;
 
-    boolean this_present_reducers = true && this.isSetReducers();
-    boolean that_present_reducers = true && that.isSetReducers();
-    if (this_present_reducers || that_present_reducers) {
-      if (!(this_present_reducers && that_present_reducers))
+    boolean this_present_versions = true && this.isSetVersions();
+    boolean that_present_versions = true && that.isSetVersions();
+    if (this_present_versions || that_present_versions) {
+      if (!(this_present_versions && that_present_versions))
         return false;
-      if (!this.reducers.equals(that.reducers))
+      if (!this.versions.equals(that.versions))
         return false;
     }
 
@@ -245,19 +245,19 @@ public class ReducerLookup implements org.apache.thrift.TBase<ReducerLookup, Red
   }
 
   @Override
-  public int compareTo(ReducerLookup other) {
+  public int compareTo(FactsetVersionLookup other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
 
-    lastComparison = Boolean.valueOf(isSetReducers()).compareTo(other.isSetReducers());
+    lastComparison = Boolean.valueOf(isSetVersions()).compareTo(other.isSetVersions());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetReducers()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.reducers, other.reducers);
+    if (isSetVersions()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.versions, other.versions);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -279,14 +279,14 @@ public class ReducerLookup implements org.apache.thrift.TBase<ReducerLookup, Red
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("ReducerLookup(");
+    StringBuilder sb = new StringBuilder("FactsetVersionLookup(");
     boolean first = true;
 
-    sb.append("reducers:");
-    if (this.reducers == null) {
+    sb.append("versions:");
+    if (this.versions == null) {
       sb.append("null");
     } else {
-      sb.append(this.reducers);
+      sb.append(this.versions);
     }
     first = false;
     sb.append(")");
@@ -314,15 +314,15 @@ public class ReducerLookup implements org.apache.thrift.TBase<ReducerLookup, Red
     }
   }
 
-  private static class ReducerLookupStandardSchemeFactory implements SchemeFactory {
-    public ReducerLookupStandardScheme getScheme() {
-      return new ReducerLookupStandardScheme();
+  private static class FactsetVersionLookupStandardSchemeFactory implements SchemeFactory {
+    public FactsetVersionLookupStandardScheme getScheme() {
+      return new FactsetVersionLookupStandardScheme();
     }
   }
 
-  private static class ReducerLookupStandardScheme extends StandardScheme<ReducerLookup> {
+  private static class FactsetVersionLookupStandardScheme extends StandardScheme<FactsetVersionLookup> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, ReducerLookup struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, FactsetVersionLookup struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -332,22 +332,22 @@ public class ReducerLookup implements org.apache.thrift.TBase<ReducerLookup, Red
           break;
         }
         switch (schemeField.id) {
-          case 1: // REDUCERS
+          case 1: // VERSIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map10 = iprot.readMapBegin();
-                struct.reducers = new HashMap<Integer,Integer>(2*_map10.size);
-                for (int _i11 = 0; _i11 < _map10.size; ++_i11)
+                org.apache.thrift.protocol.TMap _map40 = iprot.readMapBegin();
+                struct.versions = new HashMap<String,Byte>(2*_map40.size);
+                for (int _i41 = 0; _i41 < _map40.size; ++_i41)
                 {
-                  int _key12;
-                  int _val13;
-                  _key12 = iprot.readI32();
-                  _val13 = iprot.readI32();
-                  struct.reducers.put(_key12, _val13);
+                  String _key42;
+                  byte _val43;
+                  _key42 = iprot.readString();
+                  _val43 = iprot.readByte();
+                  struct.versions.put(_key42, _val43);
                 }
                 iprot.readMapEnd();
               }
-              struct.setReducersIsSet(true);
+              struct.setVersionsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -363,18 +363,18 @@ public class ReducerLookup implements org.apache.thrift.TBase<ReducerLookup, Red
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, ReducerLookup struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, FactsetVersionLookup struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.reducers != null) {
-        oprot.writeFieldBegin(REDUCERS_FIELD_DESC);
+      if (struct.versions != null) {
+        oprot.writeFieldBegin(VERSIONS_FIELD_DESC);
         {
-          oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.I32, struct.reducers.size()));
-          for (Map.Entry<Integer, Integer> _iter14 : struct.reducers.entrySet())
+          oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.BYTE, struct.versions.size()));
+          for (Map.Entry<String, Byte> _iter44 : struct.versions.entrySet())
           {
-            oprot.writeI32(_iter14.getKey());
-            oprot.writeI32(_iter14.getValue());
+            oprot.writeString(_iter44.getKey());
+            oprot.writeByte(_iter44.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -386,52 +386,52 @@ public class ReducerLookup implements org.apache.thrift.TBase<ReducerLookup, Red
 
   }
 
-  private static class ReducerLookupTupleSchemeFactory implements SchemeFactory {
-    public ReducerLookupTupleScheme getScheme() {
-      return new ReducerLookupTupleScheme();
+  private static class FactsetVersionLookupTupleSchemeFactory implements SchemeFactory {
+    public FactsetVersionLookupTupleScheme getScheme() {
+      return new FactsetVersionLookupTupleScheme();
     }
   }
 
-  private static class ReducerLookupTupleScheme extends TupleScheme<ReducerLookup> {
+  private static class FactsetVersionLookupTupleScheme extends TupleScheme<FactsetVersionLookup> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, ReducerLookup struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, FactsetVersionLookup struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
-      if (struct.isSetReducers()) {
+      if (struct.isSetVersions()) {
         optionals.set(0);
       }
       oprot.writeBitSet(optionals, 1);
-      if (struct.isSetReducers()) {
+      if (struct.isSetVersions()) {
         {
-          oprot.writeI32(struct.reducers.size());
-          for (Map.Entry<Integer, Integer> _iter15 : struct.reducers.entrySet())
+          oprot.writeI32(struct.versions.size());
+          for (Map.Entry<String, Byte> _iter45 : struct.versions.entrySet())
           {
-            oprot.writeI32(_iter15.getKey());
-            oprot.writeI32(_iter15.getValue());
+            oprot.writeString(_iter45.getKey());
+            oprot.writeByte(_iter45.getValue());
           }
         }
       }
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, ReducerLookup struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, FactsetVersionLookup struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map16 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.I32, iprot.readI32());
-          struct.reducers = new HashMap<Integer,Integer>(2*_map16.size);
-          for (int _i17 = 0; _i17 < _map16.size; ++_i17)
+          org.apache.thrift.protocol.TMap _map46 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.BYTE, iprot.readI32());
+          struct.versions = new HashMap<String,Byte>(2*_map46.size);
+          for (int _i47 = 0; _i47 < _map46.size; ++_i47)
           {
-            int _key18;
-            int _val19;
-            _key18 = iprot.readI32();
-            _val19 = iprot.readI32();
-            struct.reducers.put(_key18, _val19);
+            String _key48;
+            byte _val49;
+            _key48 = iprot.readString();
+            _val49 = iprot.readByte();
+            struct.versions.put(_key48, _val49);
           }
         }
-        struct.setReducersIsSet(true);
+        struct.setVersionsIsSet(true);
       }
     }
   }

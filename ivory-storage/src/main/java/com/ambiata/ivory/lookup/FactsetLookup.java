@@ -12,13 +12,25 @@ import org.apache.thrift.scheme.StandardScheme;
 
 import org.apache.thrift.scheme.TupleScheme;
 import org.apache.thrift.protocol.TTupleProtocol;
-
+import org.apache.thrift.protocol.TProtocolException;
+import org.apache.thrift.EncodingUtils;
+import org.apache.thrift.TException;
+import org.apache.thrift.async.AsyncMethodCallback;
+import org.apache.thrift.server.AbstractNonblockingServer.*;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.EnumMap;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.EnumSet;
 import java.util.Collections;
 import java.util.BitSet;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, FactsetLookup._Fields>, java.io.Serializable, Cloneable, Comparable<FactsetLookup> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("FactsetLookup");
@@ -323,15 +335,15 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
           case 1: // PRIORITIES
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map0 = iprot.readMapBegin();
-                struct.priorities = new HashMap<String,Short>(2*_map0.size);
-                for (int _i1 = 0; _i1 < _map0.size; ++_i1)
+                org.apache.thrift.protocol.TMap _map30 = iprot.readMapBegin();
+                struct.priorities = new HashMap<String,Short>(2*_map30.size);
+                for (int _i31 = 0; _i31 < _map30.size; ++_i31)
                 {
-                  String _key2;
-                  short _val3;
-                  _key2 = iprot.readString();
-                  _val3 = iprot.readI16();
-                  struct.priorities.put(_key2, _val3);
+                  String _key32;
+                  short _val33;
+                  _key32 = iprot.readString();
+                  _val33 = iprot.readI16();
+                  struct.priorities.put(_key32, _val33);
                 }
                 iprot.readMapEnd();
               }
@@ -359,10 +371,10 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
         oprot.writeFieldBegin(PRIORITIES_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I16, struct.priorities.size()));
-          for (Map.Entry<String, Short> _iter4 : struct.priorities.entrySet())
+          for (Map.Entry<String, Short> _iter34 : struct.priorities.entrySet())
           {
-            oprot.writeString(_iter4.getKey());
-            oprot.writeI16(_iter4.getValue());
+            oprot.writeString(_iter34.getKey());
+            oprot.writeI16(_iter34.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -393,10 +405,10 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
       if (struct.isSetPriorities()) {
         {
           oprot.writeI32(struct.priorities.size());
-          for (Map.Entry<String, Short> _iter5 : struct.priorities.entrySet())
+          for (Map.Entry<String, Short> _iter35 : struct.priorities.entrySet())
           {
-            oprot.writeString(_iter5.getKey());
-            oprot.writeI16(_iter5.getValue());
+            oprot.writeString(_iter35.getKey());
+            oprot.writeI16(_iter35.getValue());
           }
         }
       }
@@ -408,15 +420,15 @@ public class FactsetLookup implements org.apache.thrift.TBase<FactsetLookup, Fac
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map6 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I16, iprot.readI32());
-          struct.priorities = new HashMap<String,Short>(2*_map6.size);
-          for (int _i7 = 0; _i7 < _map6.size; ++_i7)
+          org.apache.thrift.protocol.TMap _map36 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I16, iprot.readI32());
+          struct.priorities = new HashMap<String,Short>(2*_map36.size);
+          for (int _i37 = 0; _i37 < _map36.size; ++_i37)
           {
-            String _key8;
-            short _val9;
-            _key8 = iprot.readString();
-            _val9 = iprot.readI16();
-            struct.priorities.put(_key8, _val9);
+            String _key38;
+            short _val39;
+            _key38 = iprot.readString();
+            _val39 = iprot.readI16();
+            struct.priorities.put(_key38, _val39);
           }
         }
         struct.setPrioritiesIsSet(true);
