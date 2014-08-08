@@ -94,8 +94,11 @@ object Arbitraries {
   implicit def FeatureNamespaceArbitrary: Arbitrary[FeatureNamespace] =
     Arbitrary(Gen.alphaStr.map(FeatureNamespace.apply))
 
+  def testEntityId(i: Int): String =
+    "T+%05d".format(i)
+
   def testEntities(n: Int): List[String] =
-    (1 to n).toList.map(i => "T+%05d".format(i))
+    (1 to n).toList.map(testEntityId)
 
   implicit def FeatureIdArbitrary: Arbitrary[FeatureId] =
     Arbitrary(for {
@@ -126,12 +129,13 @@ object Arbitraries {
   implicit def PrimitiveEncodingArbitrary: Arbitrary[PrimitiveEncoding] =
     Arbitrary(Gen.oneOf(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding))
 
+  // TODO needs review
   implicit def StructEncodingArbitrary: Arbitrary[StructEncoding] =
-    Arbitrary(Gen.mapOf[String, StructEncodedValue](for {
-      name <- arbitrary[DictId].map(_.s)
-      enc <- arbitrary[PrimitiveEncoding]
+    Arbitrary(Gen.choose(1, 5).flatMap(n => Gen.mapOfN[String, StructEncodedValue](n, for {
+      name     <- arbitrary[DictId].map(_.s)
+      enc      <- arbitrary[PrimitiveEncoding]
       optional <- arbitrary[Boolean]
-    } yield name -> StructEncodedValue(enc, optional)).map(StructEncoding))
+    } yield name -> StructEncodedValue(enc, optional)).map(StructEncoding)))
 
   implicit def ListEncodingArbitrary: Arbitrary[ListEncoding] =
     Arbitrary(arbitrary[SubEncoding].map(ListEncoding))
@@ -184,17 +188,17 @@ object Arbitraries {
     v      <- Gen.frequency((if (m.tombstoneValue.nonEmpty) 1 else 0) -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding, m.tombstoneValue))
   } yield (m, Fact.newFact(e, f.namespace, f.name, dtz.datetime.date, dtz.datetime.time, v), dtz.zone)
 
+  /* All generated SparseEntities will have a large range of possible entity id's */
   case class SparseEntities(meta: FeatureMeta, fact: Fact, zone: DateTimeZone)
 
   /**
    * Create an arbitrary fact and timezone such that the time in the fact is valid given the timezone
    */
   implicit def SparseEntitiesArbitrary: Arbitrary[SparseEntities] =
-   Arbitrary(factWithZoneGen(Gen.oneOf(testEntities(1000)), arbitrary[FeatureMeta]).map(SparseEntities.tupled))
+   Arbitrary(factWithZoneGen(Gen.choose(0, 1000).map(testEntityId), arbitrary[FeatureMeta]).map(SparseEntities.tupled))
 
-  implicit def FactArbitrary: Arbitrary[Fact] = Arbitrary(for {
-    es <- arbitrary[SparseEntities]
-  } yield es.fact)
+  implicit def FactArbitrary: Arbitrary[Fact] =
+    Arbitrary(arbitrary[SparseEntities].map(_.fact))
 
   implicit def DateTimeZoneArbitrary: Arbitrary[DateTimeZone] = Arbitrary(for {
     zid <- Gen.oneOf(DateTimeZone.getAvailableIDs().asScala.toSeq)
