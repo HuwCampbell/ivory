@@ -4,7 +4,7 @@ import com.ambiata.ivory.storage.fact.FactsetVersion
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 
-import com.ambiata.ivory.tools.PrintFacts
+import com.ambiata.ivory.api.Ivory.printFacts
 
 object catFacts extends IvoryApp {
   case class CliArguments(delimiter: String = "|", tombstone: String = "NA", paths: List[String] = Nil, version: FactsetVersion = FactsetVersion.latest)
@@ -28,6 +28,6 @@ object catFacts extends IvoryApp {
   }
 
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), HadoopRunner { conf => c =>
-    PrintFacts.print(c.paths.map(new Path(_)), conf, c.delimiter, c.tombstone, c.version).executeT(consoleLogging).map(_ => Nil)
+    printFacts(c.paths.map(new Path(_)), conf, c.delimiter, c.tombstone, c.version).executeT(consoleLogging).map(_ => Nil)
   })
 }

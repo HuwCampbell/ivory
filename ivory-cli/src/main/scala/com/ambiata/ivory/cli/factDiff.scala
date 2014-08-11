@@ -1,6 +1,6 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.tools._
+import com.ambiata.ivory.api.IvoryRetire
 
 object factDiff extends IvoryApp {
 
@@ -18,7 +18,7 @@ object factDiff extends IvoryApp {
   }
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), ScoobiRunner { configuration => c =>
-      val res = FactDiff.flatFacts(c.input1, c.input2, c.output)
+      val res = IvoryRetire.diffFacts(c.input1, c.input2, c.output)
       res.run(configuration).map {
         case _ => List(s"Any differences can be found in '${c.output}'")
       }

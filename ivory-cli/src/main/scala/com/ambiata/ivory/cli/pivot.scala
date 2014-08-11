@@ -1,8 +1,8 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.extract._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
+import com.ambiata.ivory.api.IvoryRetire
 
 import org.apache.hadoop.fs.Path
 import org.apache.commons.logging.LogFactory
@@ -47,7 +47,7 @@ object pivot extends IvoryApp {
         repo   <- Repository.fromUriResultTIO(c.repo, conf)
         input  <- Reference.fromUriResultTIO(c.input, conf)
         output <- Reference.fromUriResultTIO(c.output, conf)
-        _      <- Pivot.onStore(repo, input, output, c.delim, c.tombstone)
+        _      <- IvoryRetire.pivot(repo, input, output, c.delim, c.tombstone)
       } yield List(banner, "Status -- SUCCESS")
     }))
 }
