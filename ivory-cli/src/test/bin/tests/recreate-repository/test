@@ -2,7 +2,6 @@
 
 DIR=$(dirname $0)
 . "${DIR}/../../setup.sh"
-DICT_NAME="recreate_repository"
 
 $IVORY create-repository -p "${REPOSITORY}"
 $IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"

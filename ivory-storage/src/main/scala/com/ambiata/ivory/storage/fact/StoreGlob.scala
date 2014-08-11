@@ -19,11 +19,14 @@ object StoreGlob {
     ).map(globs => StoreGlob(repository, store, globs))
 
   def before(repository: Repository, store: FeatureStore, to: Date): ResultTIO[StoreGlob] =
-    select(repository, store).map(_.filterPartitions(_.date.isBeforeOrEqual(to)))
+    filter(repository, store, _.date.isBeforeOrEqual(to))
 
   def after(repository: Repository, store: FeatureStore, from: Date): ResultTIO[StoreGlob] =
-    select(repository, store).map(_.filterPartitions(_.date.isAfterOrEqual(from)))
+    filter(repository, store, _.date.isAfterOrEqual(from))
 
   def between(repository: Repository, store: FeatureStore, from: Date, to: Date): ResultTIO[StoreGlob] =
-    select(repository, store).map(_.filterPartitions(p => p.date.isBeforeOrEqual(to) && p.date.isAfterOrEqual(from)))
+    filter(repository, store, p => p.date.isBeforeOrEqual(to) && p.date.isAfterOrEqual(from))
+
+  def filter(repository: Repository, store: FeatureStore, f: Partition => Boolean): ResultTIO[StoreGlob] =
+    select(repository, store).map(_.filterPartitions(f))
 }

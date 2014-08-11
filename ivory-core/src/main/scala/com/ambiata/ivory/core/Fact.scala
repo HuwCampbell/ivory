@@ -30,7 +30,7 @@ trait Fact {
     Fact.newFact(newEntity, namespace, feature, date, time, value)
 
   def withFeatureId(newFeatureId: FeatureId): Fact =
-    Fact.newFact(entity, namespace, feature, date, time, value)
+    Fact.newFact(entity, newFeatureId.namespace, newFeatureId.name, date, time, value)
 
   def withDate(newDate: Date): Fact =
     Fact.newFact(entity, namespace, feature, newDate, time, value)

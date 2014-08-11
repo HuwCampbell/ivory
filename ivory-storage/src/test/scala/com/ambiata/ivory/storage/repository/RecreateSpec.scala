@@ -15,12 +15,11 @@ import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.impl.{ScoobiConfigurationImpl, Configurations}
-import com.nicta.scoobi.testing.HadoopSpecificationLike
 import org.apache.hadoop.io.compress._
 import org.joda.time.LocalDate
 import org.specs2.Specification
 
-class RecreateSpec extends Specification with HadoopSpecificationLike with SampleFacts { def is = s2"""
+class RecreateSpec extends Specification with SampleFacts { def is = s2"""
   recompression of a factset $e1
 """
 
