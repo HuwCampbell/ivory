@@ -12,9 +12,21 @@ import scalaz._
 case class Partition(namespace: String, date: Date) {
   def path: FilePath =
     FilePath(Partition.stringPath(namespace, date))
+
+  def order(other: Partition): Ordering =
+    (namespace ?|? other.namespace) match {
+      case Ordering.EQ => date ?|? other.date
+      case o           => o
+    }
 }
 
 object Partition {
+  implicit def PartitionOrder: Order[Partition] =
+    Order.order(_ order _)
+
+  implicit def PartitionOrdering =
+    PartitionOrder.toScalaOrdering
+
   def parseDir(dir: FilePath): Validation[String, Partition] =
     listParser.flatMap(p => ListParser.consumeRest.map(_ => p)).run(dir.components.reverse)
 
@@ -40,12 +52,17 @@ object Partition {
         case None       => ListParser((position, _) => (position, s"""not a valid date ($y-$m-$d)""").failure)
         case Some(date) => date.point[ListParser]
       }
-      ns   <- string
+      ns   <- string.nonempty
     } yield Partition(ns, date)
   }
 
   def stringPath(ns: String, date: Date): String =
     ns + "/" + "%4d/%02d/%02d".format(date.year, date.month, date.day)
+}
+
+case class Partitions(partitions: List[Partition]) {
+  def sorted: Partitions =
+    Partitions(partitions.sorted)
 }
 
 object Partitions {
@@ -61,5 +78,4 @@ object Partitions {
   /** Filter paths between two dates (inclusive) */
   def pathsBetween(partitions: List[Partition], from: Date, to: Date): List[Partition] =
     pathsBeforeOrEqual(pathsAfterOrEqual(partitions, from), to)
-
 }

@@ -7,6 +7,8 @@ import com.ambiata.ivory.data._
 import org.joda.time.DateTimeZone
 import scala.collection.JavaConverters._
 
+import scalaz._, Scalaz._, scalacheck.ScalaCheckBinding._
+
 object Arbitraries {
   case class Entity(value: String)
   implicit def EntityArbitrary: Arbitrary[Entity] =
@@ -43,6 +45,10 @@ object Arbitraries {
       d2 = Date.fromLocalDate(d1.localDate.plusDays(offset))
       dd = TwoDifferentDates(d1, d2)
     } yield dd)
+
+  /* Generate a distinct list of Dates up to size n */
+  def genDates(nDates: Gen[Int]): Gen[List[Date]] =
+    nDates.flatMap(n => Gen.listOfN(n, arbitrary[Date])).map(_.distinct)
 
   implicit def TimeArbitrary: Arbitrary[Time] =
     Arbitrary(Gen.frequency(
@@ -91,8 +97,15 @@ object Arbitraries {
   }
 
   case class FeatureNamespace(namespace: String)
+  def genFeatureNamespace: Gen[FeatureNamespace] =
+    Gen.identifier.map(FeatureNamespace.apply)
+
   implicit def FeatureNamespaceArbitrary: Arbitrary[FeatureNamespace] =
-    Arbitrary(Gen.alphaStr.map(FeatureNamespace.apply))
+    Arbitrary(genFeatureNamespace)
+
+  /* Generate a distinct list of FeatureNamespaces up to size n */
+  def genFeatureNamespaces(n: Gen[Int]): Gen[List[FeatureNamespace]] =
+    n.flatMap(n => Gen.listOfN(n, genFeatureNamespace).map(_.distinct))
 
   def testEntityId(i: Int): String =
     "T+%05d".format(i)
@@ -252,26 +265,48 @@ object Arbitraries {
   implicit def FactsetIdArbitrary: Arbitrary[FactsetId] =
     Arbitrary(arbitrary[OldIdentifier].map(id => FactsetId(id)))
 
-  case class SmallFactsetIdList(ids: List[FactsetId])
-  implicit def SmallFactsetIdListArbitrary: Arbitrary[SmallFactsetIdList] =
-    Arbitrary(arbitrary[SmallOldIdentifierList].map(ids => SmallFactsetIdList(ids.ids.map(FactsetId.apply))))
+  def genFactsetIds(ids: Gen[Int]): Gen[List[FactsetId]] =
+    ids.map(createOldIdentifiers).map(ids => ids.map(FactsetId.apply))
+
+  /* List of FactsetIds with a size between 0 and 10 */
+  case class FactsetIdList(ids: List[FactsetId])
+  implicit def FactsetIdListArbitrary: Arbitrary[FactsetIdList] =
+    Arbitrary(genFactsetIds(Gen.choose(0, 10)).map(FactsetIdList.apply))
+
+  /* Generate a Factset with number of partitions up to n namespaces x n dates */
+  def genFactset(factsetId: FactsetId, nNamespaces: Gen[Int], nDates: Gen[Int]): Gen[Factset] =
+    genPartitions(nNamespaces, nDates).map(ps => Factset(factsetId, ps))
+
+  /* Factset with up to 3 x 3 partitions */
+  implicit def FactsetArbitrary: Arbitrary[Factset] =
+    Arbitrary(for {
+      id <- arbitrary[FactsetId]
+      fs <- genFactset(id, Gen.choose(1, 3), Gen.choose(1, 3))
+    } yield fs)
+
+  /* Generate a list of Factset's, each with up to 3 x 3 partitions */
+  def genFactsetList(size: Gen[Int]): Gen[List[Factset]] = for {
+    ids <- genFactsetIds(size)
+    fs  <- ids.traverse(id => genFactset(id, Gen.choose(1, 3), Gen.choose(1, 3)))
+  } yield fs
+
+  /* List of Factsets with size between 0 and 3. Each Factset has up to 3 x 3 partitions */
+  case class FactsetList(factsets: List[Factset])
+  implicit def FactsetListArbitrary: Arbitrary[FactsetList] =
+    Arbitrary(genFactsetList(Gen.choose(0, 3)).map(FactsetList.apply))
 
   implicit def PartitionArbitrary: Arbitrary[Partition] = Arbitrary(for {
     ns      <- arbitrary[FeatureNamespace]
     date    <- arbitrary[Date]
   } yield Partition(ns.namespace, date))
 
-  case class SingleFactsetPartitions(factset: FactsetId, partitions: List[Partition])
-  implicit def SingleFactsetPartitionsArbitrary: Arbitrary[SingleFactsetPartitions] =
-    Arbitrary(for {
-      factset <- arbitrary[FactsetId]
-      dates   <- arbitrary[List[(Date, FeatureNamespace)]]
-    } yield SingleFactsetPartitions(factset, dates.distinct.map({ case (d, FeatureNamespace(ns)) => Partition(ns, d) })))
+  /* Generate a list of Partitions with the size up to n namespaces x n dates */
+  def genPartitions(nNamespaces: Gen[Int], nDates: Gen[Int]): Gen[Partitions] = for {
+    namespaces <- genFeatureNamespaces(nNamespaces)
+    partitions <- namespaces.traverse(ns => genDates(nDates).map(_.map(d => Partition(ns.namespace, d))))
+  } yield Partitions(partitions.flatten)
 
-  case class SmallPartitionList(partitions: List[Partition])
-  implicit def SmallPartitionListArbitrary: Arbitrary[SmallPartitionList] =
-    Arbitrary(for {
-      n          <- Gen.choose(1, 20)
-      partitions <- Gen.listOfN(n, arbitrary[Partition])
-    } yield SmallPartitionList(partitions.distinct))
+  /* Partitions with size up to 3 x 5 */
+  implicit def PartitionsArbitrary: Arbitrary[Partitions] =
+    Arbitrary(genPartitions(Gen.choose(1, 3), Gen.choose(1, 5)))
 }
