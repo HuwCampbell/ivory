@@ -256,6 +256,6 @@ object build extends Build {
     , base / ".." / "NOTICE.txt" -> "NOTICE.txt"
     , base / ".." / "README.md" -> "README.md"
     , base / ".." / "etc" / "thrift-NOTICE.txt" -> "thrift-NOTICE.txt"
-    , base / ".." / "ivory-ingest" / "src" / "main" / "thrift" / "ingest.thrift" -> "ivory.thrift"
+    , base / ".." / "ivory-operation" / "src" / "main" / "thrift" / "ingest.thrift" -> "ivory.thrift"
     ) })
 }
