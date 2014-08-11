@@ -189,12 +189,6 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
   var strDate: String = null
   var date: Date = Date.unsafeFromInt(0)
 
-  /* Lookup table for facset priority */
-  val priorityLookup = new FactsetLookup
-
-  /* Lookup table for factset version */
-  val versionLookup = new FactsetVersionLookup
-
   /* Key state management, create once per mapper */
   val kstate = KeyState(4096)
 
@@ -207,18 +201,6 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
   /* The output value, only create once per mapper. */
   val vout = Writables.bytesWritable(4096)
 
-  /* Partition created from input split path, only created once per mapper */
-  var partition: Partition = null
-
-  /* FactsetId created from input split path, only created once per mapper */
-  var factsetId: FactsetId = null
-
-  /* FactsetVersion read from factset version lookup table once per mapper */
-  var factsetVersion: FactsetVersion = null
-
-  /* Input split path, only created once per mapper */
-  var path: FilePath = null
-
   /* Class to emit the key/value bytes, created once per mapper */
   var emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
 
@@ -229,7 +211,7 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
   var skipCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
 
   /* Thrift object provided from sub class, created once per mapper */
-  var tfact: ThriftFact = null
+  val tfact = new ThriftFact
 
   /* Class to convert a Thrift fact into a Fact based of the version, created once per mapper */
   var converter: VersionedFactConverter = null
@@ -238,25 +220,21 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
-    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, priorityLookup)
-    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetVersionLookup, versionLookup)
-    path = FilePath(MrContext.getSplitPath(context.getInputSplit).toString)
-    Factset.parseFile(path) match {
-      case Success((fid, p)) => factsetId = fid; partition = p
+    val priorityLookup = new FactsetLookup <| (fl => ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, fl))
+    val versionLookup = new FactsetVersionLookup <| (fvl => ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetVersionLookup, fvl))
+    val path = FilePath(MrContext.getSplitPath(context.getInputSplit).toString)
+    val (factsetId, partition) = Factset.parseFile(path) match {
+      case Success(r)        => r
       case Failure(e)        => sys.error(s"Can not parse factset path ${e}")
     }
     val rawVersion = versionLookup.versions.get(factsetId.render)
-    factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(sys.error(s"Can not parse factset version '${rawVersion}'"))
+    val factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(sys.error(s"Can not parse factset version '${rawVersion}'"))
     val priority = priorityLookup.priorities.get(factsetId.render)
     vstate = ValueState(Priority.unsafe(priority))
 
-    factsetVersion match {
-      case FactsetVersionOne =>
-        tfact = new ThriftFact
-        converter = VersionOneFactConverter(partition)
-      case FactsetVersionTwo =>
-        tfact = new ThriftFact
-        converter = VersionTwoFactConverter(partition)
+    converter = factsetVersion match {
+      case FactsetVersionOne => VersionOneFactConverter(partition)
+      case FactsetVersionTwo => VersionTwoFactConverter(partition)
     }
     emitter = MrEmitter(kout, vout)
     okCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.ok")
