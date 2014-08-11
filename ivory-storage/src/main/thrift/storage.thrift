@@ -15,3 +15,7 @@ struct FeatureIdLookup {
 struct FactsetLookup {
     1: map<string, i16> priorities;
 }
+
+struct FactsetVersionLookup {
+    1: map<string, byte> versions;
+}

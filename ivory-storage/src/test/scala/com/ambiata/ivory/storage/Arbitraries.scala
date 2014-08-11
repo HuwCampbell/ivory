@@ -1,6 +1,7 @@
 package com.ambiata.ivory.storage
 
 import com.ambiata.ivory.data.Identifier
+import com.ambiata.ivory.storage.fact._
 
 import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.Arbitraries._
@@ -18,4 +19,7 @@ object Arbitraries {
 
   implicit def DatasetArbitrary: Arbitrary[Dataset] =
     Arbitrary(Gen.oneOf(arbitrary[FactsetDataset], arbitrary[SnapshotDataset]))
+
+  implicit def FactsetVersionArbitrary: Arbitrary[FactsetVersion] =
+    Arbitrary(Gen.oneOf(FactsetVersionOne, FactsetVersionTwo))
 }

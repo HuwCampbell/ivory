@@ -2,7 +2,7 @@ package com.ambiata.ivory.extract
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.lookup.FactsetLookup
+import com.ambiata.ivory.lookup.{FactsetLookup, FactsetVersionLookup}
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.mr._
@@ -18,7 +18,7 @@ import org.apache.hadoop.fs.{Path, FileSystem}
 import org.apache.hadoop.conf._
 import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
-import org.apache.hadoop.mapreduce._
+import org.apache.hadoop.mapreduce.{Counter => _, _}
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs
@@ -54,10 +54,7 @@ object SnapshotJob {
     job.setOutputValueClass(classOf[BytesWritable])
 
     /* input */
-    val mappers = inputs.map({
-      case Prioritized(_, g @ FactsetGlob(_,_, FactsetVersionOne, _)) => (classOf[SnapshotFactsetVersionOneMapper], g)
-      case Prioritized(_, g @ FactsetGlob(_,_, FactsetVersionTwo, _)) => (classOf[SnapshotFactsetVersionTwoMapper], g)
-    })
+    val mappers = inputs.map(p => (classOf[SnapshotFactsetMapper], p.value))
     mappers.foreach({ case (clazz, factsetGlob) =>
       factsetGlob.paths.foreach(path => {
         println(s"Input path: ${path.path}")
@@ -84,6 +81,7 @@ object SnapshotJob {
     /* cache / config initializtion */
     job.getConfiguration.set(Keys.SnapshotDate, date.int.toString)
     ctx.thriftCache.push(job, Keys.FactsetLookup, priorityTable(inputs))
+    ctx.thriftCache.push(job, Keys.FactsetVersionLookup, versionTable(inputs.map(_.value)))
 
     /* run job */
     if (!job.waitForCompletion(true))
@@ -101,9 +99,16 @@ object SnapshotJob {
     lookup
   }
 
+  def versionTable(globs: List[FactsetGlob]): FactsetVersionLookup = {
+    val lookup = new FactsetVersionLookup
+    globs.foreach(g => lookup.putToVersions(g.factset.render, g.version.toByte))
+    lookup
+  }
+
   object Keys {
     val SnapshotDate = "ivory.snapdate"
     val FactsetLookup = ThriftCache.Key("factset-lookup")
+    val FactsetVersionLookup = ThriftCache.Key("factset-version-lookup")
   }
 }
 
@@ -143,16 +148,23 @@ object SnapshotMapper {
       state.set(bytes, 0, bytes.length)
     }
   }
+}
 
-  def map(fact: Fact, kstate: KeyState, vstate: ValueState, kout: BytesWritable, vout: BytesWritable, commit: () => Unit, deserializer: TDeserializer) {
-    kstate.set(fact, kout)
-    vstate.set(fact, vout)
-    commit()
-  }
+/* Version specific thrift converter */
+sealed trait VersionedFactConverter {
+  def convert(tfact: ThriftFact): Fact
+}
+case class VersionOneFactConverter(partition: Partition) extends VersionedFactConverter {
+  def convert(tfact: ThriftFact): Fact =
+    PartitionFactThriftStorageV1.createFact(partition, tfact)
+}
+case class VersionTwoFactConverter(partition: Partition) extends VersionedFactConverter {
+  def convert(tfact: ThriftFact): Fact =
+    PartitionFactThriftStorageV2.createFact(partition, tfact)
 }
 
 /*
- * Base mapper for ivory-snapshot.
+ * Factset mapper for ivory-snapshot.
  *
  * The input is a standard SequenceFileInputFormat. The path is used to determin the
  * factset/namespace/year/month/day, and a factset priority is pull out of a lookup
@@ -164,8 +176,11 @@ object SnapshotMapper {
  * a thrift serialized PriorityTag object. This is a container that holds a
  * factset priority and thrift serialized NamespacedFact object.
  */
-abstract class SnapshotFactsetBaseMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
+class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
   import SnapshotMapper._
+
+  /* Thrift deserializer. */
+  val deserializer = new TDeserializer(new TCompactProtocol.Factory)
 
   /* Context object holding dist cache paths */
   var ctx: MrContext = null
@@ -175,7 +190,10 @@ abstract class SnapshotFactsetBaseMapper extends Mapper[NullWritable, BytesWrita
   var date: Date = Date.unsafeFromInt(0)
 
   /* Lookup table for facset priority */
-  val lookup = new FactsetLookup
+  val priorityLookup = new FactsetLookup
+
+  /* Lookup table for factset version */
+  val versionLookup = new FactsetVersionLookup
 
   /* Key state management, create once per mapper */
   val kstate = KeyState(4096)
@@ -195,51 +213,54 @@ abstract class SnapshotFactsetBaseMapper extends Mapper[NullWritable, BytesWrita
   /* FactsetId created from input split path, only created once per mapper */
   var factsetId: FactsetId = null
 
+  /* FactsetVersion read from factset version lookup table once per mapper */
+  var factsetVersion: FactsetVersion = null
+
   /* Input split path, only created once per mapper */
   var path: FilePath = null
+
+  /* Class to emit the key/value bytes, created once per mapper */
+  var emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
+
+  /* Class to count number of non skipped facts, created once per mapper */
+  var okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
+
+  /* Class to count number of skipped facts, created once per mapper */
+  var skipCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
+
+  /* Thrift object provided from sub class, created once per mapper */
+  var tfact: ThriftFact = null
+
+  /* Class to convert a Thrift fact into a Fact based of the version, created once per mapper */
+  var converter: VersionedFactConverter = null
 
   override def setup(context: MapperContext): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
-    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, lookup)
+    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, priorityLookup)
+    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetVersionLookup, versionLookup)
     path = FilePath(MrContext.getSplitPath(context.getInputSplit).toString)
     Factset.parseFile(path) match {
       case Success((fid, p)) => factsetId = fid; partition = p
       case Failure(e)        => sys.error(s"Can not parse factset path ${e}")
     }
-    val priority = lookup.priorities.get(factsetId.render)
+    val rawVersion = versionLookup.versions.get(factsetId.render)
+    factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(sys.error(s"Can not parse factset version '${rawVersion}'"))
+    val priority = priorityLookup.priorities.get(factsetId.render)
     vstate = ValueState(Priority.unsafe(priority))
-  }
-}
 
-trait SnapshotFactsetThiftMapper[A <: ThriftLike] extends SnapshotFactsetBaseMapper {
-  import SnapshotMapper._
-
-  /* Thrift deserializer. */
-  val deserializer = new TDeserializer(new TCompactProtocol.Factory)
-
-  /* Thrift object provided from sub class, created once per mapper */
-  val thrift: A
-
-  /* Version string provided from sub class and to be used for counter names, created once per mapper */
-  val version: String
-
-  /* Function to create a fact given the thrift fact. Defined in the sub class */
-  val createFact: A => Fact
-
-  var counterNameOk: String = null
-  var counterNameSkip: String = null
-  val counterGroup = "ivory"
-
-  val commit: MapperContext => () => Unit = (context: MapperContext) => () => {
-    context.write(kout, vout)
-  }
-
-  override def setup(context: MapperContext): Unit = {
-    super.setup(context)
-    counterNameOk = s"snapshot.${version}.ok"
-    counterNameSkip = s"snapshot.${version}.skip"
+    factsetVersion match {
+      case FactsetVersionOne =>
+        tfact = new ThriftFact
+        converter = VersionOneFactConverter(partition)
+      case FactsetVersionTwo =>
+        tfact = new ThriftFact
+        converter = VersionTwoFactConverter(partition)
+    }
+    emitter = MrEmitter(kout, vout)
+    okCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.ok")
+    skipCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.skip")
   }
 
   /*
@@ -250,48 +271,30 @@ trait SnapshotFactsetThiftMapper[A <: ThriftLike] extends SnapshotFactsetBaseMap
    * 2. snapshot.$version.skip - number of facts skipped because they were in the future
    */
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
-    context.getCounter(counterGroup, counterNameOk).increment(1)
-    if(!SnapshotFactsetThriftMapper.map(thrift, date, createFact, value.copyBytes,
-                                        kstate, vstate, kout, vout, commit(context), deserializer))
-      context.getCounter(counterGroup, counterNameSkip).increment(1)
+    emitter.context = context
+    okCounter.context = context
+    skipCounter.context = context
+    SnapshotFactsetMapper.map(tfact, date, converter, value.copyBytes, kstate, vstate, kout, vout, emitter, okCounter, skipCounter, deserializer)
   }
 }
 
-object SnapshotFactsetThriftMapper {
+object SnapshotFactsetMapper {
   import SnapshotMapper._
 
-  def map[A <: ThriftLike](thrift: A, date: Date, createFact: A => Fact, bytes: Array[Byte],
+  def map[A <: ThriftLike](tfact: ThriftFact, date: Date, converter: VersionedFactConverter, bytes: Array[Byte],
                            kstate: KeyState, vstate: ValueState, kout: BytesWritable, vout: BytesWritable,
-                           commit: () => Unit, deserializer: TDeserializer): Boolean = {
-    deserializer.deserialize(thrift, bytes)
-    val f = createFact(thrift)
+                           emitter: Emitter, okCounter: Counter, skipCounter: Counter, deserializer: TDeserializer) {
+    deserializer.deserialize(tfact, bytes)
+    val f = converter.convert(tfact)
     if(f.date > date)
-      false
+      skipCounter.count(1)
     else {
-      SnapshotMapper.map(f, kstate, vstate, kout, vout, commit, deserializer)
-      true
+      okCounter.count(1)
+      kstate.set(f, kout)
+      vstate.set(f, vout)
+      emitter.emit()
     }
   }
-}
-
-/*
- * FactsetVersionOne mapper
- */
-class SnapshotFactsetVersionOneMapper extends SnapshotFactsetThiftMapper[ThriftFact] {
-  val thrift = new ThriftFact
-  val version = "v1"
-  val createFact: ThriftFact => Fact = (tfact: ThriftFact) =>
-    PartitionFactThriftStorageV1.createFact(partition, tfact)
-}
-
-/*
- * FactsetVersionTwo mapper
- */
-class SnapshotFactsetVersionTwoMapper extends SnapshotFactsetThiftMapper[ThriftFact] {
-  val thrift = new ThriftFact
-  val version = "v2"
-  val createFact: ThriftFact => Fact = (tfact: ThriftFact) =>
-    PartitionFactThriftStorageV2.createFact(partition, tfact)
 }
 
 /*
@@ -318,16 +321,22 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
   /* State management for mapper values, created once per mapper and mutated per record */
   val vstate = ValueState(Priority.Max)
 
-  val counterNameOk = "snapshot.incr.ok"
-  val counterGroup = "ivory"
+  /* Class to emit the key/value bytes, created once per mapper */
+  var emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
 
-  val commit: (MapperContext) => () => Unit = (context: MapperContext) => () => {
-    context.write(kout, vout)
+  /* Class to count number of non skipped facts, created once per mapper */
+  var okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] =
+    MrCounter("ivory", "snapshot.incr.ok")
+
+  override def setup(context: MapperContext): Unit = {
+    super.setup(context)
+    emitter = MrEmitter(kout, vout)
   }
 
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
-    context.getCounter(counterGroup, counterNameOk).increment(1)
-    SnapshotIncrementalMapper.map(fact, value.copyBytes, kstate, vstate, kout, vout, commit(context), deserializer)
+    emitter.context = context
+    okCounter.context = context
+    SnapshotIncrementalMapper.map(fact, value.copyBytes, kstate, vstate, kout, vout, emitter, okCounter, deserializer)
   }
 }
 
@@ -335,10 +344,13 @@ object SnapshotIncrementalMapper {
   import SnapshotMapper._
 
   def map(fact: NamespacedThriftFact with NamespacedThriftFactDerived, bytes: Array[Byte], kstate: KeyState,
-          vstate: ValueState, kout: BytesWritable, vout: BytesWritable, commit: () => Unit, deserializer: TDeserializer) {
+          vstate: ValueState, kout: BytesWritable, vout: BytesWritable, emitter: Emitter, okCounter: Counter, deserializer: TDeserializer) {
+    okCounter.count(1)
     fact.clear()
     deserializer.deserialize(fact, bytes)
-    SnapshotMapper.map(fact, kstate, vstate, kout, vout, commit, deserializer)
+    kstate.set(fact, kout)
+    vstate.set(fact, vout)
+    emitter.emit()
   }
 }
 
@@ -369,12 +381,21 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
   /* Output value, created once per reducer and mutated per record */
   val vout = Writables.bytesWritable(4096)
 
-  val commit: (ReducerContext) => () => Unit = (context: ReducerContext) => () => {
-    context.write(kout, vout)
+  /* Class to emit the key/value bytes, created once per mapper */
+  var emitter: MrEmitter[BytesWritable, BytesWritable, NullWritable, BytesWritable] = null
+
+  /* Class to count number of tombstone values, created once per mapper */
+  val counter: MrCounter[BytesWritable, BytesWritable, NullWritable, BytesWritable] =
+    MrCounter("ivory", "snapshot.reducer.tombstone")
+
+  override def setup(context: ReducerContext): Unit = {
+    emitter = MrEmitter(kout, vout)
   }
 
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
-    SnapshotReducer.reduce(fact, priorityTag, kout, vout, iter.iterator, commit(context), deserializer)
+    emitter.context = context
+    counter.context = context
+    SnapshotReducer.reduce(fact, priorityTag, kout, vout, iter.iterator, emitter, counter, deserializer)
   }
 }
 
@@ -398,15 +419,17 @@ object SnapshotReducer {
       isTombstone = fact.isTombstone
     }
 
-    def write(vout: BytesWritable, commit: () => Unit): Unit =
+    def write(vout: BytesWritable, emitter: Emitter, counter: Counter): Unit =
       if (!isTombstone) {
         vout.set(latestContainer.getBytes, 0, latestContainer.getBytes.length)
-        commit()
+        emitter.emit()
+      } else {
+        counter.count(1)
       }
   }
 
   def reduce(fact: NamespacedThriftFact with NamespacedThriftFactDerived, priorityTag: PriorityTag, kout: NullWritable,
-             vout: BytesWritable, iter: JIterator[BytesWritable], commit: () => Unit, deserializer: TDeserializer) {
+             vout: BytesWritable, iter: JIterator[BytesWritable], emitter: Emitter, counter: Counter, deserializer: TDeserializer) {
     val state = ReduceState(null, 0l, true)
     while(iter.hasNext) {
       val next = iter.next
@@ -418,6 +441,6 @@ object SnapshotReducer {
       if (state.accept(priorityTag, nextDate))
         state.save(fact, priorityTag, nextDate)
     }
-    state.write(vout, commit)
+    state.write(vout, emitter, counter)
   }
 }
