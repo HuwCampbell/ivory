@@ -12,7 +12,7 @@ object SnapshotMutationsBenchApp extends App {
   Runner.main(classOf[SnapshotMutationsBench], args)
 }
 
-/*
+/**
  * Benchmarking some different implementations of the reduce side snapshot
  * mutations.
  *
@@ -23,8 +23,8 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
   val serializer = new TSerializer(new TCompactProtocol.Factory)
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
 
-  def date(): Date = Date(2014, 1, 1)
-  def time(): Time = Time(0)
+  def date: Date = Date(2014, 1, 1)
+  def time: Time = Time(0)
 
   val testFact = Fact.newFact("eid", "ns", "fid", date, time, StringValue("abc"))
   val testBytes = serializer.serialize(new PriorityTag(1, java.nio.ByteBuffer.wrap(serializer.serialize(testFact.toNamespacedThrift))))
