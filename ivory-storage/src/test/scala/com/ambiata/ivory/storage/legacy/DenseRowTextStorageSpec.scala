@@ -44,9 +44,11 @@ class DenseRowTextStorageSpec extends Specification { def is = s2"""
 
     val res = DenseRowTextStorageV1.DenseRowTextStorer(directory, dict).storeScoobi(facts).run.toList
     (res must_== List("eid1|abc|123|true|NA", "eid2|NA|9|NA|2.0")) and
-    (DenseRowTextStorageV1.indexDictionary(dict).map(e => (e._1, e._2)) must_== List(0 -> FeatureId("ns1", "fid1"),
-                                                                                     1 -> FeatureId("ns1", "fid2"),
-                                                                                     2 -> FeatureId("ns1", "fid3"),
-                                                                                     3 -> FeatureId("ns1", "fid4")))
+    (DenseRowTextStorageV1.indexDictionary(dict, "").map(e => (e._1, e._2)) must_== List(
+      0 -> FeatureId("ns1", "fid1"),
+      1 -> FeatureId("ns1", "fid2"),
+      2 -> FeatureId("ns1", "fid3"),
+      3 -> FeatureId("ns1", "fid4")
+    ))
   }
 }

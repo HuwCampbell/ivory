@@ -32,9 +32,6 @@ object DenseRowTextStorageV1 {
       Hdfs.writeWith(new Path(path, ".dictionary"), os => Streams.write(os, featuresToString(features, delim).mkString("\n")))
   }
 
-  def indexDictionary(dict: Dictionary): List[(Int, FeatureId, FeatureMeta)] =
-    dict.meta.toList.sortBy(_._1.toString(".")).zipWithIndex.map({ case ((f, m), i) => (i, f, m) })
-
   /**
    * Make an Iterable of Facts dense according to a dictionary. 'tombstone' is used as a value for missing facts.
    *
