@@ -49,7 +49,8 @@ object DenseRowTextStorageV1 {
   }
 
   def indexDictionary(dict: Dictionary, tombstone: String): List[(Int, FeatureId, FeatureMeta)] =
-    dict.meta.toList.sortBy(_._1.toString(".")).zipWithIndex.map({ case ((f, m), i) => (i, f, m.copy(tombstoneValue = List(tombstone))) })
+    dict.meta.toList.filter(f => Encoding.isPrimitive(f._2.encoding)).sortBy(_._1.toString("."))
+      .zipWithIndex.map({ case ((f, m), i) => (i, f, m.copy(tombstoneValue = List(tombstone))) })
 
   def featuresToString(features: List[(Int, FeatureId, FeatureMeta)], delim: Char): List[String] = {
     import com.ambiata.ivory.storage.metadata.DictionaryTextStorage
