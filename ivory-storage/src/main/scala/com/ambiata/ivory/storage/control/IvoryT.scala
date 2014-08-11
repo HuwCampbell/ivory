@@ -19,13 +19,10 @@ object IvoryT {
   def repository[F[+_]: Monad]: IvoryT[F, Repository] =
      IvoryT(Kleisli.ask[F, IvoryRead].map(_.repository))
 
-  def fromResultT[F[+_], A](r: ResultT[F, A]): IvoryT[({ type l[+a] = ResultT[F, a] })#l, A] = {
+  def fromResultT[F[+_], A](f: Repository => ResultT[F, A]): IvoryT[({ type l[+a] = ResultT[F, a] })#l, A] = {
     type X[+B] = ResultT[F, B]
-    IvoryT[X, A](Kleisli[X, IvoryRead, A](_ => r))
+    IvoryT[X, A](Kleisli[X, IvoryRead, A](r => f(r.repository)))
   }
-
-  def fromResultTIO[A](f: Repository => ResultTIO[A]): IvoryTIO[A] =
-    IvoryT(Kleisli[ResultTIO, IvoryRead, A](r => f(r.repository)))
 
   implicit def IvoryTMonad[F[+_]: Monad]: Monad[({ type l[a] = IvoryT[F, a] })#l] =
     new Monad[({ type l[a] = IvoryT[F, a] })#l] {

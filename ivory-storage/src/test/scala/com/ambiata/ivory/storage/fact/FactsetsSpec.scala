@@ -1,6 +1,7 @@
 package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.storage.control.IvoryRead
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.poacher.hdfs._
 
@@ -39,7 +40,7 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
 
     val res = for {
       _ <- allocatePath(repo.factset(factsetId)).run(repo.configuration)
-      n <- Factsets.allocateId(repo)
+      n <- Factsets.allocateId.run(IvoryRead.testing(repo))
       e <- Hdfs.exists(repo.factset(factsetId.next.get).toHdfs).run(repo.configuration)
     } yield (e, n)
 

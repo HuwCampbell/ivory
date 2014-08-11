@@ -10,12 +10,12 @@ import org.apache.commons.logging.LogFactory
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.data.StoreDataUtil
 import com.ambiata.poacher.scoobi.ScoobiAction
+import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
-import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
-import com.ambiata.mundane.control._
+import com.ambiata.mundane.control._, IvoryT.fromResultT
 
 /**
  * This workflow is designed to import features into an fat ivory repository,
@@ -32,32 +32,33 @@ import com.ambiata.mundane.control._
  */
 object ImportWorkflow {
 
-  type ImportFactsFunc = (Repository, FactsetId, ReferenceIO, DateTimeZone) => ResultTIO[Unit]
+  type ImportFactsFunc = (FactsetId, ReferenceIO, DateTimeZone) => IvoryTIO[Unit]
 
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.Import")
 
-  def onStore(repo: Repository, importFacts: ImportFactsFunc, timezone: DateTimeZone): ResultTIO[FactsetId] = {
+  def onStore(importFacts: ImportFactsFunc, timezone: DateTimeZone): IvoryTIO[FactsetId] = {
     val start = System.currentTimeMillis
     for {
-      _        <- createRepo(repo)
+      _        <- createRepo
       t1 = {
         val x = System.currentTimeMillis
         println(s"created repository in ${x - start}ms")
         x
       }
-      factset  <- Factsets.allocateId(repo)
+      factset  <- Factsets.allocateId
       t3 = {
         val x = System.currentTimeMillis
         println(s"created fact set in ${x - t1}ms")
         x
       }
-      _        <- importFacts(repo, factset, repo.toReference(repo.errors </> factset.render), timezone)
+      repo     <- IvoryT.repository[ResultTIO]
+      _        <- importFacts(factset, repo.toReference(repo.errors </> factset.render), timezone)
       t4 = {
         val x = System.currentTimeMillis
         println(s"imported fact set in ${x - t3}ms")
         x
       }
-      _        <- Metadata.incrementFeatureStore(repo, factset)
+      _        <- Metadata.incrementFeatureStore(factset)
       t5 = {
         val x = System.currentTimeMillis
         println(s"created store in ${x - t4}ms")
@@ -66,7 +67,7 @@ object ImportWorkflow {
     } yield factset
   }
 
-  def createRepo(repo: Repository): ResultTIO[Unit] = for {
+  def createRepo: IvoryTIO[Unit] = IvoryT.fromResultT(repo => for {
     _  <- ResultT.ok[IO, Unit](logger.debug(s"Going to create repository '${repo.root.path}'"))
     e  <- repo.toStore.exists(repo.root)
     _  <- if(!e) {
@@ -78,5 +79,5 @@ object ImportWorkflow {
       logger.info(s"Repository already exists at '${repo.root.path}', not creating a new one")
       ResultT.ok[IO, Unit](())
     }
-  } yield ()
+  } yield ())
 }

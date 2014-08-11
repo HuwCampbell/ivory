@@ -9,6 +9,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.fact._
@@ -28,8 +29,8 @@ case class Snapshot(repo: Repository, store: FeatureStoreId, entities: Option[Re
       case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
       case _                                => ResultT.fail[IO, Path](s"Snapshot output path must be on hdfs, got '${output}'")
     }
-    d   <- dictionaryFromIvory(repo)
-    s   <- featureStoreFromIvory(repo, store)
+    ds  <- (dictionaryFromIvoryT tuple featureStoreFromIvoryT(store)).run(IvoryRead.prod(repo))
+    (d, s) = ds
     es  <- entities.traverseU(_.run(store => store.linesUtf8.read))
     in  <- incremental.traverseU({ case (id, sm) => for {
             _ <- ResultT.ok[IO, Unit]({
