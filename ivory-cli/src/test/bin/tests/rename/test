@@ -1,0 +1,13 @@
+#!/bin/sh -eux
+
+DIR=$(dirname $0)
+. "${DIR}/../../setup.sh"
+
+$IVORY create-repository -p "${REPOSITORY}"
+$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
+$IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts"
+$IVORY rename -r "${REPOSITORY}" -m "halibut:preheat=halibut2:warmup" -b "${INPUT}/mapping.psv"
+
+### check factsets ###
+$IVORY cat-facts "${REPOSITORY}/factsets/00001/*/*/*/*/*" | sort > "${TARGET}/facts.psv"
+diff_test "${DIR}/expected/facts.psv" "${TARGET}/facts.psv"

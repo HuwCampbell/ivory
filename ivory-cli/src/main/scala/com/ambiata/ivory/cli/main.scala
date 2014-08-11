@@ -10,6 +10,7 @@ import scalaz.effect._
 object main {
 
   val commands: List[IvoryApp] = List(
+    admin.renameFacts,
     catDictionary,
     catErrors,
     catFacts,
