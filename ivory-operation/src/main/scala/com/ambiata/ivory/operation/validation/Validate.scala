@@ -2,8 +2,6 @@ package com.ambiata.ivory.operation.validation
 
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, Value => _, _}, Scalaz._
-import scalaz.Ordering._
-import scalaz.effect._
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 

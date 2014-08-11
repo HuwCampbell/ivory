@@ -1,10 +1,5 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.extract._
-import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
-
-import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.api.IvoryRetire

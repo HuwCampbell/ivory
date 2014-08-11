@@ -1,12 +1,7 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.extract._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.scoobi._
-import com.ambiata.ivory.storage.legacy._
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.api.IvoryRetire
 
 import org.apache.hadoop.fs.Path

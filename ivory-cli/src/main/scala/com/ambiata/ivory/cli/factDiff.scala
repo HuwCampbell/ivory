@@ -1,7 +1,5 @@
 package com.ambiata.ivory.cli
 
-import scalaz.{DList => _, _}, Scalaz._
-import com.ambiata.mundane.control._
 import com.ambiata.ivory.api.IvoryRetire
 
 object factDiff extends IvoryApp {
