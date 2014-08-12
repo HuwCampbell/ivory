@@ -1,0 +1,7 @@
+#!/bin/sh -eu
+
+# brew install thrift
+
+DIR=$(dirname $0)/../../..
+thrift -r -out ${DIR}/src/test/java/ --gen java ${DIR}/src/test/thrift/core-test.thrift
+ls ${DIR}/src/test/java/com/ambiata/ivory/core/thrift/*.java | grep -v Test | xargs rm
