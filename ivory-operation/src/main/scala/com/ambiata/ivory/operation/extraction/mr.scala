@@ -14,7 +14,7 @@ import java.nio.ByteBuffer
 
 import scalaz.{Reducer => _, _}, Scalaz._
 
-import org.apache.hadoop.fs.{Path, FileSystem}
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf._
 import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
