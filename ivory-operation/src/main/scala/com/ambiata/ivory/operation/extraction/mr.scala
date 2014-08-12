@@ -354,7 +354,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
   val serializer = ThriftSerialiser()
 
   /** Empty PriorityTag, created once per reducer and mutated per record */
-  val priority = new PriorityTagDeserializer(new NamespacedThriftFact with NamespacedThriftFactDerived)
+  val priority = new PriorityTagDeserializer(new NamespacedThriftFact with NamespacedThriftFactDerived, ReduceState(0l, true))
 
   /** Output key, only create once per reducer */
   val kout = NullWritable.get
@@ -402,13 +402,15 @@ object SnapshotReducer {
       latestDate = fact.datetime.long
       isTombstone = fact.isTombstone
     }
+
+    def isValid: Boolean =
+      !isTombstone
   }
 
   def reduce(priority: PriorityTagDeserializer[MutableFact], kout: NullWritable, vout: BytesWritable,
              iter: JIterator[BytesWritable], emitter: Emitter, counter: Counter): Unit =  {
-    val state = ReduceState(0l, true)
-    val latestContainer = priority.findHighestPriority(state, kout, iter)
-    if(!state.isTombstone) {
+    val latestContainer = priority.findHighestPriority(kout, iter)
+    if(latestContainer != null) {
       vout.set(latestContainer.getBytes, 0, latestContainer.getBytes.length)
       emitter.emit()
     } else
