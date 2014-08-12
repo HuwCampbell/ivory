@@ -3,7 +3,7 @@ package com.ambiata.ivory.mr
 import org.apache.hadoop.io.Writable
 import org.apache.hadoop.mapreduce.TaskInputOutputContext
 
-/* This is used to abstract over mr specific counters */
+/** This is used to abstract over mr specific counters */
 trait Counter {
   def count(n: Int): Unit
 }

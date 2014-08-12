@@ -96,7 +96,7 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
           override def cleanup(emitter: Emitter[(Priority, Fact)]) { }
         })
 
-        /*
+        /**
          * 1. group by entity and feature id
          * 2. for a given entity and feature id, get the latest facts, with the lowest priority
          */

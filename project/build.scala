@@ -15,7 +15,7 @@ object build extends Build {
     id = "ivory"
   , base = file(".")
   , settings = standardSettings ++ promulgate.library(s"com.ambiata.ivory", "ambiata-oss")
-  /* this should aggregate _all_ the projects */
+  /** this should aggregate _all_ the projects */
   , aggregate = Seq(
       api
     , benchmark
@@ -30,7 +30,7 @@ object build extends Build {
     , storage
     )
   )
-  /* this should only ever export _api_, DO NOT add things to this list */
+  /** this should only ever export _api_, DO NOT add things to this list */
   .dependsOn(api)
 
   lazy val standardSettings = Defaults.coreDefaultSettings ++
@@ -216,7 +216,7 @@ object build extends Build {
     javaOptions ++= Seq("-Xmx3G", "-Xms512m", "-Xss4m")
   , javacOptions ++= Seq("-source", "1.6", "-target", "1.6")
   , maxErrors := 20
-  , scalacOptions ++= Seq(
+  , scalacOptions in Compile ++= Seq(
       "-target:jvm-1.6"
     , "-deprecation"
     , "-unchecked"
@@ -226,6 +226,7 @@ object build extends Build {
     , "-Xfatal-warnings"
     , "-Yinline-warnings"
     ) ++ importWarnings(scalaBinaryVersion.value)
+  , scalacOptions in (Compile,doc) := Seq("-language:_", "-feature")
   )
 
   def importWarnings(version: String) =

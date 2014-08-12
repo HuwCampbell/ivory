@@ -61,7 +61,7 @@ object Snapshot {
   def takeSnapshot(repo: Repository, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ResultTIO[(FeatureStoreId, SnapshotId)] =
     fatrepo.ExtractLatestWorkflow.onStore(repo, extractLatest(codec), date, incremental)
 
-  /* This is exposed through the external API */
+  /** This is exposed through the external API */
   def snapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Path] = for {
     sc   <- ScoobiAction.scoobiConfiguration
     repo <- Repository.fromHdfsPath(repoPath.toString.toFilePath, sc).pure[ScoobiAction]

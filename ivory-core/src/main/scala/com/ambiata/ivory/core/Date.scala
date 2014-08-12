@@ -4,7 +4,7 @@ import scalaz._, Scalaz._
 import org.joda.time.LocalDate
 import com.ambiata.mundane.parse.ListParser
 
-/* a packed int | 16 bits: year represented as a short | 8 bits: month represented as a byte | 8 bits: day represented as a byte | */
+/** a packed int | 16 bits: year represented as a short | 8 bits: month represented as a byte | 8 bits: day represented as a byte | */
 class Date private(val underlying: Int) extends AnyVal {
   def year: Short =
     (underlying >>> 16).toShort
@@ -143,6 +143,18 @@ object Date {
               c.abort(c.enclosingPosition, s"This is not a valid date literal Date($y, $m, $d).")
             case Some(date) =>
               c.Expr(q"com.ambiata.ivory.core.Date.unsafe($y, $m, $d)")
+          }
+        /**
+         * scaladoc magically manages to pass java.lang.Integer when compiling code so we need to deal with that case
+         * Note that the code is still safe and it is not possible to create a Date with 10000000 for the month for example
+         * and this case will only be used when running scaladoc
+         */
+        case (Expr(Literal(Constant(y: Integer))), Expr(Literal(Constant(m: Integer))), Expr(Literal(Constant(d: Integer)))) =>
+          create(y.toShort, m.toByte, d.toByte) match {
+            case None =>
+              c.abort(c.enclosingPosition, s"This is not a valid date literal Date(${y.toString}, ${m.toString}, ${d.toString}).")
+            case Some(date) =>
+              c.Expr(q"com.ambiata.ivory.core.Date.unsafe(${y.toShort}, ${m.toByte}, ${d.toByte})")
           }
         case _ =>
           c.abort(c.enclosingPosition, s"Not a literal ${showRaw(year)}, ${showRaw(month)}, ${showRaw(day)}")

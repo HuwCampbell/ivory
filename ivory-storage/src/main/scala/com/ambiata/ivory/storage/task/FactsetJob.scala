@@ -43,38 +43,38 @@ object FactsetJob {
     job.setJarByClass(classOf[FactsPartitioner])
     job.setJobName(ctx.id.value)
 
-    /* inputs */
+    /** inputs */
     // job.setInputFormatClass(classOf[SequenceFileInputFormat[_, _]]) must be done by the caller method
     FileInputFormat.addInputPaths(job, inputPaths.mkString(","))
 
-    /* map */
+    /** map */
     // job.setMapperClass(....) must be done by the caller method
     job.setMapOutputKeyClass(classOf[LongWritable])
     job.setMapOutputValueClass(classOf[BytesWritable])
 
-    /* partition & sort */
+    /** partition & sort */
     job.setPartitionerClass(classOf[FactsPartitioner])
     job.setGroupingComparatorClass(classOf[LongWritable.Comparator])
     job.setSortComparatorClass(classOf[LongWritable.Comparator])
 
-    /* reducer */
+    /** reducer */
     job.setNumReduceTasks(reducerLookups.reducersNb)
     job.setReducerClass(classOf[FactsReducer])
     job.setOutputKeyClass(classOf[NullWritable])
     job.setOutputValueClass(classOf[BytesWritable])
 
-    /* output */
+    /** output */
     LazyOutputFormat.setOutputFormatClass(job, classOf[SequenceFileOutputFormat[_, _]])
     MultipleOutputs.addNamedOutput(job, FactsetJobKeys.Out, classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable])
     FileOutputFormat.setOutputPath(job, ctx.output)
 
-    /* compression */
+    /** compression */
     codec.foreach { cc =>
       Compress.intermediate(job, cc)
       Compress.output(job, cc)
     }
 
-    /* cache / config initialization */
+    /** cache / config initialization */
     ctx.thriftCache.push(job, ReducerLookups.Keys.NamespaceLookup, reducerLookups.namespaces)
     ctx.thriftCache.push(job, ReducerLookups.Keys.FeatureIdLookup, reducerLookups.features)
     ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,   reducerLookups.reducers)

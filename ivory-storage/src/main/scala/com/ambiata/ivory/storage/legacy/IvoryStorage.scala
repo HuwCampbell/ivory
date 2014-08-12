@@ -58,7 +58,7 @@ object IvoryStorage {
       IvoryStorage.factsetStorer(repo.factset(factset).path, codec).storeScoobi(dlist)
   }
 
-  /* Facts */
+  /** Facts */
   def factsFromIvoryStore(repo: Repository, store: FeatureStore): ScoobiAction[DList[ParseError \/ (Priority, FactsetId, Fact)]] =
     factsFromIvoryStoreFor(repo, store, None, None)
 

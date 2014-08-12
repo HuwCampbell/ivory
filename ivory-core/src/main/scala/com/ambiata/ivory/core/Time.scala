@@ -2,7 +2,7 @@ package com.ambiata.ivory.core
 
 import scalaz._, Scalaz._
 
-/* Seconds since start of day */
+/** Seconds since start of day */
 class Time private(val underlying: Int) extends AnyVal {
   def hours: Int =
     seconds / 3600

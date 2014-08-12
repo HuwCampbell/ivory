@@ -7,7 +7,7 @@ package com.ambiata.ivory.api
  * stable APIs.
  */
 object IvoryRetire {
-  /* Some ivory API's require currently force explicit use of scoobi,
+  /** Some ivory API's require currently force explicit use of scoobi,
      this component is generally how those API's are exposed, however
      in the future we will move to more general, implementation
      neutral APIs. */
@@ -15,7 +15,7 @@ object IvoryRetire {
   val ScoobiAction = com.ambiata.poacher.scoobi.ScoobiAction
   type HdfsRepository = com.ambiata.ivory.storage.repository.HdfsRepository
 
-  /*
+  /**
    * Storage types. These components expose the internal representations of ivory.
    * They are likely to be highly volatile, and will be changing in the near future.
    * They will be replaced by a safer, stable API that lets users interact with
@@ -31,7 +31,7 @@ object IvoryRetire {
 
   val createRepository = com.ambiata.ivory.storage.legacy.CreateRepository.onStore _
 
-  /*
+  /**
    * Ingest types. These components expose the internal representations of ivory.
    * They are likely to be highly volatile, and will be changing in the near future.
    * They will be replaced by a safer, stable API that lets users interact with
@@ -43,7 +43,7 @@ object IvoryRetire {
   implicit def DListToIvoryFactStorage(dlist: com.nicta.scoobi.core.DList[Ivory.Fact]): com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage =
     com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage(dlist)
 
-  /*
+  /**
    * Extract types. These components expose the internal representations of ivory.
    * They are likely to be highly volatile, and will be changing in the near future.
    * They will be replaced by a safer, stable API that lets users interact with
@@ -56,7 +56,7 @@ object IvoryRetire {
   val pivotFromSnapshot = com.ambiata.ivory.operation.extraction.Pivot.onStoreFromSnapshot _
 
 
-  /*
+  /**
    * Bespoke debugging tools.
    */
   val countFacts = com.ambiata.ivory.operation.statistics.FactCount.flatFacts _

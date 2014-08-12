@@ -18,7 +18,7 @@ case class FactsetDataset(factset: FactsetId, partitions: List[Partition]) exten
   def partitionsAfterOrEqual(date: Date): FactsetDataset =
     copy(partitions = partitions.filter(_.date.isAfterOrEqual(date)))
 
-  /* TODO we need to choose either inclusive or exclusive and be consistent across the entire code base */
+  /** TODO we need to choose either inclusive or exclusive and be consistent across the entire code base */
   def partitionsBetweenInclusive(start: Date, end: Date): FactsetDataset =
     copy(partitions = partitions.filter(d => d.date.isAfterOrEqual(start) && d.date.isBeforeOrEqual(end)))
 

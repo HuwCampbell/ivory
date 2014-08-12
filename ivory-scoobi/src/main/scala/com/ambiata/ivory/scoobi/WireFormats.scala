@@ -29,8 +29,8 @@ trait WireFormats {
     override def toString = "Short"
   }
 
-  /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
-  /* this is a special snowflake because you want to mix in Fact without the overhead of creating two objects. */
+  /** WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
+  /** this is a special snowflake because you want to mix in Fact without the overhead of creating two objects. */
   def factWireFormat = new WireFormat[Fact] {
     import org.apache.thrift.protocol.TCompactProtocol
     import org.apache.thrift.{TSerializer, TDeserializer}
@@ -52,7 +52,7 @@ trait WireFormats {
     }
   }
 
-  /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
+  /** WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   def parseErrorWireFormat = new WireFormat[ParseError] {
     import org.apache.thrift.protocol.TCompactProtocol
     import org.apache.thrift.{TSerializer, TDeserializer}
@@ -75,14 +75,14 @@ trait WireFormats {
 
   }
 
-  /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
+  /** WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   def namespacedThriftFactWireFormat = new WireFormat[NamespacedThriftFact] {
     val x = mkThriftFmt(new NamespacedThriftFact)
     def toWire(tf: NamespacedThriftFact, out: DataOutput) =  x.toWire(tf, out)
     def fromWire(in: DataInput): NamespacedThriftFact = x.fromWire(in)
   }
 
-  /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
+  /** WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   def thriftFactWireFormat = new WireFormat[ThriftFact] {
     val x = mkThriftFmt(new ThriftFact)
     def toWire(tf: ThriftFact, out: DataOutput) = x.toWire(tf, out)
@@ -109,7 +109,7 @@ trait WireFormats {
 
   implicit def DateMapWireFormat = AnythingFmt[java.util.HashMap[String, Array[Int]]]
 
-  /* WARNING THIS IS NOT SAFE TO EXPOSE, DANGER LURKS, SEE ThriftFactWireFormat */
+  /** WARNING THIS IS NOT SAFE TO EXPOSE, DANGER LURKS, SEE ThriftFactWireFormat */
   private def mkThriftFmt[A](empty: A)(implicit ev: A <:< ThriftLike): WireFormat[A] = new WireFormat[A] {
     val serialiser = ThriftSerialiser()
     def toWire(x: A, out: DataOutput) = {

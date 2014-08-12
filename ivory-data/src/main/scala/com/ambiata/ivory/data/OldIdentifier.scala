@@ -3,7 +3,7 @@ package com.ambiata.ivory.data
 import com.ambiata.mundane.parse.ListParser
 import scalaz._, Scalaz._
 
-/*
+/**
  * TODO Delete this as part of the migration to the new Identifier format
  *      see https://github.com/ambiata/ivory/issues/56
  */
