@@ -10,9 +10,6 @@ case class ThriftSerialiser() {
   def toBytes[A](a: A)(implicit ev: A <:< ThriftLike): Array[Byte] =
     serialiser.serialize(ev(a))
 
-  def fromBytes[A](empty: A, bytes: Array[Byte])(implicit ev: A <:< ThriftLike): A =
-    fromBytesUnsafe(ev(empty).deepCopy.asInstanceOf[A], bytes)
-
   def fromBytes1[A](empty: () => A, bytes: Array[Byte])(implicit ev: A <:< ThriftLike): A =
     fromBytesUnsafe(empty(), bytes)
 

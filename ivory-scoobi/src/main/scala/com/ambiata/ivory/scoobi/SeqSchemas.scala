@@ -44,7 +44,7 @@ object SeqSchemas {
     val serialiser = ThriftSerialiser()
 
     def toWritable(x: A) = new BytesWritable(serialiser.toBytes(x))
-    def fromWritable(x: BytesWritable): A = serialiser.fromBytes(empty, x.getBytes)
+    def fromWritable(x: BytesWritable): A = serialiser.fromBytesUnsafe(empty.deepCopy().asInstanceOf[A], x.getBytes)
     val mf: Manifest[SeqType] = implicitly
   }
 }

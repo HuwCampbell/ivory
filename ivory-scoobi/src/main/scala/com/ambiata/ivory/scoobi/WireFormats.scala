@@ -121,7 +121,7 @@ trait WireFormats {
       val size = in.readInt()
       val bytes = new Array[Byte](size)
       in.readFully(bytes)
-      serialiser.fromBytes(empty, bytes)
+      serialiser.fromBytesUnsafe(empty.deepCopy().asInstanceOf[A], bytes)
     }
     override def toString = "ThriftObject"
   }
