@@ -76,6 +76,13 @@ object Encoding {
     case DoubleEncoding  => "double"
     case StringEncoding  => "string"
   }
+
+  def isPrimitive(enc: Encoding): Boolean =
+    enc match {
+      case _: PrimitiveEncoding => true
+      case _: StructEncoding    => false
+      case _: ListEncoding      => false
+    }
 }
 
 sealed trait Type
