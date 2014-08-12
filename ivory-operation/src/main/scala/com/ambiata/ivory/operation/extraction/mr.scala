@@ -20,7 +20,6 @@ import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce.{Counter => _, _}
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat
-import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
@@ -219,22 +218,10 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
-    val priorityLookup = new FactsetLookup <| (fl => ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, fl))
-    val versionLookup = new FactsetVersionLookup <| (fvl => ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetVersionLookup, fvl))
-    val path = FilePath(MrContext.getSplitPath(context.getInputSplit).toString)
-    val (factsetId, partition) = Factset.parseFile(path) match {
-      case Success(r)        => r
-      case Failure(e)        => sys.error(s"Can not parse factset path ${e}")
-    }
-    val rawVersion = versionLookup.versions.get(factsetId.render)
-    val factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(sys.error(s"Can not parse factset version '${rawVersion}'"))
-    val priority = priorityLookup.priorities.get(factsetId.render)
-    vstate = ValueState(Priority.unsafe(priority))
-
-    converter = factsetVersion match {
-      case FactsetVersionOne => VersionOneFactConverter(partition)
-      case FactsetVersionTwo => VersionTwoFactConverter(partition)
-    }
+    val (factsetVersion, vfc, vs) = SnapshotFactsetMapper.setupVersionAndPriority(ctx.thriftCache,
+      context.getConfiguration, context.getInputSplit)
+    converter = vfc
+    vstate = vs
     emitter = MrEmitter(kout, vout)
     okCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.ok")
     skipCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.skip")
@@ -271,6 +258,26 @@ object SnapshotFactsetMapper {
       vstate.set(f.toNamespacedThrift, vout)
       emitter.emit()
     }
+  }
+
+  def setupVersionAndPriority(thriftCache: ThriftCache, configuration: Configuration, inputSplit: InputSplit): (FactsetVersion, VersionedFactConverter, SnapshotMapper.ValueState) = {
+    val versionLookup = new FactsetVersionLookup <| (fvl => thriftCache.pop(configuration, SnapshotJob.Keys.FactsetVersionLookup, fvl))
+    val path = FilePath(MrContext.getSplitPath(inputSplit).toString)
+    val (factsetId, partition) = Factset.parseFile(path) match {
+      case Success(r) => r
+      case Failure(e) => sys.error(s"Can not parse factset path ${e}")
+    }
+    val rawVersion = versionLookup.versions.get(factsetId.render)
+    val factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(sys.error(s"Can not parse factset version '${rawVersion}'"))
+
+    val converter = factsetVersion match {
+      case FactsetVersionOne => VersionOneFactConverter(partition)
+      case FactsetVersionTwo => VersionTwoFactConverter(partition)
+    }
+    val priorityLookup = new FactsetLookup <| (fl => thriftCache.pop(configuration, SnapshotJob.Keys.FactsetLookup, fl))
+    val priority = priorityLookup.priorities.get(factsetId.render)
+    val vstate = SnapshotMapper.ValueState(Priority.unsafe(priority))
+    (factsetVersion, converter, vstate)
   }
 }
 
