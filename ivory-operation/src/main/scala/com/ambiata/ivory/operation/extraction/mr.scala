@@ -309,7 +309,7 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
   var emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
 
   /** Class to count number of non skipped facts, created once per mapper */
-  var okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] =
+  val okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] =
     MrCounter("ivory", "snapshot.incr.ok")
 
   override def setup(context: MapperContext): Unit = {
