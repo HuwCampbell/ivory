@@ -54,7 +54,7 @@ facts
 
 ```
 
-#### Intrenal (Snapshot only - intention is to deprecate in favour of V3 above). 
+#### Internal (Snapshot only - intention is to deprecate in favour of V3 above). 
 
 ```
 
