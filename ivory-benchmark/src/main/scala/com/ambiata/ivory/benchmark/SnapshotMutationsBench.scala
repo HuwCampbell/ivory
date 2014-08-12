@@ -29,7 +29,7 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
   val testFact = Fact.newFact("eid", "ns", "fid", date, time, StringValue("abc"))
   val testBytes = serializer.serialize(new PriorityTag(1, java.nio.ByteBuffer.wrap(serializer.serialize(testFact.toNamespacedThrift))))
 
-  /*
+  /**
    * Marks suggestion
    */
   def time_reducerOther(n: Int) = {
@@ -66,7 +66,7 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
     }
   }
 
-  /*
+  /**
    * Original implementation
    */
   def time_original(n: Int) = {
@@ -97,7 +97,7 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
     }
   }
 
-  /*
+  /**
    * All pieces from MutableState implementation without the function composition
    * (compare to MutableState implementation to check how much overhead there is)
    */
@@ -144,7 +144,7 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
     }
   }
 
-  /*
+  /**
    * MutableState implementation
    */
   def time_reducerWithComposition(n: Int) = {
@@ -153,7 +153,7 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
         doMutation(a, state)
       }
 
-      /* Return a MutableState which mutates the state of this object then passes it to the next MutableState */
+      /** Return a MutableState which mutates the state of this object then passes it to the next MutableState */
       def andThen[X](next: MutableState[S, X]): MutableState[A, X] = {
         MutableState(next.state, (a: A, x: X) => { doMutation(a, state); next.doMutation(state, x) })
       }

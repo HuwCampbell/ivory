@@ -25,7 +25,7 @@ import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, LazyOutputForma
 
 import scalaz.{Reducer => _, _}
 
-/*
+/**
  * This is a hand-coded MR job to read facts from factsets as
  * Thrift records and write them out again, sorted and compressed
  */
@@ -47,18 +47,18 @@ object RecreateFactsetJob {
     val job = Job.getInstance(conf)
     val ctx = FactsetJob.configureJob("ivory-recreate-factset", job, dictionary, reducerLookups, partitions, target, codec)
 
-    /* input */
+    /** input */
     job.setInputFormatClass(classOf[SequenceFileInputFormat[_, _]])
 
-    /* map */
+    /** map */
     job.setMapperClass(classOf[RecreateFactsetMapper])
     job.getConfiguration.set(Keys.Version, version.toString)
 
-    /* run job */
+    /** run job */
     if (!job.waitForCompletion(true))
       sys.error("ivory recreate factset failed.")
 
-    /* commit files to factset */
+    /** commit files to factset */
     Committer.commit(ctx, {
       case "factset" => target
     }, true).run(conf).run.unsafePerformIO
@@ -70,22 +70,22 @@ object RecreateFactsetJob {
 }
 
 class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, LongWritable, BytesWritable] {
-  /* Factset version */
+  /** Factset version */
   var version = "2"
 
-  /* Context object holding dist cache paths */
+  /** Context object holding dist cache paths */
   var ctx: MrContext = null
 
-  /* The output key, only create once per mapper. */
+  /** The output key, only create once per mapper. */
   val kout = new LongWritable
 
-  /* The output value, only create once per mapper. */
+  /** The output value, only create once per mapper. */
   val vout = Writables.bytesWritable(4096)
 
-  /* Partition created from input split path, only created once per mapper */
+  /** Partition created from input split path, only created once per mapper */
   var partition: Partition = null
 
-  /* Input split path, only created once per mapper */
+  /** Input split path, only created once per mapper */
   var path: FilePath = null
 
   var featureIdLookup = new FeatureIdLookup

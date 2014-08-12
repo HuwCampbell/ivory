@@ -9,13 +9,15 @@ object DatesBenchApp extends App {
   Runner.main(classOf[DatesBench], args)
 }
 
-/*
+/**
  * This is a (crude) experiment, demonstrating the performance of some of the more hideous
- * machanisms for date parsing. The goal of this is to try get more speed out of the ingestion
+ * mechanisms for date parsing. The goal of this is to try get more speed out of the ingestion
  * date parsing, where the naive joda implementation is not good enough.
  */
 case class DatesBench() extends SimpleScalaBenchmark {
-  /* ------ The Benchmarks ------ */
+  /**
+   *  The Benchmarks
+   */
 
   def time_joda_ok(n: Int) =
     joda(n, "2012-01-01")
@@ -62,7 +64,7 @@ case class DatesBench() extends SimpleScalaBenchmark {
   def time_actual_bad(n: Int) =
     actual(n, "201x-01-01")
 
-  /*
+  /**
    * The basic joda approach, note: parseLocalDate throws exceptions so the catch is required.
    */
   def joda(n: Int, s: String) = {
@@ -75,7 +77,7 @@ case class DatesBench() extends SimpleScalaBenchmark {
     }
   }
 
-  /*
+  /**
    * A dumb regex approach, just to elliminate this idea from anyone stubling across the code.
    */
   def regex(n: Int, s: String) = {
@@ -90,7 +92,7 @@ case class DatesBench() extends SimpleScalaBenchmark {
     }
   }
 
-  /*
+  /**
    * A crude parser that unpacks things by hand.
    */
   def hand(n: Int, s: String) =
@@ -102,7 +104,7 @@ case class DatesBench() extends SimpleScalaBenchmark {
        catch { case e: Throwable => None }
     }
 
-  /*
+  /**
    * A crude parser that unpacks things by hand with less allocation
    */
   def hand_less_alloc(n: Int, s: String) =
@@ -117,7 +119,7 @@ case class DatesBench() extends SimpleScalaBenchmark {
        } catch { case e: Throwable => None }
     }
 
-  /*
+  /**
    * A crude parser that unpacks things by hand with less allocation
    */
   def actual(n: Int, s: String) =

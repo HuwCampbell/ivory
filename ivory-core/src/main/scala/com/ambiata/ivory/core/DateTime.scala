@@ -4,7 +4,7 @@ import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime => JodaDateTime}
 
-/* a packed long | 16 bits: year represented as a short | 8 bits: month represented as a byte | 8 bits: day represented as a byte | 32 bits: seconds since start of day */
+/** a packed long | 16 bits: year represented as a short | 8 bits: month represented as a byte | 8 bits: day represented as a byte | 32 bits: seconds since start of day */
 class DateTime private(val underlying: Long) extends AnyVal {
   def date: Date =
     Date.unsafeFromInt((underlying >>> 32).toInt)

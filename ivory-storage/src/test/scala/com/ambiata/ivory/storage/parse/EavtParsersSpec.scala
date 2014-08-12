@@ -85,25 +85,25 @@ Eavt Parse Formats
   case class BadValue(meta: FeatureMeta, value: String)
 
   implicit def BadValueArbitrary: Arbitrary[BadValue] = Arbitrary(Gen.oneOf(
-    /* A bad BooleanValue, examplified by an integer  */
+    /** A bad BooleanValue, examplified by an integer  */
     arbitrary[Int] map (v =>
       BadValue(FeatureMeta(BooleanEncoding, None, "bad-boolean-test-case", Nil), v.toString))
 
-    /* A bad IntValue, examplified by a string  */
+    /** A bad IntValue, examplified by a string  */
   , arbitrary[String] map (v =>
       BadValue(FeatureMeta(IntEncoding, None, "bad-int-test-case", Nil), v)) filter (x =>
         !x.value.parseInt.toOption.isDefined)
 
-    /* A bad LongValue, examplified by a double  */
+    /** A bad LongValue, examplified by a double  */
   , arbitrary[Double] map (v =>
       BadValue(FeatureMeta(LongEncoding, None, "bad-long-test-case", Nil), v.toString))
 
-    /* A bad DoubleValue, examplified by a string  */
+    /** A bad DoubleValue, examplified by a string  */
   , arbitrary[String] map (v =>
       BadValue(FeatureMeta(DoubleEncoding, None, "bad-double-test-case", Nil), v)) filter (x =>
         !x.value.parseInt.toOption.isDefined)
 
-    /* Edge cases for a bad DoubleValue (note this should include Long.MaxValue, but see #187)  */
+    /** Edge cases for a bad DoubleValue (note this should include Long.MaxValue, but see #187)  */
   , Gen.oneOf(Double.NaN.toString, Double.NegativeInfinity.toString, Double.PositiveInfinity.toString) map (v =>
       BadValue(FeatureMeta(DoubleEncoding, None, "bad-double-edge-test-case", Nil), v))
   ))

@@ -3,7 +3,7 @@ package com.ambiata.ivory.mr
 import org.apache.hadoop.io.Writable
 import org.apache.hadoop.mapreduce.TaskInputOutputContext
 
-/* Abstraction over emitting key/value pairs in an mr job */
+/** Abstraction over emitting key/value pairs in an mr job */
 trait Emitter {
   def emit(): Unit
 }

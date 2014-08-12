@@ -20,7 +20,7 @@ import org.apache.hadoop.mapreduce.Job
  */
 case class DistCache(base: Path, contextId: ContextId) {
 
-  /* Push a representation of a data-type to the distributed cache for this job, under the
+  /** Push a representation of a data-type to the distributed cache for this job, under the
      specified key. A namespace is added to the key to make it unique for each instance
      of DistCache and is maintained through the configuration object. This fails _hard_ if
      anything goes wrong. Use DistCache#pop in the setup method of Mapper or Reducer to
@@ -39,7 +39,7 @@ case class DistCache(base: Path, contextId: ContextId) {
     }
   }
 
-  /* Pop a data-type from the distributed job using the specified function, it is
+  /** Pop a data-type from the distributed job using the specified function, it is
      assumed that this is only run by map or reduce tasks where to the cache for
      this job where a call to DistCache#push has prepared everything. This fails
      _hard_ if anything goes wrong. */

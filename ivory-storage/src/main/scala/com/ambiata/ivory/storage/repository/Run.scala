@@ -6,7 +6,7 @@ import com.ambiata.poacher.scoobi._
 import com.ambiata.mundane.control._
 import com.nicta.scoobi.core.ScoobiConfiguration
 
-/* This is a set of interfaces used to represent rank-n functions to force different computations to ResultT[IO, _]  */
+/** This is a set of interfaces used to represent rank-n functions to force different computations to ResultT[IO, _]  */
 
 trait ScoobiRun {
   def runScoobi[A](action: ScoobiAction[A]): ResultT[IO, A]

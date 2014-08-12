@@ -8,7 +8,7 @@ import com.ambiata.ivory.storage.repository._
 
 object Metadata {
 
-  /* Store */
+  /** Store */
   def storeFromIvory(repo: Repository, id: FeatureStoreId): ResultTIO[FeatureStore] =
     FeatureStoreTextStorage.fromId(repo, id)
 
@@ -21,7 +21,7 @@ object Metadata {
   def listStoreIds(repo: Repository): ResultTIO[List[FeatureStoreId]] =
     FeatureStoreTextStorage.listIds(repo)
 
-  /* Dictionary */
+  /** Dictionary */
   def dictionaryFromIvory(repo: Repository): ResultTIO[Dictionary] =
     DictionaryThriftStorage(repo).load
 

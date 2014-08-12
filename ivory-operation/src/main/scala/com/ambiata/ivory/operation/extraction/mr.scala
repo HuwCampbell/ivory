@@ -27,7 +27,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
 import org.apache.thrift.protocol.TCompactProtocol
 import org.apache.thrift.{TSerializer, TDeserializer}
 
-/*
+/**
  * This is a hand-coded MR job to squeeze the most out of snapshot performance.
  */
 object SnapshotJob {
@@ -39,21 +39,21 @@ object SnapshotJob {
     job.setJarByClass(classOf[SnapshotReducer])
     job.setJobName(ctx.id.value)
 
-    /* map */
+    // map
     job.setMapOutputKeyClass(classOf[BytesWritable])
     job.setMapOutputValueClass(classOf[BytesWritable])
 
-    /* partiton & sort */
+    // partition & sort
     job.setGroupingComparatorClass(classOf[Text.Comparator])
     job.setSortComparatorClass(classOf[Text.Comparator])
 
-    /* reducer */
+    // reducer
     job.setNumReduceTasks(reducers)
     job.setReducerClass(classOf[SnapshotReducer])
     job.setOutputKeyClass(classOf[NullWritable])
     job.setOutputValueClass(classOf[BytesWritable])
 
-    /* input */
+    // input
     val mappers = inputs.map(p => (classOf[SnapshotFactsetMapper], p.value))
     mappers.foreach({ case (clazz, factsetGlob) =>
       factsetGlob.paths.foreach(path => {
@@ -67,27 +67,27 @@ object SnapshotJob {
       MultipleInputs.addInputPath(job, p, classOf[SequenceFileInputFormat[_, _]], classOf[SnapshotIncrementalMapper])
     })
 
-    /* output */
+    // output
     val tmpout = new Path(ctx.output, "snap")
     job.setOutputFormatClass(classOf[SequenceFileOutputFormat[_, _]])
     FileOutputFormat.setOutputPath(job, tmpout)
 
-    /* compression */
+    // compression
     codec.foreach(cc => {
       Compress.intermediate(job, cc)
       Compress.output(job, cc)
     })
 
-    /* cache / config initializtion */
+    // cache / config initializtion
     job.getConfiguration.set(Keys.SnapshotDate, date.int.toString)
     ctx.thriftCache.push(job, Keys.FactsetLookup, priorityTable(inputs))
     ctx.thriftCache.push(job, Keys.FactsetVersionLookup, versionTable(inputs.map(_.value)))
 
-    /* run job */
+    // run job
     if (!job.waitForCompletion(true))
       sys.error("ivory snapshot failed.")
 
-    /* commit files to factset */
+    // commit files to factset
     Committer.commit(ctx, {
       case "snap" => output
     }, true).run(conf).run.unsafePerformIO
@@ -115,7 +115,7 @@ object SnapshotJob {
 object SnapshotMapper {
   type MapperContext = Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context
 
-  /*
+  /**
    * Mutate a BytesWritable with the snapshot mapper key (entity, namespace, feature)
    */
   case class KeyState(capacity: Int) {
@@ -132,7 +132,7 @@ object SnapshotMapper {
     }
   }
 
-  /*
+  /**
    * Mutate a PriorityTag with the serialized bytes of a fact, along with the factset
    * priority
    */
@@ -150,7 +150,7 @@ object SnapshotMapper {
   }
 }
 
-/* Version specific thrift converter */
+/** Version specific thrift converter */
 sealed trait VersionedFactConverter {
   def convert(tfact: ThriftFact): Fact
 }
@@ -163,7 +163,7 @@ case class VersionTwoFactConverter(partition: Partition) extends VersionedFactCo
     PartitionFactThriftStorageV2.createFact(partition, tfact)
 }
 
-/*
+/**
  * Factset mapper for ivory-snapshot.
  *
  * The input is a standard SequenceFileInputFormat. The path is used to determin the
@@ -179,41 +179,41 @@ case class VersionTwoFactConverter(partition: Partition) extends VersionedFactCo
 class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
   import SnapshotMapper._
 
-  /* Thrift deserializer. */
+  /** Thrift deserializer. */
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
 
-  /* Context object holding dist cache paths */
+  /** Context object holding dist cache paths */
   var ctx: MrContext = null
 
-  /* Snapshot date, see #setup. */
+  /** Snapshot date, see #setup. */
   var strDate: String = null
   var date: Date = Date.unsafeFromInt(0)
 
-  /* Key state management, create once per mapper */
+  /** Key state management, create once per mapper */
   val kstate = KeyState(4096)
 
-  /* Value state management, create once per mapper */
+  /** Value state management, create once per mapper */
   var vstate: ValueState = null
 
-  /* The output key, only create once per mapper. */
+  /** The output key, only create once per mapper. */
   val kout = Writables.bytesWritable(4096)
 
-  /* The output value, only create once per mapper. */
+  /** The output value, only create once per mapper. */
   val vout = Writables.bytesWritable(4096)
 
-  /* Class to emit the key/value bytes, created once per mapper */
+  /** Class to emit the key/value bytes, created once per mapper */
   var emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
 
-  /* Class to count number of non skipped facts, created once per mapper */
+  /** Class to count number of non skipped facts, created once per mapper */
   var okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
 
-  /* Class to count number of skipped facts, created once per mapper */
+  /** Class to count number of skipped facts, created once per mapper */
   var skipCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
 
-  /* Thrift object provided from sub class, created once per mapper */
+  /** Thrift object provided from sub class, created once per mapper */
   val tfact = new ThriftFact
 
-  /* Class to convert a Thrift fact into a Fact based of the version, created once per mapper */
+  /** Class to convert a Thrift fact into a Fact based of the version, created once per mapper */
   var converter: VersionedFactConverter = null
 
   override def setup(context: MapperContext): Unit = {
@@ -241,12 +241,12 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     skipCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.skip")
   }
 
-  /*
+  /**
    * Map over thrift factsets, dropping any facts in the future of `date`
    *
    * This will create two counters:
-   * 1. snapshot.$version.ok - number of facts read
-   * 2. snapshot.$version.skip - number of facts skipped because they were in the future
+   * 1. snapshot.<version>.ok - number of facts read
+   * 2. snapshot.<version>.skip - number of facts skipped because they were in the future
    */
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
     emitter.context = context
@@ -275,34 +275,34 @@ object SnapshotFactsetMapper {
   }
 }
 
-/*
+/**
  * Incremental snapshot mapper.
  */
 class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
   import SnapshotMapper._
 
-  /* Thrift deserializer */
+  /** Thrift deserializer */
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
 
-  /* Output key, created once per mapper and mutated for each record */
+  /** Output key, created once per mapper and mutated for each record */
   val kout = Writables.bytesWritable(4096)
 
-  /* Output value, created once per mapper and mutated for each record */
+  /** Output value, created once per mapper and mutated for each record */
   val vout = Writables.bytesWritable(4096)
 
-  /* Empty Fact, created once per mapper and mutated for each record */
+  /** Empty Fact, created once per mapper and mutated for each record */
   val fact = new NamespacedThriftFact with NamespacedThriftFactDerived
 
-  /* State management for mapper keys, created once per mapper and mutated per record */
+  /** State management for mapper keys, created once per mapper and mutated per record */
   val kstate = KeyState(4096)
 
-  /* State management for mapper values, created once per mapper and mutated per record */
+  /** State management for mapper values, created once per mapper and mutated per record */
   val vstate = ValueState(Priority.Max)
 
-  /* Class to emit the key/value bytes, created once per mapper */
+  /** Class to emit the key/value bytes, created once per mapper */
   var emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
 
-  /* Class to count number of non skipped facts, created once per mapper */
+  /** Class to count number of non skipped facts, created once per mapper */
   var okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] =
     MrCounter("ivory", "snapshot.incr.ok")
 
@@ -332,7 +332,7 @@ object SnapshotIncrementalMapper {
   }
 }
 
-/*
+/**
  * Reducer for ivory-snapshot.
  *
  * This reducer takes the latest fact with the same entity|namespace|attribute key
@@ -344,25 +344,25 @@ object SnapshotIncrementalMapper {
 class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable] {
   import SnapshotReducer._
 
-  /* Thrift deserializer */
+  /** Thrift deserializer */
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
 
-  /* Empty Fact, created once per reducer and mutated per record */
+  /** Empty Fact, created once per reducer and mutated per record */
   val fact = new NamespacedThriftFact with NamespacedThriftFactDerived
 
-  /* Empty PriorityTag, created once per reducer and mutated per record */
+  /** Empty PriorityTag, created once per reducer and mutated per record */
   val priorityTag = new PriorityTag
 
-  /* Output key, only create once per reducer */
+  /** Output key, only create once per reducer */
   val kout = NullWritable.get
 
-  /* Output value, created once per reducer and mutated per record */
+  /** Output value, created once per reducer and mutated per record */
   val vout = Writables.bytesWritable(4096)
 
-  /* Class to emit the key/value bytes, created once per mapper */
+  /** Class to emit the key/value bytes, created once per mapper */
   var emitter: MrEmitter[BytesWritable, BytesWritable, NullWritable, BytesWritable] = null
 
-  /* Class to count number of tombstone values, created once per mapper */
+  /** Class to count number of tombstone values, created once per mapper */
   val counter: MrCounter[BytesWritable, BytesWritable, NullWritable, BytesWritable] =
     MrCounter("ivory", "snapshot.reducer.tombstone")
 
@@ -377,7 +377,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
   }
 }
 
-/* ***************** !!!!!! WARNING !!!!!! ******************
+/** ***************** !!!!!! WARNING !!!!!! ******************
  *
  * There is some nasty mutation in here that can corrupt data
  * without knowing, so double/triple check with others when

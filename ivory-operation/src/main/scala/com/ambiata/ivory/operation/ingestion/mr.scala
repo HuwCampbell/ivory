@@ -23,7 +23,7 @@ import org.apache.thrift.{TException, TSerializer}
 
 import org.joda.time.DateTimeZone
 
-/*
+/**
  * This is a hand-coded MR job to squeeze the most out of ingestion performance.
  */
 object IngestJob {
@@ -35,32 +35,32 @@ object IngestJob {
     val job = Job.getInstance(conf)
     val ctx = FactsetJob.configureJob("ivory-ingest", job, dictionary, reducerLookups, paths, target, codec)
 
-    /* map */
+    // map
     job.setMapperClass(format match {
       case TextFormat   => classOf[TextIngestMapper]
       case ThriftFormat => classOf[ThriftIngestMapper]
     })
 
-    /* input */
+    // input
     job.setInputFormatClass(format match {
       case TextFormat   => classOf[TextInputFormat]
       case ThriftFormat => classOf[SequenceFileInputFormat[_, _]]
     })
 
-    /* output */
+    // output
     MultipleOutputs.addNamedOutput(job, Keys.Err,  classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable])
 
-    /* cache / config initializtion */
+    // cache / config initialization
     job.getConfiguration.set(Keys.IvoryZone, ivoryZone.getID)
     job.getConfiguration.set(Keys.IngestZone, ingestZone.getID)
     job.getConfiguration.set(Keys.IngestBase, FileSystem.get(conf).getFileStatus(root).getPath.toString)
     singleNamespace.foreach(ns => job.getConfiguration.set(Keys.SingleNamespace, ns))
 
-    /* run job */
+    // run job
     if (!job.waitForCompletion(true))
       sys.error("ivory ingest failed.")
 
-    /* commit files to factset */
+    // commit files to factset
     Committer.commit(ctx, {
       case "errors"  => errors
       case "factset" => target
@@ -76,7 +76,7 @@ object IngestJob {
   }
 }
 
-/*
+/**
  * Mapper for ivory-ingest.
  *
  * The input is a standard TextInputFormat.
@@ -87,45 +87,45 @@ object IngestJob {
  * The output value is the already serialized bytes of the fact ready to write.
  */
 trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
-  /* Context object contains tmp paths and dist cache */
+  /** Context object contains tmp paths and dist cache */
   var ctx: MrContext = null
 
-  /* Cache for path -> namespace mapping. */
+  /** Cache for path -> namespace mapping. */
   val namespaces: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map.empty
 
-  /* Value serializer. */
+  /** Value serializer. */
   val serializer = new TSerializer(new TCompactProtocol.Factory)
 
-  /* Error output channel, see #setup */
+  /** Error output channel, see #setup */
   var out: MultipleOutputs[NullWritable, BytesWritable] = null
 
-  /* FeatureId.toString -> Int mapping for externalizing feature id, see #setup */
+  /** FeatureId.toString -> Int mapping for externalizing feature id, see #setup */
   val lookup = new FeatureIdLookup
 
-  /* Dictionary for this load, see #setup. */
+  /** Dictionary for this load, see #setup. */
   var dict: Dictionary = null
 
-  /* Ivory repository time zone, see #setup. */
+  /** Ivory repository time zone, see #setup. */
   var ivoryZone: DateTimeZone = null
 
-  /* Ingestion time zone, see #setup. */
+  /** Ingestion time zone, see #setup. */
   var ingestZone: DateTimeZone = null
 
-  /* Base path for this load, used to determine namespace, see #setup.
+  /** Base path for this load, used to determine namespace, see #setup.
      FIX: this is hacky as (even more than the rest) we should rely on
      a marker file or something more sensible that a directory name. */
   var base: String = null
 
-  /* The output key, only create once per mapper. */
+  /** The output key, only create once per mapper. */
   val kout = new LongWritable
 
-  /* The output value, only create once per mapper. */
+  /** The output value, only create once per mapper. */
   val vout = Writables.bytesWritable(4096)
 
-  /* Path this mapper is processing */
+  /** Path this mapper is processing */
   var splitPath: Path = null
 
-  /* name of the namespace being processed if there's only one */
+  /** name of the namespace being processed if there's only one */
   var singleNamespace: Option[String] = None
 
   override def setup(context: Mapper[K, I, LongWritable, BytesWritable]#Context): Unit = {

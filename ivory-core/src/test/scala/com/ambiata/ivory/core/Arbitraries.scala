@@ -201,7 +201,7 @@ object Arbitraries {
     v      <- Gen.frequency((if (m.tombstoneValue.nonEmpty) 1 else 0) -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding, m.tombstoneValue))
   } yield (m, Fact.newFact(e, f.namespace, f.name, dtz.datetime.date, dtz.datetime.time, v), dtz.zone)
 
-  /* All generated SparseEntities will have a large range of possible entity id's */
+  /** All generated SparseEntities will have a large range of possible entity id's */
   case class SparseEntities(meta: FeatureMeta, fact: Fact, zone: DateTimeZone)
 
   /**

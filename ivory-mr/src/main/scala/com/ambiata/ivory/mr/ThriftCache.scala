@@ -23,12 +23,12 @@ case class ThriftCache(base: Path, id: ContextId) {
   val serializer = new TSerializer(new TCompactProtocol.Factory)
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
 
-  /* Push a thrift data-type to the distributed cache for this job, under the
+  /** Push a thrift data-type to the distributed cache for this job, under the
      specified key. This fails _hard_ if anything goes wrong. */
   def push[A](job: Job, key: ThriftCache.Key, a: A)(implicit ev: A <:< ThriftLike): Unit =
     distCache.push(job, DistCache.Key(key.value), serializer.serialize(a))
 
-  /* Pop a thrift data-type from the distributed job, it is assumed that this is
+  /** Pop a thrift data-type from the distributed job, it is assumed that this is
      only run by map or reduce tasks where to the cache for this job where a call
      to ThriftCache#push has prepared everything. This fails _hard_ if anything
      goes wrong. NOTE: argument is updated, rather than a new value returned. */

@@ -8,15 +8,15 @@ import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.BytesWritable
 
 object SeqSchemas {
-  /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
+  /** WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   def thriftFactSeqSchema: SeqSchema[ThriftFact] =
     mkThriftSchema(new ThriftFact)
 
-  /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
+  /** WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   def namespacedThiftFactSeqSchema: SeqSchema[NamespacedThriftFact] =
     mkThriftSchema(new NamespacedThriftFact)
 
-  /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
+  /** WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   def factSeqSchema: SeqSchema[Fact] = new SeqSchema[Fact] {
     type SeqType = BytesWritable
     def empty = new NamespacedThriftFact with NamespacedThriftFactDerived
@@ -26,7 +26,7 @@ object SeqSchemas {
     val mf: Manifest[SeqType] = implicitly
   }
 
-  /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
+  /** WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   def parseErrorSeqSchema: SeqSchema[ParseError] = new SeqSchema[ParseError] {
     type SeqType = BytesWritable
     def empty = new ThriftParseError
@@ -38,7 +38,7 @@ object SeqSchemas {
     val mf: Manifest[SeqType] = implicitly
   }
 
-  /* WARNING THIS IS NOT SAFE TO EXPOSE, DANGER LURKS, SEE ThriftFactSeqSchema */
+  /** WARNING THIS IS NOT SAFE TO EXPOSE, DANGER LURKS, SEE ThriftFactSeqSchema */
   private def mkThriftSchema[A](empty: A)(implicit ev: A <:< ThriftLike) = new SeqSchema[A] {
     type SeqType = BytesWritable
     val serialiser = ThriftSerialiser()
