@@ -131,7 +131,7 @@ object FatThriftFact {
 
   def factWith(entity: String, namespace: String, feature: String, date: Date, time: Time, value: ThriftFactValue): Fact = {
     val tfact = new ThriftFact(entity, feature, value)
-    FatThriftFact(namespace, date, tfact.setSeconds(time.seconds))
+    FatThriftFact(namespace, date, if (time.seconds != 0) tfact.setSeconds(time.seconds) else tfact)
   }
 }
 
