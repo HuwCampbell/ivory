@@ -327,8 +327,8 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
 object SnapshotIncrementalMapper {
   import SnapshotMapper._
 
-  def map(fact: NamespacedThriftFact with NamespacedThriftFactDerived, bytes: Array[Byte], kstate: KeyState,
-          vstate: ValueState, kout: BytesWritable, vout: BytesWritable, emitter: Emitter, okCounter: Counter, serializer: ThriftSerialiser) {
+  def map(fact: MutableFact, bytes: Array[Byte], kstate: KeyState, vstate: ValueState, kout: BytesWritable,
+          vout: BytesWritable, emitter: Emitter, okCounter: Counter, serializer: ThriftSerialiser) {
     okCounter.count(1)
     fact.clear()
     serializer.fromBytesUnsafe(fact, bytes)
@@ -353,11 +353,8 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
   /** Thrift deserializer */
   val serializer = ThriftSerialiser()
 
-  /** Empty Fact, created once per reducer and mutated per record */
-  val fact = new NamespacedThriftFact with NamespacedThriftFactDerived
-
   /** Empty PriorityTag, created once per reducer and mutated per record */
-  val priorityTag = new PriorityTag
+  val priority = new PriorityTagDeserializer(new NamespacedThriftFact with NamespacedThriftFactDerived)
 
   /** Output key, only create once per reducer */
   val kout = NullWritable.get
@@ -379,7 +376,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
     emitter.context = context
     counter.context = context
-    SnapshotReducer.reduce(fact, priorityTag, kout, vout, iter.iterator, emitter, counter, serializer)
+    SnapshotReducer.reduce(priority, kout, vout, iter.iterator, emitter, counter)
   }
 }
 
@@ -393,38 +390,28 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
 object SnapshotReducer {
   type ReducerContext = Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context
 
-  case class ReduceState(var latestContainer: PriorityTag, var latestDate: Long, var isTombstone: Boolean) {
-    def accept(priorityTag: PriorityTag, nextDate: Long): Boolean =
-      latestContainer == null || nextDate > latestDate || (nextDate == latestDate && priorityTag.getPriority < latestContainer.getPriority)
+  case class ReduceState(var latestDate: Long, var isTombstone: Boolean)
+    extends PriorityTagDeserializer.State[MutableFact] {
 
-    def save(fact: Fact, priorityTag: PriorityTag, nextDate: Long): Unit = {
-      latestContainer = priorityTag.deepCopy
-      latestDate = nextDate
+    def accept(fact: MutableFact, higherPriority: Boolean): Boolean = {
+      val nextDate = fact.datetime.long
+      nextDate > latestDate || (nextDate == latestDate && higherPriority)
+    }
+
+    def save(fact: MutableFact): Unit = {
+      latestDate = fact.datetime.long
       isTombstone = fact.isTombstone
     }
-
-    def write(vout: BytesWritable, emitter: Emitter, counter: Counter): Unit =
-      if (!isTombstone) {
-        vout.set(latestContainer.getBytes, 0, latestContainer.getBytes.length)
-        emitter.emit()
-      } else {
-        counter.count(1)
-      }
   }
 
-  def reduce(fact: NamespacedThriftFact with NamespacedThriftFactDerived, priorityTag: PriorityTag, kout: NullWritable,
-             vout: BytesWritable, iter: JIterator[BytesWritable], emitter: Emitter, counter: Counter, serializer: ThriftSerialiser) {
-    val state = ReduceState(null, 0l, true)
-    while(iter.hasNext) {
-      val next = iter.next
-      priorityTag.clear()
-      fact.clear()
-      serializer.fromBytesUnsafe(priorityTag, next.getBytes) // populate PriorityTag which holds priority and serialized fact
-      serializer.fromBytesUnsafe(fact, priorityTag.getBytes) // populate fact
-      val nextDate = fact.datetime.long
-      if (state.accept(priorityTag, nextDate))
-        state.save(fact, priorityTag, nextDate)
-    }
-    state.write(vout, emitter, counter)
+  def reduce(priority: PriorityTagDeserializer[MutableFact], kout: NullWritable, vout: BytesWritable,
+             iter: JIterator[BytesWritable], emitter: Emitter, counter: Counter): Unit =  {
+    val state = ReduceState(0l, true)
+    val latestContainer = priority.findHighestPriority(state, kout, iter)
+    if(!state.isTombstone) {
+      vout.set(latestContainer.getBytes, 0, latestContainer.getBytes.length)
+      emitter.emit()
+    } else
+      counter.count(1)
   }
 }

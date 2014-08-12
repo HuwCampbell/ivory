@@ -159,8 +159,7 @@ SnapshotReducerSpec
     } yield reducerFacts)
 
   def e1 = prop((inputs: List[ReducerFacts]) => {
-    val factContainer = new NamespacedThriftFact with NamespacedThriftFactDerived
-    val priorityTagContainer = new PriorityTag
+    val priority = new PriorityTagDeserializer(new NamespacedThriftFact with NamespacedThriftFactDerived)
     val vout = Writables.bytesWritable(4096)
 
     seqToResult(inputs.map(in => {
@@ -178,7 +177,7 @@ SnapshotReducerSpec
           bw
         }).toIterator.asJava
   
-      SnapshotReducer.reduce(factContainer, priorityTagContainer, NullWritable.get, vout, iter, emitter, counter, serializer)
+      SnapshotReducer.reduce(priority, NullWritable.get, vout, iter, emitter, counter)
       expectedBytes.map(bytes => actual.copyBytes ==== bytes and tombstoneCount ==== 0).getOrElse((actual must beNull) and tombstoneCount ==== 1)
     }))
   })
