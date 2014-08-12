@@ -11,10 +11,7 @@ import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.storage.Arbitraries._
 import org.apache.hadoop.io.{BytesWritable, NullWritable}
-import org.apache.thrift.protocol.TCompactProtocol
-import org.apache.thrift.{TSerializer, TDeserializer}
 import java.nio.ByteBuffer
-import scalaz.{Value => _, _}, Scalaz._
 
 import scala.collection.JavaConverters._
 
@@ -43,19 +40,18 @@ SnapshotMapperSpec
   })
 
   def e2 = prop((fs: List[Fact], priority: Priority) => {
-    val serializer = new TSerializer(new TCompactProtocol.Factory)
+    val serializer = ThriftSerialiser()
     val vstate = ValueState(priority)
     val state = Writables.bytesWritable(4096)
 
     seqToResult(fs.map(f => {
       vstate.set(f, state)
-      state.copyBytes must_== serializer.serialize(new PriorityTag(priority.toShort, ByteBuffer.wrap(serializer.serialize(f.toNamespacedThrift))))
+      state.copyBytes must_== serializer.toBytes(new PriorityTag(priority.toShort, ByteBuffer.wrap(serializer.toBytes(f.toNamespacedThrift))))
     }))
   })
 
   def e3 = prop((fs: List[Fact], priority: Priority, date: Date, version: FactsetVersion) => {
-    val serializer = new TSerializer(new TCompactProtocol.Factory)
-    val deserializer = new TDeserializer(new TCompactProtocol.Factory)
+    val serializer = ThriftSerialiser()
     val kstate = KeyState(4096)
     val vstate = ValueState(priority)
     val kout = Writables.bytesWritable(4096)
@@ -72,18 +68,17 @@ SnapshotMapperSpec
         case FactsetVersionOne => VersionOneFactConverter(partition)
         case FactsetVersionTwo => VersionTwoFactConverter(partition)
       }
-      val bytes = serializer.serialize(f.toThrift)
-      SnapshotFactsetMapper.map(tfact, date, converter, bytes, kstate, vstate, kout, vout, emitter, okCounter, skipCounter, deserializer)
+      val bytes = serializer.toBytes(f.toThrift)
+      SnapshotFactsetMapper.map(tfact, date, converter, bytes, kstate, vstate, kout, vout, emitter, okCounter, skipCounter, serializer)
     })
 
     val expected = fs.filter(_.date.isBeforeOrEqual(date))
 
-    assertMapperOutput(emitter, okCounter, skipCounter, expected, fs.length - expected.length, priority, deserializer)
+    assertMapperOutput(emitter, okCounter, skipCounter, expected, fs.length - expected.length, priority, serializer)
   })
 
   def e4 = prop((fs: List[Fact]) => {
-    val serializer = new TSerializer(new TCompactProtocol.Factory)
-    val deserializer = new TDeserializer(new TCompactProtocol.Factory)
+    val serializer = ThriftSerialiser()
     val kstate = KeyState(4096)
     val vstate = ValueState(Priority.Max)
     val kout = Writables.bytesWritable(4096)
@@ -94,22 +89,22 @@ SnapshotMapperSpec
 
     // Run mapper
     fs.foreach(f => {
-      val bytes = serializer.serialize(f.toNamespacedThrift)
-      SnapshotIncrementalMapper.map(empty, bytes, kstate, vstate, kout, vout, emitter, counter, deserializer)
+      val bytes = serializer.toBytes(f.toNamespacedThrift)
+      SnapshotIncrementalMapper.map(empty, bytes, kstate, vstate, kout, vout, emitter, counter, serializer)
     })
 
-    assertMapperOutput(emitter, counter, TestCounter(), fs, 0, Priority.Max, deserializer)
+    assertMapperOutput(emitter, counter, TestCounter(), fs, 0, Priority.Max, serializer)
   })
 
-  def assertMapperOutput(emitter: TestEmitter, okCounter: TestCounter, skipCounter: TestCounter, expectedFacts: List[Fact], expectedSkip: Int, priority: Priority, deserializer: TDeserializer): matcher.MatchResult[Any] =
+  def assertMapperOutput(emitter: TestEmitter, okCounter: TestCounter, skipCounter: TestCounter, expectedFacts: List[Fact], expectedSkip: Int, priority: Priority, serializer: ThriftSerialiser): matcher.MatchResult[Any] =
     emitter.emittedKeys.toList.map(_.toList) ==== expectedFacts.map(keyBytes).map(_.toList) and
-    emitter.emittedVals.toList.map(bytes => deserializeValue(bytes, deserializer)) ==== expectedFacts.map((priority.toShort, _)) and
+    emitter.emittedVals.toList.map(bytes => deserializeValue(bytes, serializer)) ==== expectedFacts.map((priority.toShort, _)) and
     okCounter.i ==== expectedFacts.length and
     skipCounter.i ==== expectedSkip
 
-  def deserializeValue(bytes: Array[Byte], deserializer: TDeserializer): (Short, Fact) = {
-    val tag = new PriorityTag <| (x => deserializer.deserialize(x, bytes))
-    (tag.priority, new NamespacedThriftFact with NamespacedThriftFactDerived <| (x => deserializer.deserialize(x, tag.bytes.array())))
+  def deserializeValue(bytes: Array[Byte], serializer: ThriftSerialiser): (Short, Fact) = {
+    val tag = serializer.fromBytesUnsafe(new PriorityTag, bytes)
+    (tag.priority, serializer.fromBytesUnsafe(new NamespacedThriftFact with NamespacedThriftFactDerived, tag.bytes.array()))
   }
 
   def keyBytes(f: Fact): Array[Byte] =
@@ -142,8 +137,7 @@ SnapshotReducerSpec
 
 """
 
-  val serializer = new TSerializer(new TCompactProtocol.Factory)
-  val deserializer = new TDeserializer(new TCompactProtocol.Factory)
+  val serializer = ThriftSerialiser()
 
   case class PriorityDateTimeValue(priority: Priority, datetime: DateTime, value: Value)
   def priorityDateTimeValue(m: FeatureMeta): Gen[PriorityDateTimeValue] = for {
@@ -160,7 +154,7 @@ SnapshotReducerSpec
       dtvs   <- Gen.choose(1, 10).flatMap(n => Gen.listOfN(n, priorityDateTimeValue(m)))
       pfacts = dtvs.map(dtv => (dtv.priority, Fact.newFact(e, f.namespace, f.name, dtv.datetime.date, dtv.datetime.time, dtv.value)))
       reducerFacts = ReducerFacts(pfacts.map({ case (p, f) =>
-        (f, new PriorityTag(p.toShort, ByteBuffer.wrap(serializer.serialize(f.toNamespacedThrift))))
+        (f, new PriorityTag(p.toShort, ByteBuffer.wrap(serializer.toBytes(f.toNamespacedThrift))))
       }))
     } yield reducerFacts)
 
@@ -178,13 +172,13 @@ SnapshotReducerSpec
       val (expectedFact, expectedPriorityTag) = in.facts.maxBy({ case (f, pt) => (f.datetime.long, -pt.priority.toShort) })
       val expectedBytes = if(expectedFact.isTombstone) None else Some(expectedPriorityTag.getBytes)
       val iter = in.facts.map({ case (_, pt) =>
-          val bytes = serializer.serialize(pt)
+          val bytes = serializer.toBytes(pt)
           val bw = Writables.bytesWritable(4096)
           bw.set(bytes, 0, bytes.length)
           bw
         }).toIterator.asJava
   
-      SnapshotReducer.reduce(factContainer, priorityTagContainer, NullWritable.get, vout, iter, emitter, counter, deserializer)
+      SnapshotReducer.reduce(factContainer, priorityTagContainer, NullWritable.get, vout, iter, emitter, counter, serializer)
       expectedBytes.map(bytes => actual.copyBytes ==== bytes and tombstoneCount ==== 0).getOrElse((actual must beNull) and tombstoneCount ==== 1)
     }))
   })

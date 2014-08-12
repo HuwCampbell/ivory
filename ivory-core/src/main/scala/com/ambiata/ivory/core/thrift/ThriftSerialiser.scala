@@ -3,15 +3,16 @@ package com.ambiata.ivory.core.thrift
 import org.apache.thrift.protocol.TCompactProtocol
 import org.apache.thrift.TSerializer
 
+/**
+ * This should be the _only_ use of Thrift serialisation/deserialisation in Ivory.
+ * There are some _serious_ dangers lurking (such as calling clear), and we need to be able to control them in one place.
+ */
 case class ThriftSerialiser() {
   val serialiser = new TSerializer(new TCompactProtocol.Factory)
   val deserialiser = new TDeserializerCopy(new TCompactProtocol.Factory)
 
   def toBytes[A](a: A)(implicit ev: A <:< ThriftLike): Array[Byte] =
     serialiser.serialize(ev(a))
-
-  def fromBytes[A](empty: A, bytes: Array[Byte])(implicit ev: A <:< ThriftLike): A =
-    fromBytesUnsafe(ev(empty).deepCopy.asInstanceOf[A], bytes)
 
   def fromBytes1[A](empty: () => A, bytes: Array[Byte])(implicit ev: A <:< ThriftLike): A =
     fromBytesUnsafe(empty(), bytes)
