@@ -18,8 +18,7 @@ import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.mapreduce.lib.input.{SequenceFileInputFormat, TextInputFormat}
 import org.apache.hadoop.mapreduce.lib.output.{MultipleOutputs, SequenceFileOutputFormat}
-import org.apache.thrift.protocol.TCompactProtocol
-import org.apache.thrift.{TException, TSerializer}
+import org.apache.thrift.TException
 
 import org.joda.time.DateTimeZone
 
@@ -94,7 +93,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
   val namespaces: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map.empty
 
   /** Value serializer. */
-  val serializer = new TSerializer(new TCompactProtocol.Factory)
+  val serializer = ThriftSerialiser()
 
   /** Error output channel, see #setup */
   var out: MultipleOutputs[NullWritable, BytesWritable] = null
@@ -156,7 +155,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
         val k = lookup.ids.get(f.featureId.toString).toInt
         kout.set((k.toLong << 32) | f.date.int.toLong)
 
-        val v = serializer.serialize(f.toThrift)
+        val v = serializer.toBytes(f.toThrift)
         vout.set(v, 0, v.length)
 
         context.write(kout, vout)
@@ -165,7 +164,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
 
         context.getCounter("ivory", "ingest.error").increment(1)
 
-        val v = serializer.serialize(e.toThrift)
+        val v = serializer.toBytes(e.toThrift)
         vout.set(v, 0, v.length)
 
         out.write(IngestJob.Keys.Err, NullWritable.get, vout, "errors/part")

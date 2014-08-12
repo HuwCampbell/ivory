@@ -32,44 +32,37 @@ trait WireFormats {
   /** WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   /** this is a special snowflake because you want to mix in Fact without the overhead of creating two objects. */
   def factWireFormat = new WireFormat[Fact] {
-    import org.apache.thrift.protocol.TCompactProtocol
-    import org.apache.thrift.{TSerializer, TDeserializer}
 
     def toWire(x: Fact, out: DataOutput) = {
-      val serialiser = new TSerializer(new TCompactProtocol.Factory)
-      val bytes = serialiser.serialize(x.toNamespacedThrift)
+      val serialiser = ThriftSerialiser()
+      val bytes = serialiser.toBytes(x.toNamespacedThrift)
       out.writeInt(bytes.length)
       out.write(bytes)
     }
     def fromWire(in: DataInput): Fact = {
-      val deserialiser = new TDeserializer(new TCompactProtocol.Factory)
+      val serialiser = ThriftSerialiser()
       val size = in.readInt()
       val bytes = new Array[Byte](size)
-       in.readFully(bytes)
-      val e = new NamespacedThriftFact with NamespacedThriftFactDerived
-      deserialiser.deserialize(e, bytes)
-      e
+      in.readFully(bytes)
+      serialiser.fromBytesUnsafe(new NamespacedThriftFact with NamespacedThriftFactDerived, bytes)
     }
   }
 
   /** WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   def parseErrorWireFormat = new WireFormat[ParseError] {
-    import org.apache.thrift.protocol.TCompactProtocol
-    import org.apache.thrift.{TSerializer, TDeserializer}
 
     def toWire(x: ParseError, out: DataOutput) = {
-      val serialiser = new TSerializer(new TCompactProtocol.Factory)
-      val bytes = serialiser.serialize(x.toThrift)
+      val serialiser = ThriftSerialiser()
+      val bytes = serialiser.toBytes(x.toThrift)
       out.writeInt(bytes.length)
       out.write(bytes)
     }
     def fromWire(in: DataInput): ParseError = {
-      val deserialiser = new TDeserializer(new TCompactProtocol.Factory)
+      val serialiser = ThriftSerialiser()
       val size = in.readInt()
       val bytes = new Array[Byte](size)
       in.readFully(bytes)
-      val e = new ThriftParseError()
-      deserialiser.deserialize(e, bytes)
+      val e = serialiser.fromBytesUnsafe(new ThriftParseError(), bytes)
       ParseError.fromThrift(e)
     }
 

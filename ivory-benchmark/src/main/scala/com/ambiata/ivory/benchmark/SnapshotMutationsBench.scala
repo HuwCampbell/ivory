@@ -5,8 +5,6 @@ import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.mr.Writables
 import com.google.caliper._
 import org.apache.hadoop.io._
-import org.apache.thrift.protocol.TCompactProtocol
-import org.apache.thrift.{TSerializer, TDeserializer}
 
 object SnapshotMutationsBenchApp extends App {
   Runner.main(classOf[SnapshotMutationsBench], args)
@@ -20,14 +18,13 @@ object SnapshotMutationsBenchApp extends App {
  * around the same.
  */
 case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
-  val serializer = new TSerializer(new TCompactProtocol.Factory)
-  val deserializer = new TDeserializer(new TCompactProtocol.Factory)
+  val serializer = ThriftSerialiser()
 
   def date: Date = Date(2014, 1, 1)
   def time: Time = Time(0)
 
   val testFact = Fact.newFact("eid", "ns", "fid", date, time, StringValue("abc"))
-  val testBytes = serializer.serialize(new PriorityTag(1, java.nio.ByteBuffer.wrap(serializer.serialize(testFact.toNamespacedThrift))))
+  val testBytes = serializer.toBytes(new PriorityTag(1, java.nio.ByteBuffer.wrap(serializer.toBytes(testFact.toNamespacedThrift))))
 
   /**
    * Marks suggestion
@@ -56,8 +53,8 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
     var out: BytesWritable = null
     val state = ReduceState(null, 0l, true)
     repeat[BytesWritable](n) {
-      deserializer.deserialize(container, testBytes)
-      deserializer.deserialize(fact, container.getBytes) // explain why deserialize twice
+      serializer.fromBytesUnsafe(container, testBytes)
+      serializer.fromBytesUnsafe(fact, container.getBytes) // explain why deserialize twice
       val nextDate = fact.datetime.long
       if (state.accept(container, nextDate))
         state.save(fact, container, nextDate)
@@ -78,8 +75,8 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
     val vout = Writables.bytesWritable(4096)
     var out: BytesWritable = null
     repeat[BytesWritable](n) {
-      deserializer.deserialize(container, testBytes)
-      deserializer.deserialize(fact, container.getBytes) // explain why deserialize twice
+      serializer.fromBytesUnsafe(container, testBytes)
+      serializer.fromBytesUnsafe(fact, container.getBytes) // explain why deserialize twice
       val nextDate = fact.datetime.long
       // move the if statement to a function
       if(latestContainer == null || nextDate > latestDate || (nextDate == latestDate && container.getPriority < latestContainer.getPriority)) {
@@ -118,11 +115,11 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
     repeat[BytesWritable](n) {
       // First
       s1.clear()
-      deserializer.deserialize(s1, testBytes)
+      serializer.fromBytesUnsafe(s1, testBytes)
 
       // Second
       s2_fact.clear()
-      deserializer.deserialize(s2_fact, s1.getBytes)
+      serializer.fromBytesUnsafe(s2_fact, s1.getBytes)
       s2_pt = s1
 
       // Third
@@ -169,24 +166,22 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
       latestPriorityTagBytesState(capacity)
 
     def thriftPriorityTagState: MutableState[Array[Byte], PriorityTag] = {
-      val deserializer = new TDeserializer(new TCompactProtocol.Factory)
       MutableState(
         new PriorityTag,
         (bytes: Array[Byte], state: PriorityTag) => {
           state.clear()
-          deserializer.deserialize(state, bytes)
+          serializer.fromBytesUnsafe(state, bytes)
         })
     }
 
     case class MutableFactPriorityTag(var fact: NamespacedThriftFact with NamespacedThriftFactDerived, var priorityTag: PriorityTag)
 
     def factPriorityTagState: MutableState[PriorityTag, MutableFactPriorityTag] = {
-      val deserializer = new TDeserializer(new TCompactProtocol.Factory)
       MutableState(
         MutableFactPriorityTag(new NamespacedThriftFact with NamespacedThriftFactDerived, new PriorityTag),
         (pt: PriorityTag, state: MutableFactPriorityTag) => {
           state.fact.clear()
-          deserializer.deserialize(state.fact, pt.getBytes)
+          serializer.fromBytesUnsafe(state.fact, pt.getBytes)
           state.priorityTag = pt
         })
     }

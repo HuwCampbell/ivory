@@ -25,7 +25,6 @@ import org.apache.hadoop.mapreduce.lib.input.MultipleInputs
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
 import org.apache.thrift.protocol.TCompactProtocol
-import org.apache.thrift.{TSerializer, TDeserializer}
 
 /**
  * This is a hand-coded MR job to squeeze the most out of snapshot performance.
@@ -138,13 +137,13 @@ object SnapshotMapper {
    */
   case class ValueState(priority: Priority) {
     val priorityTag = new PriorityTag
-    val serializer = new TSerializer(new TCompactProtocol.Factory)
+    val serializer = ThriftSerialiser()
 
     def set(f: Fact, state: BytesWritable) {
       priorityTag.clear()
       priorityTag.setPriority(priority.toShort)
-      priorityTag.setBytes(ByteBuffer.wrap(serializer.serialize(f.toNamespacedThrift)))
-      val bytes = serializer.serialize(priorityTag)
+      priorityTag.setBytes(ByteBuffer.wrap(serializer.toBytes(f.toNamespacedThrift)))
+      val bytes = serializer.toBytes(priorityTag)
       state.set(bytes, 0, bytes.length)
     }
   }
@@ -180,7 +179,7 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
   import SnapshotMapper._
 
   /** Thrift deserializer. */
-  val deserializer = new TDeserializer(new TCompactProtocol.Factory)
+  val serializer = ThriftSerialiser()
 
   /** Context object holding dist cache paths */
   var ctx: MrContext = null
@@ -252,7 +251,7 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     emitter.context = context
     okCounter.context = context
     skipCounter.context = context
-    SnapshotFactsetMapper.map(tfact, date, converter, value.copyBytes, kstate, vstate, kout, vout, emitter, okCounter, skipCounter, deserializer)
+    SnapshotFactsetMapper.map(tfact, date, converter, value.copyBytes, kstate, vstate, kout, vout, emitter, okCounter, skipCounter, serializer)
   }
 }
 
@@ -261,8 +260,8 @@ object SnapshotFactsetMapper {
 
   def map[A <: ThriftLike](tfact: ThriftFact, date: Date, converter: VersionedFactConverter, bytes: Array[Byte],
                            kstate: KeyState, vstate: ValueState, kout: BytesWritable, vout: BytesWritable,
-                           emitter: Emitter, okCounter: Counter, skipCounter: Counter, deserializer: TDeserializer) {
-    deserializer.deserialize(tfact, bytes)
+                           emitter: Emitter, okCounter: Counter, skipCounter: Counter, deserializer: ThriftSerialiser) {
+    deserializer.fromBytesUnsafe(tfact, bytes)
     val f = converter.convert(tfact)
     if(f.date > date)
       skipCounter.count(1)
@@ -282,7 +281,7 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
   import SnapshotMapper._
 
   /** Thrift deserializer */
-  val deserializer = new TDeserializer(new TCompactProtocol.Factory)
+  val serializer = ThriftSerialiser()
 
   /** Output key, created once per mapper and mutated for each record */
   val kout = Writables.bytesWritable(4096)
@@ -314,7 +313,7 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
     emitter.context = context
     okCounter.context = context
-    SnapshotIncrementalMapper.map(fact, value.copyBytes, kstate, vstate, kout, vout, emitter, okCounter, deserializer)
+    SnapshotIncrementalMapper.map(fact, value.copyBytes, kstate, vstate, kout, vout, emitter, okCounter, serializer)
   }
 }
 
@@ -322,10 +321,10 @@ object SnapshotIncrementalMapper {
   import SnapshotMapper._
 
   def map(fact: NamespacedThriftFact with NamespacedThriftFactDerived, bytes: Array[Byte], kstate: KeyState,
-          vstate: ValueState, kout: BytesWritable, vout: BytesWritable, emitter: Emitter, okCounter: Counter, deserializer: TDeserializer) {
+          vstate: ValueState, kout: BytesWritable, vout: BytesWritable, emitter: Emitter, okCounter: Counter, serializer: ThriftSerialiser) {
     okCounter.count(1)
     fact.clear()
-    deserializer.deserialize(fact, bytes)
+    serializer.fromBytesUnsafe(fact, bytes)
     kstate.set(fact, kout)
     vstate.set(fact, vout)
     emitter.emit()
@@ -345,7 +344,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
   import SnapshotReducer._
 
   /** Thrift deserializer */
-  val deserializer = new TDeserializer(new TCompactProtocol.Factory)
+  val serializer = ThriftSerialiser()
 
   /** Empty Fact, created once per reducer and mutated per record */
   val fact = new NamespacedThriftFact with NamespacedThriftFactDerived
@@ -373,7 +372,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
     emitter.context = context
     counter.context = context
-    SnapshotReducer.reduce(fact, priorityTag, kout, vout, iter.iterator, emitter, counter, deserializer)
+    SnapshotReducer.reduce(fact, priorityTag, kout, vout, iter.iterator, emitter, counter, serializer)
   }
 }
 
@@ -407,14 +406,14 @@ object SnapshotReducer {
   }
 
   def reduce(fact: NamespacedThriftFact with NamespacedThriftFactDerived, priorityTag: PriorityTag, kout: NullWritable,
-             vout: BytesWritable, iter: JIterator[BytesWritable], emitter: Emitter, counter: Counter, deserializer: TDeserializer) {
+             vout: BytesWritable, iter: JIterator[BytesWritable], emitter: Emitter, counter: Counter, serializer: ThriftSerialiser) {
     val state = ReduceState(null, 0l, true)
     while(iter.hasNext) {
       val next = iter.next
       priorityTag.clear()
       fact.clear()
-      deserializer.deserialize(priorityTag, next.getBytes) // populate PriorityTag which holds priority and serialized fact
-      deserializer.deserialize(fact, priorityTag.getBytes) // populate fact
+      serializer.fromBytesUnsafe(priorityTag, next.getBytes) // populate PriorityTag which holds priority and serialized fact
+      serializer.fromBytesUnsafe(fact, priorityTag.getBytes) // populate fact
       val nextDate = fact.datetime.long
       if (state.accept(priorityTag, nextDate))
         state.save(fact, priorityTag, nextDate)
