@@ -14,7 +14,7 @@ trait Fact {
   def value: Value
   def toThrift: ThriftFact
 
-  def toNamespacedThrift: NamespacedThriftFact with NamespacedThriftFactDerived
+  def toNamespacedThrift: MutableFact
 
   def coordinateString(delim: Char): String = {
     val fields = List(s"$entity", s"$featureId", s"${date.int}-${time}}")
