@@ -4,7 +4,7 @@ dictionary
 ----------
 
 
-### Ingest
+#### Ingest
 
 ```
 
@@ -13,7 +13,7 @@ dictionary
 
 ```
 
-### Internal
+#### Internal
 
 ```
 
@@ -23,7 +23,7 @@ dictionary
 
 ```
 
-### Extract
+#### Extract
 
 ```
 
@@ -34,7 +34,7 @@ dictionary
 facts
 -----
 
-### Ingest
+#### Ingest
 
 ```
 
@@ -43,7 +43,7 @@ facts
 
 ```
 
-### Internal
+#### Internal
 
 ```
 
@@ -54,7 +54,7 @@ facts
 
 ```
 
-Snapshot only formats:
+#### Intrenal (Snapshot only - intention is to deprecate in favour of V3 above). 
 
 ```
 
