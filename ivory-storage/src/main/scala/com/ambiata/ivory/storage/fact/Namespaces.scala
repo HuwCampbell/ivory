@@ -17,12 +17,4 @@ object Namespaces {
       case None       => Hdfs.childrenSizes(factsetPath).map(_.map { case (n, q) => (Name.fromPathName(n), q) })
     }
 
-  /**
-   * @return the list of partitions for a given factset and their corresponding sizes
-   */
-  def partitionSizes(factsetPath: Path): Hdfs[List[(Path, BytesQuantity)]] =
-    Hdfs.childrenSizes(factsetPath, "*/*/*/*").map(_.filterNot { case (n, q) =>
-      n.getName.startsWith("_") || n.getName.startsWith(".")
-    })
-
 }
