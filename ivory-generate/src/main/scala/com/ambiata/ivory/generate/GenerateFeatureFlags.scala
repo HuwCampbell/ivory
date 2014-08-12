@@ -1,6 +1,6 @@
 package com.ambiata.ivory.generate
 
-import scalaz._, Scalaz._, \&/._, effect._
+import scalaz.{Name => _, _}, Scalaz._, \&/._, effect._
 import com.nicta.rng._
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
@@ -10,10 +10,10 @@ import com.ambiata.mundane.parse._
 import com.ambiata.ivory.core._
 import com.ambiata.poacher.hdfs._
 
-case class FeatureFlags(namespace: String, name: String, sparcity: Double, frequency: Frequency) {
+case class FeatureFlags(namespace: Name, name: String, sparcity: Double, frequency: Frequency) {
 
   def toDelimitedString(delim: Char): String = {
-    val fields = List(s"$namespace", s"$name", s"$sparcity", s"$frequency")
+    val fields = List(s"${namespace.name}", s"$name", s"$sparcity", s"$frequency")
     fields.mkString(delim.toString)
   }
 }
@@ -36,7 +36,7 @@ object FeatureFlags {
   def parseEntry(line: String): String \/ FeatureFlags = {
     import ListParser._
     val parser: ListParser[FeatureFlags] = for {
-      namespace <- string
+      namespace <- Name.listParser
       name      <- string
       sparcity  <- double
       frequency <- for {
@@ -73,8 +73,6 @@ object Frequency {
 object GenerateFeatureFlags {
   import Rng._
 
-  type Namespace = String
-  type Name = String
   type Sparcity = Double
 
   lazy val r = new java.util.Random
@@ -87,7 +85,7 @@ object GenerateFeatureFlags {
   def randomFlags(dict: Dictionary): Rng[List[FeatureFlags]] =
     dict.meta.toList.traverse({ case (FeatureId(ns, name), _) => randomFlagEntry(ns, name) })
 
-  def randomFlagEntry(namespace: Namespace, name: Name): Rng[FeatureFlags] = for {
+  def randomFlagEntry(namespace: Name, name: String): Rng[FeatureFlags] = for {
     f <- randomFrequency
     s <- randomSparcity
   } yield FeatureFlags(namespace, name, s, f)

@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.legacy
 
 import com.ambiata.ivory.storage.fact.{FactsetVersionTwo, FactsetVersion, FactsetVersionOne}
 
-import scalaz.{DList => _, Value => _, _}, Scalaz._
+import scalaz.{Name => _, DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.hadoop.fs.Path
@@ -27,7 +27,7 @@ trait PartitionFactThriftStorage {
     parsePartition(path).map(p => createFact(p, tfact))
 
   def createFact(partition: Partition, tfact: ThriftFact): Fact =
-    FatThriftFact(partition.namespace, partition.date, tfact)
+    FatThriftFact(partition.namespace.name, partition.date, tfact)
 
   def loadScoobiWith(repo: Repository, factset: FactsetId, from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ Fact]] = for {
     glob  <- ScoobiAction.fromResultTIO((from, to) match {
@@ -65,7 +65,7 @@ trait PartitionFactThriftStorage {
 
   case class PartitionedFactThriftStorer(base: String, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
-      val partitioned = dlist.by(f => partitionPath((f.namespace, f.date)))
+      val partitioned = dlist.by(f => partitionPath((f.namespace.name, f.date)))
                              .mapValues((f: Fact) => f.toThrift)
                              .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](base, identity, overwrite = true)
       codec.map(partitioned.compressWith(_)).getOrElse(partitioned)

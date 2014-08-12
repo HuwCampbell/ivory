@@ -1,7 +1,7 @@
 package com.ambiata.ivory.storage.metadata
 
 import org.specs2._
-import scalaz._, Scalaz._
+import scalaz.{Name => _, _}, Scalaz._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.store._
 

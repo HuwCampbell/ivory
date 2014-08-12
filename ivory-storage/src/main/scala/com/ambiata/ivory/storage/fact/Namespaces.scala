@@ -1,5 +1,6 @@
 package com.ambiata.ivory.storage.fact
 
+import com.ambiata.ivory.core.Name
 import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.mundane.io.BytesQuantity
 import org.apache.hadoop.fs.Path
@@ -10,10 +11,10 @@ object Namespaces {
    *         If a single namespace is passed, the input path is interpreted as the directory for a
    *         single namespace being named <singleNamespace>
    */
-  def namespaceSizes(factsetPath: Path, singleNamespace: Option[String]): Hdfs[List[(String, BytesQuantity)]] =
+  def namespaceSizes(factsetPath: Path, singleNamespace: Option[Name]): Hdfs[List[(Name, BytesQuantity)]] =
     singleNamespace match {
       case Some(name) => Hdfs.totalSize(factsetPath).map(size => List((name, size)))
-      case None       => Hdfs.childrenSizes(factsetPath).map(_.map { case (n, q) => (n.getName, q) })
+      case None       => Hdfs.childrenSizes(factsetPath).map(_.map { case (n, q) => (Name.reviewed(n.getName), q) })
     }
 
   /**

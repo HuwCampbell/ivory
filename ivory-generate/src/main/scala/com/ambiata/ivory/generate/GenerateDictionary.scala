@@ -1,6 +1,6 @@
 package com.ambiata.ivory.generate
 
-import scalaz._, Scalaz._, effect._
+import scalaz.{Name => _, _}, Scalaz._, effect._
 import com.nicta.rng._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -30,17 +30,18 @@ object GenerateDictionary {
     entries <- randomDictionaryEntries(nss, names)
   } yield Dictionary(entries.toMap)
 
-  def randomDictionaryEntries(namespaces: Nel[String], names: Nel[String]): Rng[List[(FeatureId, FeatureMeta)]] =
+  def randomDictionaryEntries(namespaces: Nel[Name], names: Nel[String]): Rng[List[(FeatureId, FeatureMeta)]] =
     names.list.map(nm => randomDictionaryEntry(namespaces, nm)).sequenceU
 
-  def randomDictionaryEntry(namespaces: Nel[String], name: String): Rng[(FeatureId, FeatureMeta)] = for {
+  def randomDictionaryEntry(namespaces: Nel[Name], name: String): Rng[(FeatureId, FeatureMeta)] = for {
     ns  <- oneof(namespaces.head, namespaces.tail: _*)
     fm  <- randomFeatureMeta
   } yield (FeatureId(ns, name), fm)
 
-  def randomNamespaces(n: Int, words: Nel[String]): Rng[Nel[String]] = for {
+  def randomNamespaces(n: Int, words: Nel[String]): Rng[Nel[Name]] = for {
     nss <- randomNWords(n, words.list, Rng.insert('_'))
-  } yield NonEmptyList(nss.head, nss.tail: _*)
+  // this Name might be unsafe if the words file contains incorrect names
+  } yield NonEmptyList(nss.head, nss.tail: _*).map(Name.unsafe)
 
   def randomNames(n: Int, words: Nel[String]): Rng[Nel[String]] = for {
     nss <- randomNWords(n, words.list, randomSeparatorChar)

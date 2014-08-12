@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.{thrift => ct}
 import org.joda.time.DateTimeZone
 import scala.collection.JavaConverters._
-import scalaz._, Scalaz._
+import scalaz.{Name =>_,_}, Scalaz._
 
 object Conversion {
 

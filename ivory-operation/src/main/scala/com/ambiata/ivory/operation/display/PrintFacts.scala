@@ -44,7 +44,7 @@ object PrintFacts {
   private def printFact(delim: String, tombstone: String, logger: Logger)(path: Path, f: Fact): Task[Unit] = Task.delay {
      val logged =
        Seq(f.entity,
-         f.namespace,
+         f.namespace.name,
          f.feature,
          if(f.isTombstone) tombstone else Value.toStringWithStruct(f.value),
          f.date.hyphenated+delim+f.time.hhmmss).mkString(delim)

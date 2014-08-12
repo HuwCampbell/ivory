@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.legacy
 
-import scalaz.{DList => _, Value => _, _}, Scalaz._
+import scalaz.{Name => _, DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.joda.time.LocalDateTime
 import org.apache.hadoop.fs.Path
@@ -38,13 +38,13 @@ object DelimitedFactTextStorage {
       rawv   <- string
       v      <- value(dict.meta.get(fid).map(fm => valueFromString(fm, rawv)).getOrElse(s"Could not find dictionary entry for '${fid}'".failure))
       date   <- localDatetime("yyyy-MM-dd HH:mm:ss") // TODO replace with something that doesn't convert to joda
-    } yield Fact.newFact(entity, fid.namespace, fid.name, Date.fromLocalDate(date.toLocalDate), Time.unsafe(date.getMillisOfDay / 1000), v)
+    } yield Fact.newFact(entity, fid.namespace.name, fid.name, Date.fromLocalDate(date.toLocalDate), Time.unsafe(date.getMillisOfDay / 1000), v)
   }
 
   def featureIdParser: ListParser[FeatureId] = {
     import ListParser._
     for {
-      ns   <- string.nonempty
+      ns   <- Name.listParser
       name <- string.nonempty
     } yield FeatureId(ns, name)
   }

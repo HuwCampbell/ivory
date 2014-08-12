@@ -74,7 +74,7 @@ case class RandomFacts(rand: Random) {
   }
 
   def fact(eid: Int, fid: FeatureId, meta: FeatureMeta, date: LocalDate): Fact =
-    Fact.newFact("ID%08d".format(eid), fid.namespace, fid.name, Date.fromLocalDate(date), Time.unsafe(rand.nextInt(86400)), value(meta))
+    Fact.newFactWithNamespaceName("ID%08d".format(eid), fid.namespace, fid.name, Date.fromLocalDate(date), Time.unsafe(rand.nextInt(86400)), value(meta))
 
   def value(meta: FeatureMeta): IValue = meta match {
     case FeatureMeta(BooleanEncoding, _, _, _)   => BooleanValue(rand.nextBoolean)

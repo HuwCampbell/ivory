@@ -1,6 +1,6 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.mundane.io.MemoryConversions
+import com.ambiata.mundane.io._
 import org.specs2._
 
 import scalaz._, Scalaz._
@@ -23,11 +23,11 @@ Skew Tests
 """
    def small = {
      val namespaces = List(
-       "demographics"   -> 1.mb
-       , "offers"       -> 1.mb
-       , "widgets"      -> 1.mb
-       , "knobs"        -> 1.mb
-       , "flavours"     -> 1.mb
+         Name.reviewed("demographics") -> 1.mb
+       , Name.reviewed("offers"      ) -> 1.mb
+       , Name.reviewed("widgets"     ) -> 1.mb
+       , Name.reviewed("knobs"       ) -> 1.mb
+       , Name.reviewed("flavours"    ) -> 1.mb
      )
      val (reducersNb, _) = Skew.calculate(dictionary, namespaces, optimalSize)
      reducersNb must_== namespaces.size
@@ -57,11 +57,11 @@ Skew Tests
   }
 
   def largeNamespace = List(
-    "demographics" -> 25986865.bytes
-  , "offers"       -> 57890389.bytes
-  , "widgets"      -> 329028927.bytes
-  , "knobs"        -> 8380852917L.bytes
-  , "flavours"     -> 184072795.bytes
+    Name.reviewed("demographics") -> 25986865.bytes
+  , Name.reviewed("offers"      ) -> 57890389.bytes
+  , Name.reviewed("widgets"     ) -> 329028927.bytes
+  , Name.reviewed("knobs"       ) -> 8380852917L.bytes
+  , Name.reviewed("flavours"    ) -> 184072795.bytes
   )
 
   def fake = FeatureMeta(DoubleEncoding, Some(ContinuousType), "desc", Nil)

@@ -23,7 +23,7 @@ import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat, SequenceFileInputFormat}
 import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, LazyOutputFormat, MultipleOutputs, SequenceFileOutputFormat}
 
-import scalaz.{Reducer => _, _}
+import scalaz.{Name => _, Reducer => _, _}
 
 /**
  * This is a hand-coded MR job to read facts from factsets as
@@ -41,7 +41,7 @@ object RecreateFactsetJob {
    *
    *
    */
-  def run(conf: Configuration, version: FactsetVersion, dictionary: Dictionary, namespaces: List[(String, BytesQuantity)], partitions: List[Path], target: Path, reducerSize: BytesQuantity, codec: Option[CompressionCodec]): Unit = {
+  def run(conf: Configuration, version: FactsetVersion, dictionary: Dictionary, namespaces: List[(Name, BytesQuantity)], partitions: List[Path], target: Path, reducerSize: BytesQuantity, codec: Option[CompressionCodec]): Unit = {
     val reducerLookups = ReducerLookups.createLookups(dictionary, namespaces, reducerSize)
 
     val job = Job.getInstance(conf)

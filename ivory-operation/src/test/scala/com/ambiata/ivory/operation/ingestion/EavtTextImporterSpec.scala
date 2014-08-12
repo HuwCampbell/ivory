@@ -4,11 +4,11 @@ import java.io.File
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift.ThriftSerialiser
-import com.ambiata.ivory.scoobi.FactFormats._
-import com.ambiata.ivory.scoobi.{SequenceUtil, TestConfigurations}
+import com.ambiata.ivory.scoobi.{FactFormats, SequenceUtil, TestConfigurations}
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
+import FactFormats._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.io._
@@ -23,7 +23,7 @@ import org.specs2.execute.{AsResult, Result}
 import org.specs2.matcher.{FileMatchers, ThrownExpectations}
 import org.specs2.specification.Fixture
 
-import scalaz.{DList => _, _}
+import scalaz.{Name => _, DList => _, _}
 
 class EavtTextImporterSpec extends Specification with ThrownExpectations with FileMatchers { def is = s2"""
 
@@ -67,7 +67,7 @@ class EavtTextImporterSpec extends Specification with ThrownExpectations with Fi
 
     val errors = base </> "errors"
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onStore(repository, dictionary, FactsetId.initial, List("ns1"), None, input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, format, None) must beOk
+    EavtTextImporter.onStore(repository, dictionary, FactsetId.initial, List(ns1), None, input, errors, DateTimeZone.getDefault, List(ns1 -> 1.mb), 128.mb, format, None) must beOk
 
     factsFromIvoryFactset(repository, FactsetId.initial).map(_.run.collect { case \/-(r) => r}).run(sc) must beOkLike(_ must containTheSameElementsAs(expected))
   }
@@ -81,7 +81,7 @@ class EavtTextImporterSpec extends Specification with ThrownExpectations with Fi
     // run the scoobi job to import facts on Hdfs
     (for {
       errorPath <- Reference.hdfsPath(errors)
-      _         <- EavtTextImporter.onStore(repository, dictionary, FactsetId.initial, List("ns1"), None, input, errors, DateTimeZone.getDefault, List("ns1" -> 1.mb), 128.mb, TextFormat, None)
+      _         <- EavtTextImporter.onStore(repository, dictionary, FactsetId.initial, List(ns1), None, input, errors, DateTimeZone.getDefault, List(ns1 -> 1.mb), 128.mb, TextFormat, None)
       ret = valueFromSequenceFile[ParseError](errorPath.toString).run
     } yield ret) must beOkLike(_ must not(beEmpty))
   }
@@ -90,6 +90,8 @@ class EavtTextImporterSpec extends Specification with ThrownExpectations with Fi
     def apply[R : AsResult](f: Setup => R): Result =
       AsResult(f(new Setup))
   }
+
+  val ns1 = Name.reviewed("ns1")
 }
 
 class Setup() {

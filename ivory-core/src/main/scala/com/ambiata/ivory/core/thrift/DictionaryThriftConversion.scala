@@ -2,7 +2,7 @@ package com.ambiata.ivory.core.thrift
 
 import com.ambiata.ivory.core._
 import scala.collection.JavaConverters._
-import scalaz._, Scalaz._, BijectionT._
+import scalaz.{Name=>_,_}, Scalaz._, BijectionT._
 
 object DictionaryThriftConversion {
 
@@ -83,12 +83,14 @@ object DictionaryThriftConversion {
             val meta = new ThriftDictionaryFeatureMeta(encJava, desc, tombstoneValue.asJava)
             ty.foreach(t => meta.setType(typeBi.to(t)))
             structJava.foreach(meta.setValue)
-            new ThriftDictionaryFeatureId(ns, name) -> meta
+            new ThriftDictionaryFeatureId(ns.name, name) -> meta
         }.asJava),
 
     dict =>
       Dictionary(dict.meta.asScala.toMap.map {
-          case (featureId, meta) => FeatureId(featureId.ns, featureId.name) ->
+        // the namespace name might not be well-formed if the ThriftDictionary
+        // has not been validated
+        case (featureId, meta) => FeatureId(Name.unsafe(featureId.ns), featureId.name) ->
             FeatureMeta(encoding.from(meta), Option(meta.`type`).map(typeBi.from), meta.desc, meta.tombstoneValue.asScala.toList)
         })
   )

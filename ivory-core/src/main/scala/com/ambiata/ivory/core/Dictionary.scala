@@ -7,7 +7,7 @@ import scala.math.{Ordering => SOrdering}
 case class Dictionary(meta: Map[FeatureId, FeatureMeta]) {
 
   /** Create a `Dictionary` from `this` only containing features in the specified namespace. */
-  def forNamespace(namespace: String): Dictionary =
+  def forNamespace(namespace: Name): Dictionary =
     Dictionary(meta filter { case (fid, _) => fid.namespace === namespace })
 
   /** Create a `Dictionary` from `this` only containing the specified features. */
@@ -20,17 +20,17 @@ case class Dictionary(meta: Map[FeatureId, FeatureMeta]) {
 
 }
 
-case class FeatureId(namespace: String, name: String) {
+case class FeatureId(namespace: Name, name: String) {
   override def toString =
     toString(":")
 
   def toString(delim: String): String =
-    s"${namespace}${delim}${name}"
+    s"${namespace.name}${delim}${name}"
 }
 
 object FeatureId {
   implicit val orderingByNamespace: SOrdering[FeatureId] =
-    SOrdering.by(f => (f.namespace, f.name))
+    SOrdering.by(f => (f.namespace.name, f.name))
 }
 
 case class FeatureMeta(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String] = List("☠"))
