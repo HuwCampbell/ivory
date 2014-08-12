@@ -7,7 +7,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FilePath
 
-import scalaz._, Scalaz._, effect._
+import scalaz._, Scalaz._, effect._, \&/._
 
 object Factsets {
 
@@ -25,4 +25,14 @@ object Factsets {
     next    <- ResultT.fromOption[IO, FactsetId](nextOpt, s"No more Factset Ids left!")
     _       <- repo.toStore.bytes.write(Repository.factsets </> FilePath(next.render) </> ".allocated", scodec.bits.ByteVector.empty)
   } yield next
+
+  def factsets(repo: Repository): ResultTIO[List[Factset]] = for {
+    ids      <- listIds(repo)
+    factsets <- ids.traverse(id => factset(repo, id))
+  } yield factsets.sortBy(_.id)
+
+  def factset(repo: Repository, id: FactsetId): ResultTIO[Factset] = for {
+    files      <- repo.toStore.list(Repository.factset(id))
+    partitions <- ResultT.fromDisjunction[IO, List[Partition]](files.traverseU(Partition.parseFile).disjunction.leftMap(This.apply))
+  } yield Factset(id, Partitions(partitions))
 }

@@ -1,5 +1,6 @@
 package com.ambiata.ivory.storage
 
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.fact._
 
@@ -12,7 +13,7 @@ import plan._
 object Arbitraries {
 
   implicit def FactsetDatasetArbitrary: Arbitrary[FactsetDataset] =
-    Arbitrary(arbitrary[SingleFactsetPartitions].map(p => FactsetDataset(p.factset, p.partitions)))
+    Arbitrary(arbitrary[Factset].map(p => FactsetDataset(p.id, p.partitions.partitions)))
 
   implicit def SnapshotDatasetArbitrary: Arbitrary[SnapshotDataset] =
     Arbitrary(arbitrary[Identifier].map(SnapshotDataset.apply))
