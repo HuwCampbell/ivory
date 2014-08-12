@@ -135,15 +135,6 @@ object FatThriftFact {
   }
 }
 
-object LeanThriftFact {
-  def apply(ns: String, date: Date, tfact: ThriftFact): Fact = new NamespacedThriftFact(tfact, ns, date.int) with NamespacedThriftFactDerived
-
-  def factWith(entity: String, namespace: String, feature: String, date: Date, time: Time, value: ThriftFactValue): Fact = {
-    val tfact = new ThriftFact(entity, feature, value)
-    FatThriftFact(namespace, date, tfact.setSeconds(time.seconds))
-  }
-}
-
 object BooleanFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Boolean): Fact =
     FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.b(value))
