@@ -45,7 +45,7 @@ SnapshotMapperSpec
     val state = Writables.bytesWritable(4096)
 
     seqToResult(fs.map(f => {
-      vstate.set(f, state)
+      vstate.set(f.toNamespacedThrift, state)
       state.copyBytes must_== serializer.toBytes(new PriorityTag(priority.toShort, ByteBuffer.wrap(serializer.toBytes(f.toNamespacedThrift))))
     }))
   })

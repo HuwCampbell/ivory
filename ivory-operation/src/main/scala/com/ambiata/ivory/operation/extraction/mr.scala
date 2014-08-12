@@ -139,10 +139,10 @@ object SnapshotMapper {
     val priorityTag = new PriorityTag
     val serializer = ThriftSerialiser()
 
-    def set(f: Fact, state: BytesWritable) {
+    def set[A](thrift: A, state: BytesWritable)(implicit ev: A <:< ThriftLike) {
       priorityTag.clear()
       priorityTag.setPriority(priority.toShort)
-      priorityTag.setBytes(ByteBuffer.wrap(serializer.toBytes(f.toNamespacedThrift)))
+      priorityTag.setBytes(ByteBuffer.wrap(serializer.toBytes(thrift)))
       val bytes = serializer.toBytes(priorityTag)
       state.set(bytes, 0, bytes.length)
     }
@@ -268,7 +268,7 @@ object SnapshotFactsetMapper {
     else {
       okCounter.count(1)
       kstate.set(f, kout)
-      vstate.set(f, vout)
+      vstate.set(f.toNamespacedThrift, vout)
       emitter.emit()
     }
   }
