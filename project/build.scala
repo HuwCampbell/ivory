@@ -227,6 +227,7 @@ object build extends Build {
     , "-Yinline-warnings"
     ) ++ importWarnings(scalaBinaryVersion.value)
   , scalacOptions in (Compile,doc) := Seq("-language:_", "-feature")
+  , scalacOptions in ScoverageCompile := Seq("-language:_", "-feature")
   )
 
   def importWarnings(version: String) =
