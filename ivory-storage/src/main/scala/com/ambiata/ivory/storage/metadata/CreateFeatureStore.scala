@@ -12,7 +12,7 @@ object CreateFeatureStore {
 
   private implicit val logger = LogFactory.getLog("ivory.storage.metadata.CreateFeatureStore")
 
-  def inRepository(repository: Repository, id: FeatureStoreId, sets: List[FactsetId], existing: Option[FeatureStoreId] = None): ResultTIO[Unit] = for {
+  def inRepository(repository: Repository, id: FeatureStoreId, sets: List[FactsetId], existing: Option[FeatureStoreId]): ResultTIO[Unit] = for {
     store    <- existing.traverse(e => Metadata.storeFromIvory(repository, e))
     tmp       = FeatureStoreTextStorage.fromFactsets(sets)
     newStore  = store.map(fs => tmp concat fs).getOrElse(tmp)

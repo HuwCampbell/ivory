@@ -62,7 +62,7 @@ object GenerateDictionary {
     ty   <- randomType
     enc  <- randomEncoding(ty)
     desc <- randomDescription
-  } yield FeatureMeta(enc, Some(ty), desc)
+  } yield FeatureMeta(enc, Some(ty), desc, Nil)
 
   def randomEncoding(ty: Type): Rng[Encoding] = ty match {
     case NumericalType   => oneof(IntEncoding, DoubleEncoding, LongEncoding)

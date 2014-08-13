@@ -33,7 +33,7 @@ object FeatureId {
     SOrdering.by(f => (f.namespace, f.name))
 }
 
-case class FeatureMeta(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String] = List("☠"))
+case class FeatureMeta(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String])
 
 sealed trait Encoding
 
@@ -50,7 +50,7 @@ case class StructEncoding(values: Map[String, StructEncodedValue]) extends SubEn
 case class ListEncoding(encoding: SubEncoding) extends Encoding
 
 // NOTE: For now we don't support nested structs
-case class StructEncodedValue(encoding: PrimitiveEncoding, optional: Boolean = false) {
+case class StructEncodedValue(encoding: PrimitiveEncoding, optional: Boolean) {
   def opt: StructEncodedValue =
     if (optional) this else copy(optional = true)
 }

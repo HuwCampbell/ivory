@@ -7,6 +7,7 @@ import com.typesafe.sbt.SbtProguard._
 import sbt._, Keys._, KeyRanks._
 import sbtassembly.Plugin._, AssemblyKeys._
 import scoverage.ScoverageSbtPlugin._
+import wartremover._
 
 object build extends Build {
   type Settings = Def.Setting[_]
@@ -51,8 +52,35 @@ object build extends Build {
   , publishArtifact in packageDoc := false
   // https://gist.github.com/djspiewak/976cd8ac65e20e136f05
   , unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / s"scala-${scalaBinaryVersion.value}"
-  , updateOptions := updateOptions.value.withConsolidatedResolution(true)
-  ) ++ Seq(prompt)
+//  , updateOptions := updateOptions.value.withConsolidatedResolution(true)
+  ) ++ Seq(prompt) ++ wartSettings
+
+  lazy val wartSettings = Seq(
+    wartremoverErrors ++= Warts.allBut(Wart.NoNeedForMonad, Wart.Nothing, Wart.AsInstanceOf)
+    // We really need - https://github.com/typelevel/wartremover/issues/70
+  , wartremoverExcluded ++= Seq(
+        "com.ambiata.ivory.data.IvoryDataLiteralsMacros"
+      , "com.ambiata.ivory.core.Date.Macros"
+      , "com.ambiata.ivory.core.Time.Macros"
+      , "com.ambiata.ivory.core.DateTime.Macros"
+      , "com.ambiata.ivory.core.Priority.Macros"
+      // Uses foreach which infers any
+      , "com.ambiata.ivory.core.Maps"
+      // Checks for null for performance
+      , "com.ambiata.ivory.core.DateMap"
+      // TODO REMOVE
+      , "com.ambiata.ivory.core.Dictionary"
+      // Lots of naughty things
+      , "com.ambiata.ivory.core.thrift.DictionaryThriftConversion"
+      , "com.ambiata.ivory.mr"
+      , "com.ambiata.ivory.performance"
+      , "com.ambiata.ivory.storage.legacy"
+      , "com.ambiata.ivory.storage.repository"
+      , "com.ambiata.ivory.storage.metadata"
+      , "com.ambiata.ivory.storage.task"
+      , "com.ambiata.ivory.storage.parse.EavtParsers"
+    )
+  )
 
   def lib(name: String) =
     promulgate.library(s"com.ambiata.ivory.$name", "ambiata-oss")

@@ -47,7 +47,7 @@ object Print {
       io.resource(Task.delay(reader))(r => Task.delay(r.close))(
         r => Task.delay(readValue(r)))
 
-    val read =
+    val read: Process[Task, Unit] =
       source
           .map(schema.fromWritable)
           .to(console)
