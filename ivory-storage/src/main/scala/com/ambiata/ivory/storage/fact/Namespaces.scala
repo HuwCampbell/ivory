@@ -8,13 +8,11 @@ import org.apache.hadoop.fs.Path
 object Namespaces {
   /**
    * @return the list of namespaces for a given factset and their corresponding sizes
-   *         If a single namespace is passed, the input path is interpreted as the directory for a
-   *         single namespace being named <singleNamespace>
    */
-  def namespaceSizes(factsetPath: Path, singleNamespace: Option[Name]): Hdfs[List[(Name, BytesQuantity)]] =
-    singleNamespace match {
-      case Some(name) => Hdfs.totalSize(factsetPath).map(size => List((name, size)))
-      case None       => Hdfs.childrenSizes(factsetPath).map(_.map { case (n, q) => (Name.fromPathName(n), q) })
-    }
+  def namespaceSizes(factsetPath: Path): Hdfs[List[(Name, BytesQuantity)]] =
+    Hdfs.childrenSizes(factsetPath).map(_.map { case (n, q) => (Name.fromPathName(n), q) })
+
+  def namespaceSizesSingle(factsetPath: Path, namespace: Name): Hdfs[(Name, BytesQuantity)] =
+    Hdfs.totalSize(factsetPath).map(namespace ->)
 
 }
