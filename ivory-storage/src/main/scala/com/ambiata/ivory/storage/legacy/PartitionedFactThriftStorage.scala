@@ -36,7 +36,7 @@ trait PartitionFactThriftStorage {
                case (None, Some(t))    => FactsetGlob.before(repo, factset, t)
                case (None, None)       => FactsetGlob.select(repo, factset)
              })
-    dlist <- loadScoobiFromPaths(glob.paths)
+    dlist <- loadScoobiFromPaths(glob.map(_.paths).getOrElse(Nil))
   } yield dlist
 
   def loadScoobiFromPaths(paths: List[FilePath]): ScoobiAction[DList[ParseError \/ Fact]] =
@@ -52,10 +52,10 @@ trait PartitionFactThriftStorage {
       loadScoobiWith(repo, factset, from, to)
   }
 
-  case class PartitionedMultiFactsetThriftLoader(repo: Repository, factsets: List[PrioritizedFactset], from: Option[Date] = None, to: Option[Date] = None) {
+  case class PartitionedMultiFactsetThriftLoader(repo: Repository, factsets: List[Prioritized[FactsetId]], from: Option[Date] = None, to: Option[Date] = None) {
     def loadScoobi: ScoobiAction[DList[ParseError \/ (Priority, FactsetId, Fact)]] =
       factsets.traverseU(pfs =>
-        loadScoobiWith(repo, pfs.factsetId, from, to).map(_.map(_.map((pfs.priority, pfs.factsetId, _))))
+        loadScoobiWith(repo, pfs.value, from, to).map(_.map(_.map((pfs.priority, pfs.value, _))))
       ).map(_.foldLeft(DList[ParseError \/ (Priority, FactsetId, Fact)]())(_ ++ _))
   }
 

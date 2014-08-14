@@ -63,6 +63,9 @@ object Partition {
 case class Partitions(partitions: List[Partition]) {
   def sorted: Partitions =
     Partitions(partitions.sorted)
+
+  def isEmpty: Boolean =
+    partitions.isEmpty
 }
 
 object Partitions {

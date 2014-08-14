@@ -48,11 +48,13 @@ trait SampleFacts extends MustThrownMatchers {
     val facts2 =
       fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "ghi")))
 
-    persist(facts1.toIvoryFactset(repo, FactsetId(oi"00000"), None), facts2.toIvoryFactset(repo, FactsetId(oi"00001"), None))
-    writeFactsetVersion(repo, List(FactsetId(oi"00000"), FactsetId(oi"00001"))) must beOk
+    val factset1 = Factset(FactsetId(oi"00000"), Partitions(List(Partition("ns1", Date(2012, 10, 1)))))
+    val factset2 = Factset(FactsetId(oi"00001"), Partitions(List(Partition("ns1", Date(2012, 9, 1)))))
 
-    storeToIvory(repo, FeatureStore(List(PrioritizedFactset(FactsetId(oi"00000"), Priority(1)), PrioritizedFactset(FactsetId(oi"00001"), Priority(2)))), FeatureStoreId(oi"00000")) must beOk
+    persist(facts1.toIvoryFactset(repo, factset1.id, None), facts2.toIvoryFactset(repo, factset2.id, None))
+    writeFactsetVersion(repo, List(factset1.id, factset2.id)) must beOk
 
+    storeToIvory(repo, FeatureStore.fromList(FeatureStoreId(oi"00000"), List(factset1, factset2)).get) must beOk
   }
 
   def stringFact1  = StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1),  Time(0), "def")

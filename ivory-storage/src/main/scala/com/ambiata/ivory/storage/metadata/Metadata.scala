@@ -8,12 +8,19 @@ import com.ambiata.ivory.storage.repository._
 
 object Metadata {
 
-  /** Store */
+  /** Feature Store */
   def storeFromIvory(repo: Repository, id: FeatureStoreId): ResultTIO[FeatureStore] =
     FeatureStoreTextStorage.fromId(repo, id)
 
-  def storeToIvory(repo: Repository, store: FeatureStore, id: FeatureStoreId): ResultTIO[Unit] =
-    FeatureStoreTextStorage.toId(repo, id, store)
+  def storeToIvory(repo: Repository, featureStore: FeatureStore): ResultTIO[Unit] =
+    FeatureStoreTextStorage.toId(repo, featureStore)
+
+  /**
+   * This will read the latest FeatureStore, add the given FactsetId to it then persist
+   * back to the repository with a new FeatureStoreId
+   */
+  def incrementStore(repo: Repository, factset: FactsetId): ResultTIO[FeatureStore] =
+    FeatureStoreTextStorage.increment(repo, factset)
 
   def latestStoreId(repo: Repository): ResultTIO[Option[FeatureStoreId]] =
     FeatureStoreTextStorage.latestId(repo)

@@ -13,6 +13,11 @@ trait IvorySyntax {
     def drop(n: Int): Option[FilePath] =
       (1 to n).toList.foldLeft(f.parent)((acc, _) => acc.flatMap(_.parent))
   }
+
+  implicit class IvoryFilePathListSyntax(l: List[FilePath]) {
+    def filterHidden: List[FilePath] =
+      l.filter(f => !f.basename.path.startsWith(".") && !f.basename.path.startsWith("_"))
+  }
 }
 
 object IvorySyntax extends IvorySyntax

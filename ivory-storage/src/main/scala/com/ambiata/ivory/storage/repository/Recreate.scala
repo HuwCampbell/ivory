@@ -113,12 +113,12 @@ object Recreate { outer =>
       _       <- Hdfs.log(s"Copy store ${storeId} from ${from.storeById(storeId)} to ${to.storeById(storeId)}")
       store   <- Hdfs.fromResultTIO(storeFromIvory(from, storeId))
       cleaned <- cleanupStore(storeId, store, filtered, clean)
-      _       <- Hdfs.fromResultTIO(storeToIvory(to, cleaned, storeId)).unless(dry)
+      _       <- Hdfs.fromResultTIO(storeToIvory(to, cleaned)).unless(dry)
     } yield ()
 
-  private def cleanupStore(id: FeatureStoreId, store: FeatureStore, setsToKeep: List[FactsetId], clean: Boolean) = {
+  private def cleanupStore(id: FeatureStoreId, store: FeatureStore, setsToKeep: List[FactsetId], clean: Boolean): Hdfs[FeatureStore] = {
     val cleaned = if (clean) store.filter(setsToKeep.toSet) else store
-    val removed = store.diff(cleaned).factsets.map(_.render)
+    val removed = store.factsetIds.map(_.value.render).diff(cleaned.factsetIds.map(_.value.render))
     Hdfs.log(s"Removed factsets '${removed.mkString(",")}' from feature store '${id.render}' as they are empty.").unless(removed.isEmpty) >>
     Hdfs.safe(cleaned)
   }

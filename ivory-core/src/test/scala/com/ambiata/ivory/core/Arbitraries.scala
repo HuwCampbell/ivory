@@ -241,12 +241,10 @@ object Arbitraries {
   implicit def SmallFeatureStoreIdListArbitrary: Arbitrary[SmallFeatureStoreIdList] =
     Arbitrary(arbitrary[SmallOldIdentifierList].map(ids => SmallFeatureStoreIdList(ids.ids.map(FeatureStoreId.apply))))
 
-  implicit def FeatureStoreArbitrary: Arbitrary[FeatureStore] = Arbitrary(
-    arbitrary[OldIdentifierList].map(ids =>
-      FeatureStore(ids.ids.zipWithIndex.map({ case (id, i) =>
-         PrioritizedFactset(FactsetId(id), Priority.unsafe((i + 1).toShort))
-      }).toList)
-    ))
+  implicit def FeatureStoreArbitrary: Arbitrary[FeatureStore] = Arbitrary(for {
+    storeId    <- arbitrary[FeatureStoreId]
+    factsets   <- genFactsetList(Gen.choose(1, 3))
+  } yield FeatureStore.fromList(storeId, factsets).get)
 
   implicit def SnapshotIdArbitrary: Arbitrary[SnapshotId] =
     Arbitrary(arbitrary[Identifier].map(SnapshotId.apply))

@@ -74,7 +74,7 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
   def scoobiJob(repo: Repository, dict: Dictionary, store: FeatureStore, chordReference: ReferenceIO, latestDate: Date, incremental: Option[(SnapshotId, FeatureStore, SnapshotMeta)], outputPath: Path, codec: Option[CompressionCodec]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       lazy val factsetMap: Map[Priority, SnapshotId \/ FactsetId] =
-        (incremental.map(i => (Priority.Max, i._1.left)).toList ++ store.factsets.map(fs => (fs.priority, fs.factsetId.right))).toMap
+        (incremental.map(i => (Priority.Max, i._1.left)).toList ++ store.factsetIds.map(fs => (fs.priority, fs.value.right))).toMap
 
       Chord.readFacts(repo, store, latestDate, incremental).map { input =>
 

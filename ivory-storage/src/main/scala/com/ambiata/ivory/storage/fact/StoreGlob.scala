@@ -9,14 +9,14 @@ import scalaz._, Scalaz._, effect.IO
 // TODO This needs to be removed once we create the plan api
 case class StoreGlob(repository: Repository, store: FeatureStore, globs: List[Prioritized[FactsetGlob]]) {
   def filterPartitions(f: Partition => Boolean): StoreGlob =
-    copy(globs = globs.map(_.map(fg => fg.filterPartitions(f))).filter(!_.value.partitions.isEmpty))
+    copy(globs = globs.map(_.map(fg => fg.filterPartitions(f))).collect({ case Prioritized(p, Some(fg)) => Prioritized(p, fg) }))
 }
 
 object StoreGlob {
   def select(repository: Repository, store: FeatureStore): ResultTIO[StoreGlob] =
-    store.factsets.traverseU(factset =>
-      FactsetGlob.select(repository, factset.factsetId).map(Prioritized(factset.priority, _))
-    ).map(globs => StoreGlob(repository, store, globs))
+    store.factsetIds.traverseU(factset =>
+      FactsetGlob.select(repository, factset.value).map(_.map(Prioritized(factset.priority, _)))
+    ).map(globs => StoreGlob(repository, store, globs.flatten))
 
   def before(repository: Repository, store: FeatureStore, to: Date): ResultTIO[StoreGlob] =
     filter(repository, store, _.date.isBeforeOrEqual(to))
