@@ -14,13 +14,12 @@ import java.nio.ByteBuffer
 
 import scalaz.{Reducer => _, _}, Scalaz._
 
-import org.apache.hadoop.fs.{Path, FileSystem}
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf._
 import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce.{Counter => _, _}
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat
-import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
@@ -139,10 +138,10 @@ object SnapshotMapper {
     val priorityTag = new PriorityTag
     val serializer = ThriftSerialiser()
 
-    def set(f: Fact, state: BytesWritable) {
+    def set[A](thrift: A, state: BytesWritable)(implicit ev: A <:< ThriftLike) {
       priorityTag.clear()
       priorityTag.setPriority(priority.toShort)
-      priorityTag.setBytes(ByteBuffer.wrap(serializer.toBytes(f.toNamespacedThrift)))
+      priorityTag.setBytes(ByteBuffer.wrap(serializer.toBytes(thrift)))
       val bytes = serializer.toBytes(priorityTag)
       state.set(bytes, 0, bytes.length)
     }
@@ -219,22 +218,10 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
-    val priorityLookup = new FactsetLookup <| (fl => ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, fl))
-    val versionLookup = new FactsetVersionLookup <| (fvl => ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetVersionLookup, fvl))
-    val path = FilePath(MrContext.getSplitPath(context.getInputSplit).toString)
-    val (factsetId, partition) = Factset.parseFile(path) match {
-      case Success(r)        => r
-      case Failure(e)        => sys.error(s"Can not parse factset path ${e}")
-    }
-    val rawVersion = versionLookup.versions.get(factsetId.render)
-    val factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(sys.error(s"Can not parse factset version '${rawVersion}'"))
-    val priority = priorityLookup.priorities.get(factsetId.render)
-    vstate = ValueState(Priority.unsafe(priority))
-
-    converter = factsetVersion match {
-      case FactsetVersionOne => VersionOneFactConverter(partition)
-      case FactsetVersionTwo => VersionTwoFactConverter(partition)
-    }
+    val (factsetVersion, vfc, vs) = SnapshotFactsetMapper.setupVersionAndPriority(ctx.thriftCache,
+      context.getConfiguration, context.getInputSplit)
+    converter = vfc
+    vstate = vs
     emitter = MrEmitter(kout, vout)
     okCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.ok")
     skipCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.skip")
@@ -268,9 +255,29 @@ object SnapshotFactsetMapper {
     else {
       okCounter.count(1)
       kstate.set(f, kout)
-      vstate.set(f, vout)
+      vstate.set(f.toNamespacedThrift, vout)
       emitter.emit()
     }
+  }
+
+  def setupVersionAndPriority(thriftCache: ThriftCache, configuration: Configuration, inputSplit: InputSplit): (FactsetVersion, VersionedFactConverter, SnapshotMapper.ValueState) = {
+    val versionLookup = new FactsetVersionLookup <| (fvl => thriftCache.pop(configuration, SnapshotJob.Keys.FactsetVersionLookup, fvl))
+    val path = FilePath(MrContext.getSplitPath(inputSplit).toString)
+    val (factsetId, partition) = Factset.parseFile(path) match {
+      case Success(r) => r
+      case Failure(e) => sys.error(s"Can not parse factset path ${e}")
+    }
+    val rawVersion = versionLookup.versions.get(factsetId.render)
+    val factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(sys.error(s"Can not parse factset version '${rawVersion}'"))
+
+    val converter = factsetVersion match {
+      case FactsetVersionOne => VersionOneFactConverter(partition)
+      case FactsetVersionTwo => VersionTwoFactConverter(partition)
+    }
+    val priorityLookup = new FactsetLookup <| (fl => thriftCache.pop(configuration, SnapshotJob.Keys.FactsetLookup, fl))
+    val priority = priorityLookup.priorities.get(factsetId.render)
+    val vstate = SnapshotMapper.ValueState(Priority.unsafe(priority))
+    (factsetVersion, converter, vstate)
   }
 }
 
@@ -302,7 +309,7 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
   var emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
 
   /** Class to count number of non skipped facts, created once per mapper */
-  var okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] =
+  val okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] =
     MrCounter("ivory", "snapshot.incr.ok")
 
   override def setup(context: MapperContext): Unit = {
@@ -320,8 +327,8 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
 object SnapshotIncrementalMapper {
   import SnapshotMapper._
 
-  def map(fact: NamespacedThriftFact with NamespacedThriftFactDerived, bytes: Array[Byte], kstate: KeyState,
-          vstate: ValueState, kout: BytesWritable, vout: BytesWritable, emitter: Emitter, okCounter: Counter, serializer: ThriftSerialiser) {
+  def map(fact: MutableFact, bytes: Array[Byte], kstate: KeyState, vstate: ValueState, kout: BytesWritable,
+          vout: BytesWritable, emitter: Emitter, okCounter: Counter, serializer: ThriftSerialiser) {
     okCounter.count(1)
     fact.clear()
     serializer.fromBytesUnsafe(fact, bytes)
@@ -346,11 +353,8 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
   /** Thrift deserializer */
   val serializer = ThriftSerialiser()
 
-  /** Empty Fact, created once per reducer and mutated per record */
-  val fact = new NamespacedThriftFact with NamespacedThriftFactDerived
-
   /** Empty PriorityTag, created once per reducer and mutated per record */
-  val priorityTag = new PriorityTag
+  val priority = new PriorityTagDeserializer(new NamespacedThriftFact with NamespacedThriftFactDerived, ReduceState(0l, true))
 
   /** Output key, only create once per reducer */
   val kout = NullWritable.get
@@ -372,7 +376,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
     emitter.context = context
     counter.context = context
-    SnapshotReducer.reduce(fact, priorityTag, kout, vout, iter.iterator, emitter, counter, serializer)
+    SnapshotReducer.reduce(priority, kout, vout, iter.iterator, emitter, counter)
   }
 }
 
@@ -386,38 +390,30 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
 object SnapshotReducer {
   type ReducerContext = Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context
 
-  case class ReduceState(var latestContainer: PriorityTag, var latestDate: Long, var isTombstone: Boolean) {
-    def accept(priorityTag: PriorityTag, nextDate: Long): Boolean =
-      latestContainer == null || nextDate > latestDate || (nextDate == latestDate && priorityTag.getPriority < latestContainer.getPriority)
+  case class ReduceState(var latestDate: Long, var isTombstone: Boolean)
+    extends PriorityTagDeserializer.State[MutableFact] {
 
-    def save(fact: Fact, priorityTag: PriorityTag, nextDate: Long): Unit = {
-      latestContainer = priorityTag.deepCopy
-      latestDate = nextDate
+    def accept(fact: MutableFact, higherPriority: Boolean): Boolean = {
+      val nextDate = fact.datetime.long
+      nextDate > latestDate || (nextDate == latestDate && higherPriority)
+    }
+
+    def save(fact: MutableFact): Unit = {
+      latestDate = fact.datetime.long
       isTombstone = fact.isTombstone
     }
 
-    def write(vout: BytesWritable, emitter: Emitter, counter: Counter): Unit =
-      if (!isTombstone) {
-        vout.set(latestContainer.getBytes, 0, latestContainer.getBytes.length)
-        emitter.emit()
-      } else {
-        counter.count(1)
-      }
+    def isValid: Boolean =
+      !isTombstone
   }
 
-  def reduce(fact: NamespacedThriftFact with NamespacedThriftFactDerived, priorityTag: PriorityTag, kout: NullWritable,
-             vout: BytesWritable, iter: JIterator[BytesWritable], emitter: Emitter, counter: Counter, serializer: ThriftSerialiser) {
-    val state = ReduceState(null, 0l, true)
-    while(iter.hasNext) {
-      val next = iter.next
-      priorityTag.clear()
-      fact.clear()
-      serializer.fromBytesUnsafe(priorityTag, next.getBytes) // populate PriorityTag which holds priority and serialized fact
-      serializer.fromBytesUnsafe(fact, priorityTag.getBytes) // populate fact
-      val nextDate = fact.datetime.long
-      if (state.accept(priorityTag, nextDate))
-        state.save(fact, priorityTag, nextDate)
-    }
-    state.write(vout, emitter, counter)
+  def reduce(priority: PriorityTagDeserializer[MutableFact], kout: NullWritable, vout: BytesWritable,
+             iter: JIterator[BytesWritable], emitter: Emitter, counter: Counter): Unit =  {
+    val latestContainer = priority.findHighestPriority(kout, iter)
+    if(latestContainer != null) {
+      vout.set(latestContainer.getBytes, 0, latestContainer.getBytes.length)
+      emitter.emit()
+    } else
+      counter.count(1)
   }
 }
