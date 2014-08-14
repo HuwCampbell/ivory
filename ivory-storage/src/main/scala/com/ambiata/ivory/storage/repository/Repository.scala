@@ -1,6 +1,7 @@
 package com.ambiata.ivory.storage.repository
 
 import com.ambiata.saws.core.Clients
+import org.apache.hadoop.io.compress.CompressionCodec
 
 import scalaz.{Store => _, _}, effect.IO, \&/.This
 import org.apache.hadoop.conf.Configuration
@@ -38,6 +39,7 @@ sealed trait Repository {
 case class HdfsRepository(root: FilePath, repositoryConfiguration: RepositoryConfiguration) extends Repository {
   def configuration       = repositoryConfiguration.configuration
   def scoobiConfiguration = repositoryConfiguration.scoobiConfiguration
+  def codec               = repositoryConfiguration.codec
 
   def toStore = HdfsStore(configuration, root)
 }
@@ -96,14 +98,36 @@ object Repository {
     S3Repository(bucket, path, repositoryConfiguration)
 }
 
-case class RepositoryConfiguration(arguments: Seq[String], s3: () => AmazonS3Client, hdfs: () => Configuration, scoobi: () => ScoobiConfiguration) {
+case class RepositoryConfiguration(
+  arguments: Seq[String],
+  s3: () => AmazonS3Client,
+  hdfs: () => Configuration,
+  scoobi: () => ScoobiConfiguration,
+  compressionCodec: () => Option[CompressionCodec]) {
   lazy val s3TmpDirectory: FilePath                 = RepositoryConfiguration.defaultS3TmpDirectory
   lazy val s3Client: AmazonS3Client                 = s3()
   lazy val configuration: Configuration             = hdfs()
   lazy val scoobiConfiguration: ScoobiConfiguration = scoobi()
+  lazy val codec: Option[CompressionCodec]          = compressionCodec()
 
-  def updateConfiguration(f: Configuration => Configuration) =
-    copy(hdfs = () => f(configuration))
+  /** @return a RepositoryConfiguration were compression is enabled on MR operations */
+  def withCompression = updateConfiguration { configuration =>
+    codec.foreach { c =>
+      configuration.set("mapred.compress.map.output", "true")    // MR1
+      configuration.set("mapreduce.map.output.compress", "true") // YARN
+      configuration.set("mapred.map.output.compression.codec", c.getClass.getName) // MR1
+      configuration.set("mapred.map.output.compress.codec", c.getClass.getName)    // YARN
+    }
+    configuration
+  }
+
+  /**
+   * update the Hdfs configuration, both for the hdfs configuration object and the scoobi one
+   */
+  def updateConfiguration(f: Configuration => Configuration) = {
+    copy(hdfs = () => f(configuration),
+         scoobi = () => {f(scoobiConfiguration.configuration); scoobiConfiguration})
+  }
 }
 
 object RepositoryConfiguration {
@@ -112,14 +136,16 @@ object RepositoryConfiguration {
       arguments = Seq(),
       s3 = () => Clients.s3,
       hdfs = () => configuration,
-      scoobi = () => ScoobiConfiguration(configuration))
+      scoobi = () => ScoobiConfiguration(configuration),
+      compressionCodec = () => None)
 
   def apply(sc: ScoobiConfiguration): RepositoryConfiguration =
     new RepositoryConfiguration(
       arguments = Seq(),
       s3 = () => Clients.s3,
       hdfs = () => sc.configuration,
-      scoobi = () => sc)
+      scoobi = () => sc,
+      compressionCodec = () => None)
 
   val defaultS3TmpDirectory: FilePath = ".s3repository".toFilePath
 }

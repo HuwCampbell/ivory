@@ -45,7 +45,7 @@ ChordSpec
       outRef      <- Reference.fromUriResultTIO(outPath, sc)
       entitiesRef <- Reference.fromUriResultTIO(directory+"/entities", sc)
       tmpRef      <- Reference.fromUriResultTIO(directory+"/tmp", sc)
-      res         <- Chord.onStore(repo, entitiesRef, outRef, tmpRef, true, None)
+      res         <- Chord.onStore(repo, entitiesRef, outRef, tmpRef, true)
     } yield res) must beOk
 
     valueFromSequenceFile[Fact](outPath).run.toList must containTheSameElementsAs(List(

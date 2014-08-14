@@ -1,6 +1,6 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.storage.repository.RepositoryConfiguration
+import com.ambiata.ivory.storage.repository.{Codec, RepositoryConfiguration}
 import com.ambiata.saws.core.Clients
 import com.nicta.scoobi.core._
 import com.nicta.scoobi.Scoobi._
@@ -52,10 +52,11 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
   def run(args: Array[String]): IO[Option[Unit]] = {
     val repositoryConfiguration =
       RepositoryConfiguration(
-        arguments = removeScoobiArguments(args),
-        s3        = () => Clients.s3,
-        hdfs      = () => new Configuration,
-        scoobi    = () => createScoobiConfiguration(args))
+        arguments        = removeScoobiArguments(args),
+        s3               = () => Clients.s3,
+        hdfs             = () => new Configuration,
+        scoobi           = () => createScoobiConfiguration(args),
+        compressionCodec = () => Codec())
 
     parseAndRun(repositoryConfiguration.arguments, runner.run(repositoryConfiguration))
   }

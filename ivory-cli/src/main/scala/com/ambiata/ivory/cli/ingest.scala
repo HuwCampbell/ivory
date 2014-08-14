@@ -11,7 +11,6 @@ import com.ambiata.ivory.core.Name._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.storage.store._
-import org.apache.hadoop.io.compress._
 import org.apache.hadoop.conf.Configuration
 import org.joda.time.DateTimeZone
 import MemoryConversions._
@@ -52,13 +51,13 @@ object ingest extends IvoryApp {
       IvoryRunner(configuration => c => for {
         repo     <- Repository.fromUriResultTIO(c.repo, configuration)
         inputRef <- Reference.fromUriResultTIO(c.input, configuration)
-        factset  <- run(repo, inputRef, c.namespace, c.timezone, c.optimal, c.format, Codec())
+        factset  <- run(repo, inputRef, c.namespace, c.timezone, c.optimal, c.format)
       } yield List(s"Successfully imported '${c.input}' as ${factset} into '${c.repo}'")))
 
-  def run(repo: Repository, input: ReferenceIO, namespace: Option[Name], timezone: DateTimeZone, optimal: BytesQuantity, format: Format, codec: Option[CompressionCodec]): ResultTIO[FactsetId] =
-    fatrepo.ImportWorkflow.onStore(repo, importFeed(input, namespace, optimal, format, codec), timezone)
+  def run(repo: Repository, input: ReferenceIO, namespace: Option[Name], timezone: DateTimeZone, optimal: BytesQuantity, format: Format): ResultTIO[FactsetId] =
+    fatrepo.ImportWorkflow.onStore(repo, importFeed(input, namespace, optimal, format), timezone)
 
-  def importFeed(input: ReferenceIO, singleNamespace: Option[Name], optimal: BytesQuantity, format: Format, codec: Option[CompressionCodec])(repo: Repository, factset: FactsetId, errorRef: ReferenceIO, timezone: DateTimeZone): ResultTIO[Unit] = for {
+  def importFeed(input: ReferenceIO, singleNamespace: Option[Name], optimal: BytesQuantity, format: Format)(repo: Repository, factset: FactsetId, errorRef: ReferenceIO, timezone: DateTimeZone): ResultTIO[Unit] = for {
     conf <- repo match {
       case r: HdfsRepository => ResultT.ok[IO, Configuration](r.configuration)
       case _                 => ResultT.fail[IO, Configuration]("Currently only support HDFS repository")
@@ -66,6 +65,6 @@ object ingest extends IvoryApp {
     dict <- dictionaryFromIvory(repo)
     path <- Reference.hdfsPath(input)
     list <- Namespaces.namespaceSizes(path, singleNamespace).run(conf)
-    _    <- EavtTextImporter.onStore(repo, dict, factset, list.map(_._1), singleNamespace, input, errorRef, timezone, list, optimal, format, codec)
+    _    <- EavtTextImporter.onStore(repo, dict, factset, list.map(_._1), singleNamespace, input, errorRef, timezone, list, optimal, format)
   } yield ()
 }

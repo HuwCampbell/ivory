@@ -3,7 +3,6 @@ package com.ambiata.ivory.cli
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.api.IvoryRetire
-import org.apache.hadoop.io.compress.CompressionCodec
 import org.joda.time.LocalDate
 import java.util.Calendar
 import java.util.UUID
@@ -41,25 +40,10 @@ object snapshot extends IvoryApp {
                       |
                       |""".stripMargin
       println(banner)
-      val codecOpt = Codec()
-
       for {
-        repo <- Repository.fromUriResultTIO(c.repo, updateConfiguration(configuration, codecOpt))
-        res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental, codecOpt)
+        repo <- Repository.fromUriResultTIO(c.repo, configuration.withCompression)
+        res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental)
         (_, out) = res
       } yield List(banner, s"Output path: $out", "Status -- SUCCESS")
   })
-
-  private def updateConfiguration(repositoryConfiguration: RepositoryConfiguration, codecOpt: Option[CompressionCodec]): RepositoryConfiguration = {
-    repositoryConfiguration.updateConfiguration { configuration =>
-
-      configuration.set("mapred.compress.map.output", "true")    // MR1
-      configuration.set("mapreduce.map.output.compress", "true") // YARN
-      codecOpt.foreach { codec =>
-        configuration.set("mapred.map.output.compression.codec", codec.getClass.getName) // MR1
-        configuration.set("mapred.map.output.compress.codec", codec.getClass.getName)    // YARN
-      }
-      configuration
-    }
-  }
 }

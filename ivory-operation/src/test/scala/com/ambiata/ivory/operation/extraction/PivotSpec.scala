@@ -38,7 +38,7 @@ class PivotSpec extends Specification with SampleFacts { def is = s2"""
 
     ((for {
       pivot <- Reference.fromUriResultTIO(directory+"/pivot", conf)
-      snap  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false, None)
+      snap  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false)
       (_, snapId) = snap
       input = repo.toReference(Repository.snapshot(snapId))
       dict  <- dictionaryFromIvory(repo)

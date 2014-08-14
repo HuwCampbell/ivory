@@ -21,7 +21,7 @@ import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.operation.validation._
 import com.ambiata.poacher.hdfs._
 
-case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[String, Array[Int]], output: ReferenceIO, tmp: ReferenceIO, incremental: Option[SnapshotId], codec: Option[CompressionCodec]) {
+case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[String, Array[Int]], output: ReferenceIO, tmp: ReferenceIO, incremental: Option[SnapshotId]) {
 
   type PackedDate = Int
   // mappings of each entity to an array of target dates, represented as Ints and sorted from more recent to least
@@ -54,7 +54,7 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
       _   = println(s"Snapshot date was '${sm.date.string("-")}'")
       s  <- storeFromIvory(repo, sm.store)
     } yield (snapId, s, sm))
-    _  <- scoobiJob(hr, d, s, chordRef, latest, validateIncr(earliest, in), o, codec).run(hr.scoobiConfiguration)
+    _  <- scoobiJob(hr, d, s, chordRef, latest, validateIncr(earliest, in), o, hr.codec).run(hr.scoobiConfiguration)
     _  <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), d)
   } yield ()
 
@@ -156,17 +156,21 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
 object Chord {
   val ChordName: String = "ivory-incremental-chord"
 
-  def onStore(repo: Repository, entities: ReferenceIO, output: ReferenceIO, tmp: ReferenceIO, takeSnapshot: Boolean, codec: Option[CompressionCodec]): ResultTIO[Unit] = for {
+  def onStore(repo: Repository, entities: ReferenceIO, output: ReferenceIO, tmp: ReferenceIO, takeSnapshot: Boolean): ResultTIO[Unit] = for {
+    hr <- repo match {
+      case h: HdfsRepository => ResultT.ok[IO, HdfsRepository](h)
+      case _                 => ResultT.fail[IO, HdfsRepository]("Chord only works on HDFS repositories at this stage.")
+    }
     es                  <- Chord.readChords(entities)
     (earliest, latest)   = DateMap.bounds(es)
     _                    = println(s"Earliest date in chord file is '${earliest}'")
     _                    = println(s"Latest date in chord file is '${latest}'")
     snap                <- if(takeSnapshot)
-                             Snapshot.takeSnapshot(repo, earliest, true, codec).map({ case (s, p) => (s, Some(p)) })
+                             Snapshot.takeSnapshot(repo, earliest, true).map({ case (s, p) => (s, Some(p)) })
                            else
                              latestSnapshot(repo, earliest)
     (store, id)         = snap
-    _                   <- Chord(repo, store, es, output, tmp, id, codec).run
+    _                   <- Chord(repo, store, es, output, tmp, id).run
   } yield ()
 
   def readFacts(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[(SnapshotId, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Priority, SnapshotId \/ FactsetId, Fact)]] = {

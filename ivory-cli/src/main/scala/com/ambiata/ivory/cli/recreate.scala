@@ -29,7 +29,7 @@ object recreate extends IvoryApp {
       val rconf = RecreateConfig(from = Repository.fromHdfsPath(FilePath(c.input), configuration),
                                  to = Repository.fromHdfsPath(FilePath(c.output), configuration),
                                  sc = configuration.scoobiConfiguration,
-                                 codec = Codec(),
+                                 codec = configuration.codec,
                                  clean = c.clean,
                                  dry = c.dry,
                                  overwrite = c.overwrite,
