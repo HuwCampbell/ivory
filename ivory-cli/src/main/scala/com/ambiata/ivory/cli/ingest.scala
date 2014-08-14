@@ -49,8 +49,8 @@ object ingest extends IvoryApp {
 
   def cmd = IvoryCmd[CliArguments](parser,
       CliArguments("", "", None, DateTimeZone.getDefault, 256.mb, TextFormat),
-      ScoobiRunner(configuration => c => for {
-        repo     <- Repository.fromUriResultTIO(c.repo, RepositoryConfiguration(configuration))
+      IvoryRunner(configuration => c => for {
+        repo     <- Repository.fromUriResultTIO(c.repo, configuration)
         inputRef <- Reference.fromUriResultTIO(c.input, configuration)
         factset  <- run(repo, inputRef, c.namespace, c.timezone, c.optimal, c.format, Codec())
       } yield List(s"Successfully imported '${c.input}' as ${factset} into '${c.repo}'")))

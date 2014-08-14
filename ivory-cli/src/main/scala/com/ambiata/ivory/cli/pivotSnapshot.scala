@@ -36,7 +36,7 @@ object pivotSnapshot extends IvoryApp {
 
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", '|', "NA", new LocalDate), ScoobiRunner(conf => c => {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", '|', "NA", new LocalDate), IvoryRunner(conf => c => {
       val banner = s"""======================= pivot =======================
                       |
                       |Arguments --
@@ -50,7 +50,7 @@ object pivotSnapshot extends IvoryApp {
                       |""".stripMargin
       println(banner)
       for {
-        repo   <- Repository.fromUriResultTIO(c.repo, RepositoryConfiguration(conf))
+        repo   <- Repository.fromUriResultTIO(c.repo, conf)
         output <- Reference.fromUriResultTIO(c.output, conf)
         _      <- IvoryRetire.pivotFromSnapshot(repo, output, c.delim, c.tombstone, Date.fromLocalDate(c.date), Codec())
       } yield List(banner, "Status -- SUCCESS")

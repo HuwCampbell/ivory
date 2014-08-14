@@ -22,10 +22,10 @@ object catDictionary extends IvoryApp {
       s"For displaying the contents of an older dictionary"
   }
 
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), HadoopRunner { conf => {
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), IvoryRunner { conf => {
     case CliArguments(repo, nameOpt) =>
       for {
-        repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, RepositoryConfiguration(conf)).leftMap(\&/.This(_)))
+        repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, conf).leftMap(\&/.This(_)))
         store = DictionaryThriftStorage(repo)
         dictionary <- nameOpt.flatMap(Identifier.parse) match {
           case Some(iid) => store.loadFromId(iid).flatMap(ResultT.fromOption(_, s"Dictionary '$iid' could not be found"))

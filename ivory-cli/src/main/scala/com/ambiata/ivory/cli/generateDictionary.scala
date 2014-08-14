@@ -24,8 +24,8 @@ object generateDictionary extends IvoryApp {
     opt[String]('o', "output")  action { (x, c) => c.copy(output = x) }     required() text s"Hdfs path to write dictionary to."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments(0, 0, ""), HadoopRunner { configuration => c =>
-      generate(c.namespaces, c.features, new Path(c.output, "dictionary"), new Path(c.output, "flags")).run(configuration).map {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments(0, 0, ""), IvoryRunner { configuration => c =>
+      generate(c.namespaces, c.features, new Path(c.output, "dictionary"), new Path(c.output, "flags")).run(configuration.configuration).map {
         case _ => List(s"Dictionary successfully written to ${c.output}.")
       }
     })

@@ -72,7 +72,7 @@ object Repository {
 
   def fromUri(uri: String, repositoryConfiguration: RepositoryConfiguration): String \/ Repository =
     Reference.storeFromUri(uri, repositoryConfiguration).map {
-      case HdfsStore(config, base)              => fromHdfsPath(base, repositoryConfiguration.scoobiConfiguration)
+      case HdfsStore(config, base)              => fromHdfsPath(base, repositoryConfiguration)
       case PosixStore(root)                     => fromLocalPath(root)
       case S3Store(bucket, base, client, cache) => fromS3(bucket, base, repositoryConfiguration)
     }
@@ -80,8 +80,14 @@ object Repository {
   def fromUriResultTIO(uri: String, repositoryConfiguration: RepositoryConfiguration): ResultTIO[Repository] =
     ResultT.fromDisjunction[IO, Repository](fromUri(uri, repositoryConfiguration).leftMap(This.apply))
 
-  def fromHdfsPath(path: FilePath, sc: ScoobiConfiguration): HdfsRepository =
-    HdfsRepository(path, RepositoryConfiguration(sc))
+  def fromHdfsPath(path: FilePath, configuration: RepositoryConfiguration): HdfsRepository =
+    HdfsRepository(path, configuration)
+
+  def fromHdfsPath(path: FilePath, configuration: Configuration): HdfsRepository =
+    HdfsRepository(path, RepositoryConfiguration(configuration))
+
+  def fromHdfsPath(path: FilePath, scoobiConfiguration: ScoobiConfiguration): HdfsRepository =
+    HdfsRepository(path, RepositoryConfiguration(scoobiConfiguration))
 
   def fromLocalPath(path: FilePath): LocalRepository =
     LocalRepository(path)
@@ -90,19 +96,30 @@ object Repository {
     S3Repository(bucket, path, repositoryConfiguration)
 }
 
-case class RepositoryConfiguration(s3: () => AmazonS3Client, hdfs: () => Configuration, scoobi: () => ScoobiConfiguration) {
-  def s3TmpDirectory: FilePath                 = RepositoryConfiguration.defaultS3TmpDirectory
-  def s3Client: AmazonS3Client                 = s3()
-  def configuration: Configuration             = hdfs()
-  def scoobiConfiguration: ScoobiConfiguration = scoobi()
+case class RepositoryConfiguration(arguments: Seq[String], s3: () => AmazonS3Client, hdfs: () => Configuration, scoobi: () => ScoobiConfiguration) {
+  lazy val s3TmpDirectory: FilePath                 = RepositoryConfiguration.defaultS3TmpDirectory
+  lazy val s3Client: AmazonS3Client                 = s3()
+  lazy val configuration: Configuration             = hdfs()
+  lazy val scoobiConfiguration: ScoobiConfiguration = scoobi()
+
+  def updateConfiguration(f: Configuration => Configuration) =
+    copy(hdfs = () => f(configuration))
 }
 
 object RepositoryConfiguration {
   def apply(configuration: Configuration): RepositoryConfiguration =
-    new RepositoryConfiguration(s3 = () => Clients.s3, hdfs = () => configuration, scoobi = () => ScoobiConfiguration(configuration))
+    new RepositoryConfiguration(
+      arguments = Seq(),
+      s3 = () => Clients.s3,
+      hdfs = () => configuration,
+      scoobi = () => ScoobiConfiguration(configuration))
 
   def apply(sc: ScoobiConfiguration): RepositoryConfiguration =
-    new RepositoryConfiguration(s3 = () => Clients.s3, hdfs = () => sc.configuration, scoobi = () => sc)
+    new RepositoryConfiguration(
+      arguments = Seq(),
+      s3 = () => Clients.s3,
+      hdfs = () => sc.configuration,
+      scoobi = () => sc)
 
   val defaultS3TmpDirectory: FilePath = ".s3repository".toFilePath
 }

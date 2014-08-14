@@ -30,7 +30,7 @@ object pivot extends IvoryApp {
     opt[Char]("delim")             action { (x, c) => c.copy(delim = x) }                 text "Output delimiter, default is '|'"
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", '|', "NA"), ScoobiRunner(conf => c => {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", '|', "NA"), IvoryRunner(conf => c => {
       val banner = s"""======================= pivot =======================
                       |
                       |Arguments --
@@ -44,7 +44,7 @@ object pivot extends IvoryApp {
                       |""".stripMargin
       println(banner)
       for {
-        repo   <- Repository.fromUriResultTIO(c.repo, RepositoryConfiguration(conf))
+        repo   <- Repository.fromUriResultTIO(c.repo, conf)
         input  <- Reference.fromUriResultTIO(c.input, conf)
         output <- Reference.fromUriResultTIO(c.output, conf)
         _      <- IvoryRetire.pivot(repo, input, output, c.delim, c.tombstone)

@@ -3,14 +3,10 @@ package com.ambiata.ivory.cli
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.api.IvoryRetire
-
-import org.apache.hadoop.fs.Path
-import org.apache.commons.logging.LogFactory
+import org.apache.hadoop.io.compress.CompressionCodec
 import org.joda.time.LocalDate
 import java.util.Calendar
 import java.util.UUID
-
-import scalaz.{DList => _, _}, Scalaz._
 
 object snapshot extends IvoryApp {
 
@@ -31,7 +27,7 @@ object snapshot extends IvoryApp {
       s"Optional date to take snapshot from, default is now."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", LocalDate.now(), true), ScoobiRunner {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", LocalDate.now(), true), IvoryRunner {
     configuration => c =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
@@ -46,20 +42,24 @@ object snapshot extends IvoryApp {
                       |""".stripMargin
       println(banner)
       val codecOpt = Codec()
-      val conf = configuration <| { c =>
-        // MR1
-        c.set("mapred.compress.map.output", "true")
-        codecOpt.foreach(codec => c.set("mapred.map.output.compression.codec", codec.getClass.getName))
 
-        // YARN
-        c.set("mapreduce.map.output.compress", "true")
-        codecOpt.foreach(codec => c.set("mapred.map.output.compress.codec", codec.getClass.getName))
-      }
       for {
-        repo <- Repository.fromUriResultTIO(c.repo, RepositoryConfiguration(conf))
+        repo <- Repository.fromUriResultTIO(c.repo, updateConfiguration(configuration, codecOpt))
         res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental, codecOpt)
         (_, out) = res
       } yield List(banner, s"Output path: $out", "Status -- SUCCESS")
   })
 
+  private def updateConfiguration(repositoryConfiguration: RepositoryConfiguration, codecOpt: Option[CompressionCodec]): RepositoryConfiguration = {
+    repositoryConfiguration.updateConfiguration { configuration =>
+
+      configuration.set("mapred.compress.map.output", "true")    // MR1
+      configuration.set("mapreduce.map.output.compress", "true") // YARN
+      codecOpt.foreach { codec =>
+        configuration.set("mapred.map.output.compression.codec", codec.getClass.getName) // MR1
+        configuration.set("mapred.map.output.compress.codec", codec.getClass.getName)    // YARN
+      }
+      configuration
+    }
+  }
 }

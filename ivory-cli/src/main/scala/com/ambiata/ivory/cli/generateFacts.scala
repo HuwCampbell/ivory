@@ -1,6 +1,5 @@
 package com.ambiata.ivory.cli
 
-import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
 import org.joda.time.LocalDate
 import java.util.Calendar
@@ -30,9 +29,11 @@ object generateFacts extends IvoryApp {
     opt[String]('o', "output")     action { (x, c) => c.copy(output = x) }      required() text s"Hdfs path to write facts to."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", 0, LocalDate.now(), LocalDate.now(), ""), ScoobiRunner { configuration => c =>
-      GenerateFacts.onHdfs(Repository.fromHdfsPath(FilePath(c.repo), configuration), c.entities, new Path(c.flags), c.start, c.end, new Path(c.output))(configuration).run(configuration).
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", 0, LocalDate.now(), LocalDate.now(), ""), IvoryRunner { configuration => c =>
+    val sc = configuration.scoobiConfiguration
+    val conf = configuration.configuration
+    GenerateFacts.onHdfs(Repository.fromHdfsPath(FilePath(c.repo), configuration), c.entities, new Path(c.flags), c.start, c.end, new Path(c.output))(sc).run(conf).
         mapError(e => { println(s"Failed to generate dictionary: ${Result.asString(e)}"); e }).
-                                                                                     map(v => List(s"Dictionary successfully written to ${c.output}."))
+        map(v => List(s"Dictionary successfully written to ${c.output}."))
   })
 }

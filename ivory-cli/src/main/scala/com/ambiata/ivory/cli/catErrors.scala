@@ -19,7 +19,7 @@ object catErrors extends IvoryApp {
       "Delimiter (`|` by default)"
   }
 
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), HadoopRunner { conf => c =>
-    printErrors(c.paths.map(new Path(_)), conf, c.delimiter).executeT(consoleLogging).map(_ => Nil)
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), IvoryRunner { conf => c =>
+    printErrors(c.paths.map(new Path(_)), conf.configuration, c.delimiter).executeT(consoleLogging).map(_ => Nil)
   })
 }

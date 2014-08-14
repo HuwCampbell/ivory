@@ -20,11 +20,11 @@ object createRepository extends IvoryApp {
 
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments(), HadoopRunner { configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments(), IvoryRunner { configuration => c =>
       println("Created configuration: " + configuration)
 
       val actions = for {
-        repo <- Repository.fromUriResultTIO(c.path, RepositoryConfiguration(configuration))
+        repo <- Repository.fromUriResultTIO(c.path, configuration)
         _    <- CreateRepository.onStore(repo)
       } yield ()
 
