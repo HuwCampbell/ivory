@@ -2,7 +2,6 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.store._
-import com.nicta.scoobi.Scoobi._
 
 object convertDictionary extends IvoryApp {
 

@@ -50,7 +50,7 @@ object ingest extends IvoryApp {
   def cmd = IvoryCmd[CliArguments](parser,
       CliArguments("", "", None, DateTimeZone.getDefault, 256.mb, TextFormat),
       ScoobiRunner(configuration => c => for {
-        repo     <- Repository.fromUriResultTIO(c.repo, configuration)
+        repo     <- Repository.fromUriResultTIO(c.repo, RepositoryConfiguration(configuration))
         inputRef <- Reference.fromUriResultTIO(c.input, configuration)
         factset  <- run(repo, inputRef, c.namespace, c.timezone, c.optimal, c.format, Codec())
       } yield List(s"Successfully imported '${c.input}' as ${factset} into '${c.repo}'")))
@@ -60,8 +60,8 @@ object ingest extends IvoryApp {
 
   def importFeed(input: ReferenceIO, singleNamespace: Option[Name], optimal: BytesQuantity, format: Format, codec: Option[CompressionCodec])(repo: Repository, factset: FactsetId, errorRef: ReferenceIO, timezone: DateTimeZone): ResultTIO[Unit] = for {
     conf <- repo match {
-      case HdfsRepository(_, c, _) => ResultT.ok[IO, Configuration](c)
-      case _                       => ResultT.fail[IO, Configuration]("Currently only support HDFS repository")
+      case r: HdfsRepository => ResultT.ok[IO, Configuration](r.configuration)
+      case _                 => ResultT.fail[IO, Configuration]("Currently only support HDFS repository")
     }
     dict <- dictionaryFromIvory(repo)
     path <- Reference.hdfsPath(input)

@@ -1,5 +1,7 @@
 package com.ambiata.ivory.storage.repository
 
+import com.ambiata.saws.core.Clients
+
 import scalaz.{Store => _, _}, effect.IO, \&/.This
 import org.apache.hadoop.conf.Configuration
 import com.amazonaws.services.s3.AmazonS3Client
@@ -7,7 +9,6 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.{Location => _, S3Location => _, HdfsLocation => _, LocalLocation => _, _}
 import com.ambiata.mundane.store._
 import com.ambiata.saws.s3._
-import com.ambiata.saws.core._
 import com.ambiata.ivory.core._
 import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.storage.store._
@@ -34,8 +35,11 @@ sealed trait Repository {
   def version(set: FactsetId): FilePath =  factset(set) </> ".version"
 }
 
-case class HdfsRepository(root: FilePath, conf: Configuration, run: ScoobiRun) extends Repository {
-  def toStore = HdfsStore(conf, root)
+case class HdfsRepository(root: FilePath, repositoryConfiguration: RepositoryConfiguration) extends Repository {
+  def configuration       = repositoryConfiguration.configuration
+  def scoobiConfiguration = repositoryConfiguration.scoobiConfiguration
+
+  def toStore = HdfsStore(configuration, root)
 }
 
 case class LocalRepository(root: FilePath) extends Repository {
@@ -48,9 +52,8 @@ case class LocalRepository(root: FilePath) extends Repository {
  * tmpDirectory is a transient directory (on Hdfl) that is used to import data and
  * convert them to the ivory format before pushing them to S3
  */
-case class S3Repository(bucket: String, root: FilePath, tmp: FilePath, conf: ScoobiConfiguration, client: AmazonS3Client, run: S3Run) extends Repository {
-  def toStore = S3Store(bucket, root, client, tmp)
-  val hdfs = HdfsRepository(tmp, conf, run)
+case class S3Repository(bucket: String, root: FilePath, repositoryConfiguration: RepositoryConfiguration) extends Repository {
+  def toStore = S3Store(bucket, root, repositoryConfiguration.s3Client, repositoryConfiguration.s3TmpDirectory)
 }
 
 object Repository {
@@ -67,28 +70,39 @@ object Repository {
   def namespace(set: FactsetId, namespace: String): FilePath =  factset(set) </> namespace
   def snapshot(id: SnapshotId): FilePath = snapshots </> FilePath(id.render)
 
-  val defaultS3TmpDirectory = Reference.defaultS3TmpDirectory
-
-  def fromUri(s: String, conf: ScoobiConfiguration): String \/ Repository =
-    Reference.storeFromUri(s, conf).map {
-      case HdfsStore(config, base) => fromHdfsPath(base, config)
-      case PosixStore(root) => fromLocalPath(root)
-      case S3Store(bucket, base, client, cache) => fromS3WithTemp(bucket, base, cache, conf).copy(client = client)
+  def fromUri(uri: String, repositoryConfiguration: RepositoryConfiguration): String \/ Repository =
+    Reference.storeFromUri(uri, repositoryConfiguration).map {
+      case HdfsStore(config, base)              => fromHdfsPath(base, repositoryConfiguration.scoobiConfiguration)
+      case PosixStore(root)                     => fromLocalPath(root)
+      case S3Store(bucket, base, client, cache) => fromS3(bucket, base, repositoryConfiguration)
     }
 
-  def fromUriResultTIO(s: String, conf: ScoobiConfiguration): ResultTIO[Repository] =
-    ResultT.fromDisjunction[IO, Repository](fromUri(s, conf).leftMap(This.apply))
+  def fromUriResultTIO(uri: String, repositoryConfiguration: RepositoryConfiguration): ResultTIO[Repository] =
+    ResultT.fromDisjunction[IO, Repository](fromUri(uri, repositoryConfiguration).leftMap(This.apply))
 
-  def fromHdfsPath(path: FilePath, conf: ScoobiConfiguration): HdfsRepository =
-    HdfsRepository(path, conf, ScoobiRun(conf))
+  def fromHdfsPath(path: FilePath, sc: ScoobiConfiguration): HdfsRepository =
+    HdfsRepository(path, RepositoryConfiguration(sc))
 
   def fromLocalPath(path: FilePath): LocalRepository =
     LocalRepository(path)
 
-  def fromS3(bucket: String, path: FilePath, conf: ScoobiConfiguration): S3Repository =
-    fromS3WithTemp(bucket, path, Reference.defaultS3TmpDirectory, conf)
+  def fromS3(bucket: String, path: FilePath, repositoryConfiguration: RepositoryConfiguration): S3Repository =
+    S3Repository(bucket, path, repositoryConfiguration)
+}
 
-  /** use a specific temporary directory to store ivory files before they are saved on S3 */
-  def fromS3WithTemp(bucket: String, path: FilePath, tmp: FilePath, conf: ScoobiConfiguration): S3Repository =
-    S3Repository(bucket, path, tmp, conf, Clients.s3, S3Run(conf))
+case class RepositoryConfiguration(s3: () => AmazonS3Client, hdfs: () => Configuration, scoobi: () => ScoobiConfiguration) {
+  def s3TmpDirectory: FilePath                 = RepositoryConfiguration.defaultS3TmpDirectory
+  def s3Client: AmazonS3Client                 = s3()
+  def configuration: Configuration             = hdfs()
+  def scoobiConfiguration: ScoobiConfiguration = scoobi()
+}
+
+object RepositoryConfiguration {
+  def apply(configuration: Configuration): RepositoryConfiguration =
+    new RepositoryConfiguration(s3 = () => Clients.s3, hdfs = () => configuration, scoobi = () => ScoobiConfiguration(configuration))
+
+  def apply(sc: ScoobiConfiguration): RepositoryConfiguration =
+    new RepositoryConfiguration(s3 = () => Clients.s3, hdfs = () => sc.configuration, scoobi = () => sc)
+
+  val defaultS3TmpDirectory: FilePath = ".s3repository".toFilePath
 }

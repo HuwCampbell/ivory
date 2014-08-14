@@ -38,7 +38,7 @@ case class Snapshot(repo: Repository, store: FeatureStoreId, entities: Option[Re
                  })
             s <- storeFromIvory(repo, sm.store)
           } yield (repo.snapshot(id).toHdfs, s, sm) })
-    _   <- job(hr, s, in, out, codec).run(hr.conf)
+    _   <- job(hr, s, in, out, codec).run(hr.configuration)
     _   <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), d)
     _   <- SnapshotMeta(snapshot, store).toReference(output </> SnapshotMeta.fname)
   } yield ()

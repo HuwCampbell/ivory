@@ -19,36 +19,36 @@ Repository Known Answer Tests
   Can parse default relative local URIs           $fragment
 
 """
-  lazy val Conf = ScoobiConfiguration()
+  lazy val conf = RepositoryConfiguration(ScoobiConfiguration())
 
   def hdfs =
-    Repository.fromUri("hdfs:///some/path", Conf).toEither must beRight((r: Repository) => r must beLike({
-      case HdfsRepository(_, _, run) =>
-        r must_== HdfsRepository("/some/path".toFilePath, Conf, run)
+    Repository.fromUri("hdfs:///some/path", conf).toEither must beRight((r: Repository) => r must beLike({
+      case HdfsRepository(_, _) =>
+        r must_== HdfsRepository("/some/path".toFilePath, conf)
     }))
 
   def s3 =
-    Repository.fromUri("s3://bucket/key", Conf).toEither must beRight((r: Repository) => r must beLike({
-      case S3Repository(_, _, _, _, client, run) =>
-        r must_== S3Repository("bucket", "key".toFilePath, Repository.defaultS3TmpDirectory, Conf, client, run)
+    Repository.fromUri("s3://bucket/key", conf).toEither must beRight((r: Repository) => r must beLike({
+      case repository: S3Repository =>
+        r must_== S3Repository("bucket", "key".toFilePath, conf)
     }))
 
   def local =
-    Repository.fromUri("file:///some/path", Conf).toEither must beRight(LocalRepository(FilePath.root </> "some" </> "path"))
+    Repository.fromUri("file:///some/path", conf).toEither must beRight(LocalRepository(FilePath.root </> "some" </> "path"))
 
   def relative =
-    Repository.fromUri("file:some/path", Conf).toEither must beRight(LocalRepository("some" </> "path"))
+    Repository.fromUri("file:some/path", conf).toEither must beRight(LocalRepository("some" </> "path"))
 
   def dfault =
-    Repository.fromUri("/some/path", Conf).toEither must beRight((r: Repository) => r must beLike({
-      case HdfsRepository(_, _, run) =>
-        r must_== HdfsRepository("/some/path".toFilePath, Conf, run)
+    Repository.fromUri("/some/path", conf).toEither must beRight((r: Repository) => r must beLike({
+      case HdfsRepository(_, _) =>
+        r must_== HdfsRepository("/some/path".toFilePath, conf)
     }))
 
   def fragment =
-    Repository.fromUri("some/path", Conf).toEither must beRight((r: Repository) => r must beLike({
-      case HdfsRepository(_, _, run) =>
-        r must_== HdfsRepository("some/path".toFilePath, Conf, run)
+    Repository.fromUri("some/path", conf).toEither must beRight((r: Repository) => r must beLike({
+      case HdfsRepository(_, _) =>
+        r must_== HdfsRepository("some/path".toFilePath, conf)
     }))
 
 }

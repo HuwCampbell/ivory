@@ -54,7 +54,7 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
       _   = println(s"Snapshot date was '${sm.date.string("-")}'")
       s  <- storeFromIvory(repo, sm.store)
     } yield (snapId, s, sm))
-    _  <- hr.run.runScoobi(scoobiJob(hr, d, s, chordRef, latest, validateIncr(earliest, in), o, codec))
+    _  <- scoobiJob(hr, d, s, chordRef, latest, validateIncr(earliest, in), o, codec).run(hr.scoobiConfiguration)
     _  <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), d)
   } yield ()
 

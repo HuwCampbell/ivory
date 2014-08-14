@@ -39,8 +39,8 @@ object EavtTextImporter {
     codec: Option[CompressionCodec]
   ): ResultTIO[Unit] = for {
     c <- repository match {
-      case HdfsRepository(_, conf, _) => ResultT.ok[IO, Configuration](conf)
-      case _                          => ResultT.fail[IO, Configuration]("Repository must be HDFS")
+      case HdfsRepository(_, conf) => ResultT.ok[IO, Configuration](conf.configuration)
+      case _                       => ResultT.fail[IO, Configuration]("Repository must be HDFS")
     }
     path      <- Reference.hdfsPath(inputRef)
     errorPath <- Reference.hdfsPath(errorRef)

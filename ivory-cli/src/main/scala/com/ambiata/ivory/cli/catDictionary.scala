@@ -4,7 +4,6 @@ import com.ambiata.mundane.control._
 import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
-import com.nicta.scoobi.Scoobi._
 import scalaz._, effect._
 
 object catDictionary extends IvoryApp {
@@ -26,7 +25,7 @@ object catDictionary extends IvoryApp {
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), HadoopRunner { conf => {
     case CliArguments(repo, nameOpt) =>
       for {
-        repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, conf).leftMap(\&/.This(_)))
+        repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, RepositoryConfiguration(conf)).leftMap(\&/.This(_)))
         store = DictionaryThriftStorage(repo)
         dictionary <- nameOpt.flatMap(Identifier.parse) match {
           case Some(iid) => store.loadFromId(iid).flatMap(ResultT.fromOption(_, s"Dictionary '$iid' could not be found"))

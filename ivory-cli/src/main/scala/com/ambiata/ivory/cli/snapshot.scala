@@ -56,7 +56,7 @@ object snapshot extends IvoryApp {
         codecOpt.foreach(codec => c.set("mapred.map.output.compress.codec", codec.getClass.getName))
       }
       for {
-        repo <- Repository.fromUriResultTIO(c.repo, conf)
+        repo <- Repository.fromUriResultTIO(c.repo, RepositoryConfiguration(conf))
         res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental, codecOpt)
         (_, out) = res
       } yield List(banner, s"Output path: $out", "Status -- SUCCESS")

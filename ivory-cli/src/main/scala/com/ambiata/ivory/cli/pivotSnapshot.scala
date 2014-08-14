@@ -50,7 +50,7 @@ object pivotSnapshot extends IvoryApp {
                       |""".stripMargin
       println(banner)
       for {
-        repo   <- Repository.fromUriResultTIO(c.repo, conf)
+        repo   <- Repository.fromUriResultTIO(c.repo, RepositoryConfiguration(conf))
         output <- Reference.fromUriResultTIO(c.output, conf)
         _      <- IvoryRetire.pivotFromSnapshot(repo, output, c.delim, c.tombstone, Date.fromLocalDate(c.date), Codec())
       } yield List(banner, "Status -- SUCCESS")

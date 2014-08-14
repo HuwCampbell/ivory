@@ -50,8 +50,8 @@ object Pivot {
              case _                                => ResultT.fail[IO, Path](s"Pivot can only output to HDFS currently, got '${output}'")
            }
       s = DenseRowTextStorageV1.DenseRowTextStorer(o.toString, dictionary, delim, tombstone)
-      _ <- r.run.runScoobi(scoobiJob(i, s))
-      _ <- s.storeMeta.run(r.conf)
+      _ <- scoobiJob(i, s).run(r.scoobiConfiguration)
+      _ <- s.storeMeta.run(r.configuration)
     } yield ()
   }
 

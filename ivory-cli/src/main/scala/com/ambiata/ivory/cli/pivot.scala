@@ -44,7 +44,7 @@ object pivot extends IvoryApp {
                       |""".stripMargin
       println(banner)
       for {
-        repo   <- Repository.fromUriResultTIO(c.repo, conf)
+        repo   <- Repository.fromUriResultTIO(c.repo, RepositoryConfiguration(conf))
         input  <- Reference.fromUriResultTIO(c.input, conf)
         output <- Reference.fromUriResultTIO(c.output, conf)
         _      <- IvoryRetire.pivot(repo, input, output, c.delim, c.tombstone)

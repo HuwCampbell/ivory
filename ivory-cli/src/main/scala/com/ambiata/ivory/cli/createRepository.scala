@@ -1,12 +1,7 @@
 package com.ambiata.ivory.cli
 
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
-
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
-
-import com.nicta.scoobi.Scoobi._
 
 object createRepository extends IvoryApp {
 
@@ -29,7 +24,7 @@ object createRepository extends IvoryApp {
       println("Created configuration: " + configuration)
 
       val actions = for {
-        repo <- Repository.fromUriResultTIO(c.path, configuration)
+        repo <- Repository.fromUriResultTIO(c.path, RepositoryConfiguration(configuration))
         _    <- CreateRepository.onStore(repo)
       } yield ()
 

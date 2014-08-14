@@ -19,36 +19,36 @@ Reference
   Can parse s3 URIs                               $s3
 
 """
-  lazy val Conf = ScoobiConfiguration()
+  lazy val conf = RepositoryConfiguration(ScoobiConfiguration())
 
   def local =
-    Reference.fromUri("file:///some/path", Conf).toEither must beRight (new Reference(
+    Reference.fromUri("file:///some/path", conf).toEither must beRight (new Reference(
       PosixStore(FilePath.root </> "some"), FilePath("/path")
     ))
 
   def localShort =
-    Reference.fromUri("file:///some/", Conf).toEither must beRight (new Reference(
+    Reference.fromUri("file:///some/", conf).toEither must beRight (new Reference(
       PosixStore(FilePath.root </> "some"), FilePath("/")
     ))
 
   def hdfs =
-    Reference.fromUri("hdfs:///some/path", Conf).toEither must beRight(new Reference(
-      HdfsStore(Conf, "/some".toFilePath), FilePath("/path")
+    Reference.fromUri("hdfs:///some/path", conf).toEither must beRight(new Reference(
+      HdfsStore(conf.configuration, "/some".toFilePath), FilePath("/path")
     ))
 
   def s3 =
-    Reference.fromUri("s3://bucket/key", Conf).toEither must beRight((s: ReferenceIO) => s must beLike({
+    Reference.fromUri("s3://bucket/key", conf).toEither must beRight((s: ReferenceIO) => s must beLike({
       case Reference(S3Store(_, _, client, _), _) =>
-        s must_== Reference(S3Store("bucket", "".toFilePath, client, Repository.defaultS3TmpDirectory), FilePath("/key"))
+        s must_== Reference(S3Store("bucket", "".toFilePath, client, RepositoryConfiguration.defaultS3TmpDirectory), FilePath("/key"))
     }))
 
   def default =
-    Reference.fromUri("/some/path", Conf).toEither must beRight (Reference(
-      HdfsStore(Conf, "/some".toFilePath), FilePath("/path")
+    Reference.fromUri("/some/path", conf).toEither must beRight (Reference(
+      HdfsStore(conf.configuration, "/some".toFilePath), FilePath("/path")
     ))
 
   def fragment =
-    Reference.fromUri("some/path", Conf).toEither must beRight (Reference(
-      HdfsStore(Conf, "some".toFilePath), FilePath("/path")
+    Reference.fromUri("some/path", conf).toEither must beRight (Reference(
+      HdfsStore(conf.configuration, "some".toFilePath), FilePath("/path")
     ))
 }

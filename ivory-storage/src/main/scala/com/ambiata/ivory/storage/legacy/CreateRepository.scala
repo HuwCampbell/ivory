@@ -6,15 +6,13 @@ import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
-import java.io.File
-
 import scalaz.effect.IO
 
 object CreateRepository {
 
   def onStore(repo: Repository): ResultTIO[Boolean] = repo match {
-    case HdfsRepository(root, conf, _) => onHdfs(root.toHdfs).run(conf)
-    case _                             => ResultT.fail[IO, Boolean]("Can only create HDFS repositories at the moment")
+    case HdfsRepository(root, conf) => onHdfs(root.toHdfs).run(conf.configuration)
+    case _                          => ResultT.fail[IO, Boolean]("Can only create HDFS repositories at the moment")
   }
 
   private def onHdfs(path: Path): Hdfs[Boolean] = {
