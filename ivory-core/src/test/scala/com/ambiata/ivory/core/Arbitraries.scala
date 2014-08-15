@@ -222,12 +222,29 @@ object Arbitraries {
   case class DictDesc(s: String)
   case class DictTomb(s: String)
 
+  case class GoodNameString(name: String)
+  case class BadNameString(name: String)
+  case class RandomNameString(name: String)
+
   implicit def NameArbitrary: Arbitrary[Name] = Arbitrary(
     for {
       firstCharacter  <- frequency(4 -> const('-'), 96 -> alphaNumChar)
       otherCharacters <- nonEmptyListOf(frequency(2 -> const('_'), 2  -> const('-'), 96 -> alphaNumChar))
     } yield Name.reviewed((firstCharacter +: otherCharacters).mkString)
   )
+
+  implicit def BadNameStringArbitrary: Arbitrary[BadNameString] = Arbitrary {
+    oneOf("", "_name", "name1/name2", "name㭊").map(BadNameString)
+  }
+
+  implicit def GoodNameStringArbitrary: Arbitrary[GoodNameString] = Arbitrary {
+    NameArbitrary.arbitrary.map(n => GoodNameString(n.name))
+  }
+
+  implicit def RandomNameStringArbitrary: Arbitrary[RandomNameString] = Arbitrary {
+    frequency((50, BadNameStringArbitrary.arbitrary.map(_.name)), (50, GoodNameStringArbitrary.arbitrary.map(_.name)))
+      .map(RandomNameString)
+  }
 
   implicit def DictIdArbitrary: Arbitrary[DictId] = Arbitrary(
     Gen.nonEmptyListOf(Gen.frequency(

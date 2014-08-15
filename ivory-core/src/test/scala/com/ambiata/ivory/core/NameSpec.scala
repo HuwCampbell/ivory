@@ -1,24 +1,26 @@
 package com.ambiata.ivory.core
 
 import org.scalacheck._
-import Gen._
+import Prop._
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.{ScalaCheck, Specification}
 import shapeless.test.illTyped
 import Name._
+import Arbitraries._
 
 class NameSpec extends Specification with ScalaCheck with ThrownExpectations { def is = s2"""
 
  A Name is a constrained string which can be used to give a "simple" name to things.
 
  it contains only characters [A-Z][a-z], numbers [0-9] and underscores '_' or dashes '-' $wellformed
+ a valid string must not fail to parse                                                   $valid
  it must not be empty     $notBeEmpty
  it must not start with _ $notStartWith_
 
  the compiler can catch if a string literal can be passed to a Name or not $compilationError
 """
 
-  def wellformed = prop { string: String =>
+  def wellformed = forAll(randomStrings) { string: String =>
     val nameOption = nameFromString(string)
     Prop.collect(nameOption.isDefined) {
       nameOption must beSome { name: Name =>
@@ -31,7 +33,11 @@ class NameSpec extends Specification with ScalaCheck with ThrownExpectations { d
     }
   }
 
-  def notBeEmpty = prop { string: String =>
+  def valid = forAll(validStrings) { string: String =>
+    nameFromString(string) aka string must beSome(Name.unsafe(string))
+  }
+
+  def notBeEmpty = forAll(randomStrings) { string: String =>
     val nameOption = nameFromString(string)
     Prop.collect(nameOption.isDefined) {
       nameOption must beSome { name: Name =>
@@ -40,7 +46,7 @@ class NameSpec extends Specification with ScalaCheck with ThrownExpectations { d
     }
   }
 
-  def notStartWith_ = prop { string: String =>
+  def notStartWith_ = forAll(randomStrings) { string: String =>
     val nameOption = nameFromString(string)
     Prop.collect(string.startsWith("_")) {
       nameOption must beSome { name: Name =>
@@ -54,13 +60,12 @@ class NameSpec extends Specification with ScalaCheck with ThrownExpectations { d
     ok
   }
 
-  implicit def arbitraryStrings: Arbitrary[String] = Arbitrary {
-    Gen.sized { size =>
-      for {
-        first <- frequency((10, "_"), (90, ""))
-        rest  <- listOfN(size, frequency((1, oneOf('/', '㭊')), (9, oneOf('_', '-')),(90, alphaNumChar)).map(_.toString))
-      } yield first + rest.mkString
-    }
-  }
+  def validStrings: Gen[String] =
+    GoodNameStringArbitrary.arbitrary.map(_.name)
 
+  def randomStrings: Gen[String] =
+    RandomNameStringArbitrary.arbitrary.map(_.name)
+
+  def badStrings: Gen[String] =
+    BadNameStringArbitrary.arbitrary.map(_.name)
 }
