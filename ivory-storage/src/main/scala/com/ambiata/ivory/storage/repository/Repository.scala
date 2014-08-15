@@ -36,7 +36,7 @@ sealed trait Repository {
   def version(set: FactsetId): FilePath =  factset(set) </> ".version"
 }
 
-case class HdfsRepository(root: FilePath, repositoryConfiguration: RepositoryConfiguration) extends Repository {
+case class HdfsRepository(root: FilePath, @transient repositoryConfiguration: RepositoryConfiguration) extends Repository {
   def configuration       = repositoryConfiguration.configuration
   def scoobiConfiguration = repositoryConfiguration.scoobiConfiguration
   def codec               = repositoryConfiguration.codec
@@ -54,7 +54,7 @@ case class LocalRepository(root: FilePath) extends Repository {
  * tmpDirectory is a transient directory (on Hdfl) that is used to import data and
  * convert them to the ivory format before pushing them to S3
  */
-case class S3Repository(bucket: String, root: FilePath, repositoryConfiguration: RepositoryConfiguration) extends Repository {
+case class S3Repository(bucket: String, root: FilePath, @transient repositoryConfiguration: RepositoryConfiguration) extends Repository {
   def toStore = S3Store(bucket, root, repositoryConfiguration.s3Client, repositoryConfiguration.s3TmpDirectory)
 }
 
