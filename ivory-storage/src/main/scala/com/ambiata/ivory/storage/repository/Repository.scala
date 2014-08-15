@@ -99,7 +99,7 @@ object Repository {
 }
 
 case class RepositoryConfiguration(
-  arguments: Seq[String],
+  arguments: List[String],
   s3: () => AmazonS3Client,
   hdfs: () => Configuration,
   scoobi: () => ScoobiConfiguration,
@@ -109,31 +109,12 @@ case class RepositoryConfiguration(
   lazy val configuration: Configuration             = hdfs()
   lazy val scoobiConfiguration: ScoobiConfiguration = scoobi()
   lazy val codec: Option[CompressionCodec]          = compressionCodec()
-
-  /** @return a RepositoryConfiguration were compression is enabled on MR operations */
-  def withCompression = updateConfiguration { configuration =>
-    codec.foreach { c =>
-      configuration.set("mapred.compress.map.output", "true")    // MR1
-      configuration.set("mapreduce.map.output.compress", "true") // YARN
-      configuration.set("mapred.map.output.compression.codec", c.getClass.getName) // MR1
-      configuration.set("mapred.map.output.compress.codec", c.getClass.getName)    // YARN
-    }
-    configuration
   }
-
-  /**
-   * update the Hdfs configuration, both for the hdfs configuration object and the scoobi one
-   */
-  def updateConfiguration(f: Configuration => Configuration) = {
-    copy(hdfs = () => f(configuration),
-         scoobi = () => {f(scoobiConfiguration.configuration); scoobiConfiguration})
-  }
-}
 
 object RepositoryConfiguration {
   def apply(configuration: Configuration): RepositoryConfiguration =
     new RepositoryConfiguration(
-      arguments = Seq(),
+      arguments = List(),
       s3 = () => Clients.s3,
       hdfs = () => configuration,
       scoobi = () => ScoobiConfiguration(configuration),
@@ -141,7 +122,7 @@ object RepositoryConfiguration {
 
   def apply(sc: ScoobiConfiguration): RepositoryConfiguration =
     new RepositoryConfiguration(
-      arguments = Seq(),
+      arguments = List(),
       s3 = () => Clients.s3,
       hdfs = () => sc.configuration,
       scoobi = () => sc,

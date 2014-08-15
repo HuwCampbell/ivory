@@ -41,7 +41,7 @@ object snapshot extends IvoryApp {
                       |""".stripMargin
       println(banner)
       for {
-        repo <- Repository.fromUriResultTIO(c.repo, configuration.withCompression)
+        repo <- Repository.fromUriResultTIO(c.repo, configuration)
         res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental)
         (_, out) = res
       } yield List(banner, s"Output path: $out", "Status -- SUCCESS")

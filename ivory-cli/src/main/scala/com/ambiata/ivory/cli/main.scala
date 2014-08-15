@@ -52,7 +52,7 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
   def run(args: Array[String]): IO[Option[Unit]] = {
     val repositoryConfiguration =
       RepositoryConfiguration(
-        arguments        = removeScoobiArguments(args),
+        arguments        = removeScoobiArguments(args).toList,
         s3               = () => Clients.s3,
         hdfs             = () => new Configuration,
         scoobi           = () => createScoobiConfiguration(args),
