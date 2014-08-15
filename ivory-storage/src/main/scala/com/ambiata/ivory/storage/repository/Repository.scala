@@ -100,12 +100,12 @@ object Repository {
 
 case class RepositoryConfiguration(
   arguments: List[String],
-  s3: () => AmazonS3Client,
+  s3Client: AmazonS3Client,
   hdfs: () => Configuration,
   scoobi: () => ScoobiConfiguration,
   compressionCodec: () => Option[CompressionCodec]) {
-  lazy val s3TmpDirectory: FilePath                 = RepositoryConfiguration.defaultS3TmpDirectory
-  lazy val s3Client: AmazonS3Client                 = s3()
+  val s3TmpDirectory: FilePath                 = RepositoryConfiguration.defaultS3TmpDirectory
+
   lazy val configuration: Configuration             = hdfs()
   lazy val scoobiConfiguration: ScoobiConfiguration = scoobi()
   lazy val codec: Option[CompressionCodec]          = compressionCodec()
@@ -115,7 +115,7 @@ object RepositoryConfiguration {
   def apply(configuration: Configuration): RepositoryConfiguration =
     new RepositoryConfiguration(
       arguments = List(),
-      s3 = () => Clients.s3,
+      s3Client = Clients.s3,
       hdfs = () => configuration,
       scoobi = () => ScoobiConfiguration(configuration),
       compressionCodec = () => None)
@@ -123,7 +123,7 @@ object RepositoryConfiguration {
   def apply(sc: ScoobiConfiguration): RepositoryConfiguration =
     new RepositoryConfiguration(
       arguments = List(),
-      s3 = () => Clients.s3,
+      s3Client = Clients.s3,
       hdfs = () => sc.configuration,
       scoobi = () => sc,
       compressionCodec = () => None)
