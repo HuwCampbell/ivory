@@ -52,7 +52,7 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
     val expected = factsets.factsets.map(fs => fs.copy(partitions = fs.partitions.sorted)).sortBy(_.id)
 
     (factsets.factsets.traverseU(fs =>
-      fs.partitions.partitions.traverseU(p => allocatePath(repo.factset(fs.id) </> p.path)).run(repo.conf)
+      fs.partitions.partitions.traverseU(p => writeDataFile(repo.factset(fs.id) </> p.path)).run(repo.conf)
     ) must beOk) and
     (Factsets.factsets(repo) must beOkLike(_ must containTheSameElementsAs(expected)))
   })
@@ -62,7 +62,7 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
 
     val expected = factset.copy(partitions = factset.partitions.sorted)
 
-    (factset.partitions.partitions.traverseU(p => allocatePath(repo.factset(factset.id) </> p.path)).run(repo.conf) must beOk) and
+    (factset.partitions.partitions.traverseU(p => writeDataFile(repo.factset(factset.id) </> p.path)).run(repo.conf) must beOk) and
     (Factsets.factset(repo, factset.id) must beOkValue(expected))
   })
 
@@ -74,5 +74,11 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
   }
 
   def allocatePath(path: FilePath): Hdfs[Unit] =
-    Hdfs.writeWith((path </> FilePath(".allocated")).toHdfs, os => Streams.write(os, ""))
+    writeEmptyFile(path </> FilePath(".allocated"))
+
+  def writeDataFile(path: FilePath): Hdfs[Unit] =
+    writeEmptyFile(path </> FilePath("data"))
+
+  def writeEmptyFile(file: FilePath): Hdfs[Unit] =
+    Hdfs.writeWith((file).toHdfs, os => Streams.write(os, ""))
 }

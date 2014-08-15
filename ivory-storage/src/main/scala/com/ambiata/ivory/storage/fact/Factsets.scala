@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.fact
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.data.StoreDataUtil
 import com.ambiata.ivory.storage.repository._
 
@@ -32,7 +32,7 @@ object Factsets {
   } yield factsets.sortBy(_.id)
 
   def factset(repo: Repository, id: FactsetId): ResultTIO[Factset] = for {
-    files      <- repo.toStore.list(Repository.factset(id))
+    files      <- repo.toStore.list(Repository.factset(id)).map(_.filterHidden)
     partitions <- ResultT.fromDisjunction[IO, List[Partition]](files.traverseU(Partition.parseFile).disjunction.leftMap(This.apply))
-  } yield Factset(id, Partitions(partitions))
+  } yield Factset(id, Partitions(partitions.sorted))
 }

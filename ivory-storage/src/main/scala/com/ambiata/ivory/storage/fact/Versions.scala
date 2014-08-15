@@ -20,8 +20,8 @@ object Versions {
   def writeAll(repository: Repository, factsets: List[FactsetId], version: FactsetVersion): ResultT[IO, Unit] =
     factsets.traverseU(write(repository, _, version)).void
 
-  def readPrioritized(repository: Repository, factsets: List[PrioritizedFactset]): ResultT[IO, List[(PrioritizedFactset, FactsetVersion)]] =
-    factsets.traverseU(factset => read(repository, factset.factsetId).map(factset -> _))
+  def readPrioritized(repository: Repository, factsets: List[Prioritized[FactsetId]]): ResultT[IO, List[(Prioritized[FactsetId], FactsetVersion)]] =
+    factsets.traverseU(factset => read(repository, factset.value).map(factset -> _))
 
   def parse(factset: FactsetId, version: Version): ResultT[IO, FactsetVersion] =
     FactsetVersion.fromString(version.toString) match {

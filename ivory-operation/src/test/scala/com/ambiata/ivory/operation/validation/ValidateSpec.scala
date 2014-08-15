@@ -14,6 +14,8 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.data.OldIdentifier
+import com.ambiata.ivory.data.IvoryDataLiterals._
 import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
@@ -60,10 +62,13 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
                                  BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
     val facts2 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "def")))
 
+    val factset1 = Factset(FactsetId(oi"00000"), Partitions(List(Partition("ns1", Date(2012, 10, 1)), Partition("ns2", Date(2012, 3, 20)))))
+    val factset2 = Factset(FactsetId(oi"00001"), Partitions(List(Partition("ns1", Date(2012, 10, 1)))))
+
     persist(facts1.toIvoryFactset(repo, factsetId1, None), facts2.toIvoryFactset(repo, factsetId2, None))
     writeFactsetVersion(repo, List(factsetId1, factsetId2)) must beOk
 
-    val store = FeatureStore(List(PrioritizedFactset(factsetId1, Priority(1)), PrioritizedFactset(factsetId2, Priority(2))))
+    val store = FeatureStore.fromList(FeatureStoreId.initial, List(factset1, factset2)).get
 
     ValidateStoreHdfs(repo, store, dict, false).exec(new Path(outpath)).run(sc) must beOk
 

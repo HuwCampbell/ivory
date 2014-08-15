@@ -45,7 +45,7 @@ object IvoryStorage {
     case FactsetVersionTwo => PartitionFactThriftStorageV2.PartitionedFactThriftLoader(repo, factset, from, to).loadScoobi
   }
 
-  def multiFactsetLoader(repo: Repository, version: FactsetVersion, factsets: List[PrioritizedFactset], from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ (Priority, FactsetId, Fact)]] = version match {
+  def multiFactsetLoader(repo: Repository, version: FactsetVersion, factsets: List[Prioritized[FactsetId]], from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ (Priority, FactsetId, Fact)]] = version match {
     case FactsetVersionOne => PartitionFactThriftStorageV1.PartitionedMultiFactsetThriftLoader(repo, factsets, from, to).loadScoobi
     case FactsetVersionTwo => PartitionFactThriftStorageV2.PartitionedMultiFactsetThriftLoader(repo, factsets, from, to).loadScoobi
   }
@@ -71,15 +71,16 @@ object IvoryStorage {
   def factsFromIvoryStoreBetween(repo: Repository, store: FeatureStore, from: Date, to: Date): ScoobiAction[DList[ParseError \/ (Priority, FactsetId, Fact)]] =
     factsFromIvoryStoreFor(repo, store, Some(from), Some(to))
 
+  /**
+   * Create a DList of all the factsets in the given feature store optionally between two dates.
+   * This will filter out any factsets which either have no version or no partitions
+   */
   def factsFromIvoryStoreFor(repo: Repository, store: FeatureStore, from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ (Priority, FactsetId, Fact)]] = for {
-    factsets <- ScoobiAction.fromHdfs(store.factsets.traverse(factset => for {
-                  ve <- Hdfs.exists(repo.version(factset.factsetId).toHdfs)
-                  s  <- Hdfs.size(repo.factset(factset.factsetId).toHdfs)
-                } yield (factset, ve && s.toBytes.value != 0))).map(_.collect({ case (factset, true) => factset }))
-    versions <- ScoobiAction.fromResultTIO(factsets.traverseU(factset =>
-      Versions.read(repo, factset.factsetId).map(factset -> _)))
-    combined: List[(FactsetVersion, List[PrioritizedFactset])] = versions.groupBy(_._2).toList.map({ case (k, vs) => (k, vs.map(_._1)) })
-    loaded   <- combined.traverseU({ case (v, fss) => IvoryStorage.multiFactsetLoader(repo, v, fss, from, to) })
+    factsets <- ScoobiAction.fromHdfs(store.factsets.filterM(factset =>
+                  Hdfs.exists(repo.version(factset.value.id).toHdfs).map(_ && !factset.value.partitions.isEmpty)))
+    versions <- ScoobiAction.fromResultTIO(Versions.readPrioritized(repo, factsets.map(_.map(_.id))))
+    byVersion: List[(FactsetVersion, List[Prioritized[FactsetId]])] = versions.groupBy(_._2).toList.map({ case (v, ids) => (v, ids.map(_._1)) })
+    loaded   <- byVersion.traverseU({ case (v, ids) => IvoryStorage.multiFactsetLoader(repo, v, ids, from, to) })
   } yield if(loaded.isEmpty) DList[ParseError \/ (Priority, FactsetId, Fact)]() else loaded.reduce(_++_)
 
   def factsFromIvoryFactset(repo: Repository, factset: FactsetId): ScoobiAction[DList[ParseError \/ Fact]] =
