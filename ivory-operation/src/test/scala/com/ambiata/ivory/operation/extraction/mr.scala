@@ -159,7 +159,7 @@ SnapshotReducerSpec
     } yield reducerFacts)
 
   def e1 = prop((inputs: List[ReducerFacts]) => {
-    val priority = new PriorityTagDeserializer(new NamespacedThriftFact with NamespacedThriftFactDerived, SnapshotReducer.ReduceState(0, true))
+    val priority = new PriorityTagDeserializer(new NamespacedThriftFact with NamespacedThriftFactDerived)
     val vout = Writables.bytesWritable(4096)
 
     seqToResult(inputs.map(in => {
