@@ -73,7 +73,7 @@ Eavt Parse Formats
 
   def structFail = {
     val dict = Dictionary(Map(FeatureId("ns", "a") -> FeatureMeta(StructEncoding(Map()), None, "")))
-    EavtParsers.parse("e|a|v|t", dict, Name.unsafe("ns"), DateTimeZone.getDefault).toOption must beNone
+    EavtParsers.parse("e|a|v|t", dict, Name("ns"), DateTimeZone.getDefault).toOption must beNone
   }
 
   def genBadDouble: Gen[DoubleValue] =

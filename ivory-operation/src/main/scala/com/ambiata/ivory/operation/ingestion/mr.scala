@@ -133,7 +133,10 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.FeatureIdLookup, lookup)
     val dictThrift = new ThriftDictionary
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.Dictionary, dictThrift)
-    dict = DictionaryThriftConversion.dictionary.from(dictThrift)
+    dict = DictionaryThriftConversion.dictionaryFromThrift(dictThrift) match {
+      case -\/(m)          => sys.error(m)
+      case \/-(dictionary) => dictionary
+    }
     ivoryZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IvoryZone))
     ingestZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IngestZone))
     base = context.getConfiguration.get(IngestJob.Keys.IngestBase)

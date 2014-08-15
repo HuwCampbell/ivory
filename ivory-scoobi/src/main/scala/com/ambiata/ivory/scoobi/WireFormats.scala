@@ -19,7 +19,7 @@ trait WireFormats {
    */
   def featureIdWireFormat =
     implicitly[WireFormat[(String, String)]].xmap(
-      (nsn: (String, String)) => FeatureId(Name.reviewed(nsn._1), nsn._2),
+      (nsn: (String, String)) => FeatureId(Name.unsafe(nsn._1), nsn._2),
       (x: FeatureId) => (x.namespace.name, x.name))
 
   /**

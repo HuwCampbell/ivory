@@ -91,7 +91,7 @@ class EavtTextImporterSpec extends Specification with ThrownExpectations with Fi
       AsResult(f(new Setup))
   }
 
-  val ns1 = Name.reviewed("ns1")
+  val ns1 = Name("ns1")
 }
 
 class Setup() {

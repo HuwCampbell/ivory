@@ -23,7 +23,7 @@ class NameSpec extends Specification with ScalaCheck with ThrownExpectations { d
       name.name
         .filterNot(('a' to 'z').contains)
         .filterNot(('A' to 'Z').contains)
-        .filterNot(('0' to '0').contains)
+        .filterNot(('0' to '9').contains)
         .filterNot(Seq("_", "-").contains) must beEmpty
     }.when(nameOption.isDefined)
   }

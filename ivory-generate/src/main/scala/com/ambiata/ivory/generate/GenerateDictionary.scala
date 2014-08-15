@@ -39,9 +39,9 @@ object GenerateDictionary {
   } yield (FeatureId(ns, name), fm)
 
   def randomNamespaces(n: Int, words: Nel[String]): Rng[Nel[Name]] = for {
-    nss <- randomNWords(n, words.list, Rng.insert('_'))
+    nss <- randomNWords(n, words.list, Rng.insert('_')).map(_.flatMap(Name.nameFromString))
   // this Name might be unsafe if the words file contains incorrect names
-  } yield NonEmptyList(nss.head, nss.tail: _*).map(Name.unsafe)
+  } yield NonEmptyList(nss.headOption.getOrElse("name"), nss.tail: _*)
 
   def randomNames(n: Int, words: Nel[String]): Rng[Nel[String]] = for {
     nss <- randomNWords(n, words.list, randomSeparatorChar)

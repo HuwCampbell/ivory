@@ -14,7 +14,7 @@ object Namespaces {
   def namespaceSizes(factsetPath: Path, singleNamespace: Option[Name]): Hdfs[List[(Name, BytesQuantity)]] =
     singleNamespace match {
       case Some(name) => Hdfs.totalSize(factsetPath).map(size => List((name, size)))
-      case None       => Hdfs.childrenSizes(factsetPath).map(_.map { case (n, q) => (Name.reviewed(n.getName), q) })
+      case None       => Hdfs.childrenSizes(factsetPath).map(_.map { case (n, q) => (Name.fromPathName(n), q) })
     }
 
   /**

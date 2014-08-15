@@ -2,6 +2,7 @@ package com.ambiata.ivory.core
 
 import com.ambiata.ivory.reflect.MacrosCompat
 import com.ambiata.mundane.parse.ListParser
+import org.apache.hadoop.fs.Path
 
 import scalaz.{Name => _,_}, Scalaz._
 
@@ -23,13 +24,14 @@ object Name extends MacrosCompat {
    * use this method to create a Name from a String when
    * you are absolutely sure that the string is well-formed
    */
-  def reviewed(s: String): Name = new Name(s)
+  def reviewed(s: String): Name =
+    nameFromString(s).getOrElse(sys.error(s"The name $s was assumed to be well-formed but it isn't"))
 
   /**
    * use this method to create a Name from a String when
    * it could potentially be incorrect
    */
-  def unsafe(s: String): Name = reviewed(s)
+  def unsafe(s: String): Name = Name(s)
 
   def listParser: ListParser[Name] =
     ListParser.string.flatMap[Name] { s =>
@@ -53,9 +55,15 @@ object Name extends MacrosCompat {
   implicit def createNameFromString(s: String): Name =
     macro createNameFromStringMacro
 
+  def fromPathName(path: Path): Name =
+    Name(path.getName)
+
   def nameFromString(s: String): Option[Name] =
-    if (s.matches("([A-Z]|[a-z]|[0-9]|\\-|_)+") && !s.startsWith("_")) Some(Name.reviewed(s))
-    else                                                               None
+    nameFromStringDisjunction(s).toOption
+
+  def nameFromStringDisjunction(s: String): String \/ Name =
+    if (s.matches("([A-Z]|[a-z]|[0-9]|\\-|_)+") && !s.startsWith("_")) Name(s).right
+    else                                                               s"$s is not a valid Name".left
 
   def createNameFromStringMacro(c: Context)(s: c.Expr[String]): c.Expr[Name] = {
     import c.universe._

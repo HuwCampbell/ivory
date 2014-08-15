@@ -75,9 +75,9 @@ object Fact {
 trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
 
     def namespace: Name =
-      // this name might not be well-formed if the ThriftFact has not
-      // been validated
-      Name.unsafe(nspace)
+      // this name should be well-formed if the ThriftFact has been validated
+      // if that's not the case an exception will be thrown here
+      Name.reviewed(nspace)
 
     def feature: String =
       fact.attribute

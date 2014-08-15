@@ -16,6 +16,8 @@ import org.apache.hadoop.mapreduce.Job
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat, SequenceFileInputFormat}
 import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, MultipleOutputs, SequenceFileOutputFormat, LazyOutputFormat}
 
+import scalaz.{\/-, -\/}
+
 /**
  * This object factors the map reducer configuration for both the ingest and recreate-factset tasks.
  *
@@ -78,7 +80,10 @@ object FactsetJob {
     ctx.thriftCache.push(job, ReducerLookups.Keys.NamespaceLookup, reducerLookups.namespaces)
     ctx.thriftCache.push(job, ReducerLookups.Keys.FeatureIdLookup, reducerLookups.features)
     ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,   reducerLookups.reducers)
-    ctx.thriftCache.push(job, ReducerLookups.Keys.Dictionary,      DictionaryThriftConversion.dictionary.to(dictionary))
+    DictionaryThriftConversion.dictionaryToThrift(dictionary) match {
+      case -\/(m) => sys.error(m)
+      case \/-(d) => ctx.thriftCache.push(job, ReducerLookups.Keys.Dictionary, d)
+    }
     ctx
   }
 }

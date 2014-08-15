@@ -24,11 +24,11 @@ class NamespacesSpec extends Specification { def is = s2"""
 
   def e1 = prepare { factsetPath =>
     namespaceSizes(factsetPath, singleNamespace = None)
-  } must beOkLike((_: List[(Name, BytesQuantity)]) must contain ((Name.reviewed("ns1"), 4.bytes), (Name.reviewed("ns2"), 4.bytes)))
+  } must beOkLike((_: List[(Name, BytesQuantity)]) must contain ((Name("ns1"), 4.bytes), (Name("ns2"), 4.bytes)))
 
   def e2 = prepare { factsetPath =>
-    namespaceSizes(new Path(factsetPath, "ns1"), singleNamespace = Some(Name.reviewed("namespace")))
-  } must beOkValue(List((Name.reviewed("namespace"), 4.bytes)))
+    namespaceSizes(new Path(factsetPath, "ns1"), singleNamespace = Some(Name("namespace")))
+  } must beOkValue(List((Name("namespace"), 4.bytes)))
 
   def prepare[A](f: Path => Hdfs[A]): ResultTIO[A] = Temporary.using { dir =>
     val ns1     = dir </> "ns1"

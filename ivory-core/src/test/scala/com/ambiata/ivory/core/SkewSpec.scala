@@ -23,11 +23,11 @@ Skew Tests
 """
    def small = {
      val namespaces = List(
-         Name.reviewed("demographics") -> 1.mb
-       , Name.reviewed("offers"      ) -> 1.mb
-       , Name.reviewed("widgets"     ) -> 1.mb
-       , Name.reviewed("knobs"       ) -> 1.mb
-       , Name.reviewed("flavours"    ) -> 1.mb
+         Name("demographics") -> 1.mb
+       , Name("offers"      ) -> 1.mb
+       , Name("widgets"     ) -> 1.mb
+       , Name("knobs"       ) -> 1.mb
+       , Name("flavours"    ) -> 1.mb
      )
      val (reducersNb, _) = Skew.calculate(dictionary, namespaces, optimalSize)
      reducersNb must_== namespaces.size
@@ -57,11 +57,11 @@ Skew Tests
   }
 
   def largeNamespace = List(
-    Name.reviewed("demographics") -> 25986865.bytes
-  , Name.reviewed("offers"      ) -> 57890389.bytes
-  , Name.reviewed("widgets"     ) -> 329028927.bytes
-  , Name.reviewed("knobs"       ) -> 8380852917L.bytes
-  , Name.reviewed("flavours"    ) -> 184072795.bytes
+    Name("demographics") -> 25986865.bytes
+  , Name("offers"      ) -> 57890389.bytes
+  , Name("widgets"     ) -> 329028927.bytes
+  , Name("knobs"       ) -> 8380852917L.bytes
+  , Name("flavours"    ) -> 184072795.bytes
   )
 
   def fake = FeatureMeta(DoubleEncoding, Some(ContinuousType), "desc", Nil)

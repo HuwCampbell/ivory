@@ -36,10 +36,10 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
   private def alphaNumSep      = rule(capture(oneOrMore(alphaNum | '-') ~ zeroOrMore(alpha | num | separator)))
   private def txt(d: String)   = rule(capture(!anyOf(d) ~ ANY))
   private def entry(d: String) = rule(zeroOrMore(txt(d)) ~> (_.mkString("")))
-  private def nameEntry        = rule(alphaNumSep ~> (values => Name.reviewed(values.mkString(""))))
+  private def nameEntry        = rule(alphaNumSep ~> (values => Name.nameFromStringDisjunction(values.mkString(""))))
   private def mapEnty          = rule(zeroOrMore((entry("=") ~ "=" ~ entry(DELIMITER)) ~> ((k, v) => (k.trim, v.trim))).separatedBy(DELIMITER))
   private def map              = rule(mapEnty ~> (_.toMap))
-  private def featureId        = rule(nameEntry ~ ":" ~ entry(DELIMITER) ~> ((ns, n) => FeatureId(ns, n)))
+  private def featureId        = rule(nameEntry ~ ":" ~ entry(DELIMITER) ~> ((ns, n) => ns.map(FeatureId(_, n))))
   private def row              = rule(featureId ~ optional(DELIMITER ~ map))
 
   private def structEntry      = rule(zeroOrMore((entry(":") ~ ":" ~ entry(",*)") ~ capture(optional("*"))) ~> ((k, v, o) => (k.trim, v.trim) -> (o == "*"))).separatedBy(","))
@@ -70,6 +70,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
 
   def parse: ValidationNel[String, (FeatureId, FeatureMeta)] =
     row.run().fold(formatError(_).failureNel, {
-      case featureId :: m :: HNil => metaFromMap(m.getOrElse(Map())).map(featureId ->)
+      case \/-(featureId) :: m :: HNil => metaFromMap(m.getOrElse(Map())).map(featureId ->)
+      case -\/(m) :: _                 => m.failureNel
     })
 }

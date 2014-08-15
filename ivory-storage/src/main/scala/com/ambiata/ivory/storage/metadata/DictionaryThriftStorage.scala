@@ -1,11 +1,13 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.thrift._, DictionaryThriftConversion.dictionary._
+import com.ambiata.ivory.core.thrift._
+import DictionaryThriftConversion._
 import com.ambiata.ivory.data._
 import com.ambiata.ivory.storage._, repository._, store._, version._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
+import scalaz.\&/.This
 import scalaz._, Scalaz._, effect._
 import scodec.bits.ByteVector
 
@@ -46,13 +48,13 @@ case class DictionaryThriftStorage(repository: Repository) {
     loadFromPath(dictDir </> identifier.render </> DATA)
 
   def loadFromPath(dictPath: FilePath): ResultTIO[Option[Dictionary]] =
-    store.bytes.read(dictPath).map {
-      bytes => from(ThriftSerialiser().fromBytes1(() => new ThriftDictionary(), bytes.toArray))
+    store.bytes.read(dictPath).flatMap {
+      bytes => ResultT.fromDisjunction(dictionaryFromThrift(ThriftSerialiser().fromBytes1(() => new ThriftDictionary(), bytes.toArray)).leftMap(This.apply))
     }.map(some) ||| ResultT.ok(none)
 
   def store(dictionary: Dictionary): ResultTIO[(Identifier, FilePath)] = for {
-    bytes <- ResultT.safe[IO, Array[Byte]](ThriftSerialiser().toBytes(to(dictionary)))
-    i <- IdentifierStorage.write(DATA, ByteVector(bytes))(store, dictDir)
-    _ <- Version.write(Reference(store, i._2), Version(DictionaryVersionOne.toString))
+    bytes <- ResultT.fromDisjunction[IO, ThriftDictionary](dictionaryToThrift(dictionary).leftMap(This.apply)).map(d => ThriftSerialiser().toBytes(d))
+    i     <- IdentifierStorage.write(DATA, ByteVector(bytes))(store, dictDir)
+    _     <- Version.write(Reference(store, i._2), Version(DictionaryVersionOne.toString))
   } yield i
 }
