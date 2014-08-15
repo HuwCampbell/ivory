@@ -1,5 +1,7 @@
 package com.ambiata.ivory.core
 
+import org.scalacheck._
+import Gen._
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.{ScalaCheck, Specification}
 import shapeless.test.illTyped
@@ -18,34 +20,47 @@ class NameSpec extends Specification with ScalaCheck with ThrownExpectations { d
 
   def wellformed = prop { string: String =>
     val nameOption = nameFromString(string)
-
-    nameOption must beSome { name: Name =>
-      name.name
-        .filterNot(('a' to 'z').contains)
-        .filterNot(('A' to 'Z').contains)
-        .filterNot(('0' to '9').contains)
-        .filterNot(Seq("_", "-").contains) must beEmpty
-    }.when(nameOption.isDefined)
+    Prop.collect(nameOption.isDefined) {
+      nameOption must beSome { name: Name =>
+        name.name
+          .filterNot(('a' to 'z').contains)
+          .filterNot(('A' to 'Z').contains)
+          .filterNot(('0' to '9').contains)
+          .filterNot(Seq('_', '-').contains) must beEmpty
+      }.when(nameOption.isDefined)
+    }
   }
 
   def notBeEmpty = prop { string: String =>
     val nameOption = nameFromString(string)
-
-    nameOption must beSome { name: Name =>
-      name.name must not(beEmpty)
-    }.when(nameOption.isDefined)
+    Prop.collect(nameOption.isDefined) {
+      nameOption must beSome { name: Name =>
+        name.name must not(beEmpty)
+      }.when(nameOption.isDefined)
+    }
   }
 
   def notStartWith_ = prop { string: String =>
     val nameOption = nameFromString(string)
-
-    nameOption must beSome { name: Name =>
-      name.name must not(startWith("_"))
-    }.when(nameOption.isDefined)
+    Prop.collect(string.startsWith("_")) {
+      nameOption must beSome { name: Name =>
+        name.name must not(startWith("_"))
+      }.when(nameOption.isDefined)
+    }
   }
 
   def compilationError = {
     illTyped(""" ("a/b/c": Name) """)
     ok
   }
+
+  implicit def arbitraryStrings: Arbitrary[String] = Arbitrary {
+    Gen.sized { size =>
+      for {
+        first <- frequency((10, "_"), (90, ""))
+        rest  <- listOfN(size, frequency((1, oneOf('/', '㭊')), (9, oneOf('_', '-')),(90, alphaNumChar)).map(_.toString))
+      } yield first + rest.mkString
+    }
+  }
+
 }
