@@ -3,6 +3,10 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+### 1.0.0-*-076ec8a
+
+- Namespaces must have names composed only of `[a-z]`,`[A-Z]`,`[0-9]`,`[-_]`, must not start with '_' and not be empty
+
 ## 1.0.0-*-bb4ec85
 
 - `ingest` now supports optional Thrift format (specified by `--format`), which allows the importing of structs/lists
