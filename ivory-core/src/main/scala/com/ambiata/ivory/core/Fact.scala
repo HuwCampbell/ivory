@@ -6,6 +6,8 @@ import scala.collection.JavaConverters._
 trait Fact {
   def entity: String
   def namespace: Name
+  /** fast access method for the Fact Name which does not validate the namespace string */
+  def namespaceUnsafe: Name
   def feature: String
   def featureId: FeatureId
   def date: Date
@@ -78,6 +80,9 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       // this name should be well-formed if the ThriftFact has been validated
       // if that's not the case an exception will be thrown here
       Name.reviewed(nspace)
+
+    def namespaceUnsafe: Name =
+      Name.unsafe(nspace)
 
     def feature: String =
       fact.attribute

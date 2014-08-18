@@ -121,7 +121,7 @@ object SnapshotMapper {
 
     def set(f: Fact, state: BytesWritable) {
       val b1 = f.entity.getBytes
-      val b2 = f.namespace.name.getBytes
+      val b2 = f.namespaceUnsafe.name.getBytes
       val b3 = f.feature.getBytes
       System.arraycopy(b1, 0, keyBytes, 0, b1.length)
       System.arraycopy(b2, 0, keyBytes, b1.length, b2.length)
