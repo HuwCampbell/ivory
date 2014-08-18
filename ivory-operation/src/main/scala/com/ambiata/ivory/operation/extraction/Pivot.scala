@@ -23,9 +23,8 @@ import com.ambiata.poacher.scoobi._
 object Pivot {
 
   def onStoreFromSnapshot(repo: Repository, output: ReferenceIO, delim: Char, tombstone: String, date: Date): ResultTIO[Unit] = for {
-    snap <- Snapshot.takeSnapshot(repo, date, true)
-    (store, snapId) = snap
-    ref = repo.toReference(Repository.snapshot(snapId))
+    meta <- Snapshot.takeSnapshot(repo, date, true)
+    ref = repo.toReference(Repository.snapshot(meta.snapshotId))
     _    <- onStore(repo, ref, output, delim, tombstone)
   } yield ()
 

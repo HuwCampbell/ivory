@@ -1,7 +1,7 @@
 package com.ambiata.ivory.data
 
 import com.ambiata.ivory.reflect.MacrosCompat
-
+import com.ambiata.mundane.parse.ListParser
 import scalaz._, Scalaz._
 
 class Identifier private (val n: Int) extends AnyVal {
@@ -57,4 +57,12 @@ object Identifier extends MacrosCompat {
   }
 
 
+  def listParser: ListParser[Identifier] = {
+    import ListParser._
+    for {
+      s         <- string
+      position  <- getPosition
+      result    <- value(parse(s).map(_.success).getOrElse(s"""not an Identifier: '$s'""".failure))
+    } yield result
+  }
 }

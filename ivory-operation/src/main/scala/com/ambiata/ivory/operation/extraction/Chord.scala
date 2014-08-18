@@ -21,7 +21,7 @@ import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.operation.validation._
 import com.ambiata.poacher.hdfs._
 
-case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[String, Array[Int]], output: ReferenceIO, tmp: ReferenceIO, incremental: Option[SnapshotId]) {
+case class Chord(repository: Repository, featureStoreId: FeatureStoreId, entities: HashMap[String, Array[Int]], output: ReferenceIO, tmp: ReferenceIO, incremental: Option[SnapshotId]) {
 
   type PackedDate = Int
   // mappings of each entity to an array of target dates, represented as Ints and sorted from more recent to least
@@ -34,44 +34,33 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
   val ChordName: String = "ivory-incremental-chord"
 
   def run: ResultTIO[Unit] = for {
-    hr <- repo match {
+    hr <- repository match {
       case h: HdfsRepository => ResultT.ok[IO, HdfsRepository](h)
       case _                 => ResultT.fail[IO, HdfsRepository]("Chord only works on HDFS repositories at this stage.")
     }
     // TODO we need to support having output on different store implementations (store scoobi output on hdfs then sync to another store)
-    o  <- output match {
+    outputPath  <- output match {
       case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
       case _                                => ResultT.fail[IO, Path](s"Currently output path must be on HDFS. Given value is ${output}")
     }
-    ds <- (dictionaryFromIvoryT tuple featureStoreFromIvoryT(store)).run(IvoryRead.prod(repo))
-    (d, s) = ds
+    dictionary  <- dictionaryFromIvory(repository)
+    featureStore  <- featureStoreFromIvory(repository, featureStoreId)
     (earliest, latest) = DateMap.bounds(entities)
     chordRef = tmp </> FilePath(java.util.UUID.randomUUID().toString)
     _  <- Chord.serialiseChords(chordRef, entities)
-    in <- incremental.traverseU(snapId => for {
-      sm <- SnapshotMeta.fromIdentifier(repo, snapId)
-      _   = println(s"Snapshot feature store was '${sm.featureStoreId}'")
-      _   = println(s"Snapshot date was '${sm.date.string("-")}'")
-      s  <- featureStoreFromIvory(repo, sm.featureStoreId)
-    } yield (snapId, s, sm))
-    _  <- scoobiJob(hr, d, s, chordRef, latest, validateIncr(earliest, in), o, hr.codec).run(hr.scoobiConfiguration)
-    _  <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), d)
+//    _   = println(s"Snapshot store was '${sm.storeId}'")
+//    _   = println(s"Snapshot date was '${sm.date.string("-")}'")
+    featureStoreSnapshot  <- incremental.traverseU(id => FeatureStoreSnapshot.fromSnapshotIdAfter(repository, id, earliest)).map(_.flatten)
+    _  <- scoobiJob(hr, dictionary, featureStore, chordRef, latest, featureStoreSnapshot, outputPath, hr.codec).run(hr.scoobiConfiguration)
+    _  <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), dictionary)
   } yield ()
 
-  def validateIncr(earliest: Date, in: Option[(SnapshotId, FeatureStore, SnapshotMeta)]): Option[(SnapshotId, FeatureStore, SnapshotMeta)] =
-    in.flatMap({ case i @ (_, _, sm) =>
-      if(earliest isBefore sm.date) {
-        println(s"Earliest date '${earliest}' in chord file is before snapshot date '${sm.date}' so going to skip incremental and pass over all data.")
-        None
-      } else {
-        Some(i)
-      }
-    })
+  //        println(s"Earliest date '${earliest}' in chord file is before snapshot date '${sm.date}' so going to skip incremental and pass over all data.")
 
   /**
    * Persist facts which are the latest corresponding to a set of dates given for each entity
    */
-  def scoobiJob(repo: Repository, dict: Dictionary, store: FeatureStore, chordReference: ReferenceIO, latestDate: Date, incremental: Option[(SnapshotId, FeatureStore, SnapshotMeta)], outputPath: Path, codec: Option[CompressionCodec]): ScoobiAction[Unit] =
+  def scoobiJob(repo: Repository, dict: Dictionary, store: FeatureStore, chordReference: ReferenceIO, latestDate: Date, incremental: Option[FeatureStoreSnapshot], outputPath: Path, codec: Option[CompressionCodec]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       import collection.JavaConverters._
       val factsetMap: HashMap[Priority, SnapshotId \/ FactsetId] =
@@ -167,34 +156,34 @@ object Chord {
     _                    = println(s"Earliest date in chord file is '${earliest}'")
     _                    = println(s"Latest date in chord file is '${latest}'")
     snap                <- if(takeSnapshot)
-                             Snapshot.takeSnapshot(repo, earliest, true).map({ case (s, p) => (s, Some(p)) })
+                             Snapshot.takeSnapshot(repo, earliest, true).map { meta => (meta.storeId, Some(meta.snapshotId)) }
                            else
                              latestSnapshot(repo, earliest)
     (store, id)         = snap
     _                   <- Chord(repo, store, es, output, tmp, id).run
   } yield ()
 
-  def readFacts(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[(SnapshotId, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Priority, SnapshotId \/ FactsetId, Fact)]] = {
+  def readFacts(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[FeatureStoreSnapshot]): ScoobiAction[DList[ParseError \/ (Priority, SnapshotId \/ FactsetId, Fact)]] = {
     import IvoryStorage._
     incremental match {
       case None =>
         factsFromIvoryStoreTo(repo, store, latestDate).map(_.map(_.map({ case (p, fid, f) => (p, fid.right[SnapshotId], f) })))
-      case Some((snapId, s, sm)) => for {
+      case Some(snapshot) => for {
         c <- ScoobiAction.scoobiConfiguration
-        p = repo.snapshot(snapId).toHdfs
-        o <- factsFromIvoryStoreBetween(repo, s, sm.date, latestDate) // read facts from already processed store from the last snapshot date to the latest date
-        sd = store diff s
-        _  = println(s"Reading factsets '${sd.factsetIds}' up to '${latestDate}'")
+        p = repo.snapshot(snapshot.snapshotId).toHdfs
+        o <- factsFromIvoryStoreBetween(repo, snapshot.store, snapshot.date, latestDate) // read facts from already processed store from the last snapshot date to the latest date
+        sd = store diff snapshot.store
+        _  = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
         n <- factsFromIvoryStoreTo(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
         factsetData = (o ++ n).map(_.map({ case (p, fid, f) => (p, fid.right[SnapshotId], f) }))
-      } yield factsetData ++ FlatFactThriftStorageV1.FlatFactThriftLoader(p.toString).loadScoobi(c).map(_.map((Priority.Max, snapId.left[FactsetId], _)))
+      } yield factsetData ++ FlatFactThriftStorageV1.FlatFactThriftLoader(p.toString).loadScoobi(c).map(_.map((Priority.Max, snapshot.snapshotId.left[FactsetId], _)))
     }
   }
 
   def latestSnapshot(repo: Repository, date: Date): ResultTIO[(FeatureStoreId, Option[SnapshotId])] = for {
     store  <- ExtractLatestWorkflow.latestFeatureStore(repo)
     latest <- SnapshotMeta.latest(repo, date)
-  } yield (store, latest.map(_._1))
+  } yield (store, latest.map(_.snapshotId))
 
   def serialiseChords(ref: ReferenceIO, map: HashMap[String, Array[Int]]): ResultTIO[Unit] = {
     import java.io.ObjectOutputStream

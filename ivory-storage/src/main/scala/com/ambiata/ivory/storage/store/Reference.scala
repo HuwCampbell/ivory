@@ -41,6 +41,9 @@ object Reference {
   def fromUriResultTIO(uri: String, scoobiConfiguration: ScoobiConfiguration): ResultTIO[ReferenceIO] =
     fromUriResultTIO(uri, RepositoryConfiguration(scoobiConfiguration))
 
+  def fromUriFilePathResultTIO(uri: FilePath, repositoryConfiguration: RepositoryConfiguration): ResultTIO[ReferenceIO] =
+    fromUriResultTIO(uri.path, repositoryConfiguration)
+
   def fromUriResultTIO(uri: String, repositoryConfiguration: RepositoryConfiguration): ResultTIO[ReferenceIO] =
     ResultT.fromDisjunction[IO, ReferenceIO](fromUri(uri, repositoryConfiguration).leftMap(This.apply))
 

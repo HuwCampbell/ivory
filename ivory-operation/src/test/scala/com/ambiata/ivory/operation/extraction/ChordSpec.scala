@@ -1,7 +1,10 @@
 package com.ambiata.ivory.operation.extraction
 
-import com.ambiata.ivory.storage.repository.RepositoryBuilder
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.control.ResultTIO
+import org.specs2._
+import org.specs2.matcher._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._
@@ -53,4 +56,17 @@ ChordSpec
     ))
   }
 
+  def createChord(repository: HdfsRepository, directory: FilePath, output: FilePath, configuration: RepositoryConfiguration): ResultTIO[Unit] =
+    for {
+      outRef      <- Reference.fromUriFilePathResultTIO(output, configuration)
+      entitiesRef <- Reference.fromUriFilePathResultTIO(directory </> "entities", configuration)
+      tmpRef      <- Reference.fromUriFilePathResultTIO(directory </> "tmp", configuration)
+      _           <- Chord.onStore(repository, entitiesRef, outRef, tmpRef, takeSnapshot = true)
+    } yield ()
+
+  def readDictionary(outPath: FilePath, configuration: RepositoryConfiguration): ResultTIO[Dictionary] =
+    for {
+      dictRef <- Reference.fromUriFilePathResultTIO(outPath </> ".dictionary", configuration)
+      dict    <- DictionaryTextStorageV2.fromStore(dictRef)
+    } yield dict
 }

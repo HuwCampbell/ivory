@@ -2,7 +2,7 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.api.IvoryRetire
+import com.ambiata.ivory.api.IvoryRetire._
 import org.joda.time.LocalDate
 import java.util.Calendar
 import java.util.UUID
@@ -42,8 +42,7 @@ object snapshot extends IvoryApp {
       println(banner)
       for {
         repo <- Repository.fromUriResultTIO(c.repo, configuration)
-        res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental)
-        (_, out) = res
-      } yield List(banner, s"Output path: $out", "Status -- SUCCESS")
+        meta <- takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental)
+      } yield List(banner, s"Output path: ${meta.snapshotId}", "Status -- SUCCESS")
   })
 }

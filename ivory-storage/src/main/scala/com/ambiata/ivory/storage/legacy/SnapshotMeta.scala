@@ -1,5 +1,7 @@
 package com.ambiata.ivory.storage.legacy
 
+import com.ambiata.ivory.storage.metadata.Metadata._
+
 import scalaz._, Scalaz._, \&/._, effect.IO
 
 import com.ambiata.mundane.io._
@@ -11,7 +13,7 @@ import com.ambiata.ivory.data._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 
-case class SnapshotMeta(date: Date, featureStoreId: FeatureStoreId) {
+case class SnapshotMeta(snapshotId: SnapshotId, date: Date, featureStoreId: FeatureStoreId) {
 
   def toReference(ref: ReferenceIO): ResultTIO[Unit] =
     ref.run(featureStore => path => featureStore.linesUtf8.write(path, stringLines))
@@ -20,10 +22,20 @@ case class SnapshotMeta(date: Date, featureStoreId: FeatureStoreId) {
     List(date.string("-"), featureStoreId.render)
 
   def order(other: SnapshotMeta): Ordering =
-    (date ?|? other.date) match {
-      case Ordering.EQ => featureStoreId ?|? other.featureStoreId
-      case o           => o
-    }
+    (snapshotId, date, featureStoreId).?|?((other.snapshotId, other.date, other.featureStoreId))
+}
+
+case class FeatureStoreSnapshot(snapshotId: SnapshotId, date: Date, store: FeatureStore)
+
+object FeatureStoreSnapshot {
+  def fromSnapshotId(repository: Repository, snapshotId: SnapshotId): ResultTIO[FeatureStoreSnapshot] =
+    for {
+      meta  <- SnapshotMeta.fromIdentifier(repository, snapshotId)
+      store <- featureStoreFromIvory(repository, meta.featureStoreId)
+    } yield FeatureStoreSnapshot(snapshotId, meta.date, store)
+  
+  def fromSnapshotIdAfter(repository: Repository, snapshotId: SnapshotId, date: Date): ResultTIO[Option[FeatureStoreSnapshot]] =
+    fromSnapshotId(repository, snapshotId).map(snapshot => if (date isBefore snapshot.date) Some(snapshot) else None)
 }
 
 object SnapshotMeta {
@@ -37,28 +49,29 @@ object SnapshotMeta {
     SnapshotMetaOrder.toScalaOrdering
 
   def fromReference(ref: ReferenceIO): ResultTIO[SnapshotMeta] = for {
-    lines <- ref.run(featureStore => featureStore.linesUtf8.read)
-    sm    <- ResultT.fromDisjunction[IO, SnapshotMeta](parser.run(lines).disjunction.leftMap(This.apply))
+    lines      <- ref.run(store => store.linesUtf8.read)
+    snapshotId <- ResultT.fromOption[IO, SnapshotId](SnapshotId.parse(ref.path.dirname.basename.path), s"can't parse ${ref.path.basename.path} as a snapshot id")
+    sm         <- ResultT.fromDisjunction[IO, SnapshotMeta](parser(snapshotId).run(lines).disjunction.leftMap(This.apply))
   } yield sm
 
   def fromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[SnapshotMeta] =
     fromReference(repo.toReference(Repository.snapshots </> FilePath(id.render) </> fname))
 
-  def parser: ListParser[SnapshotMeta] = {
+  def parser(snapshotId: SnapshotId): ListParser[SnapshotMeta] = {
     import ListParser._
     for {
-      d <- localDate
-      s <- FeatureStoreId.listParser
-    } yield SnapshotMeta(Date.fromLocalDate(d), s)
+      date       <- localDate
+      storeId    <- FeatureStoreId.listParser
+    } yield SnapshotMeta(snapshotId, Date.fromLocalDate(date), storeId)
   }
 
   def allocateId(repo: Repository): ResultTIO[SnapshotId] = for {
     res <- IdentifierStorage.write(FilePath(".allocated"), scodec.bits.ByteVector.empty)(repo.toStore, Repository.snapshots)
   } yield { val (id, _) = res; SnapshotId(id) }
 
-  def latest(repo: Repository, date: Date): ResultTIO[Option[(SnapshotId, SnapshotMeta)]] = for {
+  def latest(repo: Repository, date: Date): ResultTIO[Option[SnapshotMeta]] = for {
     ids   <- repo.toReference(Repository.snapshots).run(s => p => StoreDataUtil.listDir(s, p)).map(_.map(_.basename.path))
-    metas <- ids.traverseU(sid => SnapshotId.parse(sid).map(id => fromIdentifier(repo, id).map((id, _))).sequenceU)
-    filtered = metas.collect({ case Some((id, sm)) if sm.date.isBeforeOrEqual(date) => (id, sm) })
-  } yield filtered.sortBy(_.swap).lastOption
+    metas <- ids.traverseU(sid => SnapshotId.parse(sid).map(id => fromIdentifier(repo, id)).sequenceU)
+    filtered = metas.collect { case Some(sm) if sm.date.isBeforeOrEqual(date) => sm }
+  } yield filtered.sorted.lastOption
 }

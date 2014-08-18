@@ -17,7 +17,7 @@ import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import MemoryConversions._
 
-case class Snapshot(repo: Repository, store: FeatureStoreId, entities: Option[ReferenceIO], snapshot: Date, output: ReferenceIO, incremental: Option[(SnapshotId, SnapshotMeta)]) {
+case class Snapshot(repo: Repository, store: FeatureStoreId, entities: Option[ReferenceIO], snapshotDate: Date, output: ReferenceIO, snapshotId: SnapshotId, incremental: Option[SnapshotMeta]) {
   def run: ResultTIO[Unit] = for {
     hr  <- repo match {
       case h: HdfsRepository => ResultT.ok[IO, HdfsRepository](h)
@@ -30,45 +30,45 @@ case class Snapshot(repo: Repository, store: FeatureStoreId, entities: Option[Re
     ds  <- (dictionaryFromIvoryT tuple featureStoreFromIvoryT(store)).run(IvoryRead.prod(repo))
     (d, s) = ds
     es  <- entities.traverseU(_.run(store => store.linesUtf8.read))
-    in  <- incremental.traverseU({ case (id, sm) => for {
+    in  <- incremental.traverseU({ case sm => for {
             _ <- ResultT.ok[IO, Unit]({
-                   println(s"Previous store was '${sm.featureStoreId}'")
+                   println(s"Previous store was '${sm.storeId}'")
                    println(s"Previous date was '${sm.date.string("-")}'")
                  })
-            s <- featureStoreFromIvory(repo, sm.featureStoreId)
-          } yield (repo.snapshot(id).toHdfs, s, sm) })
+            s <- featureStoreFromIvory(repo, sm.storeId)
+          } yield (repo.snapshot(sm.snapshotId).toHdfs, s, sm) })
     _   <- job(hr, s, in, out, hr.codec).run(hr.configuration)
     _   <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), d)
-    _   <- SnapshotMeta(snapshot, store).toReference(output </> SnapshotMeta.fname)
+    _   <- SnapshotMeta(snapshotId, snapshotDate, store).toReference(output </> SnapshotMeta.fname)
   } yield ()
 
   def job(repo: HdfsRepository, store: FeatureStore, incremental: Option[(Path, FeatureStore, SnapshotMeta)], outputPath: Path, codec: Option[CompressionCodec]): Hdfs[Unit] = for {
     conf  <- Hdfs.configuration
-    globs <- Hdfs.fromResultTIO(Snapshot.featureStorePaths(repo, store, snapshot, incremental))
+    globs <- Hdfs.fromResultTIO(Snapshot.featureStorePaths(repo, store, snapshotDate, incremental))
     paths  = globs.flatMap(_.value.paths.map(_.toHdfs)) ++ incremental.map(_._1).toList
     size  <- paths.traverse(Hdfs.size).map(_.sum)
     _     = println(s"Total input size: ${size}")
     reducers = size.toBytes.value / 2.gb.toBytes.value + 1 // one reducer per 2GB of input
     _     = println(s"Number of reducers: ${reducers}")
-    _     <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshot, globs, outputPath, incremental.map(_._1), codec))
+    _     <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshotDate, globs, outputPath, incremental.map(_._1), codec))
   } yield ()
 }
 
 object Snapshot {
   val SnapshotName: String = "ivory-incremental-snapshot"
 
-  def takeSnapshot(repo: Repository, date: Date, incremental: Boolean): ResultTIO[(FeatureStoreId, SnapshotId)] =
+  def takeSnapshot(repo: Repository, date: Date, incremental: Boolean): ResultTIO[SnapshotMeta] =
     fatrepo.ExtractLatestWorkflow.onStore(repo, extractLatest, date, incremental)
 
   /** This is exposed through the external API */
   def snapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Path] = for {
     sc   <- ScoobiAction.scoobiConfiguration
     repo <- Repository.fromHdfsPath(repoPath.toString.toFilePath, sc).pure[ScoobiAction]
-    snap <- ScoobiAction.fromResultTIO(takeSnapshot(repo, date, incremental).map(res => repo.snapshot(res._2).toHdfs))
+    snap <- ScoobiAction.fromResultTIO(takeSnapshot(repo, date, incremental).map(res => repo.snapshot(res.snapshotId).toHdfs))
   } yield snap
 
-  def extractLatest(repo: Repository, store: FeatureStoreId, date: Date, output: ReferenceIO, incremental: Option[(SnapshotId, SnapshotMeta)]): ResultTIO[Unit] =
-    Snapshot(repo, store, None, date, output, incremental).run
+  def extractLatest(repo: Repository, store: FeatureStoreId, date: Date, output: ReferenceIO, snapshotId: SnapshotId, incremental: Option[ SnapshotMeta]): ResultTIO[Unit] =
+    Snapshot(repo, store, None, date, output, snapshotId, incremental).run
 
   def featureStorePaths(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ResultTIO[List[Prioritized[FactsetGlob]]] =
     incremental match {

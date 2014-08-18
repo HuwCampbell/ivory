@@ -1,6 +1,7 @@
 package com.ambiata.ivory.core
 
 import com.ambiata.ivory.data.Identifier
+import com.ambiata.mundane.parse.ListParser
 
 import scalaz._, Scalaz._
 
@@ -23,4 +24,4 @@ object SnapshotId {
 
   def parse(strId: String): Option[SnapshotId] =
     Identifier.parse(strId).map(SnapshotId.apply)
-}
+  }
