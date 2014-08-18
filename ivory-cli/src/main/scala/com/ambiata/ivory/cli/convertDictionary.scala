@@ -2,7 +2,6 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.store._
-import com.nicta.scoobi.Scoobi._
 
 object convertDictionary extends IvoryApp {
 
@@ -15,7 +14,7 @@ object convertDictionary extends IvoryApp {
     opt[String]('o', "output") action { (x, c) => c.copy(output = x) } required() text "File to output new dictionary to"
   }
 
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments("", ""), HadoopRunner { conf => {
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments("", ""), IvoryRunner { conf => {
     case CliArguments(input, output) =>
       for {
         in         <- Reference.fromUriResultTIO(input, conf)

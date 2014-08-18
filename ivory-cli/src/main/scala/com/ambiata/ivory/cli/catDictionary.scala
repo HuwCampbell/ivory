@@ -4,7 +4,6 @@ import com.ambiata.mundane.control._
 import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
-import com.nicta.scoobi.Scoobi._
 import scalaz._, effect._
 
 object catDictionary extends IvoryApp {
@@ -23,7 +22,7 @@ object catDictionary extends IvoryApp {
       s"For displaying the contents of an older dictionary"
   }
 
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), HadoopRunner { conf => {
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), IvoryRunner { conf => {
     case CliArguments(repo, nameOpt) =>
       for {
         repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, conf).leftMap(\&/.This(_)))

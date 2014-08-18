@@ -1,4 +1,4 @@
-package com.ambiata.ivory.cli
+package com.ambiata.ivory.storage.repository
 
 import org.apache.hadoop.io.compress.{CompressionCodec, SnappyCodec}
 

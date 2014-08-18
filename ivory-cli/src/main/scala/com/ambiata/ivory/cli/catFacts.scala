@@ -27,7 +27,7 @@ object catFacts extends IvoryApp {
       "Version (latest by default)"
   }
 
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), HadoopRunner { conf => c =>
-    printFacts(c.paths.map(new Path(_)), conf, c.delimiter, c.tombstone, c.version).executeT(consoleLogging).map(_ => Nil)
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), IvoryRunner { conf => c =>
+    printFacts(c.paths.map(new Path(_)), conf.configuration, c.delimiter, c.tombstone, c.version).executeT(consoleLogging).map(_ => Nil)
   })
 }

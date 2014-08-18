@@ -23,7 +23,7 @@ object compareSnapshots extends IvoryApp {
     opt[String]("output") action { (x, c) => c.copy(output = x) } required() text s"Hdfs path to store results."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), ScoobiRunner {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), IvoryRunner {
     configuration => c =>
       val banner = s"""======================= CompareSnapshot =======================
                       |
@@ -49,7 +49,7 @@ object compareSnapshots extends IvoryApp {
 
                    diff.toTextFile(c.output).persist
                  })
-      } yield ()).run(configuration).map(_ => List(banner, s"Output path: $c.output", "Status -- SUCCESS"))
+      } yield ()).run(configuration.scoobiConfiguration).map(_ => List(banner, s"Output path: $c.output", "Status -- SUCCESS"))
   })
 
   def compare(eat: String, v1: String, v2: String): Option[String] =

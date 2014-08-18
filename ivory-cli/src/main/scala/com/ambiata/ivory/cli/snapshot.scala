@@ -3,14 +3,9 @@ package com.ambiata.ivory.cli
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.api.IvoryRetire
-
-import org.apache.hadoop.fs.Path
-import org.apache.commons.logging.LogFactory
 import org.joda.time.LocalDate
 import java.util.Calendar
 import java.util.UUID
-
-import scalaz.{DList => _, _}, Scalaz._
 
 object snapshot extends IvoryApp {
 
@@ -31,7 +26,7 @@ object snapshot extends IvoryApp {
       s"Optional date to take snapshot from, default is now."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", LocalDate.now(), true), ScoobiRunner {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", LocalDate.now(), true), IvoryRunner {
     configuration => c =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
@@ -45,21 +40,10 @@ object snapshot extends IvoryApp {
                       |
                       |""".stripMargin
       println(banner)
-      val codecOpt = Codec()
-      val conf = configuration <| { c =>
-        // MR1
-        c.set("mapred.compress.map.output", "true")
-        codecOpt.foreach(codec => c.set("mapred.map.output.compression.codec", codec.getClass.getName))
-
-        // YARN
-        c.set("mapreduce.map.output.compress", "true")
-        codecOpt.foreach(codec => c.set("mapred.map.output.compress.codec", codec.getClass.getName))
-      }
       for {
-        repo <- Repository.fromUriResultTIO(c.repo, conf)
-        res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental, codecOpt)
+        repo <- Repository.fromUriResultTIO(c.repo, configuration)
+        res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental)
         (_, out) = res
       } yield List(banner, s"Output path: $out", "Status -- SUCCESS")
   })
-
 }

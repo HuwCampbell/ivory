@@ -5,7 +5,6 @@ import com.ambiata.mundane.io._
 import com.ambiata.ivory.operation.ingestion._, DictionaryImporter._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
-import com.nicta.scoobi.Scoobi._
 import scalaz._, effect._
 
 object importDictionary extends IvoryApp {
@@ -28,7 +27,7 @@ object importDictionary extends IvoryApp {
     opt[Unit]('f', "force")  action { (x, c) => c.copy(force = true) } optional() text s"Ignore any import warnings."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", update = false, force = false), HadoopRunner { configuration => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", update = false, force = false), IvoryRunner { configuration => c =>
       for {
         repository <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(c.repo, configuration).leftMap(\&/.This(_)))
         source <- Reference.fromUriResultTIO(c.path, configuration)

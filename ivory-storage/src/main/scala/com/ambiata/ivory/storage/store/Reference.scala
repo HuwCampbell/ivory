@@ -1,15 +1,15 @@
 package com.ambiata.ivory.storage.store
 
+import com.ambiata.ivory.storage.repository.RepositoryConfiguration
+import com.nicta.scoobi.core.ScoobiConfiguration
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.store._
-import com.nicta.scoobi.Scoobi._
-
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.poacher.hdfs.HdfsStore
 import com.ambiata.saws.s3.S3Store
-import com.ambiata.saws.core.Clients
 
 import scalaz.{Store => _, _}, Scalaz._, effect._, \&/._
 
@@ -30,30 +30,33 @@ case class Reference[F[_]](store: Store[F], path: FilePath) {
 
 object Reference {
 
-  val defaultS3TmpDirectory: FilePath =
-    ".s3repository".toFilePath
-
   def hdfsPath(ref: ReferenceIO): ResultTIO[Path] = ref match {
     case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
     case _                                => ResultT.fail[IO, Path](s"Given reference '${ref}' is not HDFS")
   }
 
-  def fromUriResultTIO(s: String, conf: ScoobiConfiguration): ResultTIO[ReferenceIO] =
-    ResultT.fromDisjunction[IO, ReferenceIO](fromUri(s, conf).leftMap(This.apply))
+  def fromUriResultTIO(uri: String, configuration: Configuration): ResultTIO[ReferenceIO] =
+    fromUriResultTIO(uri, RepositoryConfiguration(configuration))
 
-  def fromUri(s: String, conf: ScoobiConfiguration): String \/ ReferenceIO = {
-    val (root, file) = s.lastIndexOf('/') match {
-      case -1 => (s, "/")
-      case i => (s.substring(0, i), s.substring(i))
+  def fromUriResultTIO(uri: String, scoobiConfiguration: ScoobiConfiguration): ResultTIO[ReferenceIO] =
+    fromUriResultTIO(uri, RepositoryConfiguration(scoobiConfiguration))
+
+  def fromUriResultTIO(uri: String, repositoryConfiguration: RepositoryConfiguration): ResultTIO[ReferenceIO] =
+    ResultT.fromDisjunction[IO, ReferenceIO](fromUri(uri, repositoryConfiguration).leftMap(This.apply))
+
+  def fromUri(uri: String, repositoryConfiguration: RepositoryConfiguration): String \/ ReferenceIO = {
+    val (root, file) = uri.lastIndexOf('/') match {
+      case -1 => (uri, "/")
+      case i  => (uri.substring(0, i), uri.substring(i))
     }
-    storeFromUri(root, conf).map(s => Reference(s, file.toFilePath))
+    storeFromUri(root, repositoryConfiguration).map(s => Reference(s, file.toFilePath))
   }
 
-  def storeFromUri(s: String, conf: ScoobiConfiguration): String \/ Store[ResultTIO] =
-    location(s).map(_ match {
-      case HdfsLocation(path)       => HdfsStore(conf, path.toFilePath)
+  def storeFromUri(uri: String, repositoryConfiguration: RepositoryConfiguration): String \/ Store[ResultTIO] =
+    location(uri).map(_ match {
+      case HdfsLocation(path)       => HdfsStore(repositoryConfiguration.configuration, path.toFilePath)
       case LocalLocation(path)      => PosixStore(path.toFilePath)
-      case S3Location(bucket, path) => S3Store(bucket, path.toFilePath, Clients.s3, defaultS3TmpDirectory)
+      case S3Location(bucket, path) => S3Store(bucket, path.toFilePath, repositoryConfiguration.s3Client, repositoryConfiguration.s3TmpDirectory)
     })
 
   def location(s: String): String \/ Location = try {

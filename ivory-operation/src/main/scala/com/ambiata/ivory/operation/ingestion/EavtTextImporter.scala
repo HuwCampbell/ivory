@@ -1,10 +1,8 @@
 package com.ambiata.ivory.operation.ingestion
 
-import com.ambiata.ivory.lookup.{ReducerLookup, NamespaceLookup, FeatureIdLookup}
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import org.apache.hadoop.fs.Path
 import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
@@ -12,9 +10,8 @@ import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
 import com.ambiata.poacher._
 import hdfs._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.{BytesQuantity, FilePath}
+import com.ambiata.mundane.io.BytesQuantity
 import org.joda.time.DateTimeZone
-import org.apache.hadoop.io.compress._
 import org.apache.hadoop.conf.Configuration
 
 // FIX move to com.ambiata.ivory.ingest.internal
@@ -35,20 +32,19 @@ object EavtTextImporter {
     timezone: DateTimeZone,
     partitions: List[(Name, BytesQuantity)],
     optimal: BytesQuantity,
-    format: Format,
-    codec: Option[CompressionCodec]
+    format: Format
   ): ResultTIO[Unit] = for {
-    c <- repository match {
-      case HdfsRepository(_, conf, _) => ResultT.ok[IO, Configuration](conf)
-      case _                          => ResultT.fail[IO, Configuration]("Repository must be HDFS")
+    hr <- repository match {
+      case hr: HdfsRepository => ResultT.ok[IO, HdfsRepository](hr)
+      case _                  => ResultT.fail[IO, HdfsRepository]("Repository must be HDFS")
     }
     path      <- Reference.hdfsPath(inputRef)
     errorPath <- Reference.hdfsPath(errorRef)
     _         <- writeFactsetVersion(repository, List(factset))
-    paths     <- getAllInputPaths(path, partitions.map(_._1), singleNamespace.isDefined)(c)
+    paths     <- getAllInputPaths(path, partitions.map(_._1), singleNamespace.isDefined)(hr.configuration)
     _         <- ResultT.safe[IO, Unit] {
       IngestJob.run(
-        c,
+        hr.configuration,
         dictionary,
         ReducerLookups.createLookups(dictionary, partitions, optimal),
         timezone,
@@ -59,7 +55,7 @@ object EavtTextImporter {
         repository.factset(factset).toHdfs,
         errorPath,
         format,
-        codec
+        hr.codec
       )
     }
   } yield ()

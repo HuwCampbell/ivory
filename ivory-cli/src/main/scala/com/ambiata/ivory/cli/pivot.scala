@@ -30,7 +30,7 @@ object pivot extends IvoryApp {
     opt[Char]("delim")             action { (x, c) => c.copy(delim = x) }                 text "Output delimiter, default is '|'"
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", '|', "NA"), ScoobiRunner(conf => c => {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", '|', "NA"), IvoryRunner(conf => c => {
       val banner = s"""======================= pivot =======================
                       |
                       |Arguments --

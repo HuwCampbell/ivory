@@ -34,7 +34,7 @@ class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""
     createFacts(repo)
 
     val testDir = "target/"+getClass.getSimpleName+"/"
-    val snapshot1 = Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false, None)
+    val snapshot1 = Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false)
     snapshot1 must beOk
 
     val buffer = new StringBuffer

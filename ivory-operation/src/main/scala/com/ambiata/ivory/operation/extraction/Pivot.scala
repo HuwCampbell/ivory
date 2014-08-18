@@ -3,7 +3,6 @@ package com.ambiata.ivory.operation.extraction
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, effect._
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._, IvorySyntax._
@@ -23,8 +22,8 @@ import com.ambiata.poacher.scoobi._
  */
 object Pivot {
 
-  def onStoreFromSnapshot(repo: Repository, output: ReferenceIO, delim: Char, tombstone: String, date: Date, codec: Option[CompressionCodec]): ResultTIO[Unit] = for {
-    snap <- Snapshot.takeSnapshot(repo, date, true, codec)
+  def onStoreFromSnapshot(repo: Repository, output: ReferenceIO, delim: Char, tombstone: String, date: Date): ResultTIO[Unit] = for {
+    snap <- Snapshot.takeSnapshot(repo, date, true)
     (store, snapId) = snap
     ref = repo.toReference(Repository.snapshot(snapId))
     _    <- onStore(repo, ref, output, delim, tombstone)
@@ -50,8 +49,8 @@ object Pivot {
              case _                                => ResultT.fail[IO, Path](s"Pivot can only output to HDFS currently, got '${output}'")
            }
       s = DenseRowTextStorageV1.DenseRowTextStorer(o.toString, dictionary, delim, tombstone)
-      _ <- r.run.runScoobi(scoobiJob(i, s))
-      _ <- s.storeMeta.run(r.conf)
+      _ <- scoobiJob(i, s).run(r.scoobiConfiguration)
+      _ <- s.storeMeta.run(r.configuration)
     } yield ()
   }
 

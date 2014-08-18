@@ -1,11 +1,11 @@
 package com.ambiata.ivory.operation.extraction
 
+import com.nicta.scoobi.core.ScoobiConfiguration
 import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.TempFiles
 import com.ambiata.ivory.core._
 import org.apache.hadoop.fs.{Path}
 import org.joda.time.LocalDate
-import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
@@ -26,7 +26,8 @@ class PivotSpec extends Specification with SampleFacts { def is = s2"""
 
   // TODO This whole test needs to be redone into something more robust
   def e1 = {
-    implicit val sc: ScoobiConfiguration = TestConfigurations.scoobiConfiguration
+    val conf = RepositoryConfiguration(TestConfigurations.scoobiConfiguration)
+    implicit val sc: ScoobiConfiguration = conf.scoobiConfiguration
 
     val directory = path(TempFiles.createTempDir("pivot").getPath)
     val repo = Repository.fromHdfsPath(directory </> "repo", sc)
@@ -36,8 +37,8 @@ class PivotSpec extends Specification with SampleFacts { def is = s2"""
     createFacts(repo)
 
     ((for {
-      pivot <- Reference.fromUriResultTIO(directory+"/pivot", sc)
-      snap  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false, None)
+      pivot <- Reference.fromUriResultTIO(directory+"/pivot", conf)
+      snap  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false)
       (_, snapId) = snap
       input = repo.toReference(Repository.snapshot(snapId))
       dict  <- dictionaryFromIvory(repo)
@@ -51,7 +52,7 @@ class PivotSpec extends Specification with SampleFacts { def is = s2"""
       """.stripMargin.trim
     }) and
     ((for {
-      dictRef <- Reference.fromUriResultTIO(directory+"/pivot/.dictionary", sc)
+      dictRef <- Reference.fromUriResultTIO(directory+"/pivot/.dictionary", conf)
       lines   <- dictRef.run(store => store.linesUtf8.read)
     } yield lines) must beOkLike { lines =>
       lines must_== List("0|ns1|fid1|string|categorical|desc|NA",

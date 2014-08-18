@@ -36,7 +36,7 @@ object chord extends IvoryApp {
     opt[String]("tombstone")     action { (x, c) => c.copy(tombstone = x) }            text "Tombstone for pivot file, default 'NA'."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", "", true, false, '|', "NA"), ScoobiRunner { conf => c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", "", true, false, '|', "NA"), IvoryRunner { conf => c =>
     for {
       repo <- Repository.fromUriResultTIO(c.repo, conf)
       out  <- Reference.fromUriResultTIO(c.output, conf)
@@ -51,7 +51,7 @@ object chord extends IvoryApp {
     val denseRef = output </> FilePath("dense")
     val tmpRef = tmp </> FilePath("chord")
     for {
-      _    <- IvoryRetire.chord(repo, entities, thriftRef, tmpRef, takeSnapshot, Codec())
+      _    <- IvoryRetire.chord(repo, entities, thriftRef, tmpRef, takeSnapshot)
       _    <- if(pivot) {
                 println(s"Pivoting extracted chord in '${thriftRef.path}' to '${denseRef.path}'")
                 IvoryRetire.pivot(repo, thriftRef, denseRef, delim, tombstone)

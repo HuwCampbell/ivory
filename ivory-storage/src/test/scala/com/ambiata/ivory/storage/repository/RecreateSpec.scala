@@ -29,8 +29,8 @@ class RecreateSpec extends Specification with SampleFacts { def is = s2"""
 
     // create 2 repositories
     val dir = "target/RecreateSpec"
-    val from = HdfsRepository(FilePath(s"$dir/from"), sc.configuration, ScoobiRun(sc))
-    val to   = HdfsRepository(FilePath(s"$dir/to"), sc.configuration, ScoobiRun(sc))
+    val from = HdfsRepository(FilePath(s"$dir/from"), RepositoryConfiguration(sc))
+    val to   = HdfsRepository(FilePath(s"$dir/to"), RepositoryConfiguration(sc))
     Hdfs.deleteAll(FilePath(s"$dir/from").toHdfs).run(sc.configuration) must beOk
     Hdfs.deleteAll(FilePath(s"$dir/to").toHdfs).run(sc.configuration) must beOk
 
