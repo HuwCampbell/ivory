@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.metadata
 
-import scalaz.{Value => _, _}, Scalaz._
+import scalaz.{Name => _, Value => _, _}, Scalaz._
 import com.ambiata.mundane.parse._
 import com.ambiata.ivory.core._
 
@@ -36,7 +36,7 @@ object DictionaryTextStorage extends DictionaryTextStorageCommon {
   def parseDictionaryEntry(entry: String): Validation[String, (FeatureId, FeatureMeta)] = {
     import ListParser._
     val parser: ListParser[(FeatureId, FeatureMeta)] = for {
-      namespace <- string
+      namespace <- Name.listParser
       name      <- string
       encoding  <- for {
         s <- string

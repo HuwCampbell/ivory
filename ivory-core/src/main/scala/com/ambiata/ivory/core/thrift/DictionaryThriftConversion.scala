@@ -2,7 +2,7 @@ package com.ambiata.ivory.core.thrift
 
 import com.ambiata.ivory.core._
 import scala.collection.JavaConverters._
-import scalaz._, Scalaz._, BijectionT._
+import scalaz.{Name=>_,_}, Scalaz._, BijectionT._
 
 object DictionaryThriftConversion {
 
@@ -74,22 +74,25 @@ object DictionaryThriftConversion {
     case NUMERICAL => NumericalType
   })
 
-  val dictionary = bijection[Id, Id, Dictionary, ThriftDictionary](
-    dict =>
-      new ThriftDictionary(
-        dict.meta.map {
-          case (FeatureId(ns, name), FeatureMeta(enc, ty, desc, tombstoneValue)) =>
-            val (encJava, structJava) = encoding.to(enc)
-            val meta = new ThriftDictionaryFeatureMeta(encJava, desc, tombstoneValue.asJava)
-            ty.foreach(t => meta.setType(typeBi.to(t)))
-            structJava.foreach(meta.setValue)
-            new ThriftDictionaryFeatureId(ns, name) -> meta
-        }.asJava),
+  def dictionaryToThrift(dictionary: Dictionary): String \/ ThriftDictionary = {
+    new ThriftDictionary(
+      dictionary.meta.map {
+        case (FeatureId(ns, name), FeatureMeta(enc, ty, desc, tombstoneValue)) =>
+          val (encJava, structJava) = encoding.to(enc)
+          val meta = new ThriftDictionaryFeatureMeta(encJava, desc, tombstoneValue.asJava)
+          ty.foreach(t => meta.setType(typeBi.to(t)))
+          structJava.foreach(meta.setValue)
+          new ThriftDictionaryFeatureId(ns.name, name) -> meta
+      }.asJava).right
+  }
 
-    dict =>
-      Dictionary(dict.meta.asScala.toMap.map {
-          case (featureId, meta) => FeatureId(featureId.ns, featureId.name) ->
-            FeatureMeta(encoding.from(meta), Option(meta.`type`).map(typeBi.from), meta.desc, meta.tombstoneValue.asScala.toList)
-        })
-  )
+  def dictionaryFromThrift(dictionary: ThriftDictionary): String \/ Dictionary = {
+    dictionary.meta.asScala.toList.map { case (featureId, meta) =>
+      Name.nameFromStringDisjunction(featureId.ns).map { namespace =>
+        FeatureId(namespace, featureId.name) ->
+          FeatureMeta(encoding.from(meta), Option(meta.`type`).map(typeBi.from), meta.desc, meta.tombstoneValue.asScala.toList)
+      }
+    }.sequenceU.map(features => Dictionary(features.toMap)).leftMap("Can't convert the dictionary from Thrift: "+_)
+  }
+
 }

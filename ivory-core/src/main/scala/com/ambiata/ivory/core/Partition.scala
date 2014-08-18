@@ -9,9 +9,9 @@ import com.ambiata.mundane.parse.ListParser
 import scalaz.Scalaz._
 import scalaz._
 
-case class Partition(namespace: String, date: Date) {
+case class Partition(namespace: Name, date: Date) {
   def path: FilePath =
-    FilePath(Partition.stringPath(namespace, date))
+    FilePath(Partition.stringPath(namespace.name, date))
 
   def order(other: Partition): Ordering =
     (namespace ?|? other.namespace) match {
@@ -37,7 +37,7 @@ object Partition {
 
   def listParser: ListParser[Partition] = {
     import com.ambiata.mundane.parse.ListParser._
-    // TODO remove once we denend on a version of mundane which contains this combinator
+    // TODO remove once we depend on a version of mundane which contains this combinator
     def byte: ListParser[Byte] = for {
       s         <- string
       position  <- getPosition
@@ -52,12 +52,12 @@ object Partition {
         case None       => ListParser((position, _) => (position, s"""not a valid date ($y-$m-$d)""").failure)
         case Some(date) => date.point[ListParser]
       }
-      ns   <- string.nonempty
+      ns   <- Name.listParser
     } yield Partition(ns, date)
   }
 
-  def stringPath(ns: String, date: Date): String =
-    ns + "/" + "%4d/%02d/%02d".format(date.year, date.month, date.day)
+  def stringPath(namespace: String, date: Date): String =
+    namespace + "/" + "%4d/%02d/%02d".format(date.year, date.month, date.day)
 }
 
 case class Partitions(partitions: List[Partition]) {

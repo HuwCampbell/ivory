@@ -3,7 +3,7 @@ package com.ambiata.ivory.scoobi
 import com.ambiata.mundane.io.{MemoryConversions, BytesQuantity}
 import com.nicta.scoobi.Scoobi.WireFormat
 import com.nicta.scoobi.Scoobi._
-import scalaz.{DList => _, Value => _, _}, Scalaz._
+import scalaz.{Name => _, DList => _, Value => _, _}, Scalaz._
 import java.io._
 import org.joda.time.LocalDate
 
@@ -18,7 +18,9 @@ trait WireFormats {
    * TODO Remove this when scoobi has the wire format
    */
   def featureIdWireFormat =
-    implicitly[WireFormat[(String, String)]].xmap((FeatureId.apply _).tupled, (x: FeatureId) => (x.namespace, x.name))
+    implicitly[WireFormat[(String, String)]].xmap(
+      (nsn: (String, String)) => FeatureId(Name.unsafe(nsn._1), nsn._2),
+      (x: FeatureId) => (x.namespace.name, x.name))
 
   /**
    * TODO Remove this when scoobi has the wire format

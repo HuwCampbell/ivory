@@ -3,7 +3,7 @@ package com.ambiata.ivory.storage.legacy
 import org.joda.time.LocalDate
 import org.joda.time.LocalDateTime
 import org.specs2._
-import scalaz._, Scalaz._
+import scalaz.{Name => _, _}, Scalaz._
 
 import com.ambiata.ivory.core._
 

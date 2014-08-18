@@ -8,7 +8,7 @@ import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
-import scalaz.{DList => _, _}, Scalaz._, effect.IO
+import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
 import com.ambiata.poacher._
 import hdfs._
 import com.ambiata.mundane.control._
@@ -28,12 +28,12 @@ object EavtTextImporter {
     repository: Repository,
     dictionary: Dictionary,
     factset: FactsetId,
-    namespace: List[String],
-    singleNamespace: Option[String],
+    namespace: List[Name],
+    singleNamespace: Option[Name],
     inputRef: ReferenceIO,
     errorRef: ReferenceIO,
     timezone: DateTimeZone,
-    partitions: List[(String, BytesQuantity)],
+    partitions: List[(Name, BytesQuantity)],
     optimal: BytesQuantity,
     format: Format,
     codec: Option[CompressionCodec]
@@ -65,8 +65,8 @@ object EavtTextImporter {
   } yield ()
 
 
-  private def getAllInputPaths(path: Path, namespaceNames: List[String], isSingleNamespace: Boolean)(conf: Configuration): ResultTIO[List[Path]] =
+  private def getAllInputPaths(path: Path, namespaceNames: List[Name], isSingleNamespace: Boolean)(conf: Configuration): ResultTIO[List[Path]] =
     if (isSingleNamespace) Hdfs.globFilesRecursively(path).filterHidden.run(conf)
-    else                   namespaceNames.map(ns => Hdfs.globFilesRecursively(new Path(path, ns)).filterHidden).sequence.map(_.flatten).run(conf)
+    else                   namespaceNames.map(ns => Hdfs.globFilesRecursively(new Path(path, ns.name)).filterHidden).sequence.map(_.flatten).run(conf)
 
 }

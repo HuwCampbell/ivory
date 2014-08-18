@@ -6,6 +6,7 @@ import com.ambiata.ivory.data._
 
 import org.joda.time.DateTimeZone
 import scala.collection.JavaConverters._
+import Gen._
 
 import scalaz._, Scalaz._, scalacheck.ScalaCheckBinding._
 
@@ -96,9 +97,9 @@ object Arbitraries {
     DateTime.unsafe(dt.date.year, dt.date.month, d.toByte, (h * 60 * 60) + (m * 60) + s)
   }
 
-  case class FeatureNamespace(namespace: String)
+  case class FeatureNamespace(namespace: Name)
   def genFeatureNamespace: Gen[FeatureNamespace] =
-    Gen.identifier.map(FeatureNamespace.apply)
+    NameArbitrary.arbitrary.map(FeatureNamespace.apply)
 
   implicit def FeatureNamespaceArbitrary: Arbitrary[FeatureNamespace] =
     Arbitrary(genFeatureNamespace)
@@ -115,7 +116,7 @@ object Arbitraries {
 
   implicit def FeatureIdArbitrary: Arbitrary[FeatureId] =
     Arbitrary(for {
-      ns    <- arbitrary[DictId].map(_.s)
+      ns    <- arbitrary[Name]
       name  <- arbitrary[DictId].map(_.s)
     } yield FeatureId(ns, name))
 
@@ -199,7 +200,7 @@ object Arbitraries {
     dtz    <- arbitrary[DateTimeWithZone]
     // Don't generate a Tombstone if it's not possible
     v      <- Gen.frequency((if (m.tombstoneValue.nonEmpty) 1 else 0) -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding, m.tombstoneValue))
-  } yield (m, Fact.newFact(e, f.namespace, f.name, dtz.datetime.date, dtz.datetime.time, v), dtz.zone)
+  } yield (m, Fact.newFact(e, f.namespace.name, f.name, dtz.datetime.date, dtz.datetime.time, v), dtz.zone)
 
   /** All generated SparseEntities will have a large range of possible entity id's */
   case class SparseEntities(meta: FeatureMeta, fact: Fact, zone: DateTimeZone)
@@ -220,6 +221,30 @@ object Arbitraries {
   case class DictId(s: String)
   case class DictDesc(s: String)
   case class DictTomb(s: String)
+
+  case class GoodNameString(name: String)
+  case class BadNameString(name: String)
+  case class RandomNameString(name: String)
+
+  implicit def NameArbitrary: Arbitrary[Name] = Arbitrary(
+    for {
+      firstCharacter  <- frequency(4 -> const('-'), 96 -> alphaNumChar)
+      otherCharacters <- nonEmptyListOf(frequency(2 -> const('_'), 2  -> const('-'), 96 -> alphaNumChar))
+    } yield Name.reviewed((firstCharacter +: otherCharacters).mkString)
+  )
+
+  implicit def BadNameStringArbitrary: Arbitrary[BadNameString] = Arbitrary {
+    oneOf("", "_name", "name1/name2", "name㭊").map(BadNameString)
+  }
+
+  implicit def GoodNameStringArbitrary: Arbitrary[GoodNameString] = Arbitrary {
+    NameArbitrary.arbitrary.map(n => GoodNameString(n.name))
+  }
+
+  implicit def RandomNameStringArbitrary: Arbitrary[RandomNameString] = Arbitrary {
+    frequency((50, BadNameStringArbitrary.arbitrary.map(_.name)), (50, GoodNameStringArbitrary.arbitrary.map(_.name)))
+      .map(RandomNameString)
+  }
 
   implicit def DictIdArbitrary: Arbitrary[DictId] = Arbitrary(
     Gen.nonEmptyListOf(Gen.frequency(

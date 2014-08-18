@@ -5,7 +5,7 @@ import scala.collection.JavaConverters._
 
 trait Fact {
   def entity: String
-  def namespace: String
+  def namespace: Name
   def feature: String
   def featureId: FeatureId
   def date: Date
@@ -27,22 +27,25 @@ trait Fact {
   }
 
   def withEntity(newEntity: String): Fact =
-    Fact.newFact(newEntity, namespace, feature, date, time, value)
+    Fact.newFactWithNamespaceName(newEntity, namespace, feature, date, time, value)
 
   def withFeatureId(newFeatureId: FeatureId): Fact =
-    Fact.newFact(entity, newFeatureId.namespace, newFeatureId.name, date, time, value)
+    Fact.newFactWithNamespaceName(entity, newFeatureId.namespace, newFeatureId.name, date, time, value)
 
   def withDate(newDate: Date): Fact =
-    Fact.newFact(entity, namespace, feature, newDate, time, value)
+    Fact.newFactWithNamespaceName(entity, namespace, feature, newDate, time, value)
 
   def withTime(newTime: Time): Fact =
-    Fact.newFact(entity, namespace, feature, date, newTime, value)
+    Fact.newFactWithNamespaceName(entity, namespace, feature, date, newTime, value)
 
   def withValue(newValue: Value): Fact =
-    Fact.newFact(entity, namespace, feature, date, time, newValue)
+    Fact.newFactWithNamespaceName(entity, namespace, feature, date, time, newValue)
 }
 
 object Fact {
+  def newFactWithNamespaceName(entity: String, namespace: Name, feature: String, date: Date, time: Time, value: Value): Fact =
+    newFact(entity, namespace.name, feature, date, time, value)
+
   def newFact(entity: String, namespace: String, feature: String, date: Date, time: Time, value: Value): Fact =
     FatThriftFact.factWith(entity, namespace, feature, date, time, value match {
       case StringValue(s)   => ThriftFactValue.s(s)
@@ -70,8 +73,11 @@ object Fact {
 }
 
 trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
-    def namespace: String =
-      nspace
+
+    def namespace: Name =
+      // this name should be well-formed if the ThriftFact has been validated
+      // if that's not the case an exception will be thrown here
+      Name.reviewed(nspace)
 
     def feature: String =
       fact.attribute
@@ -89,7 +95,7 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       fact.getEntity
 
     def featureId: FeatureId =
-      FeatureId(nspace, fact.getAttribute)
+      FeatureId(namespace, fact.getAttribute)
 
     def seconds: Int =
       Option(fact.getSeconds).getOrElse(0)
@@ -137,42 +143,42 @@ object FatThriftFact {
 
 object BooleanFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Boolean): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.b(value))
+    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.b(value))
 
   val fromTuple = apply _ tupled
 }
 
 object IntFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Int): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.i(value))
+    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.i(value))
 
   val fromTuple = apply _ tupled
 }
 
 object LongFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Long): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.l(value))
+    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.l(value))
 
   val fromTuple = apply _ tupled
 }
 
 object DoubleFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Double): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.d(value))
+    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.d(value))
 
   val fromTuple = apply _ tupled
 }
 
 object StringFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: String): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.s(value))
+    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.s(value))
 
   val fromTuple = apply _ tupled
 }
 
 object TombstoneFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.t(new ThriftTombstone()))
+    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.t(new ThriftTombstone()))
 
   val fromTuple = apply _ tupled
 }

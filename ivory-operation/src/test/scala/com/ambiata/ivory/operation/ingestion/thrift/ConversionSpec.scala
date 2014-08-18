@@ -17,7 +17,7 @@ Conversion
 
   def conversion = prop((se: SparseEntities) => {
     import se._
-    thrift2fact(fact.namespace, fact2thrift(fact), zone, zone).toEither must beRight(fact)
+    thrift2fact(fact.namespace.name, fact2thrift(fact), zone, zone).toEither must beRight(fact)
   })
 
   def invalid = prop((tz: DateTimeZone) =>

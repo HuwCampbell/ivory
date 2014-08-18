@@ -49,7 +49,7 @@ Can filter Partitions:
     } yield MalformedDateString(str))
 
   def file = prop((partition: Partition) => {
-    val fp = FilePath("/a/b/c") </> FilePath(partition.namespace) </> FilePath(partition.date.slashed) </> FilePath("file")
+    val fp = FilePath("/a/b/c") </> FilePath(partition.namespace.name) </> FilePath(partition.date.slashed) </> FilePath("file")
     Partition.parseFile(fp) ==== partition.success[String]
   })
 
@@ -63,12 +63,12 @@ Can filter Partitions:
     Partition.parseFile(FilePath("/2014/08/11/file")).toOption ==== None
 
   def dir = prop((partition: Partition) => {
-    val dp = FilePath("/d/e") </> FilePath(partition.namespace) </> FilePath(partition.date.slashed)
+    val dp = FilePath("/d/e") </> FilePath(partition.namespace.name) </> FilePath(partition.date.slashed)
     Partition.parseDir(dp) ==== partition.success[String]
   })
 
   def dirIsFile = prop((partition: Partition) => {
-    val dp = FilePath("/d/e") </> FilePath(partition.namespace) </> FilePath(partition.date.slashed) </> FilePath("file")
+    val dp = FilePath("/d/e") </> FilePath(partition.namespace.name) </> FilePath(partition.date.slashed) </> FilePath("file")
     Partition.parseDir(dp).toOption ==== None
   })
 
@@ -82,10 +82,10 @@ Can filter Partitions:
     Partition.parseDir(FilePath("/2014/08/11")).toOption ==== None
 
   def filePath = prop((partition: Partition) =>
-    partition.path ==== FilePath(partition.namespace) </> FilePath(partition.date.slashed))
+    partition.path ==== FilePath(partition.namespace.name) </> FilePath(partition.date.slashed))
 
   def stringPath = prop((p: Partition) =>
-    Partition.stringPath(p.namespace, p.date) ==== s"${p.namespace}/${p.date.slashed}")
+    Partition.stringPath(p.namespace.name, p.date) ==== s"${p.namespace.name}/${p.date.slashed}")
 
   def between = prop((partitions: Partitions, dates: TwoDifferentDates) => {
     val ps = partitions.partitions

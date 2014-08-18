@@ -9,7 +9,7 @@ import com.ambiata.ivory.mr._
 
 import com.ambiata.ivory.storage.task.FactsetJob
 
-import scalaz.{Reducer => _, _}, Scalaz._
+import scalaz.{Name =>_, Reducer => _, _}, Scalaz._
 
 import org.apache.hadoop.fs.{Path, FileSystem}
 import org.apache.hadoop.conf._
@@ -28,7 +28,7 @@ import org.joda.time.DateTimeZone
 object IngestJob {
   // FIX shouldn't need `root: Path` it is a workaround for poor namespace handling
   def run(conf: Configuration, dictionary: Dictionary, reducerLookups: ReducerLookups, ivoryZone: DateTimeZone,
-          ingestZone: DateTimeZone, root: Path, singleNamespace: Option[String], paths: List[Path], target: Path,
+          ingestZone: DateTimeZone, root: Path, singleNamespace: Option[Name], paths: List[Path], target: Path,
           errors: Path, format: Format, codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
@@ -53,7 +53,7 @@ object IngestJob {
     job.getConfiguration.set(Keys.IvoryZone, ivoryZone.getID)
     job.getConfiguration.set(Keys.IngestZone, ingestZone.getID)
     job.getConfiguration.set(Keys.IngestBase, FileSystem.get(conf).getFileStatus(root).getPath.toString)
-    singleNamespace.foreach(ns => job.getConfiguration.set(Keys.SingleNamespace, ns))
+    singleNamespace.foreach(ns => job.getConfiguration.set(Keys.SingleNamespace, ns.name))
 
     // run job
     if (!job.waitForCompletion(true))
@@ -133,7 +133,10 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.FeatureIdLookup, lookup)
     val dictThrift = new ThriftDictionary
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.Dictionary, dictThrift)
-    dict = DictionaryThriftConversion.dictionary.from(dictThrift)
+    dict = DictionaryThriftConversion.dictionaryFromThrift(dictThrift) match {
+      case -\/(m)          => sys.error(m)
+      case \/-(dictionary) => dictionary
+    }
     ivoryZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IvoryZone))
     ingestZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IngestZone))
     base = context.getConfiguration.get(IngestJob.Keys.IngestBase)
@@ -147,7 +150,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
   override def map(key: K, value: I, context: Mapper[K, I, LongWritable, BytesWritable]#Context): Unit = {
     val namespace = singleNamespace.fold(namespaces.getOrElseUpdate(splitPath.getParent.toString, findIt(splitPath)))(identity)
 
-    parse(namespace, value) match {
+    parse(Name.unsafe(namespace), value) match {
       case Success(f) =>
 
         context.getCounter("ivory", "ingest.ok").increment(1)
@@ -171,7 +174,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
     }
   }
 
-  def parse(namespace: String, v: I): Validation[ParseError, Fact]
+  def parse(namespace: Name, v: I): Validation[ParseError, Fact]
 
   def findIt(p: Path): String =
     if (p.getParent.toString == base)
@@ -182,7 +185,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
 
 class TextIngestMapper extends IngestMapper[LongWritable, Text] {
 
-  override def parse(namespace: String, value: Text): Validation[ParseError, Fact] = {
+  override def parse(namespace: Name, value: Text): Validation[ParseError, Fact] = {
     val line = value.toString
     EavtParsers.parse(line, dict, namespace, ingestZone).leftMap(ParseError(_, TextError(line)))
   }
@@ -196,13 +199,13 @@ class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {
   val deserializer = ThriftSerialiser()
   val thrift = new ThriftFact
 
-  override def parse(namespace: String, value: BytesWritable): Validation[ParseError, Fact] = {
+  override def parse(namespace: Name, value: BytesWritable): Validation[ParseError, Fact] = {
     thrift.clear()
     ((try deserializer.fromBytesViewUnsafe(thrift, value.getBytes, 0, value.getLength).right catch {
       case e: TException => e.left
     }) match {
       case -\/(e)  => e.getMessage.failure
-      case \/-(_)  => Conversion.thrift2fact(namespace, thrift, ingestZone, ivoryZone).validation
+      case \/-(_)  => Conversion.thrift2fact(namespace.name, thrift, ingestZone, ivoryZone).validation
     // TODO Use ByteView.view() when it has length
     }).leftMap(ParseError(_, ThriftError(ThriftErrorDataVersionV1, ByteVector(value.getBytes))))
   }

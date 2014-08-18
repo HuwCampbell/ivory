@@ -7,7 +7,7 @@ import org.joda.time.DateTimeZone
 import org.scalacheck._, Arbitrary._
 import org.specs2._
 
-import scalaz.{Value => _, _}, Scalaz._
+import scalaz.{Name => _, Value => _, _}, Scalaz._
 
 class EavtParsersSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -48,7 +48,7 @@ Eavt Parse Formats
   def factDateSpec[A](fz: PrimitiveSparseEntities, z: DateTimeZone, dt: String): Validation[String, Fact] = {
     import fz._
     EavtParsers.fact(Dictionary(Map(fact.featureId -> meta)), fact.namespace, z).run(List(
-      fact.entity
+        fact.entity
       , fact.feature
       , Value.toString(fact.value, meta.tombstoneValue.headOption).getOrElse("")
       , dt
@@ -61,7 +61,7 @@ Eavt Parse Formats
         Dictionary(Map(feature -> bad.meta))
       , feature.namespace
       , zone
-      ).run(List(entity.value, feature.name, bad.value, date.hyphenated)).toOption must beNone)
+      ).run(List(feature.namespace.name, entity.value, feature.name, bad.value, date.hyphenated)).toOption must beNone)
 
   def badattribute =
     prop((entity: Entity, value: Value, feature: FeatureId, date: Date, zone: DateTimeZone) => {
@@ -73,7 +73,7 @@ Eavt Parse Formats
 
   def structFail = {
     val dict = Dictionary(Map(FeatureId("ns", "a") -> FeatureMeta(StructEncoding(Map()), None, "")))
-    EavtParsers.parse("e|a|v|t", dict, "ns", DateTimeZone.getDefault).toOption must beNone
+    EavtParsers.parse("e|a|v|t", dict, Name("ns"), DateTimeZone.getDefault).toOption must beNone
   }
 
   def genBadDouble: Gen[DoubleValue] =

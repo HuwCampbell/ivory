@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.lookup
 
-import com.ambiata.ivory.core.{Date, FeatureId, Skew, Dictionary}
+import com.ambiata.ivory.core.{Name, Date, FeatureId, Skew, Dictionary}
 import com.ambiata.ivory.lookup.{ReducerLookup, FeatureIdLookup, NamespaceLookup}
 import com.ambiata.ivory.mr.ThriftCache
 import com.ambiata.mundane.io.BytesQuantity
@@ -25,7 +25,7 @@ object ReducerLookups {
    * @param optimal
    * @return
    */
-  def createLookups(dictionary: Dictionary, paths: List[(String, BytesQuantity)], optimal: BytesQuantity): ReducerLookups = {
+  def createLookups(dictionary: Dictionary, paths: List[(Name, BytesQuantity)], optimal: BytesQuantity): ReducerLookups = {
     val (reducersNb, allocations) = Skew.calculate(dictionary, paths, optimal)
 
     val (namespaces, features) = index(dictionary)
@@ -50,7 +50,7 @@ object ReducerLookups {
     val features = new FeatureIdLookup
 
     dict.meta.zipWithIndex.foreach { case ((fid, _), idx) =>
-      namespaces.putToNamespaces(idx, fid.namespace)
+      namespaces.putToNamespaces(idx, fid.namespace.name)
       features.putToIds(fid.toString, idx)
     }
     (namespaces, features)

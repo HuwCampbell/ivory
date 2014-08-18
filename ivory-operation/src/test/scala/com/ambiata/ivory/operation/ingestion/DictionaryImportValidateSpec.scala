@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._, Arbitraries._
 import org.specs2._
-import scalaz._, Scalaz._
+import scalaz.{Name => _,_}, Scalaz._
 
 class DictionaryImportValidateSpec extends Specification with ScalaCheck { def is = s2"""
 

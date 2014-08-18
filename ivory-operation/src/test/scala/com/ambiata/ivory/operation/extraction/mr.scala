@@ -108,7 +108,7 @@ SnapshotMapperSpec
   }
 
   def keyBytes(f: Fact): Array[Byte] =
-    f.entity.getBytes ++ f.namespace.getBytes ++ f.feature.getBytes
+    f.entity.getBytes ++ f.namespace.name.getBytes ++ f.feature.getBytes
 
   case class TestEmitter(kout: BytesWritable, vout: BytesWritable) extends Emitter {
     import scala.collection.mutable.ListBuffer
@@ -152,7 +152,7 @@ SnapshotReducerSpec
       (f, m) <- arbitrary[(FeatureId, FeatureMeta)]
       e = "T+00001"
       dtvs   <- Gen.choose(1, 10).flatMap(n => Gen.listOfN(n, priorityDateTimeValue(m)))
-      pfacts = dtvs.map(dtv => (dtv.priority, Fact.newFact(e, f.namespace, f.name, dtv.datetime.date, dtv.datetime.time, dtv.value)))
+      pfacts = dtvs.map(dtv => (dtv.priority, Fact.newFactWithNamespaceName(e, f.namespace, f.name, dtv.datetime.date, dtv.datetime.time, dtv.value)))
       reducerFacts = ReducerFacts(pfacts.map({ case (p, f) =>
         (f, new PriorityTag(p.toShort, ByteBuffer.wrap(serializer.toBytes(f.toNamespacedThrift))))
       }))

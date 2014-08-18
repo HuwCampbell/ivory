@@ -3,7 +3,7 @@ package com.ambiata.ivory.storage.metadata
 import com.ambiata.ivory.core.{ParseError => _, _}
 import com.ambiata.mundane.parse._
 import org.parboiled2._, Parser.DeliveryScheme.Either
-import scalaz._, Scalaz._, Validation._
+import scalaz.{Name =>_,_}, Scalaz._, Validation._
 import shapeless._
 
 object DictionaryTextStorageV2 extends DictionaryTextStorageCommon {
@@ -29,11 +29,17 @@ object DictionaryTextStorageV2 extends DictionaryTextStorageCommon {
 
 case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extends Parser {
 
+  private def alpha            = rule(anyOf(('a' to 'z').mkString+('A' to 'Z').mkString))
+  private def num              = rule(anyOf("0123456789"))
+  private def separator        = rule(anyOf("-_"))
+  private def alphaNum         = rule(alpha | num)
+  private def alphaNumSep      = rule(capture(oneOrMore(alphaNum | '-') ~ zeroOrMore(alpha | num | separator)))
   private def txt(d: String)   = rule(capture(!anyOf(d) ~ ANY))
   private def entry(d: String) = rule(zeroOrMore(txt(d)) ~> (_.mkString("")))
+  private def nameEntry        = rule(alphaNumSep ~> (values => Name.nameFromStringDisjunction(values.mkString(""))))
   private def mapEnty          = rule(zeroOrMore((entry("=") ~ "=" ~ entry(DELIMITER)) ~> ((k, v) => (k.trim, v.trim))).separatedBy(DELIMITER))
   private def map              = rule(mapEnty ~> (_.toMap))
-  private def featureId        = rule(entry(":") ~ ":" ~ entry(DELIMITER) ~> ((ns, n) => FeatureId(ns, n)))
+  private def featureId        = rule(nameEntry ~ ":" ~ entry(DELIMITER) ~> ((ns, n) => ns.map(FeatureId(_, n))))
   private def row              = rule(featureId ~ optional(DELIMITER ~ map))
 
   private def structEntry      = rule(zeroOrMore((entry(":") ~ ":" ~ entry(",*)") ~ capture(optional("*"))) ~> ((k, v, o) => (k.trim, v.trim) -> (o == "*"))).separatedBy(","))
@@ -64,6 +70,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
 
   def parse: ValidationNel[String, (FeatureId, FeatureMeta)] =
     row.run().fold(formatError(_).failureNel, {
-      case featureId :: m :: HNil => metaFromMap(m.getOrElse(Map())).map(featureId ->)
+      case \/-(featureId) :: m :: HNil => metaFromMap(m.getOrElse(Map())).map(featureId ->)
+      case -\/(m) :: _                 => m.failureNel
     })
 }
