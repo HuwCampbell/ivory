@@ -65,6 +65,7 @@ object IngestJob {
       case "errors"  => errors
       case "factset" => target
     }, true).run(conf).run.unsafePerformIO()
+    ()
   }
 
   object Keys {

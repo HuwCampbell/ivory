@@ -63,7 +63,7 @@ object Recompress {
   }
 
   def gox(stats: List[Stat], distribution: Int, codec: Option[CompressionCodec]): ScoobiAction[Unit] =
-    ScoobiAction.scoobiConfiguration.map(c =>
+    ScoobiAction.scoobiConfiguration.map { c =>
       run(fromSource(new PathSource(stats, distribution, classOf[PathInputFormat])).parallelDo((stat: Stat, emitter: Emitter[Unit]) => {
         emitter.tick
         val fs = FileSystem.get(c)
@@ -81,7 +81,8 @@ object Recompress {
         }
 
       }))(c)
-  )
+      ()
+    }
 
   //******************************** Ignore below here for now, this is based on the dist-copy related code, can be factored out
   //                                 when that is ready.

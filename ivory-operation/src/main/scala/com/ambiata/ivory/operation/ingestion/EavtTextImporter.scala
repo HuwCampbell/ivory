@@ -24,8 +24,7 @@ object EavtTextImporter {
   def onStore(
     repository: Repository,
     dictionary: Dictionary,
-    factset: FactsetId,
-    namespace: List[Name],
+    factsetId: FactsetId,
     singleNamespace: Option[Name],
     inputRef: ReferenceIO,
     errorRef: ReferenceIO,
@@ -40,7 +39,7 @@ object EavtTextImporter {
     }
     path      <- Reference.hdfsPath(inputRef)
     errorPath <- Reference.hdfsPath(errorRef)
-    _         <- writeFactsetVersion(repository, List(factset))
+    _         <- writeFactsetVersion(repository, List(factsetId))
     paths     <- getAllInputPaths(path, partitions.map(_._1), singleNamespace.isDefined)(hr.configuration)
     _         <- ResultT.safe[IO, Unit] {
       IngestJob.run(
@@ -52,7 +51,7 @@ object EavtTextImporter {
         path,
         singleNamespace,
         paths,
-        repository.factset(factset).toHdfs,
+        repository.factset(factsetId).toHdfs,
         errorPath,
         format,
         hr.codec

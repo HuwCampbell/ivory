@@ -15,7 +15,6 @@ import com.ambiata.poacher.scoobi._
 import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.legacy._
-import com.ambiata.ivory.storage.legacy.fatrepo.ExtractLatestWorkflow
 import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._

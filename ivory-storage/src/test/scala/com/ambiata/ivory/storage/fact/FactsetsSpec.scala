@@ -25,7 +25,7 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
   Can read a single factset                      $factset
                                                  """
 
-  def latest = prop { ids: FactsetIdList => 
+  def latest = prop { ids: FactsetIdList =>
     withRepository { repo =>
       (for {
         _ <- ids.ids.traverseU(id => allocatePath(repo.factset(id)).run(repo.configuration))
@@ -40,7 +40,7 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
 
       val res = for {
         _ <- allocatePath(repo.factset(factsetId)).run(repo.configuration)
-        n <- Factsets.allocateId.run(IvoryRead.testing(repo))
+        n <- Factsets.allocateFactsetId.run(IvoryRead.testing(repo))
         e <- Hdfs.exists(repo.factset(factsetId.next.get).toHdfs).run(repo.configuration)
       } yield (e, n)
 

@@ -1,6 +1,10 @@
 package com.ambiata.ivory.api
 
+<<<<<<< HEAD
 import com.ambiata.ivory.storage.repository.Repositories
+=======
+import com.ambiata.ivory.operation.ingestion.Ingest
+>>>>>>> removed "hole in the middle" funtion when ingesting facts
 
 /**
  * The ivory "retire" API forms an exported API for "deprecated",
@@ -39,7 +43,7 @@ object IvoryRetire {
    * They will be replaced by a safer, stable API that lets users interact with
    * ivory, without concern for the current implementation.
    */
-  val importWorkflow = com.ambiata.ivory.storage.legacy.fatrepo.ImportWorkflow.onStore _
+  val importWorkflow = Ingest.ingestFacts _
   val importDictionary = com.ambiata.ivory.operation.ingestion.DictionaryImporter.fromPath _
   val dictionaryFromIvory = com.ambiata.ivory.storage.metadata.Metadata.dictionaryFromIvory _
   val dictionaryToString = com.ambiata.ivory.storage.metadata.DictionaryTextStorageV2.delimitedString _
