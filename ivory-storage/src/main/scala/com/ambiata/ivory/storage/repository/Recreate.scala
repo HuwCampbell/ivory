@@ -42,16 +42,16 @@ object Recreate { outer =>
 
   def metadata: RecreateAction[Unit] =
     log("****** Recreating dictionaries") >> dictionaries >>
-    log("****** Recreating stores")       >> stores
+    log("****** Recreating feature stores") >> featureStores
 
   def dictionaries: RecreateAction[Unit] =
     recreate(DICTIONARY, (_:Repository).dictionaries) { conf =>
       fromHdfs(copyDictionaries(conf.hdfsFrom, conf.hdfsTo, conf.dryFor(RecreateData.DICTIONARY), conf.maxNumber))
     }
 
-  def stores: RecreateAction[Unit] =
-    recreate(STORE, (_:Repository).stores) { conf =>
-      fromHdfs(copyStores(conf.hdfsFrom, conf.hdfsTo, conf.clean, conf.dryFor(RecreateData.STORE), conf.maxNumber))
+  def featureStores: RecreateAction[Unit] =
+    recreate(STORE, (_:Repository).featureStores) { conf =>
+      fromHdfs(copyFeatureStores(conf.hdfsFrom, conf.hdfsTo, conf.clean, conf.dryFor(RecreateData.STORE), conf.maxNumber))
     }
 
   def factsets: RecreateAction[Unit] =
@@ -101,31 +101,31 @@ object Recreate { outer =>
   /**
    * STORES
    */
-  private def copyStores(from: HdfsRepository, to: HdfsRepository, clean: Boolean, dry: Boolean, maxNumber: Option[Int]): Hdfs[Unit] =
-    Hdfs.mkdir(to.stores.toHdfs).unless(dry) >>
-      (nonEmptyFactsetIds(from, to) tuple storesPaths(from, to)).flatMap { case (factsets, stores) =>
-        stores.take(maxNumber.fold(stores.size)(identity)).traverse(copyStore(from, to, clean, dry, factsets)).void
+  private def copyFeatureStores(from: HdfsRepository, to: HdfsRepository, clean: Boolean, dry: Boolean, maxNumber: Option[Int]): Hdfs[Unit] =
+    Hdfs.mkdir(to.featureStores.toHdfs).unless(dry) >>
+      (nonEmptyFactsetIds(from, to) tuple featureStoresPaths(from, to)).flatMap { case (factsets, featureStores) =>
+        featureStores.take(maxNumber.fold(featureStores.size)(identity)).traverse(copyFeatureStore(from, to, clean, dry, factsets)).void
       }
 
-  private def copyStore(from: HdfsRepository, to: HdfsRepository, clean: Boolean, dry: Boolean, filtered: List[FactsetId]) = (path: Path) =>
+  private def copyFeatureStore(from: HdfsRepository, to: HdfsRepository, clean: Boolean, dry: Boolean, filtered: List[FactsetId]) = (path: Path) =>
     for {
-      storeId <- Hdfs.fromOption(FeatureStoreId.parse(path.getName), s"Could not parse '${path.getName}'")
-      _       <- Hdfs.log(s"Copy store ${storeId} from ${from.storeById(storeId)} to ${to.storeById(storeId)}")
-      store   <- Hdfs.fromResultTIO(storeFromIvory(from, storeId))
-      cleaned <- cleanupStore(storeId, store, filtered, clean)
-      _       <- Hdfs.fromResultTIO(storeToIvory(to, cleaned)).unless(dry)
+      featureStoreId <- Hdfs.fromOption(FeatureStoreId.parse(path.getName), s"Could not parse '${path.getName}'")
+      _       <- Hdfs.log(s"Copy feature store ${featureStoreId} from ${from.featureStoreById(featureStoreId)} to ${to.featureStoreById(featureStoreId)}")
+      store   <- Hdfs.fromResultTIO(featureStoreFromIvory(from, featureStoreId))
+      cleaned <- cleanupFeatureStore(featureStoreId, store, filtered, clean)
+      _       <- Hdfs.fromResultTIO(featureStoreToIvory(to, cleaned)).unless(dry)
     } yield ()
 
-  private def cleanupStore(id: FeatureStoreId, store: FeatureStore, setsToKeep: List[FactsetId], clean: Boolean): Hdfs[FeatureStore] = {
-    val cleaned = if (clean) store.filter(setsToKeep.toSet) else store
-    val removed = store.factsetIds.map(_.value.render).diff(cleaned.factsetIds.map(_.value.render))
+  private def cleanupFeatureStore(id: FeatureStoreId, featureStore: FeatureStore, setsToKeep: List[FactsetId], clean: Boolean): Hdfs[FeatureStore] = {
+    val cleaned = if (clean) featureStore.filter(setsToKeep.toSet) else featureStore
+    val removed = featureStore.factsetIds.map(_.value.render).diff(cleaned.factsetIds.map(_.value.render))
     Hdfs.log(s"Removed factsets '${removed.mkString(",")}' from feature store '${id.render}' as they are empty.").unless(removed.isEmpty) >>
     Hdfs.safe(cleaned)
   }
 
-  private def storesPaths(from: Repository, to: Repository): Hdfs[List[Path]] = for {
-    paths         <- Hdfs.globFiles(from.stores.toHdfs)
-    existingNames <- Hdfs.globFiles(to.stores.toHdfs).map(_.map(_.getName))
+  private def featureStoresPaths(from: Repository, to: Repository): Hdfs[List[Path]] = for {
+    paths         <- Hdfs.globFiles(from.featureStores.toHdfs)
+    existingNames <- Hdfs.globFiles(to.featureStores.toHdfs).map(_.map(_.getName))
   } yield paths.filterNot(p => existingNames.contains(p.getName))
 
   /**

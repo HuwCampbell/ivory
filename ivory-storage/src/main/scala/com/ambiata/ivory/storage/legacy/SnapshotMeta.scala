@@ -11,17 +11,17 @@ import com.ambiata.ivory.data._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 
-case class SnapshotMeta(date: Date, store: FeatureStoreId) {
+case class SnapshotMeta(date: Date, featureStoreId: FeatureStoreId) {
 
   def toReference(ref: ReferenceIO): ResultTIO[Unit] =
-    ref.run(store => path => store.linesUtf8.write(path, stringLines))
+    ref.run(featureStore => path => featureStore.linesUtf8.write(path, stringLines))
 
   lazy val stringLines: List[String] =
-    List(date.string("-"), store.render)
+    List(date.string("-"), featureStoreId.render)
 
   def order(other: SnapshotMeta): Ordering =
     (date ?|? other.date) match {
-      case Ordering.EQ => store ?|? other.store
+      case Ordering.EQ => featureStoreId ?|? other.featureStoreId
       case o           => o
     }
 }
@@ -37,7 +37,7 @@ object SnapshotMeta {
     SnapshotMetaOrder.toScalaOrdering
 
   def fromReference(ref: ReferenceIO): ResultTIO[SnapshotMeta] = for {
-    lines <- ref.run(store => store.linesUtf8.read)
+    lines <- ref.run(featureStore => featureStore.linesUtf8.read)
     sm    <- ResultT.fromDisjunction[IO, SnapshotMeta](parser.run(lines).disjunction.leftMap(This.apply))
   } yield sm
 

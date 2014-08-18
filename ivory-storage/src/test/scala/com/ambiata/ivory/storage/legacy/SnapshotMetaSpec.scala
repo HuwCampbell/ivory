@@ -21,7 +21,7 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
 
   ${"""Can find the latest snapshot on hdfs:
        - Take greatest store with duplicate dates
-       - Take greatest date with duplicate stores
+       - Take greatest date with duplicate feature stores
        - Take greatest snapshot id with duplicate SnapshopMeta's"""!e1}
   Sorting SnapshotMeta works on date then store order            $e2
                                                                  """
@@ -85,5 +85,5 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
   }
 
   def assertSortOrder(sms: List[SnapshotMeta]) =
-    sms.sorted must_== sms.sortBy(sm => (sm.date, sm.store))
+    sms.sorted must_== sms.sortBy(sm => (sm.date, sm.featureStoreId))
 }

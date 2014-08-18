@@ -54,7 +54,7 @@ trait SampleFacts extends MustThrownMatchers {
     persist(facts1.toIvoryFactset(repo, factset1.id, None), facts2.toIvoryFactset(repo, factset2.id, None))
     writeFactsetVersion(repo, List(factset1.id, factset2.id)) must beOk
 
-    storeToIvory(repo, FeatureStore.fromList(FeatureStoreId(oi"00000"), List(factset1, factset2)).get) must beOk
+    featureStoreToIvory(repo, FeatureStore.fromList(FeatureStoreId(oi"00000"), List(factset1, factset2)).get) must beOk
   }
 
   def stringFact1  = StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1),  Time(0), "def")

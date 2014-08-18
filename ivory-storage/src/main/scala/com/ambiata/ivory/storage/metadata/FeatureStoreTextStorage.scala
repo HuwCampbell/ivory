@@ -42,10 +42,10 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
     storeIdsToId(repo, featureStore.id, featureStore.factsetIds)
 
   def storeIdsFromId(repository: Repository, id: FeatureStoreId): ResultTIO[List[Prioritized[FactsetId]]] =
-    storeIdsFromReference(repository.toReference(Repository.storeById(id)))
+    storeIdsFromReference(repository.toReference(Repository.featureStoreById(id)))
 
   def storeIdsToId(repository: Repository, id: FeatureStoreId, fstore: List[Prioritized[FactsetId]]): ResultTIO[Unit] =
-    storeIdsToReference(repository.toReference(Repository.storeById(id)), fstore)
+    storeIdsToReference(repository.toReference(Repository.featureStoreById(id)), fstore)
 
   def storeIdsFromReference(ref: ReferenceIO): ResultTIO[List[Prioritized[FactsetId]]] =
     ref.run(store => path => store.linesUtf8.read(path).flatMap(lines =>
@@ -69,7 +69,7 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
     p.value.render
 
   def listIds(repo: Repository): ResultTIO[List[FeatureStoreId]] = for {
-    paths <- repo.toStore.list(Repository.stores)
+    paths <- repo.toStore.list(Repository.featureStores)
     ids   <- paths.traverseU(p =>
                ResultT.fromOption[IO, FeatureStoreId](FeatureStoreId.parse(p.basename.path),
                                                       s"Can not parse Feature Store id '${p}'"))

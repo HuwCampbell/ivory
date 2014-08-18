@@ -57,7 +57,7 @@ object ImportWorkflow {
         println(s"imported fact set in ${x - t3}ms")
         x
       }
-      _        <- Metadata.incrementStore(repo, factset)
+      _        <- Metadata.incrementFeatureStore(repo, factset)
       t5 = {
         val x = System.currentTimeMillis
         println(s"created store in ${x - t4}ms")

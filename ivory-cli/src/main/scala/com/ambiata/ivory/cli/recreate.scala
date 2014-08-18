@@ -15,7 +15,7 @@ object recreate extends IvoryApp {
     opt[String]('i', "input")     action { (x, c) => c.copy(input = x) }     required() text "Input ivory repository."
     opt[String]('o', "output")    action { (x, c) => c.copy(output = x) }    required() text "Output ivory repository."
     opt[Unit]('d', "dry-run")     action { (_, c) => c.copy(dry = true) }    optional() text "Do a dry run only."
-    opt[Unit]("no-clean")         action { (_, c) => c.copy(clean = false) } optional() text "Do not clean out empty factsets from stores."
+    opt[Unit]("no-clean")         action { (_, c) => c.copy(clean = false) } optional() text "Do not clean out empty factsets from feature stores."
     opt[String]('t', "type")      action { (x, c) => c.copy(recreateData = RecreateData.parse(x)) } optional() text "Type of data to recreate: dictionary, store, snapshot, factset, all (default)"
     opt[Int]('n', "number")       action { (x, c) => c.copy(maxNumber = Some(x)) } optional() text "Maximum number of elements to recreate."
     opt[Long]('s', "reducer-size") action { (x, c) => c.copy(reducerSize = Some(x)) } optional() text "Max size (in bytes) of a reducer used to copy Factsets"

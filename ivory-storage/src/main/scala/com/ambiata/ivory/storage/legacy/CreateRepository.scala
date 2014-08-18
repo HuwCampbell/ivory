@@ -18,7 +18,7 @@ object CreateRepository {
   private def onHdfs(path: Path): Hdfs[Boolean] = {
     val meta = new Path(path, "metadata")
     val dict = new Path(meta, "dictionaries")
-    val store = new Path(meta, "stores")
+    val featureStore = new Path(meta, "stores")
     val factsets = new Path(path, "factsets")
     val errors = new Path(path, "errors")
     val snapshots = new Path(path, "snapshots")
@@ -26,7 +26,7 @@ object CreateRepository {
       e <- Hdfs.exists(path)
       r <- if(e) Hdfs.ok(false) else for {
         _ <- Hdfs.mkdir(dict)
-        _ <- Hdfs.mkdir(store)
+        _ <- Hdfs.mkdir(featureStore)
         _ <- Hdfs.mkdir(factsets)
         _ <- Hdfs.mkdir(errors)
         _ <- Hdfs.mkdir(snapshots)

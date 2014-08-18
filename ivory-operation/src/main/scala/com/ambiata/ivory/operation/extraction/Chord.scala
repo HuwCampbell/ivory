@@ -44,15 +44,15 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
       case _                                => ResultT.fail[IO, Path](s"Currently output path must be on HDFS. Given value is ${output}")
     }
     d  <- dictionaryFromIvory(repo)
-    s  <- storeFromIvory(repo, store)
+    s  <- featureStoreFromIvory(repo, store)
     (earliest, latest) = DateMap.bounds(entities)
     chordRef = tmp </> FilePath(java.util.UUID.randomUUID().toString)
     _  <- Chord.serialiseChords(chordRef, entities)
     in <- incremental.traverseU(snapId => for {
         sm <- SnapshotMeta.fromIdentifier(repo, snapId)
-      _   = println(s"Snapshot store was '${sm.store}'")
+      _   = println(s"Snapshot feature store was '${sm.featureStoreId}'")
       _   = println(s"Snapshot date was '${sm.date.string("-")}'")
-      s  <- storeFromIvory(repo, sm.store)
+      s  <- featureStoreFromIvory(repo, sm.featureStoreId)
     } yield (snapId, s, sm))
     _  <- scoobiJob(hr, d, s, chordRef, latest, validateIncr(earliest, in), o, hr.codec).run(hr.scoobiConfiguration)
     _  <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), d)
@@ -191,7 +191,7 @@ object Chord {
   }
 
   def latestSnapshot(repo: Repository, date: Date): ResultTIO[(FeatureStoreId, Option[SnapshotId])] = for {
-    store  <- ExtractLatestWorkflow.latestStore(repo)
+    store  <- ExtractLatestWorkflow.latestFeatureStore(repo)
     latest <- SnapshotMeta.latest(repo, date)
   } yield (store, latest.map(_._1))
 

@@ -29,14 +29,14 @@ case class Snapshot(repo: Repository, store: FeatureStoreId, entities: Option[Re
       case _                                => ResultT.fail[IO, Path](s"Snapshot output path must be on hdfs, got '${output}'")
     }
     d   <- dictionaryFromIvory(repo)
-    s   <- storeFromIvory(repo, store)
+    s   <- featureStoreFromIvory(repo, store)
     es  <- entities.traverseU(_.run(store => store.linesUtf8.read))
     in  <- incremental.traverseU({ case (id, sm) => for {
             _ <- ResultT.ok[IO, Unit]({
-                   println(s"Previous store was '${sm.store}'")
+                   println(s"Previous store was '${sm.featureStoreId}'")
                    println(s"Previous date was '${sm.date.string("-")}'")
                  })
-            s <- storeFromIvory(repo, sm.store)
+            s <- featureStoreFromIvory(repo, sm.featureStoreId)
           } yield (repo.snapshot(id).toHdfs, s, sm) })
     _   <- job(hr, s, in, out, hr.codec).run(hr.configuration)
     _   <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), d)
@@ -45,7 +45,7 @@ case class Snapshot(repo: Repository, store: FeatureStoreId, entities: Option[Re
 
   def job(repo: HdfsRepository, store: FeatureStore, incremental: Option[(Path, FeatureStore, SnapshotMeta)], outputPath: Path, codec: Option[CompressionCodec]): Hdfs[Unit] = for {
     conf  <- Hdfs.configuration
-    globs <- Hdfs.fromResultTIO(Snapshot.storePaths(repo, store, snapshot, incremental))
+    globs <- Hdfs.fromResultTIO(Snapshot.featureStorePaths(repo, store, snapshot, incremental))
     paths  = globs.flatMap(_.value.paths.map(_.toHdfs)) ++ incremental.map(_._1).toList
     size  <- paths.traverse(Hdfs.size).map(_.sum)
     _     = println(s"Total input size: ${size}")
@@ -71,17 +71,17 @@ object Snapshot {
   def extractLatest(repo: Repository, store: FeatureStoreId, date: Date, output: ReferenceIO, incremental: Option[(SnapshotId, SnapshotMeta)]): ResultTIO[Unit] =
     Snapshot(repo, store, None, date, output, incremental).run
 
-  def storePaths(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ResultTIO[List[Prioritized[FactsetGlob]]] =
+  def featureStorePaths(repo: Repository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ResultTIO[List[Prioritized[FactsetGlob]]] =
     incremental match {
       case None =>
-        StoreGlob.before(repo, store, latestDate).map(_.globs)
+        FeatureStoreGlob.before(repo, store, latestDate).map(_.globs)
       case Some((p, s, sm)) => for {
         // read facts from already processed store from the last snapshot date to the latest date
-        o <- StoreGlob.between(repo, s, sm.date, latestDate).map(_.globs)
+        o <- FeatureStoreGlob.between(repo, s, sm.date, latestDate).map(_.globs)
         sd = store diff s
         _  = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
         // read factsets which haven't been seen up until the 'latest' date
-        n <- StoreGlob.before(repo, sd, latestDate).map(_.globs)
+        n <- FeatureStoreGlob.before(repo, sd, latestDate).map(_.globs)
       } yield o ++ n
     }
 }
