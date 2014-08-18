@@ -38,29 +38,29 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck { def is
     val base = LocalLocation(TempFiles.createTempDir("FeatureStoreTextStorage.e3").getPath)
     val repo = LocalRepository(base.path)
     (toId(repo, fstore) must beOk) and
-    (repo.toStore.utf8.read(Repository.storeById(fstore.id)) must beOkLike(_ must_== delimitedString(fstore.factsetIds) + "\n"))
+    (repo.toStore.utf8.read(Repository.featureStoreById(fstore.id)) must beOkLike(_ must_== delimitedString(fstore.factsetIds) + "\n"))
   })
 
   def listFeatureStorIds = prop((ids: SmallFeatureStoreIdList) => {
     val base = LocalLocation(TempFiles.createTempDir("FeatureStoreTextStorage.e4").getPath)
     val repo = LocalRepository(base.path)
     (writeFeatureStoreIds(repo, ids.ids) must beOk) and
-    (Metadata.listStoreIds(repo) must beOkLike(_ must_== ids.ids))
+    (Metadata.listFeatureStoreIds(repo) must beOkLike(_ must_== ids.ids))
   })
 
   def latestFeatureStoreIs = prop((ids: SmallFeatureStoreIdList) => {
     val base = LocalLocation(TempFiles.createTempDir("FeatureStoreTextStorage.e5").getPath)
     val repo = LocalRepository(base.path)
     (writeFeatureStoreIds(repo, ids.ids) must beOk) and
-    (Metadata.latestStoreId(repo) must beOkLike(_ must_== ids.ids.sortBy(_.id).lastOption))
+    (Metadata.latestFeatureStoreId(repo) must beOkLike(_ must_== ids.ids.sortBy(_.id).lastOption))
   })
 
   def writeFeatureStoreIds(repo: Repository, ids: List[FeatureStoreId]): ResultTIO[Unit] =
-    ids.traverse(id => writeFile(repo, Repository.stores </> FilePath(id.render), List(""))).void
+    ids.traverse(id => writeFile(repo, Repository.featureStores </> FilePath(id.render), List(""))).void
 
   /* Write out the feature store and factsets within it */
   def writeFeatureStore(repo: Repository, fstore: FeatureStore): ResultTIO[Unit] = for {
-    _ <- writeFile(repo, Repository.storeById(fstore.id), fstore.factsetIds.map(_.value.render))
+    _ <- writeFile(repo, Repository.featureStoreById(fstore.id), fstore.factsetIds.map(_.value.render))
     _ <- fstore.factsets.map(_.value).traverseU(factset => factset.partitions.partitions.traverseU(partition =>
            writeFile(repo, Repository.factset(factset.id) </> partition.path </> FilePath("data"), List(""))
          )).map(_.flatten)

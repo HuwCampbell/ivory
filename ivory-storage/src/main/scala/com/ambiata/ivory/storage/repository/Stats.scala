@@ -25,7 +25,7 @@ object Stats {
     (factsetsSize |@| metadataSize |@| snapshotsSize)(Seq(_, _, _).sum)
 
   def metadataSize: StatAction[BytesQuantity] =
-    (dictionariesSize |@| storesSize)(Seq(_, _).sum)
+    (dictionariesSize |@| featureStoresSize)(Seq(_, _).sum)
 
   def factsetSize(factset: FactsetId): StatAction[BytesQuantity] = repository.flatMap {
     case r: HdfsRepository => fromHdfs(totalSize(r.factset(factset).toHdfs))
@@ -58,8 +58,8 @@ object Stats {
   def dictionariesSize: StatAction[BytesQuantity]  = sizeOf((_:Repository).dictionaries)
   def dictionaryVersions: StatAction[Int] = numberOf((_:Repository).dictionaries)
 
-  def storesSize: StatAction[BytesQuantity] = sizeOf((_:Repository).stores)
-  def storeCount: StatAction[Int]  = numberOf((_:Repository).stores)
+  def featureStoresSize: StatAction[BytesQuantity] = sizeOf((_:Repository).featureStores)
+  def featureStoreCount: StatAction[Int]  = numberOf((_:Repository).featureStores)
 
   def factsetsSize: StatAction[BytesQuantity] = sizeOf((_:Repository).factsets)
   def factsetCount: StatAction[Int] = numberOf((_:Repository).factsets)

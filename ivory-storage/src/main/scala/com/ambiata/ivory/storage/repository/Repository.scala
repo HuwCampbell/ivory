@@ -27,13 +27,13 @@ sealed trait Repository {
   def snapshots: FilePath = root </> "snapshots"
   def metadata: FilePath = root </> "metadata"
   def dictionaries: FilePath = metadata </> "dictionaries"
-  def stores: FilePath = metadata </> "stores"
-  def dictionaryByName(name: String): FilePath =  dictionaries </> name
-  def storeById(id: FeatureStoreId): FilePath =  stores </> id.render
-  def factset(id: FactsetId): FilePath =  factsets </> id.render
-  def namespace(id: FactsetId, namespace: String): FilePath =  factset(id) </> namespace
+  def featureStores: FilePath = metadata </> "stores"
+  def dictionaryByName(name: String): FilePath = dictionaries </> name
+  def featureStoreById(id: FeatureStoreId): FilePath = featureStores </> id.render
+  def factset(id: FactsetId): FilePath = factsets </> id.render
+  def namespace(id: FactsetId, namespace: String): FilePath = factset(id) </> namespace
   def snapshot(id: SnapshotId): FilePath = snapshots </> FilePath(id.render)
-  def version(set: FactsetId): FilePath =  factset(set) </> ".version"
+  def version(set: FactsetId): FilePath = factset(set) </> ".version"
 }
 
 case class HdfsRepository(root: FilePath, @transient repositoryConfiguration: RepositoryConfiguration) extends Repository {
@@ -65,11 +65,11 @@ object Repository {
   def snapshots: FilePath = root </> "snapshots"
   def metadata: FilePath = root </> "metadata"
   def dictionaries: FilePath = metadata </> "dictionaries"
-  def stores: FilePath = metadata </> "stores"
-  def dictionaryByName(name: String): FilePath =  dictionaries </> name
-  def storeById(id: FeatureStoreId): FilePath =  stores </> id.render
-  def factset(id: FactsetId): FilePath =  factsets </> id.render
-  def namespace(set: FactsetId, namespace: String): FilePath =  factset(set) </> namespace
+  def featureStores: FilePath = metadata </> "stores"
+  def dictionaryByName(name: String): FilePath = dictionaries </> name
+  def featureStoreById(id: FeatureStoreId): FilePath = featureStores </> id.render
+  def factset(id: FactsetId): FilePath = factsets </> id.render
+  def namespace(set: FactsetId, namespace: String): FilePath = factset(set) </> namespace
   def snapshot(id: SnapshotId): FilePath = snapshots </> FilePath(id.render)
 
   def fromUri(uri: String, repositoryConfiguration: RepositoryConfiguration): String \/ Repository =
