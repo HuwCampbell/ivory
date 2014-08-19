@@ -8,7 +8,7 @@ import org.specs2.matcher.ThrownExpectations
 
 import scalaz.effect.IO
 
-class IvoryCmdSpec extends Specification with ThrownExpectations { def is = s2"""
+class IvoryCmdSpec extends Specification with ThrownExpectations { def is = sequential ^ s2"""
   The IvoryCmd creates a RepositoryConfiguration instance with
     the user arguments                                          $userArguments
     a Configuration set-up with Hadoop arguments                $hadoopArguments
@@ -16,6 +16,7 @@ class IvoryCmdSpec extends Specification with ThrownExpectations { def is = s2""
 """
 
   val arguments = "-Dmapreduce.map.memory.mb=1546 --number 1 scoobi local.verbose.all"
+
   def userArguments =
     run(arguments) { (rc: RepositoryConfiguration, number: Int) =>
       "the user arguments are correctly parsed" ==> {
