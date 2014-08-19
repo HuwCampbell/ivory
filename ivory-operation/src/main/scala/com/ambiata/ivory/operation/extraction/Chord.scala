@@ -181,7 +181,7 @@ object Chord {
   }
 
   def latestSnapshot(repo: Repository, date: Date): ResultTIO[(FeatureStoreId, Option[SnapshotId])] = for {
-    store  <- ExtractLatestWorkflow.latestFeatureStore(repo)
+    store  <- Metadata.latestFeatureStoreIdOrFail(repo)
     latest <- SnapshotMeta.latest(repo, date)
   } yield (store, latest.map(_.snapshotId))
 

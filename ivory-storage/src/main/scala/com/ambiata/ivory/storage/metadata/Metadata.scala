@@ -6,6 +6,8 @@ import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
 
+import scalaz.effect.IO
+
 object Metadata {
 
   /** Feature Store */
@@ -28,8 +30,11 @@ object Metadata {
   def latestFeatureStoreId(repo: Repository): ResultTIO[Option[FeatureStoreId]] =
     FeatureStoreTextStorage.latestId(repo)
 
-  def latestFeatureStoreIdT: IvoryTIO[Option[FeatureStoreId]] =
-    fromResultT(latestFeatureStoreId)
+  /** @return the latest store id or fail if there is none */
+  def latestFeatureStoreIdOrFail(repository: Repository): ResultTIO[FeatureStoreId] =
+    latestFeatureStoreId(repository).flatMap { latest =>
+      ResultT.fromOption[IO, FeatureStoreId](latest, s"no store found for this repository ${repository.root}")
+    }
 
   def listFeatureStoreIds(repo: Repository): ResultTIO[List[FeatureStoreId]] =
     FeatureStoreTextStorage.listIds(repo)
