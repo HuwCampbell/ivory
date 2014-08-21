@@ -3,6 +3,7 @@ package com.ambiata.ivory.cli
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.api.Ivory.printErrors
+import scalaz._,Scalaz._
 
 object catErrors extends IvoryApp {
   case class CliArguments(delimiter: String = "|", paths: List[String] = Nil)
@@ -20,6 +21,6 @@ object catErrors extends IvoryApp {
   }
 
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), IvoryRunner { conf => c =>
-    printErrors(c.paths.map(new Path(_)), conf.configuration, c.delimiter).executeT(consoleLogging).map(_ => Nil)
+    printErrors(c.paths.map(new Path(_)), conf.configuration, c.delimiter).executeT(consoleLogging).as(Nil)
   })
 }

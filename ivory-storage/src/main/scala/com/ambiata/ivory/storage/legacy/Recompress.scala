@@ -198,7 +198,7 @@ case class FilesSplit(var paths: List[Stat]) extends InputSplit with Writable {
   }
   def readFields(in: DataInput) = {
     val size = in.readInt
-    paths = (1 to size).map(_ => Stat.wireFormat.read(in)).toList
+    paths = (1 to size).toList.as(Stat.wireFormat.read(in))
   }
 
 }

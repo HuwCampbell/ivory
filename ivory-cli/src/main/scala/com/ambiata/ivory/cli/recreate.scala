@@ -3,6 +3,7 @@ package com.ambiata.ivory.cli
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
 import MemoryConversions._
+import scalaz._,Scalaz._
 
 object recreate extends IvoryApp {
   case class CliArguments(input: String, output: String, clean: Boolean, dry: Boolean, overwrite: Boolean, recreateData: List[RecreateData], maxNumber: Option[Int], reducerSize: Option[Long])
@@ -38,7 +39,7 @@ object recreate extends IvoryApp {
                                  maxNumber = c.maxNumber,
                                  logger = consoleLogging)
 
-      Recreate.all.run(rconf).map(_ => Nil)
+      Recreate.all.run(rconf).as(Nil)
     })
 
 }

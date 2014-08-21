@@ -1,6 +1,7 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.storage.legacy._
+import scalaz._,Scalaz._
 
 object recompress extends IvoryApp {
   case class CliArguments(input: String, output: String, distribution: Int, dry: Boolean)
@@ -20,6 +21,6 @@ object recompress extends IvoryApp {
   }
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", 20, false), IvoryRunner { configuration => c =>
-    Recompress.go(c.input, c.output, c.distribution, c.dry, configuration.codec).run(configuration.scoobiConfiguration).map(_ => Nil)
+    Recompress.go(c.input, c.output, c.distribution, c.dry, configuration.codec).run(configuration.scoobiConfiguration).as(Nil)
   })
 }

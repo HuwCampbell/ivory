@@ -101,6 +101,6 @@ object SnapshotMeta {
 
   def save(snapshotId: SnapshotId, date: Date, storeId: FeatureStoreId, output: ReferenceIO): ResultTIO[SnapshotMeta] = {
     val meta = SnapshotMeta(snapshotId, date, storeId)
-    meta.toReference(output </> SnapshotMeta.fname).map(_ => meta)
+    meta.toReference(output </> SnapshotMeta.fname).as(meta)
   }
 }

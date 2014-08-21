@@ -5,8 +5,8 @@ import com.ambiata.ivory.storage.control.IvoryT._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
-
 import scalaz.effect.IO
+import scalaz._, Scalaz._
 
 object Metadata {
 
@@ -51,9 +51,8 @@ object Metadata {
     fromResultT(dictionaryFromIvory)
 
   def dictionaryToIvory(repo: Repository, dictionary: Dictionary): ResultTIO[Unit] =
-    DictionaryThriftStorage(repo).store(dictionary).map(_ => ())
+    DictionaryThriftStorage(repo).store(dictionary).void
 
   def dictionaryToIvoryT(dictionary: Dictionary): IvoryTIO[Unit] =
     fromResultT(dictionaryToIvory(_, dictionary))
-
 }
