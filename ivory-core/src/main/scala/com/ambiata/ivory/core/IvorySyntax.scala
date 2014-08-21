@@ -19,6 +19,10 @@ trait IvorySyntax extends DataSyntax {
       (1 to n).toList.foldLeft(f.parent)((acc, _) => acc.flatMap(_.parent))
   }
 
+  def checkThat[A](a: =>A, condition: Boolean, message: String): ResultTIO[A] =
+    if (condition) ResultT.safe[IO, A](a)
+    else           ResultT.fail[IO, A](message)
+
   /**
    * Logging utility functions when working with ResultTIO for now
    * This will be removed when IvoryT is introduced

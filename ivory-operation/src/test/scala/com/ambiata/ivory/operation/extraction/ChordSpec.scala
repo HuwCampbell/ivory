@@ -61,7 +61,7 @@ ChordSpec
       outRef      <- Reference.fromUriFilePathResultTIO(output, configuration)
       entitiesRef <- Reference.fromUriFilePathResultTIO(directory </> "entities", configuration)
       tmpRef      <- Reference.fromUriFilePathResultTIO(directory </> "tmp", configuration)
-      _           <- Chord.onStore(repository, entitiesRef, outRef, tmpRef, takeSnapshot = true)
+      _           <- Chord.createChord(repository, entitiesRef, outRef, tmpRef, takeSnapshot = true)
     } yield ()
 
   def readDictionary(outPath: FilePath, configuration: RepositoryConfiguration): ResultTIO[Dictionary] =

@@ -59,9 +59,9 @@ object IvoryRetire {
    */
   val snapshot = com.ambiata.ivory.operation.extraction.Snapshot.snapshot _
   val takeSnapshot = com.ambiata.ivory.operation.extraction.Snapshot.takeSnapshot _
-  val chord = com.ambiata.ivory.operation.extraction.Chord.onStore _
-  val pivot = com.ambiata.ivory.operation.extraction.Pivot.onStore _
-  val pivotFromSnapshot = com.ambiata.ivory.operation.extraction.Pivot.onStoreFromSnapshot _
+  val chord = com.ambiata.ivory.operation.extraction.Chord.createChord _
+  val pivot = com.ambiata.ivory.operation.extraction.Pivot.createPivot _
+  val pivotFromSnapshot = com.ambiata.ivory.operation.extraction.Pivot.createPivotFromSnapshot _
 
   val Codec = com.ambiata.ivory.storage.repository.Codec
 

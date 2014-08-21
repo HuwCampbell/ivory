@@ -22,40 +22,46 @@ import com.ambiata.poacher.scoobi._
  */
 object Pivot {
 
-  def onStoreFromSnapshot(repo: Repository, output: ReferenceIO, delim: Char, tombstone: String, date: Date): ResultTIO[Unit] = for {
+  /**
+   * Take a snapshot first then extract a pivot
+   */
+  def createPivotFromSnapshot(repo: Repository, output: ReferenceIO, delim: Char, tombstone: String, date: Date): ResultTIO[Unit] = for {
     meta <- Snapshot.takeSnapshot(repo, date, true)
-    ref = repo.toReference(Repository.snapshot(meta.snapshotId))
-    _    <- onStore(repo, ref, output, delim, tombstone)
+    ref  = repo.toReference(Repository.snapshot(meta.snapshotId))
+    _    <- createPivot(repo, ref, output, delim, tombstone)
   } yield ()
 
-  def onStore(repo: Repository, input: ReferenceIO, output: ReferenceIO, delim: Char, tombstone: String): ResultTIO[Unit] = for {
-    d <- dictionaryFromIvory(repo)
-    _ <- withDictionary(repo, input, output, d, delim, tombstone)
+  /**
+   * Take a snapshot first then extract a pivot from a given snapshot (input) to output
+   */
+  def createPivot(repo: Repository, input: ReferenceIO, output: ReferenceIO, delim: Char, tombstone: String): ResultTIO[Unit] = for {
+    dictionary <- dictionaryFromIvory(repo)
+    hdfsRepo <- repo match {
+      case r: HdfsRepository => ResultT.ok[IO, HdfsRepository](r)
+      case _                 => ResultT.fail[IO, HdfsRepository](s"Pivot only works with Hdfs repositories currently, got '$repo'")
+    }
+    in <- input match {
+      case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
+      case _                                => ResultT.fail[IO, Path](s"Pivot can only read from HDFS currently, got '$input'")
+    }
+    out <- output match {
+      case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
+      case _                                => ResultT.fail[IO, Path](s"Pivot can only output to HDFS currently, got '$output'")
+    }
+    _ <- createPivotWithDictionary(hdfsRepo, in, out, dictionary, delim, tombstone)
   } yield ()
 
-  def withDictionary(repo: Repository, input: ReferenceIO, output: ReferenceIO, dictionary: Dictionary, delim: Char, tombstone: String): ResultTIO[Unit] = {
+  def createPivotWithDictionary(repo: HdfsRepository, input: Path, output: Path, dictionary: Dictionary, delim: Char, tombstone: String): ResultTIO[Unit] = {
+    val storer = DenseRowTextStorageV1.DenseRowTextStorer(output.toString, dictionary, delim, tombstone)
     for {
-      r <- repo match {
-             case r: HdfsRepository => ResultT.ok[IO, HdfsRepository](r)
-             case _                 => ResultT.fail[IO, HdfsRepository](s"Pivot only works with Hdfs repositories currently, got '${repo}'")
-           }
-      i <- input match {
-             case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
-             case _                                => ResultT.fail[IO, Path](s"Pivot can only read from HDFS currently, got '${input}'")
-           }
-      o <- output match {
-             case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
-             case _                                => ResultT.fail[IO, Path](s"Pivot can only output to HDFS currently, got '${output}'")
-           }
-      s = DenseRowTextStorageV1.DenseRowTextStorer(o.toString, dictionary, delim, tombstone)
-      _ <- scoobiJob(i, s).run(r.scoobiConfiguration)
-      _ <- s.storeMeta.run(r.configuration)
+      _ <- exportFacts(input, storer).run(repo.scoobiConfiguration)
+      _ <- storer.storeMeta.run(repo.configuration)
     } yield ()
   }
 
-  def scoobiJob(input: Path, storer: DenseRowTextStorageV1.DenseRowTextStorer): ScoobiAction[Unit] =
+  private def exportFacts(inputSnapshot: Path, storer: DenseRowTextStorageV1.DenseRowTextStorer): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
-      val facts = valueFromSequenceFile[Fact](input.toString)
+      val facts = valueFromSequenceFile[Fact](inputSnapshot.toString)
       persist(storer.storeScoobi(facts))
     }
 }

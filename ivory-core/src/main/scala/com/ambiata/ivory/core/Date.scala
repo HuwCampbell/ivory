@@ -66,26 +66,25 @@ object Date {
     def leapYear =
       divisibleBy(year, 4) && (!divisibleBy(year, 100) || divisibleBy(year, 400))
 
-    (
-      year >= 1000 &&
+    year >= 1000 &&
       year <= 3000 &&
       month >= 1 &&
       month <= 12 &&
-      day >=1 && (
-        ((month == 1 ||
-          month == 3 ||
-          month == 5 ||
-          month == 7 ||
-          month == 8 ||
-          month == 10 ||
-          month == 12) && day <= 31) ||
+      day >= 1 && (
+      ((month == 1 ||
+        month == 3 ||
+        month == 5 ||
+        month == 7 ||
+        month == 8 ||
+        month == 10 ||
+        month == 12) && day <= 31) ||
         ((month == 4 ||
           month == 6 ||
           month == 9 ||
           month == 11) && day <= 30) ||
         (month == 2 && day <= 28) ||
         (month == 2 && day == 29 && leapYear)
-    ))
+      )
   }
 
   def create(year: Short, month: Byte, day: Byte): Option[Date] =
@@ -97,11 +96,20 @@ object Date {
   def minValue: Date =
     unsafe(1000.toShort, 1.toByte, 1.toByte)
 
+  def min(date1: Date, date2: Date) =
+    if (date1 isBefore date2) date1 else date2
+
+  def max(date1: Date, date2: Date) =
+    if (date1 isAfter date2) date1 else date2
+
   def unsafeFromInt(i: Int): Date =
     new Date(i)
 
   def fromInt(i: Int): Option[Date] =
     create(((i >>> 16) & 0xffff).toShort, ((i >>> 8) & 0xff).toByte, (i & 0xff).toByte)
+
+  @inline def ymdToInt(y: Short, m: Byte, d: Byte): Int  =
+    (y.toInt << 16) | (m.toInt << 8) | d.toInt
 
   def fromLocalDate(d: LocalDate): Date =
     unsafe(d.getYear.toShort, d.getMonthOfYear.toByte, d.getDayOfMonth.toByte)

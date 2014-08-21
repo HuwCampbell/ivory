@@ -67,9 +67,8 @@ class PivotSpec extends Specification with SampleFacts with ThrownExpectations {
     for {
       pivot <- Reference.fromUriFilePathResultTIO(outPath, repository.repositoryConfiguration)
       meta  <- Snapshot.takeSnapshot(repository, Date.fromLocalDate(LocalDate.now), false)
-      input = repository.toReference(Repository.snapshot(meta.snapshotId))
-      dict  <- dictionaryFromIvory(repository)
-      _     <- Pivot.withDictionary(repository, input, pivot, dict, '|', "NA")
+      input =  repository.toReference(Repository.snapshot(meta.snapshotId))
+      _     <- Pivot.createPivot(repository, input, pivot, '|', "NA")
       lines <- readLines(pivot)
     } yield lines
 
