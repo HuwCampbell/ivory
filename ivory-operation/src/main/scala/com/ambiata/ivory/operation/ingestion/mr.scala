@@ -3,6 +3,7 @@ package com.ambiata.ivory.operation.ingestion
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.FeatureIdLookup
+import com.ambiata.ivory.operation.validation.Validate
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.parse._
 import com.ambiata.ivory.mr._
@@ -205,7 +206,8 @@ class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {
       case e: TException => e.left
     }) match {
       case -\/(e)  => e.getMessage.failure
-      case \/-(_)  => Conversion.thrift2fact(namespace.name, thrift, ingestZone, ivoryZone).validation
+      case \/-(_)  => Conversion.thrift2fact(namespace.name, thrift, ingestZone, ivoryZone)
+        .fold(_.failure, Validate.validateFact(_, dict))
     // TODO Use ByteView.view() when it has length
     }).leftMap(ParseError(_, ThriftError(ThriftErrorDataVersionV1, ByteVector(value.getBytes))))
   }
