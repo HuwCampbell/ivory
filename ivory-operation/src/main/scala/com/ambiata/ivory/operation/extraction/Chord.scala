@@ -173,9 +173,9 @@ object Chord {
       }
     }
 
-  private def storeDictionary(repository: Repository, outputRef: ReferenceIO) =
-    dictionaryFromIvory(repository).map { dictionary =>
-      DictionaryTextStorageV2.toStore(outputRef </> FilePath(".dictionary"), dictionary)
+  private def storeDictionary(repository: Repository, outputRef: ReferenceIO): ResultTIO[Unit] =
+    dictionaryFromIvory(repository).flatMap { dictionary =>
+      DictionaryTextStorageV2.toStore(outputRef </> ".dictionary", dictionary)
     }
 
   private def getEntities(chordReference: ReferenceIO): Entities =

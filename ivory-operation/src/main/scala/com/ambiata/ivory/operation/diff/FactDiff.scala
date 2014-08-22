@@ -37,7 +37,7 @@ object FactDiff {
   } yield ()
 
   def scoobiJob(first_facts: DList[Fact], second_facts: DList[Fact], outputPath: String): ScoobiAction[Unit] = {
-    ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
+    ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
 
       val facts = (first_facts.map((true, _)) ++ second_facts.map((false, _)))
 
@@ -58,6 +58,7 @@ object FactDiff {
       })
 
       persist(out.toTextFile(outputPath, overwrite = true))
-    })
+      ()
+    }
   }
 }

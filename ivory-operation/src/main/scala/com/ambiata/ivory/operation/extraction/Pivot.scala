@@ -63,5 +63,6 @@ object Pivot {
     ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
       val facts = valueFromSequenceFile[Fact](inputSnapshot.toString)
       persist(storer.storeScoobi(facts))
+      ()
     }
 }
