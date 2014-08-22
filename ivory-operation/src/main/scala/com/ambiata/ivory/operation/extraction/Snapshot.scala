@@ -75,7 +75,7 @@ object Snapshot {
         case _                                => ResultT.fail[IO, Path](s"Snapshot output path must be on hdfs, got '$output'")
       }
       dictionary           <- dictionaryFromIvory(repository)
-      store                <- storeFromIvory(repository, storeId)
+      store                <- featureStoreFromIvory(repository, storeId)
       featureStoreSnapshot <- incremental.traverse(FeatureStoreSnapshot.fromSnapshotMeta(repository))
       _                    <- job(hr, store, featureStoreSnapshot, snapshotDate, out, hr.codec).run(hr.configuration)
       _                    <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), dictionary)
@@ -86,7 +86,7 @@ object Snapshot {
                   previous: Option[FeatureStoreSnapshot], snapshotDate: Date, outputPath: Path, codec: Option[CompressionCodec]): Hdfs[Unit] =
     for {
       conf                 <- Hdfs.configuration
-      globs                <- Hdfs.fromResultTIO(Snapshot.storePaths(repository, store, snapshotDate, previous))
+      globs                <- Hdfs.fromResultTIO(Snapshot.featureStorePaths(repository, store, snapshotDate, previous))
       incrementalPath      =  previous.map(meta => repository.snapshot(meta.snapshotId).toHdfs)
       paths                =  globs.flatMap(_.value.paths.map(_.toHdfs)) ++ incrementalPath.toList
       size                 <- paths.traverse(Hdfs.size).map(_.sum)
@@ -96,17 +96,17 @@ object Snapshot {
       _                    <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshotDate, globs, outputPath, incrementalPath, codec))
     } yield ()
 
-  def storePaths(repository: Repository, store: FeatureStore, latestDate: Date, incremental: Option[FeatureStoreSnapshot]): ResultTIO[List[Prioritized[FactsetGlob]]] =
+  def featureStorePaths(repository: Repository, store: FeatureStore, latestDate: Date, incremental: Option[FeatureStoreSnapshot]): ResultTIO[List[Prioritized[FactsetGlob]]] =
     incremental match {
-      case None => StoreGlob.before(repository, store, latestDate).map(_.globs)
+      case None => FeatureStoreGlob.before(repository, store, latestDate).map(_.globs)
 
       case Some(fss) => for {
         // read facts from already processed store from the last snapshot date to the latest date
-        oldOnes    <- StoreGlob.between(repository, fss.store, fss.date, latestDate)
+        oldOnes    <- FeatureStoreGlob.between(repository, fss.store, fss.date, latestDate)
         difference = store diff fss.store
         _          = logInfo(s"Reading factsets '${difference.factsets}' up to '$latestDate'")
         // read factsets which haven't been seen up until the 'latest' date
-        newOnes    <- StoreGlob.before(repository, difference, latestDate)
+        newOnes    <- FeatureStoreGlob.before(repository, difference, latestDate)
       } yield oldOnes.globs ++ newOnes.globs
     }
 

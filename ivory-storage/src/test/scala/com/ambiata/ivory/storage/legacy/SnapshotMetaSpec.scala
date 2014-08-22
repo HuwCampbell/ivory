@@ -22,10 +22,6 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
 
   ${"""Can find the latest snapshot on hdfs:
        - Take greatest store with duplicate dates
-       - Take greatest date with duplicate feature stores
-       - Take greatest snapshot id with duplicate SnapshopMeta's"""!e1}
-  Sorting SnapshotMeta works on date then store order            $e2
-                                                                 """
        - Take greatest date with duplicate stores
        - Take greatest snapshot id with duplicate SnapshopMeta's""" ! latest}
        
@@ -43,7 +39,7 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
   }
 
   def sorting = prop { snaps: List[SnapshotMeta] =>
-    snaps.sorted must_== snaps.sortBy(sm => (sm.snapshotId, sm.date, sm.storeId))
+    snaps.sorted must_== snaps.sortBy(sm => (sm.snapshotId, sm.date, sm.featureStoreId))
   }
 
   implicit def SnapshotMetaArbitrary: Arbitrary[SnapshotMeta] = Arbitrary(for {

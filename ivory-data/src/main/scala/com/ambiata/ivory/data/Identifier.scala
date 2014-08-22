@@ -61,7 +61,6 @@ object Identifier extends MacrosCompat {
     import ListParser._
     for {
       s         <- string
-      position  <- getPosition
       result    <- value(parse(s).map(_.success).getOrElse(s"""not an Identifier: '$s'""".failure))
     } yield result
   }

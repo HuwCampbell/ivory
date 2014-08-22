@@ -1,8 +1,8 @@
 package com.ambiata.ivory.storage.legacy
 
-import com.ambiata.ivory.storage.fact.StoreGlob
-import com.ambiata.ivory.storage.metadata.Metadata
-import com.ambiata.ivory.storage.metadata.Metadata._
+import com.ambiata.ivory.storage.fact.FeatureStoreGlob
+import com.ambiata.ivory.storage.metadata._
+import Metadata._
 
 import scalaz._, Scalaz._, \&/._, effect.IO
 
@@ -31,7 +31,7 @@ case class FeatureStoreSnapshot(snapshotId: SnapshotId, date: Date, store: Featu
 
 object FeatureStoreSnapshot {
   def fromSnapshotMeta(repository: Repository): SnapshotMeta => ResultTIO[FeatureStoreSnapshot] = (meta: SnapshotMeta) =>
-    storeFromIvory(repository, meta.storeId).map { store =>
+    featureStoreFromIvory(repository, meta.featureStoreId).map { store =>
       FeatureStoreSnapshot(meta.snapshotId, meta.date, store)
     }
 
@@ -81,8 +81,8 @@ object SnapshotMeta {
       isUpToDate <- latest.traverse(isUpToDate(repository, date, storeId)).map(_.getOrElse(false))
     } yield if (isUpToDate) latest else None
 
-  def latestWithStoreId(repo: Repository, date: Date, storeId: FeatureStoreId): ResultTIO[Option[SnapshotMeta]] =
-    latest(repo, date).map(_.filter(_.storeId == storeId))
+  def latestWithStoreId(repo: Repository, date: Date, featureStoreId: FeatureStoreId): ResultTIO[Option[SnapshotMeta]] =
+    latest(repo, date).map(_.filter(_.featureStoreId == featureStoreId))
 
   def latest(repo: Repository, date: Date): ResultTIO[Option[SnapshotMeta]] = for {
     ids <- repo.toReference(Repository.snapshots).run(s => p => StoreDataUtil.listDir(s, p)).map(_.map(_.basename.path))
@@ -94,8 +94,8 @@ object SnapshotMeta {
     if (meta.date > date) ResultT.ok[IO, Boolean](true)
     else
       for {
-        store      <- Metadata.storeFromIvory(repository, storeId)
-        partitions <- StoreGlob.between(repository, store, meta.date, date).map(_.globs.flatMap(_.value.partitions))
+        store      <- Metadata.featureStoreFromIvory(repository, storeId)
+        partitions <- FeatureStoreGlob.between(repository, store, meta.date, date).map(_.globs.flatMap(_.value.partitions))
         filtered = partitions.filter(_.date isAfter meta.date) // TODO this should probably be in StoreGlob.between, but not sure what else it will affect
       } yield filtered.isEmpty
 

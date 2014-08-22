@@ -49,7 +49,7 @@ object Ingest {
       _         <- Repositories.create(repository).timed("created repository")
       factsetId <- Factsets.allocateFactsetId(repository).timed("created fact set")
       _         <- importFactset(repository, factsetId, input, namespace, timezone, optimal, format)
-      _         <- Metadata.incrementStore(repository, factsetId).timed("created store")
+      _         <- Metadata.incrementFeatureStore(repository, factsetId).timed("created store")
     } yield factsetId
 
   def importFactset(repository: Repository, factsetId: FactsetId,
