@@ -3,8 +3,7 @@ package com.ambiata.ivory.operation.extraction
 import com.nicta.scoobi.Scoobi._
 import org.apache.commons.logging.LogFactory
 import scala.util.matching.Regex
-import scalaz.{DList => _, _}, Scalaz._, effect._
-import java.util.HashMap
+import scalaz.{DList => _, Store => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.io._
@@ -53,11 +52,11 @@ object Chord {
   /**
    * Run the chord extraction on Hdfs
    */
-  private def runChordOnHdfs(repository: Repository, store: FeatureStore, entities: Entities, outputRef: ReferenceIO, tmp: ReferenceIO, incremental: Option[SnapshotMeta]) = {
+  def runChordOnHdfs(repository: Repository, store: FeatureStore, entities: Entities, outputRef: ReferenceIO, tmp: ReferenceIO, incremental: Option[SnapshotMeta]): ResultTIO[Unit] = {
     val chordRef = tmp </> FilePath(java.util.UUID.randomUUID.toString)
     for {
-      hr                   <- ResultT.safe[IO, HdfsRepository](repository.asInstanceOf[HdfsRepository])
-      outputStore          <- ResultT.safe[IO, HdfsStore](outputRef.store.asInstanceOf[HdfsStore])
+      hr                   <- downcast[Repository, HdfsRepository](repository, "Chord only works on HDFS repositories at this stage.")
+      outputStore          <- downcast[Any, HdfsStore](outputRef.store, s"Currently output path must be on HDFS. Given value is $outputRef")
       outputPath           =  (outputStore.base </> outputRef.path).toHdfs
       _                    <- serialiseEntities(entities, chordRef)
       featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotIdAfter(repository, meta.snapshotId, entities.earliestDate)).map(_.flatten)

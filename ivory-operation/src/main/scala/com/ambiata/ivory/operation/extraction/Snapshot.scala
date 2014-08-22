@@ -66,14 +66,9 @@ object Snapshot {
 
   private def runSnapshot(repository: Repository, storeId: FeatureStoreId, snapshotDate: Date, output: ReferenceIO, snapshotId: SnapshotId, incremental: Option[SnapshotMeta]) =
     for {
-      hr  <- repository match {
-        case h: HdfsRepository => ResultT.ok[IO, HdfsRepository](h)
-        case _                 => ResultT.fail[IO, HdfsRepository]("Snapshot only works on HDFS repositories at this stage.")
-      }
-      out <- output match {
-        case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
-        case _                                => ResultT.fail[IO, Path](s"Snapshot output path must be on hdfs, got '$output'")
-      }
+      hr                   <- downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'")
+      outputStore          <- downcast[Any, HdfsStore](output.store, s"Snapshot output must be on HDFS, got '$output'")
+      out                  =  (outputStore.base </> output.path).toHdfs
       dictionary           <- dictionaryFromIvory(repository)
       store                <- featureStoreFromIvory(repository, storeId)
       featureStoreSnapshot <- incremental.traverse(FeatureStoreSnapshot.fromSnapshotMeta(repository))

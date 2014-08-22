@@ -33,7 +33,7 @@ case class EavtTextImporter(repository: Repository,
     val errorRef = repository.toReference(repository.errors </> factsetId.render)
 
     for {
-      hr <- downcast[Repository, HdfsRepository](repository, "Repository must be HDFS")
+      hr         <- downcast[Repository, HdfsRepository](repository, "Repository must be HDFS")
       dictionary <- dictionaryFromIvory(repository)
       inputPath  <- Reference.hdfsPath(input)
       errorPath  <- Reference.hdfsPath(errorRef)

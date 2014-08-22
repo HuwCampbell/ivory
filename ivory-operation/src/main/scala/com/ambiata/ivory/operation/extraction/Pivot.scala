@@ -1,7 +1,6 @@
 package com.ambiata.ivory.operation.extraction
 
 import com.nicta.scoobi.Scoobi._
-import scalaz.{DList => _, _}, effect._
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
 
@@ -35,19 +34,12 @@ object Pivot {
    * Take a snapshot first then extract a pivot from a given snapshot (input) to output
    */
   def createPivot(repo: Repository, input: ReferenceIO, output: ReferenceIO, delim: Char, tombstone: String): ResultTIO[Unit] = for {
-    dictionary <- dictionaryFromIvory(repo)
-    hdfsRepo <- repo match {
-      case r: HdfsRepository => ResultT.ok[IO, HdfsRepository](r)
-      case _                 => ResultT.fail[IO, HdfsRepository](s"Pivot only works with Hdfs repositories currently, got '$repo'")
-    }
-    in <- input match {
-      case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
-      case _                                => ResultT.fail[IO, Path](s"Pivot can only read from HDFS currently, got '$input'")
-    }
-    out <- output match {
-      case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
-      case _                                => ResultT.fail[IO, Path](s"Pivot can only output to HDFS currently, got '$output'")
-    }
+    dictionary  <- dictionaryFromIvory(repo)
+    hdfsRepo    <- downcast[Repository, HdfsRepository](repo, s"Pivot only works with Hdfs repositories currently, got '$repo'")
+    inputStore  <- downcast[Any, HdfsStore](input.store, s"Pivot can only read from HDFS currently, got '$input'")
+    in          =  (inputStore.base </> input.path).toHdfs
+    outputStore <- downcast[Any, HdfsStore](output.store, s"Pivot can only read from HDFS currently, got '$output'")
+    out         =  (outputStore.base </> output.path).toHdfs
     _ <- createPivotWithDictionary(hdfsRepo, in, out, dictionary, delim, tombstone)
   } yield ()
 
