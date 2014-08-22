@@ -1,16 +1,10 @@
 package com.ambiata.ivory.operation.extraction
 
-import com.nicta.scoobi.Scoobi._
-import org.apache.hadoop.fs.Path
-
 import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.scoobi._
-import FactFormats._
-import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.operation.pivot.PivotJob
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.mundane.control._
 import com.ambiata.poacher.hdfs._
-import com.ambiata.poacher.scoobi._
 
 /**
  * Takes a snapshot containing EAVTs
@@ -46,12 +40,5 @@ object Pivot {
     in          =  (inputStore.base </> input.path).toHdfs
     outputStore <- downcast[Any, HdfsStore](output.store, s"Pivot can only read from HDFS currently, got '$output'")
     out         =  (outputStore.base </> output.path).toHdfs
-    storer      = DenseRowTextStorageV1.DenseRowTextStorer(out.toString, dictionary, delim, tombstone)
-    _           <- ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
-      val facts = valueFromSequenceFile[Fact](in.toString)
-      persist(storer.storeScoobi(facts))
-      ()
-    }.run(hdfsRepo.scoobiConfiguration)
-    _           <- storer.storeMeta.run(hdfsRepo.configuration)
-    } yield ()
+    } yield PivotJob.run(hdfsRepo.configuration, dictionary, in, out, tombstone, delim, 50, hdfsRepo.codec)
 }

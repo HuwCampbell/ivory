@@ -226,6 +226,9 @@ object Value {
     case StructValue(_)    => None
   }
 
+  def toStringOr(v: Value, tombstoneValue: String): Option[String] =
+    toString(v, Some(tombstoneValue))
+
   /** This is _not_ for general consumption - should only be use for testing or diffing */
   def toStringWithStruct(v: Value): String = v match {
     case p: PrimitiveValue   => toStringPrimitive(p).getOrElse("")
