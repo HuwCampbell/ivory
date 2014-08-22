@@ -18,92 +18,101 @@ import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import MemoryConversions._
 
+/**
+ * Snapshots are used to store the latest feature values at a given date.
+ * This can be done incrementally in order to be fast.
+ *
+ * Snapshots are also used to extract chords and pivots.
+ *
+ * After each snapshot is taken, metadata is saved to know exactly:
+ *
+ *  - when the snapshot was taken
+ *  - on which FeatureStore it was taken
+ *
+ *
+ * Note that in between 2 snapshots, the FeatureStore might have changed
+ */
 object Snapshot {
   private implicit val logger = LogFactory.getLog("ivory.operation.Snapshot")
 
-  /** take a new snapshot, possibly an incremental one */
+  /** 
+   * Take a new snapshot
+   * If incremental is true, take a incremental snapshot (based off the previous one), unless the previous one is up to date
+   */
   def takeSnapshot(repository: Repository, date: Date, incremental: Boolean): ResultTIO[SnapshotMeta] =
     if (incremental) takeIncrementalSnapshot(repository, date)
     else             takeNewSnapshot(repository, date)
 
   /**
-   * If we are using incremental snapshots we need to first check the state of
-   * the latest available incremental snapshot. If it is not:
+   * We need to create a new incremental snapshot if the previous one is not up to date any more
    *
-   *  - up to date with respect to the latest store
-   *  - up to date with the date for which we want to take a snapshot
-   *
-   *  then we take a new snapshot
+   *  - if it corresponds to an old store
+   *  - if there were partitions created after the snapshot has been taken
    */
   def takeIncrementalSnapshot(repository: Repository, date: Date): ResultTIO[SnapshotMeta] =
     for {
       storeId <- Metadata.latestFeatureStoreIdOrFail(repository)
-      latest  <- SnapshotMeta.latestIncrementalSnapshot(repository, date, storeId)
+      latest  <- SnapshotMeta.latestUpToDateSnapshot(repository, date, storeId)
       meta    <- latest match {
         case Some(m) => ResultT.safe[IO, SnapshotMeta](m).info(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '$storeId'")
-        case None    => takeNewSnapshot(repository, date)
+        case None    => SnapshotMeta.latest(repository, date) >>= createSnapshot(repository, date)
       }
     } yield meta
 
   /**
-   * take a new snapshot, allocating a new snapshot id first
+   * take a new snapshot, without considering any previous incremental snapshot
    */
   def takeNewSnapshot(repository: Repository, date: Date): ResultTIO[SnapshotMeta] =
+    createSnapshot(repository, date)(None)
+
+  /**
+   * create a new snapshot at a given date, using the previous snapshot data if present
+   */
+  def createSnapshot(repository: Repository, date: Date): Option[SnapshotMeta] => ResultTIO[SnapshotMeta] = (previousSnapshot: Option[SnapshotMeta]) =>
     for {
-      storeId    <- Metadata.latestFeatureStoreIdOrFail(repository)
-      snapshotId <- SnapshotMeta.allocateId(repository)
-      output     =  repository.toReference(Repository.snapshot(snapshotId))
-      meta       <- runSnapshot(repository, storeId, date, output, snapshotId, None).info(s"""
+      newSnapshot <- SnapshotMeta.createSnapshotMeta(repository, date)
+      output      =  repository.toReference(Repository.snapshot(newSnapshot.snapshotId))
+      _           <- runSnapshot(repository, newSnapshot, previousSnapshot, date, output).info(s"""
                                  | Running extractor on:
                                  |
                                  | Repository     : ${repository.root.path}
-                                 | Feature Store  : ${storeId.render}
+                                 | Feature Store  : ${newSnapshot.featureStoreId.render}
                                  | Date           : ${date.hyphenated}
                                  | Output         : $output
                                  |
                                  """.stripMargin)
-    } yield meta
+    } yield newSnapshot
 
-  private def runSnapshot(repository: Repository, storeId: FeatureStoreId, snapshotDate: Date, output: ReferenceIO, snapshotId: SnapshotId, incremental: Option[SnapshotMeta]) =
+  /**
+   * Run a snapshot on a given repository using the previous snapshot in case of an incremental snapshot
+   */
+  def runSnapshot(repository: Repository, newSnapshot: SnapshotMeta, previousSnapshot: Option[SnapshotMeta], date: Date, output: ReferenceIO): ResultTIO[Unit] =
     for {
       hr                   <- downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'")
       outputStore          <- downcast[Any, HdfsStore](output.store, s"Snapshot output must be on HDFS, got '$output'")
       out                  =  (outputStore.base </> output.path).toHdfs
       dictionary           <- dictionaryFromIvory(repository)
-      store                <- featureStoreFromIvory(repository, storeId)
-      featureStoreSnapshot <- incremental.traverse(FeatureStoreSnapshot.fromSnapshotMeta(repository))
-      _                    <- job(hr, store, featureStoreSnapshot, snapshotDate, out, hr.codec).run(hr.configuration)
+      newFactsetGlobs      <- FeatureStoreSnapshot.newFactsetGlobs(repository, previousSnapshot, date)
+      _                    <- job(hr, previousSnapshot, newFactsetGlobs, date, out, hr.codec).run(hr.configuration)
       _                    <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), dictionary)
-      meta                 <- SnapshotMeta.save(snapshotId, snapshotDate, storeId, output)
-    } yield meta
-
-  private def job(repository: HdfsRepository, store: FeatureStore,
-                  previous: Option[FeatureStoreSnapshot], snapshotDate: Date, outputPath: Path, codec: Option[CompressionCodec]): Hdfs[Unit] =
-    for {
-      conf                 <- Hdfs.configuration
-      globs                <- Hdfs.fromResultTIO(Snapshot.featureStorePaths(repository, store, snapshotDate, previous))
-      incrementalPath      =  previous.map(meta => repository.snapshot(meta.snapshotId).toHdfs)
-      paths                =  globs.flatMap(_.value.paths.map(_.toHdfs)) ++ incrementalPath.toList
-      size                 <- paths.traverse(Hdfs.size).map(_.sum)
-      _                    <- Hdfs.log(s"Total input size: $size")
-      reducers             =  size.toBytes.value / 2.gb.toBytes.value + 1 // one reducer per 2GB of input
-      _                    <- Hdfs.log(s"Number of reducers: $reducers")
-      _                    <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshotDate, globs, outputPath, incrementalPath, codec))
+      _                    <- SnapshotMeta.save(newSnapshot, output)
     } yield ()
 
-  def featureStorePaths(repository: Repository, store: FeatureStore, latestDate: Date, incremental: Option[FeatureStoreSnapshot]): ResultTIO[List[Prioritized[FactsetGlob]]] =
-    incremental match {
-      case None => FeatureStoreGlob.before(repository, store, latestDate).map(_.globs)
-
-      case Some(fss) => for {
-        // read facts from already processed store from the last snapshot date to the latest date
-        oldOnes    <- FeatureStoreGlob.between(repository, fss.store, fss.date, latestDate)
-        difference = store diff fss.store
-        _          = logInfo(s"Reading factsets '${difference.factsets}' up to '$latestDate'")
-        // read factsets which haven't been seen up until the 'latest' date
-        newOnes    <- FeatureStoreGlob.before(repository, difference, latestDate)
-      } yield oldOnes.globs ++ newOnes.globs
-    }
+  /**
+   * create a new snapshot as a Map-Reduce job
+   */
+  private def job(repository: Repository, previousSnapshot: Option[SnapshotMeta],
+                  factsetsGlobs: List[Prioritized[FactsetGlob]], snapshotDate: Date, outputPath: Path, codec: Option[CompressionCodec]): Hdfs[Unit] =
+    for {
+      conf            <- Hdfs.configuration
+      incrementalPath =  previousSnapshot.map(meta => repository.snapshot(meta.snapshotId).toHdfs)
+      paths           =  factsetsGlobs.flatMap(_.value.paths.map(_.toHdfs)) ++ incrementalPath.toList
+      size            <- paths.traverse(Hdfs.size).map(_.sum)
+      _               <- Hdfs.log(s"Total input size: $size")
+      reducers        =  size.toBytes.value / 2.gb.toBytes.value + 1 // one reducer per 2GB of input
+      _               <- Hdfs.log(s"Number of reducers: $reducers")
+      _               <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshotDate, factsetsGlobs, outputPath, incrementalPath, codec))
+    } yield ()
 
   /** This is exposed through the external API */
   def snapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Path] = for {

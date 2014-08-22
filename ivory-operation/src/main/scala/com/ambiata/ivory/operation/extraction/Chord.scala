@@ -25,6 +25,11 @@ import IvoryStorage._
 import com.ambiata.ivory.scoobi._
 import FlatFactThriftStorageV1._
 
+/**
+ * A Chord is the extraction of feature values for some entities at some dates
+ * 
+ * Use the latest snapshot (if available) to get the latest values
+ */
 object Chord {
   private implicit val logger = LogFactory.getLog("ivory.operation.Snapshot")
 
@@ -61,7 +66,7 @@ object Chord {
       _                    <- serialiseEntities(entities, chordRef)
       featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotIdAfter(repository, meta.snapshotId, entities.earliestDate)).map(_.flatten)
       dictionary           <- dictionaryFromIvory(repository)
-      _                    <- scoobiJob(hr, dictionary, store, chordRef, entities.latestDate, featureStoreSnapshot, outputPath, hr.codec).run(hr.scoobiConfiguration)
+      _                    <- chordScoobiJob(hr, dictionary, store, chordRef, entities.latestDate, featureStoreSnapshot, outputPath, hr.codec).run(hr.scoobiConfiguration)
     } yield ()
   }
 
@@ -69,23 +74,23 @@ object Chord {
    * Persist facts which are the latest corresponding to a set of dates given for each entity.
    * Use the latest feature store snapshot if available
    */
-  private def scoobiJob(repository: Repository, dictionary: Dictionary, store: FeatureStore, chordReference: ReferenceIO,
-                        latestDate: Date, incremental: Option[FeatureStoreSnapshot],
-                        outputPath: Path, codec: Option[CompressionCodec]): ScoobiAction[Unit] = ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
+  def chordScoobiJob(repository: Repository, dictionary: Dictionary, store: FeatureStore, chordReference: ReferenceIO,
+                     latestDate: Date, snapshot: Option[FeatureStoreSnapshot],
+                     outputPath: Path, codec: Option[CompressionCodec]): ScoobiAction[Unit] = ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
 
       lazy val entities = getEntities(chordReference)
 
-      Chord.readFacts(repository, store, latestDate, incremental).map { facts =>
+      Chord.readFacts(repository, store, latestDate, snapshot).map { facts =>
 
-        /** get only the entities facts */
+        /** get only the facts for the chord entities */
         val entitiesFacts: DList[PrioritizedFact] = filterFacts(facts, entities)
         /**
          * 1. group by entity and feature id
          * 2. for a given entity and feature id, get the latest facts, with the lowest priority
          */
-        val latestFacts: DList[PrioritizedFact] = getLatestFacts(entitiesFacts, entities)
+        val latestFacts: DList[PrioritizedFact] = getBestFacts(entitiesFacts, entities)
 
-        val validated: DList[PrioritizedFact] = validate(latestFacts, dictionary, store, incremental)
+        val validated: DList[PrioritizedFact] = validateFacts(latestFacts, dictionary, store, snapshot)
 
         validated.valueToSequenceFile(outputPath.toString, overwrite = true).persistWithCodec(codec); ()
       }
@@ -95,7 +100,7 @@ object Chord {
    * filter out the facts which are not in the entityMap or
    * which date are greater than the required dates for this entity
    */
-  private def filterFacts(facts: DList[(Priority, SnapshotId \/ FactsetId, Fact)], getEntities: =>Entities): DList[PrioritizedFact] =
+  def filterFacts(facts: DList[(Priority, SnapshotId \/ FactsetId, Fact)], getEntities: =>Entities): DList[PrioritizedFact] =
     facts.parallelDo(new DoFn[(Priority, SnapshotId \/ FactsetId, Fact), PrioritizedFact] {
       var entities: Entities = null
       override def setup() { entities = getEntities }
@@ -106,8 +111,11 @@ object Chord {
         if (entities.keep(fact)) emitter.emit((priority, fact))
       }
     })
-  
-  private def getLatestFacts(facts: DList[PrioritizedFact], getEntities: =>Entities): DList[PrioritizedFact] =
+
+  /**
+   * Get the list of facts with the best priority and the most recent for each entity (and required entity date)
+   */
+  def getBestFacts(facts: DList[PrioritizedFact], getEntities: =>Entities): DList[PrioritizedFact] =
     facts
       .groupBy { case (p, f) => (f.entity, f.featureId.toString) }
       .parallelDo(new DoFn[((String, String), Iterable[PrioritizedFact]), PrioritizedFact] {
@@ -123,7 +131,10 @@ object Chord {
       override def cleanup(emitter: Emitter[PrioritizedFact]) { }
     })
 
-  private def validate(facts: DList[PrioritizedFact], dictionary: Dictionary, store: FeatureStore, incremental: Option[FeatureStoreSnapshot]): DList[PrioritizedFact] = {
+  /**
+   * Validate that facts are in the dictionary with the right encoding
+   */
+  def validateFacts(facts: DList[PrioritizedFact], dictionary: Dictionary, store: FeatureStore, incremental: Option[FeatureStoreSnapshot]): DList[PrioritizedFact] = {
     // for each priority we get its snapshot id or factset id
     lazy val priorities: Map[Priority, String] =
       (incremental     .map(i =>  (Priority.Max, s"Snapshot '${i.snapshotId.render}'")).toList ++
@@ -137,23 +148,27 @@ object Chord {
     }
   }
 
-  private def readFacts(repository: Repository, store: FeatureStore,
-                        latestDate: Date, incremental: Option[FeatureStoreSnapshot]): ScoobiAction[DList[(Priority, SnapshotId \/ FactsetId, Fact)]] = {
-    incremental match {
+  /**
+   * Read facts from a FeatureStore, up to a given date
+   * If a FeatureStore snapshot is given we use it to retrieve the latest values
+   */
+  def readFacts(repository: Repository, featureStore: FeatureStore,
+                latestDate: Date, featureStoreSnapshot: Option[FeatureStoreSnapshot]): ScoobiAction[DList[(Priority, SnapshotId \/ FactsetId, Fact)]] = {
+    featureStoreSnapshot match {
       case None =>
-        failError(factsFromIvoryStoreTo(repository, store, latestDate), "cannot read facts")
+        factsFromIvoryStoreTo(repository, featureStore, latestDate).failError("cannot read facts")
           .map(_.map { case (p, fid, f) => (p, fid.right[SnapshotId], f) })
 
       case Some(snapshot) =>
         val path          =  repository.snapshot(snapshot.snapshotId).toHdfs
-        val newFactsets   =  store diff snapshot.store
+        val newFactsets   =  featureStore diff snapshot.store
 
         for {
-          oldFacts      <- exitOnParseError(factsFromIvoryStoreBetween(repository, snapshot.store, snapshot.date, latestDate))
+          oldFacts      <- factsFromIvoryStoreBetween(repository, snapshot.store, snapshot.date, latestDate).exitOnParseError
           _             <- ScoobiAction.log(s"Reading factsets '${newFactsets.factsets}' up to '$latestDate'")
-          newFacts      <- exitOnParseError(factsFromIvoryStoreTo(repository, newFactsets, latestDate))
+          newFacts      <- factsFromIvoryStoreTo(repository, newFactsets, latestDate).exitOnParseError
           factsetFacts  =  (oldFacts ++ newFacts).map { case (p, fid, f) => (p, fid.right[SnapshotId], f) }
-          snapshotFacts <- exitOnParseError(factsFromPath(path)).map(_.map((Priority.Max, snapshot.snapshotId.left[FactsetId], _)))
+          snapshotFacts <- factsFromPath(path).exitOnParseError.map(_.map((Priority.Max, snapshot.snapshotId.left[FactsetId], _)))
         } yield factsetFacts ++ snapshotFacts
     }
   }
@@ -161,23 +176,26 @@ object Chord {
   private def factsFromPath(path: Path): ScoobiAction[DList[ParseError \/ Fact]] =
     ScoobiAction.scoobiConfiguration.map(sc => FlatFactThriftLoader(path.toString).loadScoobi(sc))
 
-  private def exitOnParseError[A : WireFormat](action: ScoobiAction[DList[ParseError \/ A]]): ScoobiAction[DList[A]] =
-    failError(action, "cannot read facts")
-
-  private def failError[E, A : WireFormat](action: ScoobiAction[DList[E \/ A]], message: String): ScoobiAction[DList[A]] =
-    action.map { list =>
-      list.map {
-        case -\/(e) => sys.error(message)
-        case \/-(a) => a
+  implicit class ScoobiParsedListExitOps[A : WireFormat](action: ScoobiAction[DList[ParseError \/ A]]) {
+    def exitOnParseError: ScoobiAction[DList[A]] = action.failError("cannot read facts")
+  }
+  
+  implicit class ScoobiParsedListFailOps[E, A : WireFormat](action: ScoobiAction[DList[E \/ A]]) {
+    def failError(message: String): ScoobiAction[DList[A]] =
+      action.map { list =>
+        list.map {
+          case -\/(e) => sys.error(message)
+          case \/-(a) => a
+        }
       }
-    }
+  }
 
-  private def storeDictionary(repository: Repository, outputRef: ReferenceIO): ResultTIO[Unit] =
+  def storeDictionary(repository: Repository, outputRef: ReferenceIO): ResultTIO[Unit] =
     dictionaryFromIvory(repository).flatMap { dictionary =>
       DictionaryTextStorageV2.toStore(outputRef </> ".dictionary", dictionary)
     }
 
-  private def getEntities(chordReference: ReferenceIO): Entities =
+  def getEntities(chordReference: ReferenceIO): Entities =
     deserialiseEntities(chordReference).run.unsafePerformIO match {
       case Ok(m)    => m
       case Error(e) => Crash.error(Crash.Serialization, "Can not deserialise chord map - " + Result.asString(e))
