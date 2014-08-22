@@ -105,8 +105,16 @@ class Setup(val directory: FilePath) extends MustThrownMatchers {
     (base </> path </> "part").run(store => fp => store.linesUtf8.write(fp, raw))
 
   def importAs(format: Format) = {
-    // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onStore(repository, dictionary, FactsetId.initial, None, input, errors, DateTimeZone.getDefault, List(ns1 -> 1.mb), 128.mb, format) must beOk
+    val action =
+      for {
+        inputPath  <- Reference.hdfsPath(input)
+        errorsPath <- Reference.hdfsPath(errors)
+        _          <- EavtTextImporter(repository, input, namespace = None, optimal = 128.mb, format).
+          runJob(repository, dictionary, FactsetId.initial, inputPath, errorsPath, List(ns1 -> 1.mb), DateTimeZone.getDefault)
+        _ <- writeFactsetVersion(repository, List(FactsetId.initial))
+      } yield ()
+
+    action must beOk
   }
 
   def theImportMustBeOk = 

@@ -3,34 +3,50 @@ package com.ambiata.ivory.operation.ingestion
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy._
-import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
+import IvoryStorage._
 import com.ambiata.ivory.storage.store._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.BytesQuantity
 import org.apache.commons.logging.LogFactory
-import org.apache.hadoop.conf.Configuration
 import org.joda.time.DateTimeZone
 
-import scalaz.effect._
-
 /**
- * This workflow is designed to import features into an fat ivory repository,
- * one which contains all facts over all of time.
+ * Import facts in an Ivory repository from an input path.
  *
- * Steps:
- * 1. Create empty repository if one doesn't exist
- * 2. Create an empty fact set to import the data feeds into
- * 3. Import the feeds into the fact set
- * 4. Create a new feature store:
- *    - Find the latest feature store
- *    - Create a new feature store containing the newly created fact set, and all the fact sets from the latest feature store
- *    - Use the previous feature store + 1 as the name of the new feature store
+ * The input path is expected to either:
+ *
+ *  - point to a list of directories where each directory is a namespace and contains partitions
+ *    (sub-directories which names are dates, and containing the fact files)
+ *
+ *    input/
+ *      demographics/
+ *         year=2014/month=03/day=25/part1.txt
+ *         year=2014/month=03/day=26/part1.txt
+ *      data_usage/
+ *         year=2014/month=03/day=25/part1.txt
+ *         year=2014/month=03/day=26/part1.txt
+ *
+ *  In this case the name of each namespace directory must correspond to a namespace in the dictionary
+ *
+ *  - be a single directory containing the partitioned files  (if namespace: Option[Name] is defined)
+ *
+ *   input/
+ *      year=2014/month=03/day=25/part1.txt
+ *      year=2014/month=03/day=26/part1.txt
+ *
+ *   in this case the namespace value is taken as the Namespace name (and must exist in the dictionary)
+ *
+ * It is possible to ingest facts with a different importer than the EAVTTextImporter by
+ *
+ *  1. calling createNewFactsetId
+ *  2. importing facts using: the new factsetId, the input reference, the optional namespace and the expected timezone
+ *  3. calling updateFeatureStore to update the feature store and save the factset version
  */
 object Ingest {
 
-  private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.Import")
+  private implicit val logger = LogFactory.getLog("ivory.repository.Ingest")
 
   /**
    * Ingest facts in a newly created repository if necessary.
@@ -46,22 +62,30 @@ object Ingest {
   def ingestFacts(repository: Repository, input: ReferenceIO, namespace: Option[Name],
                   timezone: DateTimeZone, optimal: BytesQuantity, format: Format): ResultTIO[FactsetId] =
     for {
-      _         <- Repositories.create(repository).timed("created repository")
-      factsetId <- Factsets.allocateFactsetId(repository).timed("created fact set")
-      _         <- importFactset(repository, factsetId, input, namespace, timezone, optimal, format)
-      _         <- Metadata.incrementFeatureStore(repository, factsetId).timed("created store")
+      factsetId <- createNewFactsetId(repository)
+      importer  =  EavtTextImporter(repository, input, namespace, optimal, format)
+      _         <- importer.importFacts(factsetId, input, namespace, timezone)
+      _         <- updateFeatureStore(repository, factsetId)
     } yield factsetId
 
-  def importFactset(repository: Repository, factsetId: FactsetId,
-                    input: ReferenceIO, namespace: Option[Name], timezone: DateTimeZone, optimal: BytesQuantity, format: Format): ResultTIO[Unit] = {
-    val errors = repository.toReference(repository.errors </> factsetId.render)
-    for {
-      hr              <- downcast[Repository, HdfsRepository](repository, "Currently only support HDFS repository")
-      dictionary      <- dictionaryFromIvory(repository)
-      path            <- Reference.hdfsPath(input)
-      namespacesSizes <- Namespaces.namespaceSizes(path, namespace).run(conf)
-      _               <- EavtTextImporter.onStore(repository, dictionary, factsetId, namespace, input, errors, timezone, namespacesSizes, optimal, format)
-    } yield ()
-  }
+  /**
+   * prepare the repository for the creation of a new factset
+   *  - create the repository if not created before
+   *  - allocate a new factset id
+   */
+  def createNewFactsetId(repository: Repository): ResultTIO[FactsetId] = for {
+    _         <- CreateRepository.createRepository(repository).timed("created repository")
+    factsetId <- Factsets.allocateFactsetId(repository).timed("created fact set")
+  } yield factsetId
+
+  /**
+   * update the repository after the import of facts in a factset:
+   *  - increment the feature store
+   *  - write the factset version
+   */
+  def updateFeatureStore(repository: Repository, factsetId: FactsetId): ResultTIO[FactsetId] = for {
+    _ <- Metadata.incrementFeatureStore(repository, factsetId).timed("created store")
+    _ <- writeFactsetVersion(repository, List(factsetId))
+  } yield factsetId
 
 }

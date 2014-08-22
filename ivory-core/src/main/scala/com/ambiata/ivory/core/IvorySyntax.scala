@@ -24,6 +24,16 @@ trait IvorySyntax extends DataSyntax {
     else           ResultT.fail[IO, A](message)
 
   /**
+   * try to cast an object to a given subtype
+   * short-term solution for working on HdfsRepositories only
+   */
+  def downcast[A, B <: A](a: A, message: String): ResultTIO[B] =
+    ResultT.safe[IO, A](a).flatMap { a1 =>
+      try ResultT.ok[IO, B](a.asInstanceOf[B])
+      catch { case _:Exception => ResultT.fail[IO, B](message) }
+    }
+
+  /**
    * Logging utility functions when working with ResultTIO for now
    * This will be removed when IvoryT is introduced
    */
