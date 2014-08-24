@@ -68,6 +68,9 @@ object Ivory
   type Partition = com.ambiata.ivory.core.Partition
   val Partition = com.ambiata.ivory.core.Partition
 
+  type Name = com.ambiata.ivory.core.Name
+  val Name = com.ambiata.ivory.core.Name
+
   /**
    * Debug
    */
