@@ -20,3 +20,6 @@ project/source.scala
 
 # Local source linking
 project/source.scala
+
+# osx
+*.DS_Store
