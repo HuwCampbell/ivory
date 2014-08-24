@@ -35,6 +35,7 @@ object Ivory
   val FeatureMeta = com.ambiata.ivory.core.FeatureMeta
 
   type Encoding = com.ambiata.ivory.core.Encoding
+  val Encoding = com.ambiata.ivory.core.Encoding
   val BooleanEncoding = com.ambiata.ivory.core.BooleanEncoding
   val IntEncoding = com.ambiata.ivory.core.IntEncoding
   val LongEncoding = com.ambiata.ivory.core.LongEncoding
@@ -43,6 +44,7 @@ object Ivory
 
   // FIX rename???
   type Type = com.ambiata.ivory.core.Type
+  val Type = com.ambiata.ivory.core.Type
   val NumericalType = com.ambiata.ivory.core.NumericalType
   val ContinuousType = com.ambiata.ivory.core.ContinuousType
   val CategoricalType = com.ambiata.ivory.core.CategoricalType
