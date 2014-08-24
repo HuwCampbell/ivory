@@ -2,6 +2,7 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.ingestion._
+import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.Namespaces
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata.Metadata._
@@ -55,16 +56,18 @@ object ingest extends IvoryApp {
       } yield List(s"Successfully imported '${c.input}' as ${factset} into '${c.repo}'")))
 
   def run(repo: Repository, input: ReferenceIO, namespace: Option[Name], timezone: DateTimeZone, optimal: BytesQuantity, format: Format): ResultTIO[FactsetId] =
-    fatrepo.ImportWorkflow.onStore(repo, importFeed(input, namespace, optimal, format), timezone)
+    fatrepo.ImportWorkflow.onStore(importFeed(input, namespace, optimal, format), timezone).run(IvoryRead.prod(repo))
 
-  def importFeed(input: ReferenceIO, singleNamespace: Option[Name], optimal: BytesQuantity, format: Format)(repo: Repository, factset: FactsetId, errorRef: ReferenceIO, timezone: DateTimeZone): ResultTIO[Unit] = for {
-    conf <- repo match {
-      case r: HdfsRepository => ResultT.ok[IO, Configuration](r.configuration)
-      case _                 => ResultT.fail[IO, Configuration]("Currently only support HDFS repository")
-    }
-    dict <- dictionaryFromIvory(repo)
-    path <- Reference.hdfsPath(input)
-    list <- Namespaces.namespaceSizes(path, singleNamespace).run(conf)
-    _    <- EavtTextImporter.onStore(repo, dict, factset, list.map(_._1), singleNamespace, input, errorRef, timezone, list, optimal, format)
+  def importFeed(input: ReferenceIO, singleNamespace: Option[Name], optimal: BytesQuantity, format: Format)(factset: FactsetId, errorRef: ReferenceIO, timezone: DateTimeZone): IvoryTIO[Unit] = for {
+    dict <- dictionaryFromIvoryT
+    _    <- IvoryT.fromResultT(repo => for {
+      conf <- repo match {
+        case r: HdfsRepository => ResultT.ok[IO, Configuration](r.configuration)
+        case _                 => ResultT.fail[IO, Configuration]("Currently only support HDFS repository")
+      }
+      path <- Reference.hdfsPath(input)
+      list <- Namespaces.namespaceSizes(path, singleNamespace).run(conf)
+      _    <- EavtTextImporter.onStore(repo, dict, factset, list.map(_._1), singleNamespace, input, errorRef, timezone, list, optimal, format)
+    } yield ())
   } yield ()
 }

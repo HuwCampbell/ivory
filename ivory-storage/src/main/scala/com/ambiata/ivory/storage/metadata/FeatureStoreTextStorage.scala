@@ -3,6 +3,7 @@ package com.ambiata.ivory.storage.metadata
 import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.Factsets
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
@@ -14,7 +15,7 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
   val name = "feature store"
 
   /** Increment the latest FeatureStore by prepending the given FactsetId and creating a new FeatureStore */
-  def increment(repo: Repository, factsetId: FactsetId): ResultTIO[FeatureStore] = for {
+  def increment(factsetId: FactsetId): IvoryTIO[FeatureStore] = IvoryT.fromResultT(repo => for {
     factset     <- Factsets.factset(repo, factsetId)
     latest      <- latestId(repo)
     next        <- ResultT.fromOption[IO, FeatureStoreId](latest.map(_.next).getOrElse(Some(FeatureStoreId.initial)), "Run out of FeatureStore ids!")
@@ -23,7 +24,7 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
     newStoreO = FeatureStore.fromList(next, newFactsets)
     newStore    <- ResultT.fromOption[IO, FeatureStore](newStoreO, s"Can not add anymore factsets to feature store '${next}'")
     _           <- storeIdsToId(repo, newStore.id, newStore.factsetIds)
-  } yield newStore
+  } yield newStore)
 
   /**
    * Current: At the moment this will list all partitions in every factset

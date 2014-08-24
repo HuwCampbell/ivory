@@ -12,6 +12,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.poacher.hdfs._
@@ -52,6 +53,9 @@ object IvoryStorage {
 
   def writeFactsetVersion(repo: Repository, factsets: List[FactsetId]): ResultTIO[Unit] =
     Versions.writeAll(repo, factsets, factsetVersion)
+
+  def writeFactsetVersionI(factsets: List[FactsetId]): IvoryTIO[Unit] =
+    IvoryT.fromResultT(writeFactsetVersion(_, factsets))
 
   implicit class IvoryFactStorage(dlist: DList[Fact]) {
     def toIvoryFactset(repo: HdfsRepository, factset: FactsetId, codec: Option[CompressionCodec])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] =

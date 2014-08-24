@@ -13,6 +13,7 @@ import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.poacher.hdfs._
+import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.legacy.fatrepo.ExtractLatestWorkflow
 import com.ambiata.ivory.storage.metadata._, Metadata._
@@ -43,13 +44,13 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
       case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
       case _                                => ResultT.fail[IO, Path](s"Currently output path must be on HDFS. Given value is ${output}")
     }
-    d  <- dictionaryFromIvory(repo)
-    s  <- featureStoreFromIvory(repo, store)
+    ds <- (dictionaryFromIvoryT tuple featureStoreFromIvoryT(store)).run(IvoryRead.prod(repo))
+    (d, s) = ds
     (earliest, latest) = DateMap.bounds(entities)
     chordRef = tmp </> FilePath(java.util.UUID.randomUUID().toString)
     _  <- Chord.serialiseChords(chordRef, entities)
     in <- incremental.traverseU(snapId => for {
-        sm <- SnapshotMeta.fromIdentifier(repo, snapId)
+      sm <- SnapshotMeta.fromIdentifier(repo, snapId)
       _   = println(s"Snapshot feature store was '${sm.featureStoreId}'")
       _   = println(s"Snapshot date was '${sm.date.string("-")}'")
       s  <- featureStoreFromIvory(repo, sm.featureStoreId)
