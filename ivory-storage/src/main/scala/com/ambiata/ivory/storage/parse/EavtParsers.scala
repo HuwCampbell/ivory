@@ -23,7 +23,7 @@ object EavtParsers {
       entity    <- string.nonempty
       name      <- string.nonempty
       rawv      <- string
-      v         <- value(dictionary.meta.get(FeatureId(namespace, name)).map(fm => valueFromString(fm, rawv)).getOrElse(s"Could not find dictionary entry for '$namespace.$name'".failure))
+      v         <- value(validateFeature(dictionary, FeatureId(namespace, name), rawv))
       time      <- Dates.parser(timezone, timezone)
     } yield time match {
       case \/-(dt) =>
@@ -31,6 +31,12 @@ object EavtParsers {
       case -\/(d) =>
         Fact.newFactWithNamespaceName(entity, namespace, name, d, Time(0), v)
     }
+
+  def validateFeature(dict: Dictionary, fid: FeatureId, rawv: String): Validation[String, Value] =
+    dict.meta.get(fid).map {
+      case fm: FeatureMeta    => EavtParsers.valueFromString(fm, rawv)
+      case fv: FeatureVirtual => s"Cannot import virtual feature $fid".failure
+    }.getOrElse(s"Could not find dictionary entry for '${fid}'".failure)
 
   def valueFromString(meta: FeatureMeta, raw: String): Validation[String, Value] = meta.encoding match {
     case _ if meta.tombstoneValue.contains(raw)  => TombstoneValue().success[String]

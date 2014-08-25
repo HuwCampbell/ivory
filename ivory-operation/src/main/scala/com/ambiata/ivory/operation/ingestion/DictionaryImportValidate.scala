@@ -32,8 +32,17 @@ object DictionaryImportValidate {
     def validateMeta(id: FeatureId, oldMeta: FeatureMeta, newMeta: FeatureMeta): DictValidationUnit = {
       validateEncoding(oldMeta.encoding, newMeta.encoding, ValidationPath(id))
     }
-    oldDict.meta.toList.foldMap {
-      case (fid, oldMeta) => newDict.meta.get(fid).map(validateMeta(fid, oldMeta, _)).getOrElse(OK)
+    def validateFeature(id: FeatureId, oldFeature: Feature, newFeature: Feature): DictValidationUnit =
+      (oldFeature, newFeature) match {
+        case (oldMeta: FeatureMeta,    newMeta: FeatureMeta   ) => validateMeta(id, oldMeta, newMeta)
+        case (_      : FeatureMeta,    _      : FeatureVirtual) => RealToVirtualEncoding(ValidationPath(id)).failureNel
+        case (_      : FeatureVirtual, _      : FeatureMeta   ) => OK
+        case (_      : FeatureVirtual, _      : FeatureVirtual) => OK
+      }
+    Maps.outerJoin(oldDict.meta, newDict.meta).foldMap {
+      case (_,   \&/.This(_))                => OK
+      case (_,   \&/.That(_))                => OK
+      case (fid, \&/.Both(oldMeta, newMeta)) => validateFeature(fid, oldMeta, newMeta)
     }
   }
 
@@ -55,5 +64,8 @@ object DictionaryImportValidate {
   }
   case class NotOptionalStructField(path: ValidationPath) extends DictionaryValidateFailure {
     override def toString = s"Struct field $path was made optional"
+  }
+  case class RealToVirtualEncoding(path: ValidationPath) extends DictionaryValidateFailure {
+    override def toString = s"Cannot switch $path from real feature to virtual"
   }
 }

@@ -4,20 +4,20 @@ import scalaz.{Name => _, Value => _, _}, Scalaz._
 import com.ambiata.mundane.parse._
 import com.ambiata.ivory.core._
 
-trait DictionaryTextStorageCommon extends TextStorage[(FeatureId, FeatureMeta), Dictionary] {
+object DictionaryTextStorage extends TextStorage[(FeatureId, FeatureMeta), Dictionary] {
 
   val name = "dictionary"
+  val DELIM = "|"
 
   def fromList(entries: List[(FeatureId, FeatureMeta)]): Dictionary =
     Dictionary(entries.toMap)
 
   def toList(d: Dictionary): List[(FeatureId, FeatureMeta)] =
-    d.meta.toList
-}
-
-object DictionaryTextStorage extends DictionaryTextStorageCommon {
-
-  val DELIM = "|"
+    d.meta.flatMap {
+      case (fid, m: FeatureMeta) =>    Some(fid -> m)
+      // V1 never handled virtual features, and never will
+      case (_  , m: FeatureVirtual) => None
+    }.toList
 
   def parseLine(i: Int, e: String): ValidationNel[String, (FeatureId, FeatureMeta)] =
     parseDictionaryEntry(e).toValidationNel

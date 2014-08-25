@@ -8,6 +8,7 @@ import com.ambiata.mundane.parse._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi._, FactFormats._
+import com.ambiata.ivory.storage.parse.EavtParsers
 
 object DelimitedFactTextStorage {
   case class DelimitedFactTextLoader(path: String, dict: Dictionary) extends IvoryScoobiLoader[Fact] {
@@ -36,7 +37,7 @@ object DelimitedFactTextStorage {
       attr   <- string.nonempty
       fid    <- value(featureIdParser.run(attr.split(":", 2).toList))
       rawv   <- string
-      v      <- value(dict.meta.get(fid).map(fm => valueFromString(fm, rawv)).getOrElse(s"Could not find dictionary entry for '${fid}'".failure))
+      v      <- value(EavtParsers.validateFeature(dict, fid, rawv))
       date   <- localDatetime("yyyy-MM-dd HH:mm:ss") // TODO replace with something that doesn't convert to joda
     } yield Fact.newFact(entity, fid.namespace.name, fid.name, Date.fromLocalDate(date.toLocalDate), Time.unsafe(date.getMillisOfDay / 1000), v)
   }
@@ -47,15 +48,5 @@ object DelimitedFactTextStorage {
       ns   <- Name.listParser
       name <- string.nonempty
     } yield FeatureId(ns, name)
-  }
-
-  def valueFromString(meta: FeatureMeta, raw: String): Validation[String, Value] = meta.encoding match {
-    case _ if(meta.tombstoneValue.contains(raw)) => TombstoneValue().success[String]
-    case BooleanEncoding                         => raw.parseBoolean.leftMap(_ => s"Value '$raw' is not a boolean").map(v => BooleanValue(v))
-    case IntEncoding                             => raw.parseInt.leftMap(_ => s"Value '$raw' is not an integer").map(v => IntValue(v))
-    case LongEncoding                            => raw.parseLong.leftMap(_ => s"Value '$raw' is not a long").map(v => LongValue(v))
-    case DoubleEncoding                          => raw.parseDouble.leftMap(_ => s"Value '$raw' is not a double").map(v => DoubleValue(v))
-    case StringEncoding                          => StringValue(raw).success[String]
-    case _: StructEncoding                       => "Struct values as text not supported".failure
   }
 }

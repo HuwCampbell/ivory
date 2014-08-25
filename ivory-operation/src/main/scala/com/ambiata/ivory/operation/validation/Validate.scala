@@ -113,7 +113,10 @@ object Validate {
 
   def validateFact(fact: Fact, dict: Dictionary): Validation[String, Fact] =
     dict.meta.get(fact.featureId)
-      .map {fm => validateEncoding(fact.value, fm.encoding).map(_ => fact).leftMap(_ + s" '${fact.toString}'")}
+      .map {
+        case fm: FeatureMeta    => validateEncoding(fact.value, fm.encoding).map(_ => fact).leftMap(_ + s" '${fact.toString}'")
+        case fv: FeatureVirtual => s"Cannot have virtual facts for ${fact.featureId}".failure
+      }
       .getOrElse(s"Dictionary entry '${fact.featureId}' doesn't exist!".failure)
 
   def validateEncoding(value: Value, encoding: Encoding): Validation[String, Unit] =

@@ -6,15 +6,24 @@ import org.parboiled2._, Parser.DeliveryScheme.Either
 import scalaz.{Name =>_,_}, Scalaz._, Validation._
 import shapeless._
 
-object DictionaryTextStorageV2 extends DictionaryTextStorageCommon {
+object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Feature), Dictionary] {
 
+  val name = "dictionary"
   val DELIM = "|"
+
+  def fromList(entries: List[(FeatureId, Feature)]): Dictionary =
+    Dictionary(entries.toMap)
+
+  def toList(d: Dictionary): List[(FeatureId, Feature)] =
+    d.meta.toList
 
   def parseLine(i: Int, l: String): ValidationNel[String, (FeatureId, FeatureMeta)] =
     DictionaryTextStorageV2(l, DELIM).parse
 
-  def toLine(f: (FeatureId, FeatureMeta)) =
-    f._1.toString(":") + DELIM + metaToString(f._2)
+  def toLine(f: (FeatureId, Feature)) = f._2  match {
+    case fm: FeatureMeta    => f._1.toString(":") + DELIM + metaToString(fm)
+    case _ : FeatureVirtual => NotImplemented.virtualDictionaryFeature
+  }
 
   private def metaToString(meta: FeatureMeta): String = {
     import meta._

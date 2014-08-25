@@ -62,7 +62,10 @@ case class RandomFacts(rand: Random) {
 
     def createFact(ff: FeatureFlags, d: LocalDate): Option[Fact] = {
       val fid = FeatureId(ff.namespace, ff.name)
-      if(rand.nextDouble() > ff.sparcity) dict.meta.get(fid).map(m => fact(eid, fid, m, d)) else None
+      if(rand.nextDouble() > ff.sparcity) dict.meta.get(fid).flatMap {
+        case m: FeatureMeta    => Some(fact(eid, fid, m, d))
+        case _: FeatureVirtual => None
+      } else None
     }
 
     flags.toStream.flatMap(ff => ff.frequency match {
