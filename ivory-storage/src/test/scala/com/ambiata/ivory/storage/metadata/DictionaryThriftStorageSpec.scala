@@ -56,8 +56,10 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
   private def run[A](f: (DictionaryThriftStorage, FilePath) => ResultTIO[A]): Result[A] =
     Temporary.using(dir => f(DictionaryThriftStorage(Repository.fromLocalPath(dir)), dir)).run.unsafePerformIO()
 
-  // Text dictionaries can only handle primitive encoding
+  // Text dictionaries can only handle primitive encoding _with_ types and _at least_ one tombstone
   case class PrimitiveDictionary(dict: Dictionary)
   implicit def PrimitiveDictionaryArbitrary: Arbitrary[PrimitiveDictionary] =
-    Arbitrary(arbitrary[Dictionary].map(d => d.copy(meta = d.meta.collect { case (k, v: PrimitiveValue) => (k, v)})).map(PrimitiveDictionary))
+    Arbitrary(arbitrary[Dictionary].map(d => d.copy(meta = d.meta.filter {
+      case (k, m)                 => Encoding.isPrimitive(m.encoding) && m.ty.isDefined && m.tombstoneValue.nonEmpty && !m.desc.contains("\"")
+    })).map(PrimitiveDictionary))
 }
