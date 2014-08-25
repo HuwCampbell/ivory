@@ -4,6 +4,7 @@ import scalaz.{Value => _, _}, Scalaz._, effect.IO
 import org.apache.hadoop.fs.Path
 import com.ambiata.ivory.storage.store._
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.data.Lists
 import com.ambiata.saws.s3.S3
 
 trait TextStorage[L, T] {
@@ -36,7 +37,6 @@ trait TextStorage[L, T] {
     numbered.traverseU({ case (l, n) => parseLine(n, l).leftMap(_.map(s"Line $n: " +))}).map(fromList)
   }
 
-  def delimitedString(t: T): String = {
-    toList(t).map(toLine).mkString("\n")
-  }
+  def delimitedString(t: T): String =
+    Lists.prepareForFile(toList(t).map(toLine))
 }
