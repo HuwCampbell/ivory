@@ -57,6 +57,7 @@ object IvoryRetire {
   val pivot = com.ambiata.ivory.operation.extraction.Pivot.onStore _
   val pivotFromSnapshot = com.ambiata.ivory.operation.extraction.Pivot.onStoreFromSnapshot _
 
+  val Codec = com.ambiata.ivory.storage.repository.Codec
 
   /**
    * Bespoke debugging tools.
