@@ -32,8 +32,10 @@ object DictionaryImportValidate {
     def validateMeta(id: FeatureId, oldMeta: FeatureMeta, newMeta: FeatureMeta): DictValidationUnit = {
       validateEncoding(oldMeta.encoding, newMeta.encoding, ValidationPath(id))
     }
-    oldDict.meta.toList.foldMap {
-      case (fid, oldMeta) => newDict.meta.get(fid).map(validateMeta(fid, oldMeta, _)).getOrElse(OK)
+    Maps.outerJoin(oldDict.meta, newDict.meta).foldMap {
+      case (_,   \&/.This(_))                => OK
+      case (_,   \&/.That(_))                => OK
+      case (fid, \&/.Both(oldMeta, newMeta)) => validateMeta(fid, oldMeta, newMeta)
     }
   }
 
