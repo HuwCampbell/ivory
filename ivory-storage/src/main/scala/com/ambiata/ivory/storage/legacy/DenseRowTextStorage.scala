@@ -48,9 +48,17 @@ object DenseRowTextStorageV1 {
     })._2.reverse
   }
 
-  def indexDictionary(dict: Dictionary, tombstone: String): List[(Int, FeatureId, FeatureMeta)] =
-    dict.meta.toList.filter(f => Encoding.isPrimitive(f._2.encoding)).sortBy(_._1.toString("."))
-      .zipWithIndex.map({ case ((f, m), i) => (i, f, m.copy(tombstoneValue = List(tombstone))) })
+  def indexDictionary(dict: Dictionary): List[(Int, FeatureId, Feature)] =
+    dict.meta.toList.filter {
+      case (_, fm: FeatureMeta)     => Encoding.isPrimitive(fm.encoding)
+      case (_, fv: FeatureVirtual)  => false
+    }.groupBy {
+      case (fid, _: FeatureMeta)    => fid
+      case (_,  fv: FeatureVirtual) => fv.alias
+    }.toList.sortBy(_._1.toString(".")).flatMap(_._2.sortBy {
+      case (_,   _: FeatureMeta)    => ""
+      case (fid, _: FeatureVirtual) => fid.toString(".")
+    }).zipWithIndex.map({ case ((f, m), i) => (i, f, m) })
 
   def featuresToString(features: List[(Int, FeatureId, FeatureMeta)], delim: Char): List[String] = {
     import com.ambiata.ivory.storage.metadata.DictionaryTextStorage

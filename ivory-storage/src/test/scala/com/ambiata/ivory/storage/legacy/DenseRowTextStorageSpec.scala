@@ -6,13 +6,14 @@ import com.nicta.scoobi.testing.TempFiles
 
 import org.specs2._
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, Arbitraries._
 import com.ambiata.ivory.scoobi._, FactFormats._
 import com.ambiata.ivory.scoobi.TestConfigurations
 
 class DenseRowTextStorageSpec extends Specification with ScalaCheck { def is = s2"""
   Dense rows line up                   $rowsLineUp
   Dense rows stored correctly          $rowsStoredCorrectly
+  Group aliased features with parent   $groupAliasedFeatures
 """
   def rowsLineUp = {
     val features = List((0, FeatureId("ns1", "fid1"), FeatureMeta(StringEncoding, Some(CategoricalType), "")),
@@ -58,4 +59,11 @@ class DenseRowTextStorageSpec extends Specification with ScalaCheck { def is = s
       3 -> FeatureId("ns1", "fid4")
     ))
   }
+
+  def groupAliasedFeatures = prop((d: Dictionary, fid: FeatureId, vfid: FeatureId) => (d.meta.keySet.intersect(Set(fid, vfid)).isEmpty && fid != vfid) ==> {
+    // Must be primitive
+    val fm = FeatureMeta(StringEncoding, None, "", Nil)
+    val features = DenseRowTextStorageV1.indexDictionary(d append Dictionary(Map(fid -> fm, vfid -> FeatureVirtual(fid))))
+    features.indexWhere(_._2 == fid) ==== features.indexWhere(_._2 == vfid) - 1
+  })
 }
