@@ -16,7 +16,7 @@ import org.apache.hadoop.conf.Configuration
 import org.joda.time.DateTimeZone
 import MemoryConversions._
 
-import scalaz.{Name => _, DList => _, _}, effect._
+import scalaz.{Name => _, DList => _, _}, Scalaz._, effect._
 
 object ingest extends IvoryApp {
 
@@ -66,7 +66,7 @@ object ingest extends IvoryApp {
         case _                 => ResultT.fail[IO, Configuration]("Currently only support HDFS repository")
       }
       path <- Reference.hdfsPath(input)
-      list <- Namespaces.namespaceSizes(path, singleNamespace).run(conf)
+      list <- singleNamespace.cata(Namespaces.namespaceSizesSingle(path, _).map(List(_)), Namespaces.namespaceSizes(path)).run(conf)
       _    <- EavtTextImporter.onStore(repo, dict, factset, list.map(_._1), singleNamespace, input, errorRef, timezone, list, optimal, format)
     } yield ())
   } yield ()

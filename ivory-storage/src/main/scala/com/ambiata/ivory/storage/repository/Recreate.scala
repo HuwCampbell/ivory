@@ -145,7 +145,7 @@ object Recreate { outer =>
     for {
       _             <- ScoobiAction.log(s"Copy factset '${id.render}' from ${from.factset(id)} to ${to.factset(id)}")
       configuration <- ScoobiAction.scoobiConfiguration
-      namespaces    <- ScoobiAction.fromHdfs(namespaceSizes(from.factset(id).toHdfs, singleNamespace = None))
+      namespaces    <- ScoobiAction.fromHdfs(namespaceSizes(from.factset(id).toHdfs))
       partitions    <- ScoobiAction.fromHdfs(Hdfs.globFiles(from.factset(id).toHdfs, "*/*/*/*/*").filterHidden)
       version       <- ScoobiAction.fromResultTIO(Versions.read(from, id))
       _             <- {

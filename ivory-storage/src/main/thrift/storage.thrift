@@ -19,3 +19,12 @@ struct FactsetLookup {
 struct FactsetVersionLookup {
     1: map<string, byte> versions;
 }
+
+struct FeatureMappingValue {
+    1: i32 ns;
+    2: string newName;
+}
+
+struct FeatureIdMapping {
+    1: map<string, FeatureMappingValue> mapping;
+}

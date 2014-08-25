@@ -3,6 +3,10 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-57b95e0
+
+- Added new command `rename` for create a new factset/store containing updated features.
+
 ### 1.0.0-*-076ec8a
 
 - Namespaces must have names composed only of `[a-z]`,`[A-Z]`,`[0-9]`,`[-_]`, must not start with '_' and not be empty

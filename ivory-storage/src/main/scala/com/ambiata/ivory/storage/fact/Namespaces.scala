@@ -1,28 +1,30 @@
 package com.ambiata.ivory.storage.fact
 
+import com.ambiata.ivory.core.FactsetId
 import com.ambiata.ivory.core.Name
+import com.ambiata.ivory.storage.repository.Repository
 import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.mundane.io.BytesQuantity
+import com.ambiata.mundane.io.MemoryConversions._
 import org.apache.hadoop.fs.Path
+import scalaz._, Scalaz._
 
 object Namespaces {
   /**
    * @return the list of namespaces for a given factset and their corresponding sizes
-   *         If a single namespace is passed, the input path is interpreted as the directory for a
-   *         single namespace being named <singleNamespace>
    */
-  def namespaceSizes(factsetPath: Path, singleNamespace: Option[Name]): Hdfs[List[(Name, BytesQuantity)]] =
-    singleNamespace match {
-      case Some(name) => Hdfs.totalSize(factsetPath).map(size => List((name, size)))
-      case None       => Hdfs.childrenSizes(factsetPath).map(_.map { case (n, q) => (Name.fromPathName(n), q) })
-    }
+  def namespaceSizes(factsetPath: Path): Hdfs[List[(Name, BytesQuantity)]] =
+    Hdfs.childrenSizes(factsetPath).map(_.map { case (n, q) => (Name.fromPathName(n), q) })
 
-  /**
-   * @return the list of partitions for a given factset and their corresponding sizes
-   */
-  def partitionSizes(factsetPath: Path): Hdfs[List[(Path, BytesQuantity)]] =
-    Hdfs.childrenSizes(factsetPath, "*/*/*/*").map(_.filterNot { case (n, q) =>
-      n.getName.startsWith("_") || n.getName.startsWith(".")
-    })
+  def namespaceSizesSingle(factsetPath: Path, namespace: Name): Hdfs[(Name, BytesQuantity)] =
+    Hdfs.totalSize(factsetPath).map(namespace ->)
 
+  /* Return the size of specific namespaces/factsets */
+  def allNamespaceSizes(repository: Repository, namespaces: List[Name], factsets: List[FactsetId]): Hdfs[List[(Name, BytesQuantity)]] = {
+    namespaces.flatMap(ns => factsets.map(ns ->)).traverse {
+      case (ns, fsid) => namespaceSizesSingle(new Path(repository.namespace(fsid, ns.name).path), ns)
+    }.map(_.foldLeft(Map[Name, BytesQuantity]()) {
+      case (k, v) => k + (v._1 -> implicitly[Numeric[BytesQuantity]].mkNumericOps(k.getOrElse(v._1, 0.mb)).+(v._2))
+    }.toList)
+  }
 }

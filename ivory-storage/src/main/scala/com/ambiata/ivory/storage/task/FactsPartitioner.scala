@@ -14,7 +14,11 @@ import org.apache.hadoop.mapreduce.Partitioner
  * into predetermined buckets. We use the predetermined buckets as upfront knowledge of
  * the input size is used to reduce skew on input data.
  */
-class FactsPartitioner extends Partitioner[LongWritable, BytesWritable] with Configurable {
+class FactsPartitioner extends BaseFactsPartitioner[LongWritable] {
+  def get(k: LongWritable): Long = k.get
+}
+
+trait BaseFactsPartitioner[A] extends Partitioner[A, BytesWritable] with Configurable {
   var _conf: Configuration = null
   var ctx: MrContext = null
   val lookup = new ReducerLookup
@@ -28,6 +32,8 @@ class FactsPartitioner extends Partitioner[LongWritable, BytesWritable] with Con
   def getConf: Configuration =
     _conf
 
-  def getPartition(k: LongWritable, v: BytesWritable, partitions: Int): Int =
-    lookup.reducers.get((k.get >>> 32).toInt) % partitions
+  def getPartition(k: A, v: BytesWritable, partitions: Int): Int =
+    lookup.reducers.get((get(k) >>> 32).toInt) % partitions
+
+  def get(k: A): Long
 }
