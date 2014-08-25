@@ -82,7 +82,7 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
         // filter out the facts which are not in the entityMap or
         // which date are greater than the required dates for this entity
         val facts: DList[(Priority, Fact)] = input.map({
-          case -\/(e) => sys.error("A critical error has occured, where we could not determine priority and namespace from partitioning: " + e)
+          case -\/(e) => Crash.error(Crash.DataIntegrity, "A critical error has occured, where we could not determine priority and namespace from partitioning: " + e)
           case \/-(v) => v
         }).parallelDo(new DoFn[(Priority, SnapshotId \/ FactsetId, Fact), (Priority, Fact)] {
           var mappings: Mappings = null
@@ -142,7 +142,7 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
             case \/-(factsetId) => s"Factset '${factsetId.render}'"
           }).getOrElse("Unknown, priority " + p))
         }).map({
-          case -\/(e) => sys.error("A critical error has occurred, a value in ivory no longer matches the dictionary: " + e)
+          case -\/(e) => Crash.error(Crash.DataIntegrity, "A critical error has occurred, a value in ivory no longer matches the dictionary: " + e)
           case \/-(v) => v
         })
 
@@ -218,6 +218,6 @@ object Chord {
   def getMappings(chordReference: ReferenceIO)(implicit sc: ScoobiConfiguration): HashMap[String, Array[Int]] =
     deserialiseChords(chordReference).run.unsafePerformIO() match {
       case Ok(m)    => m
-      case Error(e) => sys.error("Can not deserialise chord map - " + Result.asString(e))
+      case Error(e) => Crash.error(Crash.Serialization, "Can not deserialise chord map - " + Result.asString(e))
     }
 }

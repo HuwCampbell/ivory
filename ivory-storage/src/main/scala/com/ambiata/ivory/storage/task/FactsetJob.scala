@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.task
 
-import com.ambiata.ivory.core.{Date, Dictionary}
+import com.ambiata.ivory.core.{Date, Dictionary, Crash}
 import com.ambiata.ivory.core.thrift.DictionaryThriftConversion
 import com.ambiata.ivory.lookup.NamespaceLookup
 import com.ambiata.ivory.mr.{ThriftCache, Committer, Compress, MrContext}
@@ -81,7 +81,7 @@ object FactsetJob {
     ctx.thriftCache.push(job, ReducerLookups.Keys.FeatureIdLookup, reducerLookups.features)
     ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,   reducerLookups.reducers)
     DictionaryThriftConversion.dictionaryToThrift(dictionary) match {
-      case -\/(m) => sys.error(m)
+      case -\/(m) => Crash.error(Crash.Serialization, m)
       case \/-(d) => ctx.thriftCache.push(job, ReducerLookups.Keys.Dictionary, d)
     }
     ctx

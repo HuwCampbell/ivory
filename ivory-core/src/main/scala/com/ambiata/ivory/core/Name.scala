@@ -25,7 +25,7 @@ object Name extends MacrosCompat {
    * you are absolutely sure that the string is well-formed
    */
   def reviewed(s: String): Name =
-    nameFromString(s).getOrElse(sys.error(s"The name $s was assumed to be well-formed but it isn't"))
+    nameFromString(s).getOrElse(Crash.error(Crash.Invariant, s"The name $s was assumed to be well-formed but it isn't"))
 
   /**
    * use this method to create a Name from a String when
@@ -88,5 +88,3 @@ object Name extends MacrosCompat {
     }
   }
 }
-
-

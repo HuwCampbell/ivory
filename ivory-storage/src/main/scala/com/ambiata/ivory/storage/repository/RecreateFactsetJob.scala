@@ -56,7 +56,7 @@ object RecreateFactsetJob {
 
     /** run job */
     if (!job.waitForCompletion(true))
-      sys.error("ivory recreate factset failed.")
+      Crash.error(Crash.ResultTIO, "ivory recreate factset failed.")
 
     /** commit files to factset */
     Committer.commit(ctx, {
@@ -101,7 +101,7 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, LongWrit
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.FeatureIdLookup, featureIdLookup)
     partition = Partition.parseFile(path) match {
       case Success(p) => p
-      case Failure(e) => sys.error(s"Can not parse partition $e")
+      case Failure(e) => Crash.error(Crash.Serialization, s"Can not parse partition $e")
     }
 
     createFact =

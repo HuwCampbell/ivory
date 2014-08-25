@@ -1,5 +1,6 @@
 package com.ambiata.ivory.mr
 
+import com.ambiata.ivory.core._
 import com.ambiata.poacher.hdfs._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
@@ -35,7 +36,7 @@ case class DistCache(base: Path, contextId: ContextId) {
       case Ok(_) =>
         ()
       case Error(e) =>
-        sys.error(s"Could not push $nskey to distributed cache: ${Result.asString(e)}")
+        Crash.error(Crash.Serialization, s"Could not push $nskey to distributed cache: ${Result.asString(e)}")
     }
   }
 
@@ -49,9 +50,9 @@ case class DistCache(base: Path, contextId: ContextId) {
       case Ok(\/-(a)) =>
         a
       case Ok(-\/(s)) =>
-        sys.error(s"Could not decode ${nskey} on pop from local path: ${s}")
+        Crash.error(Crash.Serialization, s"Could not decode ${nskey} on pop from local path: ${s}")
       case Error(e) =>
-        sys.error(s"Could not pop ${nskey} from local path: ${Result.asString(e)}")
+        Crash.error(Crash.Serialization, s"Could not pop ${nskey} from local path: ${Result.asString(e)}")
     }
   }
   def addCacheFile(uri: URI, job: Job): Unit = {
@@ -62,7 +63,7 @@ case class DistCache(base: Path, contextId: ContextId) {
   def findCacheFile(conf: Configuration, nskey: DistCache.NamespacedKey): String =
     if (org.apache.hadoop.util.VersionInfo.getVersion.contains("cdh4"))
       com.nicta.scoobi.impl.util.Compatibility.cache.getLocalCacheFiles(conf).toList.find(_.getName == nskey.combined)
-        .getOrElse(sys.error(s"Could not find $nskey to pop from local path.")).toString
+        .getOrElse(Crash.error(Crash.Serialization, s"Could not find $nskey to pop from local path.")).toString
     else
       nskey.combined
 }

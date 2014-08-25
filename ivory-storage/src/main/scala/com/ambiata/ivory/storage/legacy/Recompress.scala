@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.legacy
 
-
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.io._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.poacher.hdfs._
@@ -74,7 +74,7 @@ object Recompress {
             facts(stat.path, stat.target, emitter, codec)
           } else {
             println(s"cp ${stat.path} ${stat.target}")
-            Hdfs.cp(stat.path, stat.target, false).run(new Configuration).run.unsafePerformIO.toOption.getOrElse(sys.error("Couldn't copy: " + stat.path))
+            Hdfs.cp(stat.path, stat.target, false).run(new Configuration).run.unsafePerformIO.toOption.getOrElse(Crash.error(Crash.ResultTIO,"Couldn't copy: " + stat.path))
           }
         } else {
           println(s"skipping ${stat.path} looks like it has already been copied")

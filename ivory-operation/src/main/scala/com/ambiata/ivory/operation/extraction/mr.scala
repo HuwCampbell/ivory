@@ -83,7 +83,7 @@ object SnapshotJob {
 
     // run job
     if (!job.waitForCompletion(true))
-      sys.error("ivory snapshot failed.")
+      Crash.error(Crash.ResultTIO, "ivory snapshot failed.")
 
     // commit files to factset
     Committer.commit(ctx, {
@@ -217,7 +217,7 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
   override def setup(context: MapperContext): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
-    date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
+    date = Date.fromInt(strDate.toInt).getOrElse(Crash.error(Crash.DataIntegrity, s"Invalid snapshot date '${strDate}'"))
     val (factsetVersion, vfc, vs) = SnapshotFactsetMapper.setupVersionAndPriority(ctx.thriftCache,
       context.getConfiguration, context.getInputSplit)
     converter = vfc
@@ -265,10 +265,10 @@ object SnapshotFactsetMapper {
     val path = FilePath(MrContext.getSplitPath(inputSplit).toString)
     val (factsetId, partition) = Factset.parseFile(path) match {
       case Success(r) => r
-      case Failure(e) => sys.error(s"Can not parse factset path ${e}")
+      case Failure(e) => Crash.error(Crash.DataIntegrity, s"Can not parse factset path ${e}")
     }
     val rawVersion = versionLookup.versions.get(factsetId.render)
-    val factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(sys.error(s"Can not parse factset version '${rawVersion}'"))
+    val factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(Crash.error(Crash.DataIntegrity, s"Can not parse factset version '${rawVersion}'"))
 
     val converter = factsetVersion match {
       case FactsetVersionOne => VersionOneFactConverter(partition)

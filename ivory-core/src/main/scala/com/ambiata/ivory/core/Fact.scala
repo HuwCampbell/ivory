@@ -119,7 +119,7 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
         case l if l.isSetP => factPrimitiveToValue(l.getP)
         case l if l.isSetS => StructValue(l.getS.getV.asScala.toMap.mapValues(factPrimitiveToValue))
       }.toList)
-      case _               => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
+      case _               => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
     }
 
     private def factPrimitiveToValue(v: ThriftFactPrimitiveValue): PrimitiveValue = v match {
@@ -129,7 +129,7 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       case tsv if tsv.isSetL => LongValue(tsv.getL)
       case tsv if tsv.isSetB => BooleanValue(tsv.getB)
       case tsv if tsv.isSetT => TombstoneValue()
-      case _                 => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
+      case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
     }
 
     def toThrift: ThriftFact = fact

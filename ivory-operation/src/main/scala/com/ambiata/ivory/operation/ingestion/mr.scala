@@ -58,7 +58,7 @@ object IngestJob {
 
     // run job
     if (!job.waitForCompletion(true))
-      sys.error("ivory ingest failed.")
+      Crash.error(Crash.ResultTIO, "ivory ingest failed.")
 
     // commit files to factset
     Committer.commit(ctx, {
@@ -135,7 +135,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
     val dictThrift = new ThriftDictionary
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.Dictionary, dictThrift)
     dict = DictionaryThriftConversion.dictionaryFromThrift(dictThrift) match {
-      case -\/(m)          => sys.error(m)
+      case -\/(m)          => Crash.error(Crash.Serialization, m)
       case \/-(dictionary) => dictionary
     }
     ivoryZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IvoryZone))

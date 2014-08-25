@@ -21,7 +21,7 @@ object FactDiff {
   def parseError(dlist: DList[ParseError \/ Fact]): ScoobiAction[DList[Fact]] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       dlist.map({
-        case -\/(e) => sys.error(s"Can not parse fact - ${e}")
+        case -\/(e) => Crash.error(Crash.DataIntegrity, s"Can not parse fact - ${e}")
         case \/-(f) => f
       })
     })

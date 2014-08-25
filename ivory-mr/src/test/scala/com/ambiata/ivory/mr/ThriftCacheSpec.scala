@@ -1,6 +1,7 @@
 package com.ambiata.ivory.mr
 
 import com.ambiata.ivory.core.thrift._
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.io._
 
 import org.specs2._, matcher._
@@ -48,6 +49,6 @@ class ThriftCacheSpecMapper extends Mapper[LongWritable, Text, LongWritable, Tex
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     ctx.thriftCache.pop(context.getConfiguration, ThriftCache.Key("test"), value)
     if (value.attribute != "test")
-      sys.error("Did not deserialize ThriftFact from cache")
+      Crash.error(Crash.Serialization, "Did not deserialize ThriftFact from cache")
   }
 }
