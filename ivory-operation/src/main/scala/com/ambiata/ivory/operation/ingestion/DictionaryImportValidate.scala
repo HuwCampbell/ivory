@@ -29,15 +29,15 @@ object DictionaryImportValidate {
         case _ => OK
       }
     }
-    def validateMeta(id: FeatureId, oldMeta: FeatureMeta, newMeta: FeatureMeta): DictValidationUnit = {
+    def validateMeta(id: FeatureId, oldMeta: ConcreteDefinition, newMeta: ConcreteDefinition): DictValidationUnit = {
       validateEncoding(oldMeta.encoding, newMeta.encoding, ValidationPath(id))
     }
-    def validateFeature(id: FeatureId, oldFeature: Feature, newFeature: Feature): DictValidationUnit =
+    def validateFeature(id: FeatureId, oldFeature: Definition, newFeature: Definition): DictValidationUnit =
       (oldFeature, newFeature) match {
-        case (oldMeta: FeatureMeta,    newMeta: FeatureMeta   ) => validateMeta(id, oldMeta, newMeta)
-        case (_      : FeatureMeta,    _      : FeatureVirtual) => RealToVirtualEncoding(ValidationPath(id)).failureNel
-        case (_      : FeatureVirtual, _      : FeatureMeta   ) => OK
-        case (_      : FeatureVirtual, _      : FeatureVirtual) => OK
+        case (Concrete(oldMeta), Concrete(newMeta)) => validateMeta(id, oldMeta, newMeta)
+        case (_: Concrete      , _: Virtual       ) => RealToVirtualEncoding(ValidationPath(id)).failureNel
+        case (_: Virtual       , _: Concrete      ) => OK
+        case (_: Virtual       , _: Virtual       ) => OK
       }
     Maps.outerJoin(oldDict.meta, newDict.meta).foldMap {
       case (_,   \&/.This(_))                => OK

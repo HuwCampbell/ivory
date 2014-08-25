@@ -25,7 +25,7 @@ class DictionaryImporterSpec extends Specification { def is = s2"""
   def e1 = {
     val dictionaryPath = FilePath("dictionary.psv")
 
-    val dict = Dictionary(Map(FeatureId("demo", "postcode") -> FeatureMeta(StringEncoding, Some(CategoricalType), "Postcode", List("☠"))))
+    val dict = Dictionary(Map(FeatureId("demo", "postcode") -> Concrete(StringEncoding, Some(CategoricalType), "Postcode", List("☠"))))
     Temporary.using(dir => for {
       _    <- Streams.write(new java.io.FileOutputStream((dir </> dictionaryPath).toFile), DictionaryTextStorageV2.delimitedString(dict))
       repo  = Repository.fromLocalPath(dir)
@@ -35,8 +35,8 @@ class DictionaryImporterSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-    val dict1 = Dictionary(Map(FeatureId("a", "b") -> FeatureMeta(StringEncoding, Some(CategoricalType), "", Nil)))
-    val dict2 = Dictionary(Map(FeatureId("c", "d") -> FeatureMeta(StringEncoding, Some(CategoricalType), "", Nil)))
+    val dict1 = Dictionary(Map(FeatureId("a", "b") -> Concrete(StringEncoding, Some(CategoricalType), "", Nil)))
+    val dict2 = Dictionary(Map(FeatureId("c", "d") -> Concrete(StringEncoding, Some(CategoricalType), "", Nil)))
     Temporary.using { dir =>
       val repo = Repository.fromLocalPath(dir)
       for {
@@ -49,8 +49,8 @@ class DictionaryImporterSpec extends Specification { def is = s2"""
 
   def invalidUpgrade(force: Boolean) = {
     val fid = FeatureId("a", "b")
-    val dict1 = Dictionary(Map(fid -> FeatureMeta(StringEncoding, Some(CategoricalType), "", Nil)))
-    val dict2 = Dictionary(Map(fid -> FeatureMeta(BooleanEncoding, Some(CategoricalType), "", Nil)))
+    val dict1 = Dictionary(Map(fid -> Concrete(StringEncoding, Some(CategoricalType), "", Nil)))
+    val dict2 = Dictionary(Map(fid -> Concrete(BooleanEncoding, Some(CategoricalType), "", Nil)))
     Temporary.using { dir =>
       val repo = Repository.fromLocalPath(dir)
       fromDictionary(repo, dict1, opts.copy(ty = Override))

@@ -31,8 +31,12 @@ object Ivory
   type FeatureId = com.ambiata.ivory.core.FeatureId
   val FeatureId = com.ambiata.ivory.core.FeatureId
 
-  type FeatureMeta = com.ambiata.ivory.core.FeatureMeta
-  val FeatureMeta = com.ambiata.ivory.core.FeatureMeta
+  type Definition = com.ambiata.ivory.core.Definition
+  val Concrete = com.ambiata.ivory.core.Concrete
+  val Virtual = com.ambiata.ivory.core.Virtual
+
+  type ConcreteDefinition = com.ambiata.ivory.core.ConcreteDefinition
+  val ConcreteDefinition = com.ambiata.ivory.core.ConcreteDefinition
 
   type Encoding = com.ambiata.ivory.core.Encoding
   val Encoding = com.ambiata.ivory.core.Encoding

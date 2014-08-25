@@ -24,7 +24,7 @@ Eavt Parse Formats
 
 """
 
-  case class PrimitiveSparseEntities(meta: FeatureMeta, fact: Fact, zone: DateTimeZone)
+  case class PrimitiveSparseEntities(meta: ConcreteDefinition, fact: Fact, zone: DateTimeZone)
   implicit def PrimitiveSpareEntitiesArbitrary: Arbitrary[PrimitiveSparseEntities] = Arbitrary(
     factWithZoneGen(Gen.oneOf(testEntities(1000)), featureMetaGen(arbitrary[PrimitiveEncoding])).map(PrimitiveSparseEntities.tupled)
   )
@@ -47,7 +47,7 @@ Eavt Parse Formats
 
   def factDateSpec[A](fz: PrimitiveSparseEntities, z: DateTimeZone, dt: String): Validation[String, Fact] = {
     import fz._
-    EavtParsers.fact(Dictionary(Map(fact.featureId -> meta)), fact.namespace, z).run(List(
+    EavtParsers.fact(Dictionary(Map(fact.featureId -> meta.definition)), fact.namespace, z).run(List(
         fact.entity
       , fact.feature
       , Value.toString(fact.value, meta.tombstoneValue.headOption).getOrElse("")
@@ -58,7 +58,7 @@ Eavt Parse Formats
   def badvalue =
     prop((entity: Entity, bad: BadValue, feature: FeatureId, date: Date, zone: DateTimeZone) =>
       EavtParsers.fact(
-        Dictionary(Map(feature -> bad.meta))
+        Dictionary(Map(feature -> Concrete(bad.meta)))
       , feature.namespace
       , zone
       ).run(List(feature.namespace.name, entity.value, feature.name, bad.value, date.hyphenated)).toOption must beNone)
@@ -72,40 +72,40 @@ Eavt Parse Formats
       ).run(List(entity.value, feature.name, Value.toString(value, None).getOrElse("?"), date.hyphenated)).toOption must beNone})
 
   def structFail = {
-    val dict = Dictionary(Map(FeatureId("ns", "a") -> FeatureMeta(StructEncoding(Map()), None, "")))
+    val dict = Dictionary(Map(FeatureId("ns", "a") -> Concrete(StructEncoding(Map()), None, "", Nil)))
     EavtParsers.parse("e|a|v|t", dict, Name("ns"), DateTimeZone.getDefault).toOption must beNone
   }
 
   def genBadDouble: Gen[DoubleValue] =
     Gen.oneOf(Double.NaN, Double.NegativeInfinity, Double.PositiveInfinity).map(DoubleValue)
 
-  def genBadValue(good: FeatureMeta, bad: FeatureMeta): Gen[Value] =
+  def genBadValue(good: ConcreteDefinition, bad: ConcreteDefinition): Gen[Value] =
     genValue(bad).filter(Value.toString(_, None).exists(s => !validString(s, good.encoding) && !good.tombstoneValue.contains(s)))
 
-  case class BadValue(meta: FeatureMeta, value: String)
+  case class BadValue(meta: ConcreteDefinition, value: String)
 
   implicit def BadValueArbitrary: Arbitrary[BadValue] = Arbitrary(Gen.oneOf(
     /** A bad BooleanValue, examplified by an integer  */
     arbitrary[Int] map (v =>
-      BadValue(FeatureMeta(BooleanEncoding, None, "bad-boolean-test-case", Nil), v.toString))
+      BadValue(ConcreteDefinition(BooleanEncoding, None, "bad-boolean-test-case", Nil), v.toString))
 
     /** A bad IntValue, examplified by a string  */
   , arbitrary[String] map (v =>
-      BadValue(FeatureMeta(IntEncoding, None, "bad-int-test-case", Nil), v)) filter (x =>
+      BadValue(ConcreteDefinition(IntEncoding, None, "bad-int-test-case", Nil), v)) filter (x =>
         !x.value.parseInt.toOption.isDefined)
 
     /** A bad LongValue, examplified by a double  */
   , arbitrary[Double] map (v =>
-      BadValue(FeatureMeta(LongEncoding, None, "bad-long-test-case", Nil), v.toString))
+      BadValue(ConcreteDefinition(LongEncoding, None, "bad-long-test-case", Nil), v.toString))
 
     /** A bad DoubleValue, examplified by a string  */
   , arbitrary[String] map (v =>
-      BadValue(FeatureMeta(DoubleEncoding, None, "bad-double-test-case", Nil), v)) filter (x =>
+      BadValue(ConcreteDefinition(DoubleEncoding, None, "bad-double-test-case", Nil), v)) filter (x =>
         !x.value.parseInt.toOption.isDefined)
 
     /** Edge cases for a bad DoubleValue (note this should include Long.MaxValue, but see #187)  */
   , Gen.oneOf(Double.NaN.toString, Double.NegativeInfinity.toString, Double.PositiveInfinity.toString) map (v =>
-      BadValue(FeatureMeta(DoubleEncoding, None, "bad-double-edge-test-case", Nil), v))
+      BadValue(ConcreteDefinition(DoubleEncoding, None, "bad-double-edge-test-case", Nil), v))
   ))
 
   def validString(s: String, e: Encoding): Boolean = e match {
@@ -118,6 +118,6 @@ Eavt Parse Formats
     case _: ListEncoding   => false
   }
 
-  def genValue(m: FeatureMeta): Gen[Value] =
+  def genValue(m: ConcreteDefinition): Gen[Value] =
     Gen.frequency(1 -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding, m.tombstoneValue))
 }

@@ -4,38 +4,38 @@ import scalaz.{Name => _, Value => _, _}, Scalaz._
 import com.ambiata.mundane.parse._
 import com.ambiata.ivory.core._
 
-object DictionaryTextStorage extends TextStorage[(FeatureId, FeatureMeta), Dictionary] {
+object DictionaryTextStorage extends TextStorage[(FeatureId, ConcreteDefinition), Dictionary] {
 
   val name = "dictionary"
   val DELIM = "|"
 
-  def fromList(entries: List[(FeatureId, FeatureMeta)]): Dictionary =
-    Dictionary(entries.toMap)
+  def fromList(entries: List[(FeatureId, ConcreteDefinition)]): Dictionary =
+    Dictionary(entries.map(f => f._1 -> Concrete(f._2)).toMap)
 
-  def toList(d: Dictionary): List[(FeatureId, FeatureMeta)] =
+  def toList(d: Dictionary): List[(FeatureId, ConcreteDefinition)] =
     d.meta.flatMap {
-      case (fid, m: FeatureMeta) =>    Some(fid -> m)
+      case (fid, Concrete(m)) => Some(fid -> m)
       // V1 never handled virtual features, and never will
-      case (_  , m: FeatureVirtual) => None
+      case (_  , m: Virtual)  => None
     }.toList
 
-  def parseLine(i: Int, e: String): ValidationNel[String, (FeatureId, FeatureMeta)] =
+  def parseLine(i: Int, e: String): ValidationNel[String, (FeatureId, ConcreteDefinition)] =
     parseDictionaryEntry(e).toValidationNel
 
-  def toLine(f: (FeatureId, FeatureMeta)): String =
+  def toLine(f: (FeatureId, ConcreteDefinition)): String =
     delimitedLineWithDelim(f, DELIM)
 
-  def delimitedLineWithDelim(f: (FeatureId, FeatureMeta), delim: String): String =
+  def delimitedLineWithDelim(f: (FeatureId, ConcreteDefinition), delim: String): String =
     f._1.toString(DELIM) + DELIM + metaToString(f._2, DELIM)
 
-  private def metaToString(meta: FeatureMeta, delim: String): String = {
+  private def metaToString(meta: ConcreteDefinition, delim: String): String = {
     import meta._
     s"${Encoding.render(encoding)}${delim}${ty.map(Type.render).getOrElse("")}${delim}${desc}${delim}${tombstoneValue.mkString(",")}"
   }
 
-  def parseDictionaryEntry(entry: String): Validation[String, (FeatureId, FeatureMeta)] = {
+  def parseDictionaryEntry(entry: String): Validation[String, (FeatureId, ConcreteDefinition)] = {
     import ListParser._
-    val parser: ListParser[(FeatureId, FeatureMeta)] = for {
+    val parser: ListParser[(FeatureId, ConcreteDefinition)] = for {
       namespace <- Name.listParser
       name      <- string
       encoding  <- for {
@@ -48,7 +48,7 @@ object DictionaryTextStorage extends TextStorage[(FeatureId, FeatureMeta), Dicti
       } yield r
       desc      <- string
       tombstone <- string
-    } yield (FeatureId(namespace, name), FeatureMeta(encoding, Some(ty), desc, Delimited.parseCsv(tombstone)))
+    } yield (FeatureId(namespace, name), ConcreteDefinition(encoding, Some(ty), desc, Delimited.parseCsv(tombstone)))
     parser.run(Delimited.parsePsv(entry))
   }
 

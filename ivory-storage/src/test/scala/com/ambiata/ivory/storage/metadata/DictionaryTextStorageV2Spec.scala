@@ -16,8 +16,8 @@ class DictionaryTextStorageV2Spec extends Specification with ScalaCheck { def is
 
   def sanityCheck = {
     val dict = Dictionary(Map(
-      FeatureId(Name("a"), "b") -> FeatureMeta(StringEncoding, Some(BinaryType), "", List("*")),
-      FeatureId("c", "d") -> FeatureMeta(StructEncoding(Map("x" -> StructEncodedValue(BooleanEncoding))), None, "hello", Nil)
+      FeatureId(Name("a"), "b") -> Concrete(StringEncoding, Some(BinaryType), "", List("*")),
+      FeatureId("c", "d") -> Concrete(StructEncoding(Map("x" -> StructEncodedValue(BooleanEncoding))), None, "hello", Nil)
     ))
     fromString(
       """a:b|encoding=string|type=binary|tombstone=*

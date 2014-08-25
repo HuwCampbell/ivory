@@ -15,10 +15,10 @@ class DenseRowTextStorageSpec extends Specification with ScalaCheck { def is = s
   Dense rows stored correctly          $rowsStoredCorrectly
 """
   def rowsLineUp = {
-    val features = List((0, FeatureId("ns1", "fid1"), FeatureMeta(StringEncoding, Some(CategoricalType), "")),
-                        (1, FeatureId("ns1", "fid2"), FeatureMeta(IntEncoding, Some(ContinuousType), "")),
-                        (2, FeatureId("ns1", "fid3"), FeatureMeta(BooleanEncoding, Some(CategoricalType), "")),
-                        (3, FeatureId("ns1", "fid4"), FeatureMeta(DoubleEncoding, Some(NumericalType), "")))
+    val features = List((0, FeatureId("ns1", "fid1"), Concrete(StringEncoding, Some(CategoricalType), "", List("☠"))),
+                        (1, FeatureId("ns1", "fid2"), Concrete(IntEncoding, Some(ContinuousType), "", List("☠"))),
+                        (2, FeatureId("ns1", "fid3"), Concrete(BooleanEncoding, Some(CategoricalType), "", List("☠"))),
+                        (3, FeatureId("ns1", "fid4"), Concrete(DoubleEncoding, Some(NumericalType), "", List("☠"))))
     val facts = List(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 1, 1), Time(0), "abc"),
                      IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 1, 1), Time(0), 123),
                      BooleanFact("eid1", FeatureId("ns1", "fid3"), Date(2012, 1, 1), Time(0), true))
@@ -30,12 +30,12 @@ class DenseRowTextStorageSpec extends Specification with ScalaCheck { def is = s
     implicit val sc: ScoobiConfiguration = TestConfigurations.scoobiConfiguration
     val directory = path(TempFiles.createTempDir("denserowtextstorer").getPath)
 
-    val dict = Dictionary(Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, Some(CategoricalType), ""),
-                                      FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, Some(ContinuousType), ""),
-                                      FeatureId("ns1", "fid3") -> FeatureMeta(BooleanEncoding, Some(CategoricalType), ""),
-                                      FeatureId("ns1", "fid4") -> FeatureMeta(DoubleEncoding, Some(NumericalType), ""),
-                                      FeatureId("ns1", "fid5") -> FeatureMeta(StructEncoding(Map("a" -> StructEncodedValue(StringEncoding))), None, ""),
-                                      FeatureId("ns1", "fid6") -> FeatureMeta(ListEncoding(StringEncoding), None, "")
+    val dict = Dictionary(Map(FeatureId("ns1", "fid1") -> Concrete(StringEncoding, Some(CategoricalType), "", List("☠")),
+                              FeatureId("ns1", "fid2") -> Concrete(IntEncoding, Some(ContinuousType), "", List("☠")),
+                              FeatureId("ns1", "fid3") -> Concrete(BooleanEncoding, Some(CategoricalType), "", List("☠")),
+                              FeatureId("ns1", "fid4") -> Concrete(DoubleEncoding, Some(NumericalType), "", List("☠")),
+                              FeatureId("ns1", "fid5") -> Concrete(StructEncoding(Map("a" -> StructEncodedValue(StringEncoding))), None, "", List("☠")),
+                              FeatureId("ns1", "fid6") -> Concrete(ListEncoding(StringEncoding), None, "", List("☠"))
     ))
 
     val facts = fromLazySeq(

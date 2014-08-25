@@ -30,13 +30,13 @@ object GenerateDictionary {
     entries <- randomDictionaryEntries(nss, names)
   } yield Dictionary(entries.toMap)
 
-  def randomDictionaryEntries(namespaces: Nel[Name], names: Nel[String]): Rng[List[(FeatureId, FeatureMeta)]] =
+  def randomDictionaryEntries(namespaces: Nel[Name], names: Nel[String]): Rng[List[(FeatureId, Definition)]] =
     names.list.map(nm => randomDictionaryEntry(namespaces, nm)).sequenceU
 
-  def randomDictionaryEntry(namespaces: Nel[Name], name: String): Rng[(FeatureId, FeatureMeta)] = for {
+  def randomDictionaryEntry(namespaces: Nel[Name], name: String): Rng[(FeatureId, Definition)] = for {
     ns  <- oneof(namespaces.head, namespaces.tail: _*)
     fm  <- randomFeatureMeta
-  } yield (FeatureId(ns, name), fm)
+  } yield (FeatureId(ns, name), fm.definition)
 
   def randomNamespaces(n: Int, words: Nel[String]): Rng[Nel[Name]] = for {
     nss <- randomNWords(n, words.list, Rng.insert('_')).map(_.flatMap(Name.nameFromString))
@@ -59,11 +59,12 @@ object GenerateDictionary {
   def randomSeparatorChar: Rng[Char] =
     frequency((1, oneof(':', '#', '.')), (2, alphanumeric))
 
-  def randomFeatureMeta: Rng[FeatureMeta] = for {
+  def randomFeatureMeta: Rng[ConcreteDefinition] = for {
     ty   <- randomType
     enc  <- randomEncoding(ty)
     desc <- randomDescription
-  } yield FeatureMeta(enc, Some(ty), desc)
+    tomb =  List("☠")
+  } yield ConcreteDefinition(enc, Some(ty), desc, tomb)
 
   def randomEncoding(ty: Type): Rng[Encoding] = ty match {
     case NumericalType   => oneof(IntEncoding, DoubleEncoding, LongEncoding)

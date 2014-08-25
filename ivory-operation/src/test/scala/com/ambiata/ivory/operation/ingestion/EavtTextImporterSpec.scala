@@ -106,9 +106,9 @@ class Setup() {
 
   val dictionary =
     Dictionary(
-      Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, Some(CategoricalType), "abc"),
-          FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding,    Some(NumericalType), "def"),
-          FeatureId("ns1", "fid3") -> FeatureMeta(DoubleEncoding, Some(NumericalType), "ghi")))
+      Map(FeatureId("ns1", "fid1") -> Concrete(StringEncoding, Some(CategoricalType), "abc", Nil),
+          FeatureId("ns1", "fid2") -> Concrete(IntEncoding,    Some(NumericalType),   "def", Nil),
+          FeatureId("ns1", "fid3") -> Concrete(DoubleEncoding, Some(NumericalType),   "ghi", Nil)))
 
   def saveInputFile = {
     val raw = List("pid1|fid1|v1|2012-10-01 00:00:10",

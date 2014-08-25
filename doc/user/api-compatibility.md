@@ -3,6 +3,12 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-4010b5f
+
+- `Dictionary` now has `Definition` instead of `FeatureMeta`, which has two constructors `Concrete` and `Virtual` (new)
+- Renamed `FeatureMeta` to `ConcreteDefinition`, and wrap in `Concrete` constructor
+- `Virtual` is currently unused
+
 ## 1.0.0-*-57b95e0
 
 - Added new command `rename` for create a new factset/store containing updated features.
