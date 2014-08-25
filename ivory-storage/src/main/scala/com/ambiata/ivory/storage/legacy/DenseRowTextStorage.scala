@@ -17,7 +17,7 @@ object DenseRowTextStorageV1 {
   type StringValue = String
 
   case class DenseRowTextStorer(path: String, dict: Dictionary, delim: Char = '|', tombstone: String = "NA") {
-    lazy val features = indexDictionary(dict, tombstone)
+    lazy val features = indexDictionary(dict)
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[String] = {
       val byKey: DList[((Entity, Attribute), Iterable[Fact])] =
         dlist.by(f => (f.entity, f.featureId.toString("."))).groupByKeyWith(Groupings.sortGrouping)
@@ -29,7 +29,7 @@ object DenseRowTextStorageV1 {
     }
 
     def storeMeta: Hdfs[Unit] =
-      Hdfs.writeWith(new Path(path, ".dictionary"), os => Streams.write(os, featuresToString(features, delim).mkString("\n")))
+      Hdfs.writeWith(new Path(path, ".dictionary"), os => Streams.write(os, featuresToString(features, tombstone, delim).mkString("\n")))
   }
 
   /**
@@ -48,12 +48,14 @@ object DenseRowTextStorageV1 {
     })._2.reverse
   }
 
-  def indexDictionary(dict: Dictionary, tombstone: String): List[(Int, FeatureId, FeatureMeta)] =
+  def indexDictionary(dict: Dictionary): List[(Int, FeatureId, FeatureMeta)] =
     dict.meta.toList.filter(f => Encoding.isPrimitive(f._2.encoding)).sortBy(_._1.toString("."))
-      .zipWithIndex.map({ case ((f, m), i) => (i, f, m.copy(tombstoneValue = List(tombstone))) })
+      .zipWithIndex.map({ case ((f, m), i) => (i, f, m) })
 
-  def featuresToString(features: List[(Int, FeatureId, FeatureMeta)], delim: Char): List[String] = {
-    import com.ambiata.ivory.storage.metadata.DictionaryTextStorage
-    features.map({ case (i, f, m) => i.toString + delim + DictionaryTextStorage.delimitedLineWithDelim((f, m), delim.toString) })
+  def featuresToString(features: List[(Int, FeatureId, FeatureMeta)], tombstone: String, delim: Char): List[String] = {
+    import com.ambiata.ivory.storage.metadata.DictionaryTextStorage.delimitedLineWithDelim
+    features.map {
+      case (i, f, m) => i.toString + delim + delimitedLineWithDelim((f, m.copy(tombstoneValue = List(tombstone))), delim.toString)
+    }
   }
 }
