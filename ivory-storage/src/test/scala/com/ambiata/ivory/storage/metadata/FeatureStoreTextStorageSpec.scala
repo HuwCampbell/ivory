@@ -38,7 +38,7 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck { def is
     val base = LocalLocation(TempFiles.createTempDir("FeatureStoreTextStorage.e3").getPath)
     val repo = LocalRepository(base.path)
     (toId(repo, fstore) must beOk) and
-    (repo.toStore.utf8.read(Repository.featureStoreById(fstore.id)) must beOkLike(_ must_== delimitedString(fstore.factsetIds) + "\n"))
+    (repo.toStore.utf8.read(Repository.featureStoreById(fstore.id)) must beOkLike(_ must_== delimitedString(fstore.factsetIds)))
   })
 
   def listFeatureStorIds = prop((ids: SmallFeatureStoreIdList) => {
