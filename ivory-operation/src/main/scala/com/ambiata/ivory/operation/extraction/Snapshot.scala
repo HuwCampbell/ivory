@@ -8,7 +8,6 @@ import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.fact._

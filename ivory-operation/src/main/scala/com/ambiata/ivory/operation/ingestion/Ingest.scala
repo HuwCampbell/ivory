@@ -1,6 +1,7 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.storage.control.IvoryRead
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
@@ -84,7 +85,7 @@ object Ingest {
    *  - write the factset version
    */
   def updateFeatureStore(repository: Repository, factsetId: FactsetId): ResultTIO[FactsetId] = for {
-    _ <- Metadata.incrementFeatureStore(repository, factsetId).timed("created store")
+    _ <- Metadata.incrementFeatureStore(factsetId).run(IvoryRead.prod(repository)).timed("created store")
     _ <- writeFactsetVersion(repository, List(factsetId))
   } yield factsetId
 

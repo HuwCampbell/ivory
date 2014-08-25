@@ -45,5 +45,5 @@ object ingest extends IvoryApp {
         repo     <- Repository.fromUriResultTIO(c.repo, configuration)
         inputRef <- Reference.fromUriResultTIO(c.input, configuration)
         factset  <- Ingest.ingestFacts(repo, inputRef, c.namespace, c.timezone, c.optimal, c.format)
-      } yield List(s"Successfully imported '${c.input}' as ${factset} into '${c.repo}'")))
+      } yield List(s"Successfully imported '${c.input}' as $factset into '${c.repo}'")))
 }
