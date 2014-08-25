@@ -4,7 +4,7 @@ import scalaz._, Scalaz._
 import scala.math.{Ordering => SOrdering}
 
 /** The feature dictionary is simply a look up of metadata for a given identifier/name. */
-case class Dictionary(meta: Map[FeatureId, FeatureMeta]) {
+case class Dictionary(meta: Map[FeatureId, Feature]) {
 
   /** Create a `Dictionary` from `this` only containing features in the specified namespace. */
   def forNamespace(namespace: Name): Dictionary =
@@ -33,7 +33,9 @@ object FeatureId {
     SOrdering.by(f => (f.namespace.name, f.name))
 }
 
-case class FeatureMeta(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String] = List("☠"))
+sealed trait Feature
+case class FeatureMeta(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String] = List("☠")) extends Feature
+case class FeatureVirtual(alias: FeatureId) extends Feature
 
 sealed trait Encoding
 

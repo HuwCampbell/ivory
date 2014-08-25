@@ -83,6 +83,8 @@ object DictionaryThriftConversion {
           ty.foreach(t => meta.setType(typeBi.to(t)))
           structJava.foreach(meta.setValue)
           new ThriftDictionaryFeatureId(ns.name, name) -> meta
+        case (FeatureId(ns, name), FeatureVirtual(FeatureId(ans, aname))) =>
+          NotImplemented.virtualDictionaryFeature
       }.asJava).right
   }
 

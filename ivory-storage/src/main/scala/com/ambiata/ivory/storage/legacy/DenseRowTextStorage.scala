@@ -37,7 +37,7 @@ object DenseRowTextStorageV1 {
    *
    * Note: It is assumed 'facts' and 'features' are sorted by FeatureId
    */
-  def makeDense(facts: Iterable[Fact], features: List[(Int, FeatureId, FeatureMeta)], tombstone: String): List[StringValue] = {
+  def makeDense(facts: Iterable[Fact], features: List[(Int, FeatureId, Feature)], tombstone: String): List[StringValue] = {
     features.foldLeft((facts, List[StringValue]()))({ case ((fs, acc), (_, fid, _)) =>
       val rest = fs.dropWhile(f => f.featureId.toString(".") < fid.toString("."))
       val value = rest.headOption.collect({
@@ -48,14 +48,19 @@ object DenseRowTextStorageV1 {
     })._2.reverse
   }
 
-  def indexDictionary(dict: Dictionary): List[(Int, FeatureId, FeatureMeta)] =
-    dict.meta.toList.filter(f => Encoding.isPrimitive(f._2.encoding)).sortBy(_._1.toString("."))
-      .zipWithIndex.map({ case ((f, m), i) => (i, f, m) })
+  def indexDictionary(dict: Dictionary): List[(Int, FeatureId, Feature)] =
+    dict.meta.toList.filter {
+      case (_, fm: FeatureMeta)     => Encoding.isPrimitive(fm.encoding)
+      case (_, fv: FeatureVirtual)  => false
+    }.sortBy(_._1.toString(".")).zipWithIndex.map({ case ((f, m), i) => (i, f, m) })
 
-  def featuresToString(features: List[(Int, FeatureId, FeatureMeta)], tombstone: String, delim: Char): List[String] = {
-    import com.ambiata.ivory.storage.metadata.DictionaryTextStorage.delimitedLineWithDelim
+  def featuresToString(features: List[(Int, FeatureId, Feature)], tombstone: String, delim: Char): List[String] = {
+    import com.ambiata.ivory.storage.metadata.DictionaryTextStorage
     features.map {
-      case (i, f, m) => i.toString + delim + delimitedLineWithDelim((f, m.copy(tombstoneValue = List(tombstone))), delim.toString)
+      case (i, fid, f) => i.toString + delim + DictionaryTextStorage.delimitedLineWithDelim(fid -> (f match {
+        case m: FeatureMeta    => m.copy(tombstoneValue = List(tombstone))
+        case _: FeatureVirtual => NotImplemented.virtualDictionaryFeature
+      }), delim.toString)
     }
   }
 }

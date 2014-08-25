@@ -33,7 +33,10 @@ object EavtParsers {
     }
 
   def validateFeature(dict: Dictionary, fid: FeatureId, rawv: String): Validation[String, Value] =
-    dict.meta.get(fid).map(fm => valueFromString(fm, rawv)).getOrElse(s"Could not find dictionary entry for '${fid}'".failure)
+    dict.meta.get(fid).map {
+      case fm: FeatureMeta    => EavtParsers.valueFromString(fm, rawv)
+      case fv: FeatureVirtual => s"Cannot import virtual feature $fid".failure
+    }.getOrElse(s"Could not find dictionary entry for '${fid}'".failure)
 
   def valueFromString(meta: FeatureMeta, raw: String): Validation[String, Value] = meta.encoding match {
     case _ if meta.tombstoneValue.contains(raw)  => TombstoneValue().success[String]
