@@ -32,7 +32,10 @@ class DictionaryTextStorageV2Spec extends Specification with ScalaCheck { def is
     "a:b|encoding=abc",
     "a:b|encoding=string|type=xxx",
     "a:b|alias=xy",
-    "a:b|alias=x:y|encoding=string"
+    "a:b|alias=x:y|encoding=string",
+    "a:b|alias=x:y|window=foo",
+    "a:b|alias=x:y|window=m days",
+    "a:b|alias=x:y|window=4 dayz"
   ).map(fromString).map(_.toEither must beLeft
     ))
 

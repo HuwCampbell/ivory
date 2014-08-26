@@ -26,11 +26,12 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
       ty.flatMap(t => Some("type" -> Type.render(t))),
       if (desc.isEmpty) None else Some("description" -> desc),
       if (tombstone.isEmpty) None else Some("tombstone" -> tombstone.mkString(","))
-    ).flatten
-    case Virtual(d) => List(
-      "alias" -> d.alias.toString(":")
     )
-  }).map { case (k, v) => k + "=" + v}.mkString(DELIM)
+    case Virtual(d) => List(
+      Some("alias" -> d.alias.toString(":")),
+      d.window.map(Window.asString).map("window" ->)
+    )
+  }).flatten.map { case (k, v) => k + "=" + v}.mkString(DELIM)
 }
 
 case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extends Parser {
@@ -73,8 +74,18 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
         val tomb = m.get("tombstone").cata(Delimited.parseCsv, Nil)
         (enc |@| ty)(Concrete(_, _, desc, tomb))
       case (None, Some(alias)) =>
+        val window = m.get("window").traverseU { s =>
+           s.split(" ", 2) match {
+             case Array(len, unitStr) =>
+               val length = len.parseInt.disjunction.leftMap(_ => s"Invalid duration number format $len")
+               val unit = Window.unitFromString(unitStr).toRightDisjunction(s"Invalid unit type $unitStr")
+               (length |@| unit)(Window.apply)
+             case _  =>
+               s"Invalid duration format $s".left
+           }
+        }
         DictionaryTextStorageV2(alias, DELIMITER).featureId.run().fold(formatError(_).failureNel,
-          _.map(Definition.virtual).validation.toValidationNel)
+          fid => (fid |@| window)(Definition.virtual).validation.toValidationNel)
       case (Some(_), Some(_))  =>
         "Must specify either 'encoding' or 'alias' but not both".failureNel
       case (None, None)        =>
