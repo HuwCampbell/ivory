@@ -1,5 +1,7 @@
 package com.ambiata.ivory.storage.legacy.fatrepo
 
+import com.ambiata.ivory.storage.repository.Repositories
+
 import scalaz.{DList => _, _}, effect._
 import scala.math.{Ordering => SOrdering}
 import org.apache.hadoop.fs.Path
@@ -12,7 +14,6 @@ import com.ambiata.ivory.data.StoreDataUtil
 import com.ambiata.poacher.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact._
-import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.store._
 import com.ambiata.mundane.control._, IvoryT.fromResultT
@@ -72,7 +73,7 @@ object ImportWorkflow {
     e  <- repo.toStore.exists(repo.root)
     _  <- if(!e) {
       logger.debug(s"Path '${repo.root.path}' doesn't exist, creating")
-      val res = CreateRepository.onStore(repo)
+      val res = Repositories.onStore(repo)
       logger.info(s"Repository '${repo.root.path}' created")
       res
     } else {

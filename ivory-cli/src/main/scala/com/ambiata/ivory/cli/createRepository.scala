@@ -1,6 +1,5 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 
 object createRepository extends IvoryApp {
@@ -25,7 +24,7 @@ object createRepository extends IvoryApp {
 
       val actions = for {
         repo <- Repository.fromUriResultTIO(c.path, configuration)
-        _    <- CreateRepository.onStore(repo)
+        _    <- Repositories.onStore(repo)
       } yield ()
 
       actions.map {
