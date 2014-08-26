@@ -17,7 +17,9 @@ Current state
  `SnapshotMeta`                   | Represents a set of `Facts` being the latest values of all features of a `FeatureStore` on a given `Date`. Represented by a `Date` and a `FeatureStoreId`
  `SnapshotId`                     | Identifier for a set of `Facts` representing the latest values of all features. Represented by an `Identifier`
  `Identifier`                     | Integer from `0` to `99999999` 
- `Dictionary`                     | Represents a list of features which can be associated to entities. Represented as `Map[FeatureId, FeatureMeta]`
+ `Dictionary`                     | Represents a list of features which can be associated to entities. Represented as `Map[FeatureId, Definition]`
+ `ConcreteDefinition`             | Previously `FeatureMeta`, which represents a feature with real facts
+ `VirtualDefinition`              | Represents a derived (aliased) feature definition, over a window (eg. 6 months)
  `Repository`                     | Describe the structure of the Ivory repository in terms of metadata and data
  
 
@@ -39,5 +41,7 @@ Desired state
  `Partition`                      | Represents a set of `Facts` in a given `Namespace` for a set of `Dates`
  `Snapshot`                       | Represents a set of `Facts` representing the latest values of all features of a `FeatureStore` on a given `Date`. Represented as `SnapshotId`, `FeatureStoreId`, `Date`
  `SnapshotId`                     | Identifier for a `Snapshot`. Represented as an `Identifier`
- `Dictionary`                     | A list of features which can be associated to entities. It is represented as a map of `Map[FeatureId, FeatureMeta]`
+ `Dictionary`                     | A list of features which can be associated to entities. It is represented as a map of `Map[FeatureId, Definition]`
+ `ConcreteDefinition`             | Previously `FeatureMeta`, which represents a feature with real facts
+ `VirtualDefinition`              | Represents a derived (aliased) feature definition, with some specific calculation over a window (eg. 6 months)
  `Repository`                     | Describe the structure of the Ivory repository in terms of metadata and data

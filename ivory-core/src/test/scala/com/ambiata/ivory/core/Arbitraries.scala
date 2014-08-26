@@ -128,12 +128,23 @@ object Arbitraries {
       tombs <- Gen.listOf(arbitrary[DictTomb].map(_.s))
     } yield ConcreteDefinition(enc, ty, desc, tombs)
 
+  def virtualDefGen(gen: (FeatureId, ConcreteDefinition)): Gen[Option[(FeatureId, VirtualDefinition)]] = {
+    Gen.frequency(70 -> Gen.const(None), 30 -> (for {
+      fid        <- arbitrary[FeatureId]
+    } yield Some(fid -> VirtualDefinition(gen._1))))
+  }
+
   implicit def FeatureMetaArbitrary: Arbitrary[ConcreteDefinition] =
     Arbitrary(featureMetaGen(arbitrary[Encoding]))
 
   implicit def DictionaryArbitrary: Arbitrary[Dictionary] =
-    Arbitrary(Gen.mapOf[FeatureId, Definition](arbitrary[(FeatureId, ConcreteDefinition)]
-      .map(a => a._1 -> a._2.definition)).map(Dictionary))
+    Arbitrary(Gen.listOf(
+      for {
+        cd <- arbitrary[(FeatureId, ConcreteDefinition)]
+        // For every concrete definition there is a change we may have a virtual feature
+        vd <- virtualDefGen(cd)
+      } yield List(cd._1 -> cd._2.definition) ++ vd.map(vd => vd._1 -> vd._2.definition).toList
+    ).map(_.flatten.toMap).map(Dictionary))
 
   implicit def EncodingArbitrary: Arbitrary[Encoding] =
     Arbitrary(Gen.oneOf(arbitrary[SubEncoding], arbitrary[ListEncoding]))

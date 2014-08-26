@@ -80,10 +80,8 @@ object FactsetJob {
     ctx.thriftCache.push(job, ReducerLookups.Keys.NamespaceLookup, reducerLookups.namespaces)
     ctx.thriftCache.push(job, ReducerLookups.Keys.FeatureIdLookup, reducerLookups.features)
     ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,   reducerLookups.reducers)
-    DictionaryThriftConversion.dictionaryToThrift(dictionary) match {
-      case -\/(m) => Crash.error(Crash.Serialization, m)
-      case \/-(d) => ctx.thriftCache.push(job, ReducerLookups.Keys.Dictionary, d)
-    }
+    val thriftDict = DictionaryThriftConversion.dictionaryToThrift(dictionary)
+    ctx.thriftCache.push(job, ReducerLookups.Keys.Dictionary, thriftDict)
     ctx
   }
 }

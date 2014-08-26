@@ -35,8 +35,12 @@ object FeatureId {
 
 sealed trait Definition
 case class Concrete(definition: ConcreteDefinition) extends Definition
-case class Virtual() extends Definition
+case class Virtual(definition: VirtualDefinition) extends Definition
 
+object Definition {
+  def virtual(alias: FeatureId): Definition =
+    Virtual(VirtualDefinition(alias))
+}
 object Concrete {
   def apply(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String]): Definition =
     Concrete(ConcreteDefinition(encoding, ty, desc, tombstoneValue))
@@ -44,6 +48,9 @@ object Concrete {
 
 case class ConcreteDefinition(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String]) {
   def definition: Definition = Concrete(this)
+}
+case class VirtualDefinition(alias: FeatureId) {
+  def definition: Definition = Virtual(this)
 }
 
 sealed trait Encoding

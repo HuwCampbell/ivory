@@ -142,6 +142,21 @@ struct ThriftDictionaryFeatureMeta {
     5: optional ThriftDictionaryFeatureValue value;
 }
 
+struct ThriftDictionaryVirtual {
+    1: ThriftDictionaryFeatureId aliasName;
+}
+
+union ThriftDictionaryDefinition {
+    1: ThriftDictionaryFeatureMeta concrete;
+    2: ThriftDictionaryVirtual virt;
+}
+
+struct ThriftDictionaryV2 {
+    1: map<ThriftDictionaryFeatureId, ThriftDictionaryDefinition> meta;
+}
+
 struct ThriftDictionary {
+    // Deprecated, please remove when we upgrade the struct format - https://github.com/ambiata/ivory/issues/137
     1: map<ThriftDictionaryFeatureId, ThriftDictionaryFeatureMeta> meta;
+    2: optional ThriftDictionaryV2 dict;
 }

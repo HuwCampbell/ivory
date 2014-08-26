@@ -14,10 +14,6 @@ Dictionary Thrift
 """
 
   def conversion = prop { dictionary: Dictionary =>
-    dictionaryToThrift(dictionary).toEither must beRight { thriftDictionary: ThriftDictionary =>
-      dictionaryFromThrift(thriftDictionary).toEither must beRight { dictionary1: Dictionary =>
-        dictionary1 ==== dictionary
-      }
-    }
+    dictionaryFromThrift(dictionaryToThrift(dictionary)).toEither must beRight(dictionary)
   }
 }
