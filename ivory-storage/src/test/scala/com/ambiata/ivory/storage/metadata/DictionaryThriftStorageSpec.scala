@@ -24,7 +24,7 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
 
   def e1 = prop((dict: Dictionary) => run { (loader, _) =>
     loader.store(dict) >> loader.load
-  } must beOkValue(dict))
+  }.map(_.byFeatureId) must beOkValue(dict.byFeatureId))
 
   def empty = prop((dict: Dictionary) => run { (loader, _) =>
     loader.load
@@ -32,7 +32,7 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
 
   def identifierFirst = prop((dict: Dictionary) => run { (loader, dir) =>
     storeDateDicts(dict, dir) >> loader.store(dict) >> loader.load
-  } must beOkValue(dict))
+  }.map(_.byFeatureId) must beOkValue(dict.byFeatureId))
 
   def dateLoad = prop((dict: PrimitiveDictionary) => run { (loader, dir) =>
     storeDateDicts(dict.dict, dir) >> loader.load
@@ -44,7 +44,7 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
 
   def loadIdentifier = prop((dict: Dictionary) => run { (loader, dir) =>
     loader.store(dict) >>= (id => loader.loadFromId(id._1))
-  } must beOkValue(Some(dict)))
+  }.map(_.map(_.byFeatureId)) must beOkValue(Some(dict.byFeatureId)))
 
   private def storeDateDicts(dict: Dictionary, dir: FilePath): ResultTIO[Unit] = {
     import DictionaryTextStorage._
