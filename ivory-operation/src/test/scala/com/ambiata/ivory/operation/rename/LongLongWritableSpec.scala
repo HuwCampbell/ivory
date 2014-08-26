@@ -43,7 +43,7 @@ LongLongWritable
     w.compareTo(w) ==== 0
   })
 
-  def hashCodeDistribution = prop((w: List[LongLongWritable]) => {
+  def hashCodeDistribution = prop((w: List[LongLongWritable]) => w.length > 2 ==> {
     w.map(_.hashCode()).foldLeft(new Array[Int](32)) {
       case (a, h) =>
         var n = h
