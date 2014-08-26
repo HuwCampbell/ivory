@@ -63,7 +63,7 @@ object Chord {
       outputStore          <- downcast[Any, HdfsStore](outputRef.store, s"Currently output path must be on HDFS. Given value is $outputRef")
       outputPath           =  (outputStore.base </> outputRef.path).toHdfs
       _                    <- serialiseEntities(entities, chordRef)
-      featureStoreSnapshot <- incremental.traverseU(_ => FeatureStoreSnapshot.latestBefore(repository, entities.earliestDate)).map(_.flatten)
+      featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotMeta(repository, meta))
       dictionary           <- dictionaryFromIvory(repository)
       _                    <- chordScoobiJob(hr, dictionary, store, chordRef, entities.latestDate, featureStoreSnapshot, outputPath, hr.codec).run(hr.scoobiConfiguration)
     } yield ()
