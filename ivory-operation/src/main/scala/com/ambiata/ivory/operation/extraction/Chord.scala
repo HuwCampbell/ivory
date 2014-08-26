@@ -48,7 +48,7 @@ object Chord {
     _                   <- logInfo(s"Latest date in chord file is '${entities.latestDate}'")
     store               <- Metadata.latestFeatureStoreOrFail(repository)
     snapshot            <- if (takeSnapshot) Snapshot.takeSnapshot(repository, entities.earliestDate, incremental = true).map(Option.apply)
-                           else              SnapshotMeta.latest(repository, entities.earliestDate)
+                           else              SnapshotMeta.latestSnapshot(repository, entities.earliestDate)
     _                   <- runChordOnHdfs(repository, store, entities, outputRef, tmp, snapshot)
     _                   <- storeDictionary(repository, outputRef)
   } yield ()
@@ -63,7 +63,7 @@ object Chord {
       outputStore          <- downcast[Any, HdfsStore](outputRef.store, s"Currently output path must be on HDFS. Given value is $outputRef")
       outputPath           =  (outputStore.base </> outputRef.path).toHdfs
       _                    <- serialiseEntities(entities, chordRef)
-      featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotIdAfter(repository, meta.snapshotId, entities.earliestDate)).map(_.flatten)
+      featureStoreSnapshot <- incremental.traverseU(_ => FeatureStoreSnapshot.latestBefore(repository, entities.earliestDate)).map(_.flatten)
       dictionary           <- dictionaryFromIvory(repository)
       _                    <- chordScoobiJob(hr, dictionary, store, chordRef, entities.latestDate, featureStoreSnapshot, outputPath, hr.codec).run(hr.scoobiConfiguration)
     } yield ()

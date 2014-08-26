@@ -44,6 +44,9 @@ object SnapshotMeta {
   def fromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[SnapshotMeta] =
     fromReference(repo.toReference(Repository.snapshots </> FilePath(id.render) </> fname))
 
+  /**
+   * Parse a snapshot meta file for a given snapshot id
+   */
   def parser(snapshotId: SnapshotId): ListParser[SnapshotMeta] = {
     import ListParser._
     for {
@@ -52,39 +55,70 @@ object SnapshotMeta {
     } yield SnapshotMeta(snapshotId, Date.fromLocalDate(date), storeId)
   }
 
-  def allocateId(repo: Repository): ResultTIO[SnapshotId] = for {
-    res <- IdentifierStorage.write(FilePath(".allocated"), scodec.bits.ByteVector.empty)(repo.toStore, Repository.snapshots)
+  /**
+   * create a new Snapshot id by create a new .allocated sub-directory
+   * with the latest available identifier + 1
+   */
+  def allocateId(repository: Repository): ResultTIO[SnapshotId] = for {
+    res <- IdentifierStorage.write(FilePath(".allocated"), scodec.bits.ByteVector.empty)(repository.toStore, Repository.snapshots)
   } yield SnapshotId(res._1)
 
+  /**
+   * create a new Snapshot meta object by allocating a new snapshot id
+   */
   def createSnapshotMeta(repository: Repository, date: Date): ResultTIO[SnapshotMeta] = for {
     storeId     <- Metadata.latestFeatureStoreIdOrFail(repository)
     snapshotId  <- SnapshotMeta.allocateId(repository)
   } yield SnapshotMeta(snapshotId, date, storeId)
 
-  def latestUpToDateSnapshot(repository: Repository, date: Date, storeId: FeatureStoreId): ResultTIO[Option[SnapshotMeta]] =
+  /**
+   * get the latest snapshot which is just before a given date
+   * and return it if it is up to date
+   */
+  def latestUpToDateSnapshot(repository: Repository, date: Date): ResultTIO[Option[SnapshotMeta]] =
     for {
-      latest     <- latestWithStoreId(repository, date, storeId)
-      isUpToDate <- latest.traverse(isUpToDate(repository, date, storeId)).map(_.getOrElse(false))
+      latest     <- latestSnapshot(repository, date)
+      isUpToDate <- latest.traverse(isUpToDate(repository, date)).map(_.getOrElse(false))
     } yield if (isUpToDate) latest else None
 
-  def latestWithStoreId(repo: Repository, date: Date, featureStoreId: FeatureStoreId): ResultTIO[Option[SnapshotMeta]] =
-    latest(repo, date).map(_.filter(_.featureStoreId == featureStoreId))
+  def latestWithStoreId(repository: Repository, date: Date, featureStoreId: FeatureStoreId): ResultTIO[Option[SnapshotMeta]] =
+    latestSnapshot(repository, date).map(_.filter(_.featureStoreId == featureStoreId))
 
-  def latest(repository: Repository, date: Date): ResultTIO[Option[SnapshotMeta]] = for {
+  /**
+   * get the latest snapshot which is just before a given date
+   *
+   * If there are 2 snapshots at the same date:
+   *
+   *   - take the snapshot having the greatest store id
+   *   - if this results in 2 snapshots having the same store id, take the one having the greatest snapshot id
+   *
+   * This is implemented by defining an order on snapshots where we order based on the triple of
+   *  (snapshotId, featureStoreId, date)
+   *
+   */
+  def latestSnapshot(repository: Repository, date: Date): ResultTIO[Option[SnapshotMeta]] = for {
     ids      <- repository.toReference(Repository.snapshots).run(s => p => StoreDataUtil.listDir(s, p)).map(_.map(_.basename.path))
     metas    <- ids.traverseU(sid => SnapshotId.parse(sid).map(id => fromIdentifier(repository, id)).sequenceU)
-    filtered =  metas.collect { case Some(sm) if sm.date.isBeforeOrEqual(date) => sm}
+    filtered =  metas.flatten.filter(_.date isBeforeOrEqual date)
   } yield filtered.sorted.lastOption
 
-  def isUpToDate(repository: Repository, date: Date, storeId: FeatureStoreId): SnapshotMeta => ResultTIO[Boolean] = (meta: SnapshotMeta) =>
+  /** 
+   * A snapshot is up to date if:
+   * 
+   *  - its date is after the required date
+   *  - its date is before the required date but there is no new factsets just after the snapshot date and before the required date
+   */
+  def isUpToDate(repository: Repository, date: Date): SnapshotMeta => ResultTIO[Boolean] = (meta: SnapshotMeta) =>
     if (meta.date > date) ResultT.ok[IO, Boolean](true)
     else
       for {
-        store      <- Metadata.featureStoreFromIvory(repository, storeId)
-        partitions <- FeatureStoreGlob.between(repository, store, meta.date, date).map(_.globs.flatMap(_.value.partitions))
-        filtered = partitions.filter(_.date isAfter meta.date) // TODO this should probably be in StoreGlob.between, but not sure what else it will affect
-      } yield filtered.isEmpty
+        store      <- Metadata.latestFeatureStoreOrFail(repository)
+        partitions <- FeatureStoreGlob.strictlyAfterAndBefore(repository, store, meta.date, date).map(_.partitions)
+      } yield partitions.isEmpty
 
+  /**
+   * save the snapshot meta object to disk
+   */
   def save(snapshotMeta: SnapshotMeta, output: ReferenceIO): ResultTIO[Unit] =
     snapshotMeta.toReference(output </> SnapshotMeta.fname)
   

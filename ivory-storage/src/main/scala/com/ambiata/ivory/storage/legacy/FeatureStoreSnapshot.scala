@@ -26,8 +26,11 @@ object FeatureStoreSnapshot {
   def fromSnapshotId(repository: Repository, snapshotId: SnapshotId): ResultTIO[FeatureStoreSnapshot] =
     SnapshotMeta.fromIdentifier(repository, snapshotId) >>= fromSnapshotMeta(repository)
 
-  def fromSnapshotIdAfter(repository: Repository, snapshotId: SnapshotId, date: Date): ResultTIO[Option[FeatureStoreSnapshot]] =
-    fromSnapshotId(repository, snapshotId).map(snapshot => Option(snapshot).filter(date isBefore _.date))
+  def fromSnapshotIdBefore(repository: Repository, snapshotId: SnapshotId, date: Date): ResultTIO[Option[FeatureStoreSnapshot]] =
+    fromSnapshotId(repository, snapshotId).map(snapshot => Option(snapshot).filter(_.date isBefore date))
+
+  def latestBefore(repository: Repository, date: Date): ResultTIO[Option[FeatureStoreSnapshot]] =
+    SnapshotMeta.latestSnapshot(repository, date) >>= (_.traverse(fromSnapshotMeta(repository)))
 
   /**
    * Given a previous Snapshot return the new factsets, up to a given date, as a list of globs (for the current store)
@@ -39,7 +42,7 @@ object FeatureStoreSnapshot {
       case None      => FeatureStoreGlob.before(repository, currentFeatureStore, date).map(_.globs)
       case Some(fss) =>
         for {
-        // read facts from already processed store from the last snapshot date to the latest date
+          // read facts from already processed store from the last snapshot date to the latest date
           oldOnes    <- FeatureStoreGlob.between(repository, fss.store, fss.date, date)
           difference =  currentFeatureStore diff fss.store
           _          =  logInfo(s"Reading factsets '${difference.factsets}' up to '$date'")

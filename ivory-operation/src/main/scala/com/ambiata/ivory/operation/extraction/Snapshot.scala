@@ -50,11 +50,10 @@ object Snapshot {
    */
   def takeIncrementalSnapshot(repository: Repository, date: Date): ResultTIO[SnapshotMeta] =
     for {
-      storeId <- Metadata.latestFeatureStoreIdOrFail(repository)
-      latest  <- SnapshotMeta.latestUpToDateSnapshot(repository, date, storeId)
+      latest  <- SnapshotMeta.latestUpToDateSnapshot(repository, date)
       meta    <- latest match {
-        case Some(m) => ResultT.safe[IO, SnapshotMeta](m).info(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '$storeId'")
-        case None    => SnapshotMeta.latest(repository, date) >>= createSnapshot(repository, date)
+        case Some(m) => ResultT.safe[IO, SnapshotMeta](m).info(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${m.featureStoreId}'")
+        case None    => SnapshotMeta.latestSnapshot(repository, date) >>= createSnapshot(repository, date)
       }
     } yield meta
 
@@ -87,14 +86,14 @@ object Snapshot {
    */
   def runSnapshot(repository: Repository, newSnapshot: SnapshotMeta, previousSnapshot: Option[SnapshotMeta], date: Date, output: ReferenceIO): ResultTIO[Unit] =
     for {
-      hr                   <- downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'")
-      outputStore          <- downcast[Any, HdfsStore](output.store, s"Snapshot output must be on HDFS, got '$output'")
-      out                  =  (outputStore.base </> output.path).toHdfs
-      dictionary           <- dictionaryFromIvory(repository)
-      newFactsetGlobs      <- FeatureStoreSnapshot.newFactsetGlobs(repository, previousSnapshot, date)
-      _                    <- job(hr, previousSnapshot, newFactsetGlobs, date, out, hr.codec).run(hr.configuration)
-      _                    <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), dictionary)
-      _                    <- SnapshotMeta.save(newSnapshot, output)
+      hr              <- downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'")
+      outputStore     <- downcast[Any, HdfsStore](output.store, s"Snapshot output must be on HDFS, got '$output'")
+      out             =  (outputStore.base </> output.path).toHdfs
+      dictionary      <- dictionaryFromIvory(repository)
+      newFactsetGlobs <- FeatureStoreSnapshot.newFactsetGlobs(repository, previousSnapshot, date)
+      _               <- job(hr, previousSnapshot, newFactsetGlobs, date, out, hr.codec).run(hr.configuration)
+      _               <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), dictionary)
+      _               <- SnapshotMeta.save(newSnapshot, output)
     } yield ()
 
   /**
