@@ -30,7 +30,9 @@ class DictionaryTextStorageV2Spec extends Specification with ScalaCheck { def is
     "invalid|encoding=string",
     "a:b",
     "a:b|encoding=abc",
-    "a:b|encoding=string|type=xxx"
+    "a:b|encoding=string|type=xxx",
+    "a:b|alias=xy",
+    "a:b|alias=x:y|encoding=string"
   ).map(fromString).map(_.toEither must beLeft
     ))
 

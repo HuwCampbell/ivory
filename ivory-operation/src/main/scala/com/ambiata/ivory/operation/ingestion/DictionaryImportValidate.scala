@@ -46,6 +46,20 @@ object DictionaryImportValidate {
     }
   }
 
+  /**
+   * Make sure a dictionary is self-consistent, such as:
+   *
+   * - virtual features aliasing actual concrete features
+   */
+  def validateSelf(dict: Dictionary): DictValidationUnit =
+    dict.meta.toList.traverseU {
+      case (_, Concrete(_))  => OK
+      case (fid, Virtual(d)) => dict.meta.get(d.alias).filter {
+        case Concrete(_) => true
+        case Virtual(_)  => false
+      }.toRightDisjunction(InvalidVirtualAlias(d.alias, ValidationPath(fid))).validation.toValidationNel
+    }.void
+
   case class ValidationPath(id: FeatureId, path: List[StructName] = Nil) {
     def ::(name: StructName): ValidationPath = new ValidationPath(id, name :: path)
 
@@ -67,5 +81,8 @@ object DictionaryImportValidate {
   }
   case class RealToVirtualEncoding(path: ValidationPath) extends DictionaryValidateFailure {
     override def toString = s"Cannot switch $path from real feature to virtual"
+  }
+  case class InvalidVirtualAlias(alias: FeatureId, path: ValidationPath) extends DictionaryValidateFailure {
+    override def toString = s"Supplied alias '$alias' not found at $path or is invalid"
   }
 }

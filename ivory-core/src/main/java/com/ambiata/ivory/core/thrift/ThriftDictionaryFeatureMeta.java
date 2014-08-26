@@ -703,13 +703,13 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
           case 4: // TOMBSTONE_VALUE
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list18 = iprot.readListBegin();
-                struct.tombstoneValue = new ArrayList<String>(_list18.size);
-                for (int _i19 = 0; _i19 < _list18.size; ++_i19)
+                org.apache.thrift.protocol.TList _list26 = iprot.readListBegin();
+                struct.tombstoneValue = new ArrayList<String>(_list26.size);
+                for (int _i27 = 0; _i27 < _list26.size; ++_i27)
                 {
-                  String _elem20;
-                  _elem20 = iprot.readString();
-                  struct.tombstoneValue.add(_elem20);
+                  String _elem28;
+                  _elem28 = iprot.readString();
+                  struct.tombstoneValue.add(_elem28);
                 }
                 iprot.readListEnd();
               }
@@ -763,9 +763,9 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
         oprot.writeFieldBegin(TOMBSTONE_VALUE_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.tombstoneValue.size()));
-          for (String _iter21 : struct.tombstoneValue)
+          for (String _iter29 : struct.tombstoneValue)
           {
-            oprot.writeString(_iter21);
+            oprot.writeString(_iter29);
           }
           oprot.writeListEnd();
         }
@@ -824,9 +824,9 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
       if (struct.isSetTombstoneValue()) {
         {
           oprot.writeI32(struct.tombstoneValue.size());
-          for (String _iter22 : struct.tombstoneValue)
+          for (String _iter30 : struct.tombstoneValue)
           {
-            oprot.writeString(_iter22);
+            oprot.writeString(_iter30);
           }
         }
       }
@@ -853,13 +853,13 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
       }
       if (incoming.get(3)) {
         {
-          org.apache.thrift.protocol.TList _list23 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.tombstoneValue = new ArrayList<String>(_list23.size);
-          for (int _i24 = 0; _i24 < _list23.size; ++_i24)
+          org.apache.thrift.protocol.TList _list31 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.tombstoneValue = new ArrayList<String>(_list31.size);
+          for (int _i32 = 0; _i32 < _list31.size; ++_i32)
           {
-            String _elem25;
-            _elem25 = iprot.readString();
-            struct.tombstoneValue.add(_elem25);
+            String _elem33;
+            _elem33 = iprot.readString();
+            struct.tombstoneValue.add(_elem33);
           }
         }
         struct.setTombstoneValueIsSet(true);

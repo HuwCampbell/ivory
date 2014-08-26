@@ -24,7 +24,7 @@ object DictionaryImporter {
         case Update => oldDictionary.append(dictionary)
         case Override => dictionary
       }
-      validation = validate(oldDictionary, newDictionary)
+      validation = validate(oldDictionary, newDictionary) |+| validateSelf(newDictionary)
       doImport = validation.isSuccess || importOpts.force
       path <- if (doImport) storage.store(newDictionary).map(_._2).map(some) else None.pure[ResultTIO]
     } yield validation -> path

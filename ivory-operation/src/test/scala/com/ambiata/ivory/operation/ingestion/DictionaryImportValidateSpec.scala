@@ -11,6 +11,9 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
    is invalid when the primitive encoding changes                  $primitiveEncodingChange
    is valid with a new struct                                      $newStruct
    validates when the struct changes                               $structChanges
+   is valid normally                                               $selfValid
+   is invalid with a hanging virtual definition                    $virtualMissingAlias
+   is invalid with a virtual definition with a virtual alias       $virtualVirtualAlias
 
 """
 
@@ -39,6 +42,21 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
       ) ==== f.cata(_.failureNel, OK)
     })
   )
+
+  // This is mainly about validating the arbitrary
+  def selfValid = prop((dict: Dictionary) =>
+    validateSelf(dict) ==== OK
+  )
+
+  def virtualMissingAlias = prop((dict: Dictionary, fid: FeatureId, alias: FeatureId) => !dict.meta.contains(alias) ==> {
+    val fullDict = dict append Dictionary(Map(fid -> Definition.virtual(alias)))
+    validateSelf(fullDict) ==== InvalidVirtualAlias(alias, ValidationPath(fid)).failureNel
+  })
+
+  def virtualVirtualAlias = prop((fid: FeatureId, alias: FeatureId, cd: ConcreteDefinition) => {
+    val dict = Dictionary(Map(fid -> cd.definition)) append Dictionary(Map(fid -> Definition.virtual(alias)))
+    validateSelf(dict) ==== InvalidVirtualAlias(alias, ValidationPath(fid)).failureNel
+  })
 
   // At some point it might be worth investigating Prism's from Monocle to share this code with the actual logic
   private def structChecks(enc: PrimitiveEncoding, path: ValidationPath):

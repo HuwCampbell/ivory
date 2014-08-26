@@ -74,27 +74,56 @@ object DictionaryThriftConversion {
     case NUMERICAL => NumericalType
   })
 
-  def dictionaryToThrift(dictionary: Dictionary): String \/ ThriftDictionary = {
-    new ThriftDictionary(
+  object virtual {
+    def to(cd: VirtualDefinition): ThriftDictionaryVirtual =
+      new ThriftDictionaryVirtual(featureId.to(cd.alias))
+    def from(virt: ThriftDictionaryVirtual): String \/ VirtualDefinition =
+      featureId.from(virt.getAliasName).map(VirtualDefinition)
+  }
+
+  val concrete = new {
+    def to(cd: ConcreteDefinition): ThriftDictionaryFeatureMeta = {
+      val (encJava, structJava) = encoding.to(cd.encoding)
+      val meta = new ThriftDictionaryFeatureMeta(encJava, cd.desc, cd.tombstoneValue.asJava)
+      cd.ty.foreach(t => meta.setType(typeBi.to(t)))
+      structJava.foreach(meta.setValue)
+      meta
+    }
+    def from(meta: ThriftDictionaryFeatureMeta): ConcreteDefinition =
+      ConcreteDefinition(encoding.from(meta), Option(meta.`type`).map(typeBi.from), meta.desc, meta.tombstoneValue.asScala.toList)
+  }
+
+  def dictionaryToThrift(dictionary: Dictionary): ThriftDictionary =
+    new ThriftDictionary(Map[ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta]().asJava).setDict(new ThriftDictionaryV2(
       dictionary.meta.map {
-        case (FeatureId(ns, name), Concrete(ConcreteDefinition(enc, ty, desc, tombstoneValue))) =>
-          val (encJava, structJava) = encoding.to(enc)
-          val meta = new ThriftDictionaryFeatureMeta(encJava, desc, tombstoneValue.asJava)
-          ty.foreach(t => meta.setType(typeBi.to(t)))
-          structJava.foreach(meta.setValue)
-          new ThriftDictionaryFeatureId(ns.name, name) -> meta
-        case (FeatureId(ns, name), Virtual()) =>
-          NotImplemented.virtualDictionaryFeature
-      }.asJava).right
+        case (fid, definition) => featureId.to(fid) -> (definition match {
+          case Concrete(d) => ThriftDictionaryDefinition.concrete(concrete.to(d))
+          case Virtual(d)  => ThriftDictionaryDefinition.virt(virtual.to(d))
+        })
+      }.asJava))
+
+  val featureId = new {
+    def to(fid: FeatureId): ThriftDictionaryFeatureId =
+      new ThriftDictionaryFeatureId(fid.namespace.name, fid.name)
+    def from(featureId: ThriftDictionaryFeatureId): String \/ FeatureId =
+      Name.nameFromStringDisjunction(featureId.ns).map { namespace =>
+        FeatureId(namespace, featureId.name)
+      }
   }
 
   def dictionaryFromThrift(dictionary: ThriftDictionary): String \/ Dictionary = {
-    dictionary.meta.asScala.toList.map { case (featureId, meta) =>
-      Name.nameFromStringDisjunction(featureId.ns).map { namespace =>
-        FeatureId(namespace, featureId.name) ->
-          Concrete(encoding.from(meta), Option(meta.`type`).map(typeBi.from), meta.desc, meta.tombstoneValue.asScala.toList)
-      }
-    }.sequenceU.map(features => Dictionary(features.toMap)).leftMap("Can't convert the dictionary from Thrift: "+_)
+    (if (dictionary.isSetDict) {
+      dictionary.dict.meta.asScala.toList.map { case (tfid, meta) => {
+          if      (meta.isSetConcrete) concrete.from(meta.getConcrete).definition.right
+          else if (meta.isSetVirt)     virtual.from(meta.getVirt).map(_.definition)
+          else                         "Invalid dictionary definition".left
+        }.flatMap(d => featureId.from(tfid).map(_ -> d))
+      }.sequenceU.map(features => Dictionary(features.toMap))
+    } else {
+      dictionary.meta.asScala.toList.map { case (tfid, meta) =>
+        featureId.from(tfid).map(_ -> concrete.from(meta).definition)
+      }.sequenceU.map(features => Dictionary(features.toMap))
+    }).leftMap("Can't convert the dictionary from Thrift: " + _)
   }
 
 }

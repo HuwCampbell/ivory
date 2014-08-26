@@ -53,7 +53,7 @@ case class DictionaryThriftStorage(repository: Repository) {
     }.map(some) ||| ResultT.ok(none)
 
   def store(dictionary: Dictionary): ResultTIO[(Identifier, FilePath)] = for {
-    bytes <- ResultT.fromDisjunction[IO, ThriftDictionary](dictionaryToThrift(dictionary).leftMap(This.apply)).map(d => ThriftSerialiser().toBytes(d))
+    bytes <- ResultT.safe[IO, Array[Byte]](ThriftSerialiser().toBytes(dictionaryToThrift(dictionary)))
     i     <- IdentifierStorage.write(DATA, ByteVector(bytes))(store, dictDir)
     _     <- Version.write(Reference(store, i._2), Version(DictionaryVersionOne.toString))
   } yield i
