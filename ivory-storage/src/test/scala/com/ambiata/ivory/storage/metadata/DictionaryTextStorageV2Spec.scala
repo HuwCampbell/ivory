@@ -15,9 +15,9 @@ class DictionaryTextStorageV2Spec extends Specification with ScalaCheck { def is
   import DictionaryTextStorageV2._
 
   def sanityCheck = {
-    val dict = Dictionary(Map(
-      FeatureId(Name("a"), "b") -> Concrete(StringEncoding, Some(BinaryType), "", List("*")),
-      FeatureId("c", "d") -> Concrete(StructEncoding(Map("x" -> StructEncodedValue(BooleanEncoding))), None, "hello", Nil)
+    val dict = Dictionary(List(
+      Definition.concrete(FeatureId(Name("a"), "b"), StringEncoding, Some(BinaryType), "", List("*")),
+      Definition.concrete(FeatureId("c", "d"), StructEncoding(Map("x" -> StructEncodedValue(BooleanEncoding))), None, "hello", Nil)
     ))
     fromString(
       """a:b|encoding=string|type=binary|tombstone=*
@@ -36,8 +36,7 @@ class DictionaryTextStorageV2Spec extends Specification with ScalaCheck { def is
     "a:b|alias=x:y|window=foo",
     "a:b|alias=x:y|window=m days",
     "a:b|alias=x:y|window=4 dayz"
-  ).map(fromString).map(_.toEither must beLeft
-    ))
+  ).map(fromString).map(_.toEither must beLeft))
 
   def anyDictionary = prop((dict: Dictionary) =>
     fromString(delimitedString(dict)) ==== dict.success

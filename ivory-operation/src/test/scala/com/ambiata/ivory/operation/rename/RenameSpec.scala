@@ -32,23 +32,23 @@ Rename
   rename of a factset respect priority and time      $renamePriority
 """
 
-  def validateOk = prop((dict: Dictionary, meta: ConcreteDefinition, fid1: FeatureId, fid2: FeatureId) => !dict.meta.contains(fid1) ==> {
-    Rename.validate(RenameMapping(List(fid1 -> fid2)), dict.append(Dictionary(Map(fid1 -> meta.definition)))).toEither must beRight
+  def validateOk = prop((dict: Dictionary, meta: ConcreteDefinition, fid1: FeatureId, fid2: FeatureId) => !dict.byFeatureId.contains(fid1) ==> {
+    Rename.validate(RenameMapping(List(fid1 -> fid2)), dict.append(Dictionary(List(meta.toDefinition(fid1))))).toEither must beRight
   })
 
-  def validateFail = prop((dict: Dictionary, fid1: FeatureId, fid2: FeatureId) => !dict.meta.contains(fid1) ==> {
+  def validateFail = prop((dict: Dictionary, fid1: FeatureId, fid2: FeatureId) => !dict.byFeatureId.contains(fid1) ==> {
     Rename.validate(RenameMapping(List(fid1 -> fid2)), dict).toEither must beLeft
   })
 
   def renameDictionary = prop((dict: Dictionary, featureId: FeatureId, meta: ConcreteDefinition, newFeature: FeatureId) =>
-    !(dict.meta.contains(featureId) || dict.meta.contains(newFeature)) ==> {
+    !(dict.byFeatureId.contains(featureId) || dict.byFeatureId.contains(newFeature)) ==> {
       Rename.renameDictionary(RenameMapping(List(featureId -> newFeature)),
-        dict.append(Dictionary(Map(featureId -> meta.definition)))) ==== Dictionary(Map(newFeature -> meta.definition))
+        dict.append(Dictionary(List(meta.toDefinition(featureId))))) ==== Dictionary(List(meta.toDefinition(newFeature)))
     })
 
   def renameAll = prop((mappingNel: NonEmptyList[(FeatureId, FeatureId, Fact)], meta: ConcreteDefinition) => {
     val mapping = mappingNel.toList
-    val dictionary = Dictionary(mapping.map(_._1).map(_ -> meta.definition).toMap)
+    val dictionary = Dictionary(mapping.map(_._1).map(fid => meta.toDefinition(fid)))
     renameWithFacts(RenameMapping(mapping.map(f => f._1 -> f._2)), dictionary,
       List(mapping.map { case (fid, _, fact) => fact.withFeatureId(fid)})
     ).map(r => r._1 -> r._2.toSet) must beOkValue (
@@ -57,7 +57,7 @@ Rename
   }) set(minTestsOk = 1, minSize = 1, maxSize = 5)
 
   def renameOneFeature = prop((mapping: (FeatureId, FeatureId), facts: NonEmptyList[Fact], meta: ConcreteDefinition) => {
-    val dictionary = Dictionary(Map(mapping._1 -> meta.definition))
+    val dictionary = Dictionary(List(meta.toDefinition(mapping._1)))
     renameWithFacts(RenameMapping(List(mapping)), dictionary,
       List(facts.toList.map(_.withFeatureId(mapping._1)))
     ).map(r => r._1 -> r._2.toSet) must beOkValue (
@@ -72,9 +72,9 @@ Rename
     def f(d: Int, t: Int, v: String, fid: FeatureId): Fact =
       StringFact("eid1", fid, Date.fromLocalDate(new LocalDate(2012, 9, d)), Time.unsafe(t), v)
     val mapping = RenameMapping(List(id -> tid))
-    val dictionary = Dictionary(Map(
-      id  -> Concrete(StringEncoding, None, "", Nil),
-      tid -> Concrete(StringEncoding, None, "", Nil)
+    val dictionary = Dictionary(List(
+      Definition.concrete(id, StringEncoding, None, "", Nil),
+      Definition.concrete(tid, StringEncoding, None, "", Nil)
     ))
     // This tests that identical entities handle priorities correct
     renameWithFacts(mapping, dictionary, List(

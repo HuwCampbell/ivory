@@ -47,7 +47,7 @@ Eavt Parse Formats
 
   def factDateSpec[A](fz: PrimitiveSparseEntities, z: DateTimeZone, dt: String): Validation[String, Fact] = {
     import fz._
-    EavtParsers.fact(Dictionary(Map(fact.featureId -> meta.definition)), fact.namespace, z).run(List(
+    EavtParsers.fact(Dictionary(List(meta.toDefinition(fact.featureId))), fact.namespace, z).run(List(
         fact.entity
       , fact.feature
       , Value.toString(fact.value, meta.tombstoneValue.headOption).getOrElse("")
@@ -58,7 +58,7 @@ Eavt Parse Formats
   def badvalue =
     prop((entity: Entity, bad: BadValue, feature: FeatureId, date: Date, zone: DateTimeZone) =>
       EavtParsers.fact(
-        Dictionary(Map(feature -> Concrete(bad.meta)))
+        Dictionary(List(Concrete(feature, bad.meta)))
       , feature.namespace
       , zone
       ).run(List(feature.namespace.name, entity.value, feature.name, bad.value, date.hyphenated)).toOption must beNone)
@@ -66,13 +66,13 @@ Eavt Parse Formats
   def badattribute =
     prop((entity: Entity, value: Value, feature: FeatureId, date: Date, zone: DateTimeZone) => {
       EavtParsers.fact(
-        Dictionary(Map.empty)
+        Dictionary(Nil)
       , feature.namespace
       , zone
       ).run(List(entity.value, feature.name, Value.toString(value, None).getOrElse("?"), date.hyphenated)).toOption must beNone})
 
   def structFail = {
-    val dict = Dictionary(Map(FeatureId("ns", "a") -> Concrete(StructEncoding(Map()), None, "", Nil)))
+    val dict = Dictionary(List(Definition.concrete(FeatureId("ns", "a"), StructEncoding(Map()), None, "", Nil)))
     EavtParsers.parse("e|a|v|t", dict, Name("ns"), DateTimeZone.getDefault).toOption must beNone
   }
 

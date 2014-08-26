@@ -33,8 +33,8 @@ object EavtParsers {
     }
 
   def validateFeature(dict: Dictionary, fid: FeatureId, rawv: String): Validation[String, Value] =
-    dict.meta.get(fid).map {
-      case Concrete(fm) => EavtParsers.valueFromString(fm, rawv)
+    dict.byFeatureId.get(fid).map {
+      case Concrete(_, fm) => EavtParsers.valueFromString(fm, rawv)
       case _: Virtual   => s"Cannot import virtual feature $fid".failure
     }.getOrElse(s"Could not find dictionary entry for '${fid}'".failure)
 

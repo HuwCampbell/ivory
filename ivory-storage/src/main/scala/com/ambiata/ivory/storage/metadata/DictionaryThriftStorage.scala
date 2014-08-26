@@ -41,7 +41,7 @@ case class DictionaryThriftStorage(repository: Repository) {
       .flatMap(_.traverse[ResultTIO, Dictionary] { dictDir => for {
         dictPaths <- store.list(dictDir)
         dicts     <- dictPaths.traverseU(path => DictionaryTextStorage.fromStore(Reference(store, path)))
-      } yield dicts.foldLeft(Dictionary(Map()))(_ append _)
+      } yield dicts.foldLeft(Dictionary(Nil))(_ append _)
     })
 
   def loadFromId(identifier: Identifier): ResultTIO[Option[Dictionary]] =

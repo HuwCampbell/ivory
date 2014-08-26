@@ -29,7 +29,7 @@ object Rename {
     dictionary <- Metadata.dictionaryFromIvoryT
     hdfs       <- getHdfs
     subdict     = renameDictionary(mapping, dictionary)
-    namespaces  = subdict.meta.groupBy(_._1.namespace).keys.toList
+    namespaces  = subdict.byFeatureId.groupBy(_._1.namespace).keys.toList
     partitions <- fromResultT(Namespaces.allNamespaceSizes(_, namespaces, factsets).run(hdfs.configuration))
     _          <- fromResultT(_ => ResultT.fromDisjunction[IO, Unit](validate(mapping, dictionary).leftMap(\&/.This.apply)))
     // Create a subset of the dictionary with only the featureIds that we care about
@@ -61,15 +61,15 @@ object Rename {
 
   def validate(mapping: RenameMapping, dictionary: Dictionary): \/[String, Unit] = {
     val inputFeatures = mapping.mapping.map(_._1).toSet
-    val missing = inputFeatures -- dictionary.meta.keySet
+    val missing = inputFeatures -- dictionary.byFeatureId.keySet
     if (missing.nonEmpty) s"""The following features do not exist: ${missing.mkString(",")}""".left else  ().right
   }
 
   /** Rename the old feature to the new mapping and remove everything else */
   def renameDictionary(mapping: RenameMapping, dictionary: Dictionary): Dictionary =
-    dictionary.forFeatureIds((mapping.newFeatures ++ mapping.oldFeatures).toSet).copy(meta = dictionary.meta.flatMap {
-      case (fid, v) => mapping.mapping.find(_._1 == fid).map { case (_, newFid) => newFid -> v }.toMap
-    })
+    dictionary.forFeatureIds((mapping.newFeatures ++ mapping.oldFeatures).toSet).copy(definitions = dictionary.definitions.flatMap(d =>
+      mapping.mapping.find(_._1 == d.featureId).map({ case (_, newFid) => d.featureId = newFid })
+    ))
 }
 
 case class RenameStats(facts: Long)

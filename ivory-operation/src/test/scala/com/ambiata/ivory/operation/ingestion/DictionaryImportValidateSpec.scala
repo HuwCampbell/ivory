@@ -31,7 +31,7 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
   })
 
   def newStruct = prop((enc: StructEncoding) =>
-    validate(Dictionary(Map()), dict(enc)) ==== OK
+    validate(Dictionary(Nil), dict(enc)) ==== OK
   )
 
   def structChanges = prop((enc: PrimitiveEncoding) =>
@@ -48,13 +48,13 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
     validateSelf(dict) ==== OK
   )
 
-  def virtualMissingAlias = prop((dict: Dictionary, fid: FeatureId, alias: FeatureId) => !dict.meta.contains(alias) ==> {
-    val fullDict = dict append Dictionary(Map(fid -> Definition.virtual(alias, None)))
+  def virtualMissingAlias = prop((dict: Dictionary, fid: FeatureId, alias: FeatureId) => !dict.byFeatureId.contains(alias) ==> {
+    val fullDict = dict append Dictionary(List(Definition.virtual(fid, alias, None)))
     validateSelf(fullDict) ==== InvalidVirtualAlias(alias, ValidationPath(fid)).failureNel
   })
 
   def virtualVirtualAlias = prop((fid: FeatureId, alias: FeatureId, cd: ConcreteDefinition) => {
-    val dict = Dictionary(Map(fid -> cd.definition)) append Dictionary(Map(fid -> Definition.virtual(alias, None)))
+    val dict = Dictionary(List(cd.toDefinition(fid))) append Dictionary(List(Definition.virtual(fid, alias, None)))
     validateSelf(dict) ==== InvalidVirtualAlias(alias, ValidationPath(fid)).failureNel
   })
 
@@ -71,5 +71,5 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
   )
 
   private def dict(enc: Encoding) =
-    Dictionary(Map(fid -> Concrete(enc, Some(BinaryType), "", Nil)))
+    Dictionary(List(Definition.concrete(fid, enc, Some(BinaryType), "", Nil)))
 }

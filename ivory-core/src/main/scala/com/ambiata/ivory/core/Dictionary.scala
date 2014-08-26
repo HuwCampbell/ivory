@@ -4,152 +4,38 @@ import scalaz._, Scalaz._
 import scala.math.{Ordering => SOrdering}
 
 /** The feature dictionary is simply a look up of metadata for a given identifier/name. */
-case class Dictionary(meta: Map[FeatureId, Definition]) {
+case class Dictionary(definitions: List[Definition]) {
+  /** The number of definitions in this dictionary. */
+  def size: Int =
+    definitions.size
+
+  /** Index this dictionaries definitions by FeatureId. */
+  lazy val byFeatureId: Map[FeatureId, Definition] =
+    definitions.map(d => d.featureId -> d).toMap
+
+  /** Index this dictionaries definitions by an integer feature index.
+      Note the intention of this is to be consistent only within a
+      single command and that there is no persistent integer index of
+      a definition. This is important for portability across repositories
+      and even factsets in a repository over time. */
+  lazy val byFeatureIndex: Map[Int, Definition] =
+    definitions.zipWithIndex.map({ case (d, i) => i -> d }).toMap
+
+  /** Reverse index this dictionary by an integer feature index,
+      this is the inverse of byFeatureIndex and the same warnings
+      apply. */
+  lazy val byFeatureIndexReverse: Map[Definition, Int] =
+    definitions.zipWithIndex.toMap
 
   /** Create a `Dictionary` from `this` only containing features in the specified namespace. */
   def forNamespace(namespace: Name): Dictionary =
-    Dictionary(meta filter { case (fid, _) => fid.namespace === namespace })
+    Dictionary(definitions.filter(d => d.featureId.namespace === namespace))
 
   /** Create a `Dictionary` from `this` only containing the specified features. */
   def forFeatureIds(featureIds: Set[FeatureId]): Dictionary =
-    Dictionary(meta filter { case (fid, _) => featureIds.contains(fid) })
+    Dictionary(definitions.filter(d => featureIds.contains(d.featureId)))
 
   /** append the mappings coming from another dictionary */
   def append(other: Dictionary) =
-    Dictionary(meta ++ other.meta)
-
+    Dictionary(definitions ++ other.definitions)
 }
-
-case class FeatureId(namespace: Name, name: String) {
-  override def toString =
-    toString(":")
-
-  def toString(delim: String): String =
-    s"${namespace.name}${delim}${name}"
-}
-
-object FeatureId {
-  implicit val orderingByNamespace: SOrdering[FeatureId] =
-    SOrdering.by(f => (f.namespace.name, f.name))
-}
-
-sealed trait Definition
-case class Concrete(definition: ConcreteDefinition) extends Definition
-case class Virtual(definition: VirtualDefinition) extends Definition
-
-object Definition {
-  def virtual(alias: FeatureId, window: Option[Window]): Definition =
-    Virtual(VirtualDefinition(alias, window))
-}
-object Concrete {
-  def apply(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String]): Definition =
-    Concrete(ConcreteDefinition(encoding, ty, desc, tombstoneValue))
-}
-
-case class ConcreteDefinition(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String]) {
-  def definition: Definition = Concrete(this)
-}
-case class VirtualDefinition(alias: FeatureId, window: Option[Window]) {
-  def definition: Definition = Virtual(this)
-}
-
-sealed trait Encoding
-
-sealed trait PrimitiveEncoding extends SubEncoding
-case object BooleanEncoding   extends PrimitiveEncoding
-case object IntEncoding       extends PrimitiveEncoding
-case object LongEncoding      extends PrimitiveEncoding
-case object DoubleEncoding    extends PrimitiveEncoding
-case object StringEncoding    extends PrimitiveEncoding
-
-sealed trait SubEncoding extends Encoding
-
-case class StructEncoding(values: Map[String, StructEncodedValue]) extends SubEncoding
-case class ListEncoding(encoding: SubEncoding) extends Encoding
-
-// NOTE: For now we don't support nested structs
-case class StructEncodedValue(encoding: PrimitiveEncoding, optional: Boolean = false) {
-  def opt: StructEncodedValue =
-    if (optional) this else copy(optional = true)
-}
-
-object Encoding {
-
-  def render(enc: Encoding): String = enc match {
-    case ListEncoding(e) => "[" + renderSub(e) + "]"
-    case e: SubEncoding  => renderSub(e)
-  }
-
-  private def renderSub(enc: SubEncoding): String = enc match {
-    case e: PrimitiveEncoding => renderPrimitive(e)
-    case StructEncoding(m)    => "(" + m.map {
-      case (n, v) => n + ":" + renderPrimitive(v.encoding) + (if (v.optional) "*" else "")
-    }.mkString(",") + ")"
-  }
-
-  def renderPrimitive(enc: PrimitiveEncoding): String = enc match {
-    case BooleanEncoding => "boolean"
-    case IntEncoding     => "int"
-    case LongEncoding    => "long"
-    case DoubleEncoding  => "double"
-    case StringEncoding  => "string"
-  }
-
-  def isPrimitive(enc: Encoding): Boolean =
-    enc match {
-      case _: PrimitiveEncoding => true
-      case _: StructEncoding    => false
-      case _: ListEncoding      => false
-    }
-}
-
-sealed trait Type
-case object NumericalType   extends Type
-case object ContinuousType  extends Type
-case object CategoricalType extends Type
-case object BinaryType      extends Type
-
-object Type {
-  def render(ty: Type): String = ty match {
-    case NumericalType   => "numerical"
-    case ContinuousType  => "continuous"
-    case CategoricalType => "categorical"
-    case BinaryType      => "binary"
-  }
-}
-
-case class Window(length: Int, unit: WindowUnit)
-
-object Window {
-
-  def asString(window: Window): String =
-    window.length + " " + ((window.length, window.unit) match {
-      case (1, Days)   => "day"
-      case (_, Days)   => "days"
-      case (1, Weeks)  => "week"
-      case (_, Weeks)  => "weeks"
-      case (1, Months) => "month"
-      case (_, Months) => "months"
-      case (1, Years)  => "year"
-      case (_, Years)  => "years"
-    })
-
-  def unitFromString(unit: String): Option[WindowUnit] =
-    unit match {
-      case "day"    => Some(Days)
-      case "days"   => Some(Days)
-      case "week"   => Some(Weeks)
-      case "weeks"  => Some(Weeks)
-      case "month"  => Some(Months)
-      case "months" => Some(Months)
-      case "year"   => Some(Years)
-      case "years"  => Some(Years)
-      case _        => None
-    }
-}
-
-sealed trait WindowUnit
-case object Days extends WindowUnit
-case object Weeks extends WindowUnit
-case object Months extends WindowUnit
-case object Years extends WindowUnit

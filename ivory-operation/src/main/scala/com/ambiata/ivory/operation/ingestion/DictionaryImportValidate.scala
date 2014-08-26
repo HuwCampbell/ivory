@@ -34,12 +34,12 @@ object DictionaryImportValidate {
     }
     def validateFeature(id: FeatureId, oldFeature: Definition, newFeature: Definition): DictValidationUnit =
       (oldFeature, newFeature) match {
-        case (Concrete(oldMeta), Concrete(newMeta)) => validateMeta(id, oldMeta, newMeta)
+        case (Concrete(_, oldMeta), Concrete(_, newMeta)) => validateMeta(id, oldMeta, newMeta)
         case (_: Concrete      , _: Virtual       ) => RealToVirtualEncoding(ValidationPath(id)).failureNel
         case (_: Virtual       , _: Concrete      ) => OK
         case (_: Virtual       , _: Virtual       ) => OK
       }
-    Maps.outerJoin(oldDict.meta, newDict.meta).foldMap {
+    Maps.outerJoin(oldDict.byFeatureId, newDict.byFeatureId).foldMap {
       case (_,   \&/.This(_))                => OK
       case (_,   \&/.That(_))                => OK
       case (fid, \&/.Both(oldMeta, newMeta)) => validateFeature(fid, oldMeta, newMeta)
@@ -52,11 +52,11 @@ object DictionaryImportValidate {
    * - virtual features aliasing actual concrete features
    */
   def validateSelf(dict: Dictionary): DictValidationUnit =
-    dict.meta.toList.traverseU {
-      case (_, Concrete(_))  => OK
-      case (fid, Virtual(d)) => dict.meta.get(d.alias).filter {
-        case Concrete(_) => true
-        case Virtual(_)  => false
+    dict.definitions.traverseU {
+      case Concrete(_, _)  => OK
+      case Virtual(fid, d) => dict.byFeatureId.get(d.alias).filter {
+        case Concrete(_, _) => true
+        case Virtual(_, _)  => false
       }.toRightDisjunction(InvalidVirtualAlias(d.alias, ValidationPath(fid))).validation.toValidationNel
     }.void
 

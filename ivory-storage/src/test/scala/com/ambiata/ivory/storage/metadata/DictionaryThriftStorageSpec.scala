@@ -59,8 +59,10 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
   // Text dictionaries can only handle primitive encoding _with_ types and _at least_ one tombstone
   case class PrimitiveDictionary(dict: Dictionary)
   implicit def PrimitiveDictionaryArbitrary: Arbitrary[PrimitiveDictionary] =
-    Arbitrary(arbitrary[Dictionary].map(d => d.copy(meta = d.meta.filter {
-      case (k, Concrete(m)) => Encoding.isPrimitive(m.encoding) && m.ty.isDefined && m.tombstoneValue.nonEmpty && !m.desc.contains("\"")
-      case (k, _: Virtual)  => false
+    Arbitrary(arbitrary[Dictionary].map(d => d.copy(definitions = d.definitions.filter {
+      case Concrete(k, m) =>
+        Encoding.isPrimitive(m.encoding) && m.ty.isDefined && m.tombstoneValue.nonEmpty && !m.desc.contains("\"")
+      case Virtual(k, _) =>
+        false
     })).map(PrimitiveDictionary))
 }

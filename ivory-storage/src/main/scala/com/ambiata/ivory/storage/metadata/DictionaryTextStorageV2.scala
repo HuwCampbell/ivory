@@ -12,22 +12,22 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
   val DELIM = "|"
 
   def fromList(entries: List[(FeatureId, Definition)]): Dictionary =
-    Dictionary(entries.toMap)
+    Dictionary(entries.map(_._2))
 
   def toList(d: Dictionary): List[(FeatureId, Definition)] =
-    d.meta.toList
+    d.byFeatureId.toList
 
   def parseLine(i: Int, l: String): ValidationNel[String, (FeatureId, Definition)] =
     DictionaryTextStorageV2(l, DELIM).parse
 
   def toLine(f: (FeatureId, Definition)) = f._1.toString(":") + DELIM + (f._2 match {
-    case Concrete(ConcreteDefinition(encoding, ty, desc, tombstone)) => List(
+    case Concrete(_, ConcreteDefinition(encoding, ty, desc, tombstone)) => List(
       Some("encoding" -> Encoding.render(encoding)),
       ty.flatMap(t => Some("type" -> Type.render(t))),
       if (desc.isEmpty) None else Some("description" -> desc),
       if (tombstone.isEmpty) None else Some("tombstone" -> tombstone.mkString(","))
     )
-    case Virtual(d) => List(
+    case Virtual(_, d) => List(
       Some("alias" -> d.alias.toString(":")),
       d.window.map(Window.asString).map("window" ->)
     )
@@ -63,7 +63,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
     (DictionaryTextStorage.parseEncoding(s).toValidationNel ||| DictionaryTextStorageV2(s, DELIMITER).parseStruct).map(ListEncoding)
   )
 
-  private def metaFromMap(m: Map[String, String]): ValidationNel[String, Definition] = {
+  private def metaFromMap(featureId: FeatureId, m: Map[String, String]): ValidationNel[String, Definition] = {
     (m.get("encoding"), m.get("alias")) match {
       case (Some(encv), None) =>
         val enc = DictionaryTextStorage.parseEncoding(encv).toValidationNel |||
@@ -72,7 +72,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
         val ty = m.get("type").cata(DictionaryTextStorage.parseType(_).map(some), None.success).toValidationNel
         val desc = m.getOrElse("description", "")
         val tomb = m.get("tombstone").cata(Delimited.parseCsv, Nil)
-        (enc |@| ty)(Concrete(_, _, desc, tomb))
+        (enc |@| ty)(Definition.concrete(featureId, _, _, desc, tomb))
       case (None, Some(alias)) =>
         val window = m.get("window").traverseU { s =>
            s.split(" ", 2) match {
@@ -85,7 +85,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
            }
         }
         DictionaryTextStorageV2(alias, DELIMITER).featureId.run().fold(formatError(_).failureNel,
-          fid => (fid |@| window)(Definition.virtual).validation.toValidationNel)
+          fid => (fid |@| window)(Definition.virtual(featureId, _, _)).validation.toValidationNel)
       case (Some(_), Some(_))  =>
         "Must specify either 'encoding' or 'alias' but not both".failureNel
       case (None, None)        =>
@@ -95,7 +95,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
 
   def parse: ValidationNel[String, (FeatureId, Definition)] =
     row.run().fold(formatError(_).failureNel, {
-      case \/-(featureId) :: m :: HNil => metaFromMap(m.getOrElse(Map())).map(featureId ->)
+      case \/-(featureId) :: m :: HNil => metaFromMap(featureId, m.getOrElse(Map())).map(featureId ->)
       case -\/(m) :: _                 => m.failureNel
     })
 }

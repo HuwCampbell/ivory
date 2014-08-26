@@ -19,7 +19,7 @@ object DictionaryImporter {
   def fromDictionary(repository: Repository, dictionary: Dictionary, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] = {
     val storage = DictionaryThriftStorage(repository)
     for {
-      oldDictionary <- storage.loadOption.map(_.getOrElse(Dictionary(Map())))
+      oldDictionary <- storage.loadOption.map(_.getOrElse(Dictionary(Nil)))
       newDictionary = importOpts.ty match {
         case Update => oldDictionary.append(dictionary)
         case Override => dictionary
