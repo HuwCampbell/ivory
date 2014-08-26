@@ -194,7 +194,7 @@ object Recreate { outer =>
   }
 
   private def throwAwayErrors[E, A](message: String) = (ea: E \/ A) => ea match {
-    case -\/(e) => sys.error(s"$message '$e'")
+    case -\/(e) => Crash.error(Crash.DataIntegrity, s"$message '$e'")
     case \/-(a) => a
   }
 

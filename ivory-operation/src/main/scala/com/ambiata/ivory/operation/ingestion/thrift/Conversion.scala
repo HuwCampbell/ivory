@@ -23,7 +23,7 @@ object Conversion {
       case tsv if tsv.isSetL => ct.ThriftFactValue.l(tsv.getL)
       case tsv if tsv.isSetB => ct.ThriftFactValue.b(tsv.getB)
       case tsv if tsv.isSetT => ct.ThriftFactValue.t(new ct.ThriftTombstone())
-      case _                 => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
+      case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
     }
     def convertPrim(v: ThriftFactPrimitiveValue): ct.ThriftFactPrimitiveValue = v match {
       case tsv if tsv.isSetD => ct.ThriftFactPrimitiveValue.d(tsv.getD)
@@ -32,7 +32,7 @@ object Conversion {
       case tsv if tsv.isSetL => ct.ThriftFactPrimitiveValue.l(tsv.getL)
       case tsv if tsv.isSetB => ct.ThriftFactPrimitiveValue.b(tsv.getB)
       case tsv if tsv.isSetT => ct.ThriftFactPrimitiveValue.t(new ct.ThriftTombstone())
-      case _                 => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
+      case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
     }
     fact match {
       case x if x.isSetPrimitive => convertPrim1(x.getPrimitive)
@@ -57,7 +57,7 @@ object Conversion {
       case tsv if tsv.isSetL => ThriftFactPrimitiveValue.l(tsv.getL)
       case tsv if tsv.isSetB => ThriftFactPrimitiveValue.b(tsv.getB)
       case tsv if tsv.isSetT => ThriftFactPrimitiveValue.t(new ThriftTombstone())
-      case _                 => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
+      case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
     }
     def convertPrim(v: ct.ThriftFactPrimitiveValue): ThriftFactPrimitiveValue = v match {
       case tsv if tsv.isSetD => ThriftFactPrimitiveValue.d(tsv.getD)
@@ -66,7 +66,7 @@ object Conversion {
       case tsv if tsv.isSetL => ThriftFactPrimitiveValue.l(tsv.getL)
       case tsv if tsv.isSetB => ThriftFactPrimitiveValue.b(tsv.getB)
       case tsv if tsv.isSetT => ThriftFactPrimitiveValue.t(new ThriftTombstone())
-      case _                 => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
+      case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
     }
     value match {
       case x if x.isSetStructSparse => ThriftFactValue.strct(new ThriftFactStruct(x.getStructSparse.getV.asScala.mapValues(convertPrim).asJava))

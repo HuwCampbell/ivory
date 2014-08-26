@@ -6,6 +6,7 @@ import scalaz.{DList => _, Value => _, _}
 import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.api._, Ivory._, IvoryRetire._
+import com.ambiata.ivory.core._
 
 object compareSnapshots extends IvoryApp {
 
@@ -59,7 +60,7 @@ object compareSnapshots extends IvoryApp {
     Some(eavt + " does not exist in " + name)
 
   def byKey(name: String)(f: ParseError \/ Fact): (String, String) = f match {
-    case -\/(e) => sys.error(s"Can not parse one of that facts in ${name}")
+    case -\/(e) => Crash.error(Crash.DataIntegrity, s"Can not parse one of that facts in ${name}")
     case \/-(f) => (s"${f.entity}|${f.namespace}|${f.feature}|${f.datetime.localIso8601}", f.value.toString)
   }
 }

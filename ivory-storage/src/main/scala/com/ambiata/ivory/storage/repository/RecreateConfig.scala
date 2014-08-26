@@ -1,5 +1,6 @@
 package com.ambiata.ivory.storage.repository
 
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.io.{Logger, BytesQuantity}
 import com.nicta.scoobi.core.ScoobiConfiguration
 import org.apache.hadoop.io.compress.CompressionCodec
@@ -13,7 +14,7 @@ case class RecreateConfig(from: Repository, to: Repository,
                           logger: Logger) {
   val (hdfsFrom, hdfsTo) = (from, to) match {
     case (f: HdfsRepository, t: HdfsRepository) => (f, t)
-    case _ => sys.error(s"Repository combination '$from' and '$to' not supported!")
+    case _ => Crash.error(Crash.ResultTIO ,s"Repository combination '$from' and '$to' not supported!")
   }
 
   def dryFor(data: RecreateData) =
