@@ -41,8 +41,8 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
     val reference = Reference(PosixStore(FilePath("ivory-storage/src/test/resources")), FilePath("good_dictionary.txt"))
     DictionaryTextStorage.fromStore(reference).run.unsafePerformIO().toDisjunction must_== Dictionary(List(
      Definition.concrete(FeatureId("demo", "gender"), StringEncoding, Some(CategoricalType), "Gender", List("☠")),
-     Definition.concrete(FeatureId("demo", "postcode"), StringEncoding, Some(CategoricalType), "Postcode", List("☠")),
-     Definition.concrete(FeatureId("widgets", "count.1W"), IntEncoding, Some(NumericalType), "Count in the last week", List("☠"))
+     Definition.concrete(FeatureId("widgets", "count.1W"), IntEncoding, Some(NumericalType), "Count in the last week", List("☠")),
+     Definition.concrete(FeatureId("demo", "postcode"), StringEncoding, Some(CategoricalType), "Postcode", List("☠"))
    )).right
   }
 

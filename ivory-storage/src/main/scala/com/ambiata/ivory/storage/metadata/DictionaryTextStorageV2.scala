@@ -14,8 +14,8 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
   def fromList(entries: List[(FeatureId, Definition)]): Dictionary =
     Dictionary(entries.map(_._2))
 
-  def toList(d: Dictionary): List[(FeatureId, Definition)] =
-    d.byFeatureId.toList
+  def toList(dict: Dictionary): List[(FeatureId, Definition)] =
+    dict.definitions.map(d => d.featureId -> d).toList
 
   def parseLine(i: Int, l: String): ValidationNel[String, (FeatureId, Definition)] =
     DictionaryTextStorageV2(l, DELIM).parse
