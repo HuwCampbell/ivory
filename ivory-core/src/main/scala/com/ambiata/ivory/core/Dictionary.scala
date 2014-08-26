@@ -41,6 +41,6 @@ case class Dictionary(definitions: List[Definition]) {
 }
 
 object Dictionary {
-  def empty: Dictionary =
+  val empty: Dictionary =
     Dictionary(Nil)
 }
