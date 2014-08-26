@@ -43,7 +43,7 @@ ivory snapshot		ivory-cli		ivory-operations		ivory-storage			hadoop
 	||									      |
 	||									      |
 =======================================================	| < - - - - - - - - - - - - - |
-|| respoitory						|
+|| repository						|
 ||							|
 \/							|
 							| - - - - - - - - - - - - - > |
