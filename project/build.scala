@@ -22,7 +22,6 @@ object build extends Build {
     , cli
     , core
     , data
-    , generate
     , mr
     , operation
     , performance
@@ -68,7 +67,7 @@ object build extends Build {
     , previousArtifact := Some("com.ambiata" %% "ivory-api" % "1.0.0-cdh5-20140703185823-2efc9c3")
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.slf4j)
   )
-  .dependsOn(generate, operation)
+  .dependsOn(operation)
 
   lazy val benchmark = Project(
     id = "benchmark"
@@ -166,15 +165,6 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.mundane)
   )
   .dependsOn(core, scoobi, storage, mr, core % "test->test", scoobi % "test->test", storage % "test->test")
-
-  lazy val generate = Project(
-    id = "generate"
-  , base = file("ivory-generate")
-  , settings = standardSettings ++ lib("generate") ++ Seq[Settings](
-      name := "ivory-generate"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.specs2)
-  )
-  .dependsOn(core, storage)
 
   lazy val mr = Project(
     id = "mr"
