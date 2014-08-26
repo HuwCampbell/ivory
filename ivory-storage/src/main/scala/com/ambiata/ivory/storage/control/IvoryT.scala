@@ -24,6 +24,11 @@ object IvoryT {
     IvoryT[X, A](Kleisli[X, IvoryRead, A](r => f(r.repository)))
   }
 
+  def fromResultTIO[F[+_], A](f: Repository => ResultTIO[A]): IvoryT[ResultTIO, A] = {
+    type X[+B] = ResultTIO[B]
+    IvoryT[X, A](Kleisli[X, IvoryRead, A](r => f(r.repository)))
+  }
+
   implicit def IvoryTMonad[F[+_]: Monad]: Monad[({ type l[a] = IvoryT[F, a] })#l] =
     new Monad[({ type l[a] = IvoryT[F, a] })#l] {
       def point[A](v: => A) = IvoryT(Kleisli(_ => v.point[F]))
