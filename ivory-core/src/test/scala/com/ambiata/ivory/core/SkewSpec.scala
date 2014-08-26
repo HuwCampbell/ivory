@@ -64,11 +64,11 @@ Skew Tests
   , Name("flavours"    ) -> 184072795.bytes
   )
 
-  def fake = FeatureMeta(DoubleEncoding, Some(ContinuousType), "desc", Nil)
+  def fake = ConcreteDefinition(DoubleEncoding, Some(ContinuousType), "desc", Nil)
   def optimalSize = 256.mb
 
   /** create a dictionary */
-  def dictionary = Dictionary(featureIds.map(_ -> fake).toMap)
+  def dictionary = Dictionary(featureIds.map(_ -> fake.definition).toMap)
   def featureIds =
     (1 to 10).map(n => FeatureId("demographics", "d" + n)).toList ++
     (1 to 10).map(n => FeatureId("offers", "o" + n)).toList ++

@@ -60,7 +60,7 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
   case class PrimitiveDictionary(dict: Dictionary)
   implicit def PrimitiveDictionaryArbitrary: Arbitrary[PrimitiveDictionary] =
     Arbitrary(arbitrary[Dictionary].map(d => d.copy(meta = d.meta.filter {
-      case (k, m: FeatureMeta)    => Encoding.isPrimitive(m.encoding) && m.ty.isDefined && m.tombstoneValue.nonEmpty && !m.desc.contains("\"")
-      case (k, _: FeatureVirtual) => false
+      case (k, Concrete(m)) => Encoding.isPrimitive(m.encoding) && m.ty.isDefined && m.tombstoneValue.nonEmpty && !m.desc.contains("\"")
+      case (k, _: Virtual)  => false
     })).map(PrimitiveDictionary))
 }

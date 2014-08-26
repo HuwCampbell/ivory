@@ -24,7 +24,7 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
 
   def e1 = {
     val entry = "demo|postcode|string|categorical|Postcode|☠"
-    DictionaryTextStorage.parseDictionaryEntry(entry) ==== (FeatureId("demo", "postcode"), FeatureMeta(StringEncoding, Some(CategoricalType), "Postcode")).success
+    DictionaryTextStorage.parseDictionaryEntry(entry) ==== (FeatureId("demo", "postcode"), ConcreteDefinition(StringEncoding, Some(CategoricalType), "Postcode", List("☠"))).success
   }
 
   def e2 = {
@@ -40,9 +40,9 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
   def e4 = {
     val reference = Reference(PosixStore(FilePath("ivory-storage/src/test/resources")), FilePath("good_dictionary.txt"))
     DictionaryTextStorage.fromStore(reference).run.unsafePerformIO().toDisjunction must_== Dictionary(Map(
-     FeatureId("demo", "gender")            -> FeatureMeta(StringEncoding, Some(CategoricalType), "Gender"),
-     FeatureId("demo", "postcode")          -> FeatureMeta(StringEncoding, Some(CategoricalType), "Postcode"),
-     FeatureId("widgets", "count.1W") -> FeatureMeta(IntEncoding, Some(NumericalType), "Count in the last week")
+     FeatureId("demo", "gender")      -> Concrete(StringEncoding, Some(CategoricalType), "Gender", List("☠")),
+     FeatureId("demo", "postcode")    -> Concrete(StringEncoding, Some(CategoricalType), "Postcode", List("☠")),
+     FeatureId("widgets", "count.1W") -> Concrete(IntEncoding, Some(NumericalType), "Count in the last week", List("☠"))
    )).right
   }
 

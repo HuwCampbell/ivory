@@ -6,26 +6,26 @@ import org.parboiled2._, Parser.DeliveryScheme.Either
 import scalaz.{Name =>_,_}, Scalaz._, Validation._
 import shapeless._
 
-object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Feature), Dictionary] {
+object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dictionary] {
 
   val name = "dictionary"
   val DELIM = "|"
 
-  def fromList(entries: List[(FeatureId, Feature)]): Dictionary =
+  def fromList(entries: List[(FeatureId, Definition)]): Dictionary =
     Dictionary(entries.toMap)
 
-  def toList(d: Dictionary): List[(FeatureId, Feature)] =
+  def toList(d: Dictionary): List[(FeatureId, Definition)] =
     d.meta.toList
 
-  def parseLine(i: Int, l: String): ValidationNel[String, (FeatureId, FeatureMeta)] =
-    DictionaryTextStorageV2(l, DELIM).parse
+  def parseLine(i: Int, l: String): ValidationNel[String, (FeatureId, Definition)] =
+    DictionaryTextStorageV2(l, DELIM).parse.map(f => f._1 -> Concrete(f._2))
 
-  def toLine(f: (FeatureId, Feature)) = f._2  match {
-    case fm: FeatureMeta    => f._1.toString(":") + DELIM + metaToString(fm)
-    case _ : FeatureVirtual => NotImplemented.virtualDictionaryFeature
+  def toLine(f: (FeatureId, Definition)) = f._2  match {
+    case Concrete(fm) => f._1.toString(":") + DELIM + metaToString(fm)
+    case _ : Virtual  => NotImplemented.virtualDictionaryFeature
   }
 
-  private def metaToString(meta: FeatureMeta): String = {
+  private def metaToString(meta: ConcreteDefinition): String = {
     import meta._
     List(
       Some("encoding" -> Encoding.render(encoding)),
@@ -65,7 +65,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
     (DictionaryTextStorage.parseEncoding(s).toValidationNel ||| DictionaryTextStorageV2(s, DELIMITER).parseStruct).map(ListEncoding)
   )
 
-  private def metaFromMap(m: Map[String, String]): ValidationNel[String, FeatureMeta] = {
+  private def metaFromMap(m: Map[String, String]): ValidationNel[String, ConcreteDefinition] = {
     val enc = m.get("encoding").map { s =>
       DictionaryTextStorage.parseEncoding(s).toValidationNel |||
         DictionaryTextStorageV2(s, DELIMITER).parseList |||
@@ -74,10 +74,10 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
     val ty = m.get("type").cata(DictionaryTextStorage.parseType(_).map(some), None.success).toValidationNel
     val desc = m.getOrElse("description", "")
     val tomb = m.get("tombstone").cata(Delimited.parseCsv, Nil)
-    (enc |@| ty)(new FeatureMeta(_, _, desc, tomb))
+    (enc |@| ty)(new ConcreteDefinition(_, _, desc, tomb))
   }
 
-  def parse: ValidationNel[String, (FeatureId, FeatureMeta)] =
+  def parse: ValidationNel[String, (FeatureId, ConcreteDefinition)] =
     row.run().fold(formatError(_).failureNel, {
       case \/-(featureId) :: m :: HNil => metaFromMap(m.getOrElse(Map())).map(featureId ->)
       case -\/(m) :: _                 => m.failureNel

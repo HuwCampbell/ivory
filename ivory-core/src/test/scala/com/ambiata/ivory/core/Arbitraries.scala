@@ -120,19 +120,20 @@ object Arbitraries {
       name  <- arbitrary[DictId].map(_.s)
     } yield FeatureId(ns, name))
 
-  def featureMetaGen(genc: Gen[Encoding]): Gen[FeatureMeta] =
+  def featureMetaGen(genc: Gen[Encoding]): Gen[ConcreteDefinition] =
     for {
       enc   <- genc
       ty    <- arbitrary[Option[Type]]
       desc  <- arbitrary[DictDesc].map(_.s)
       tombs <- Gen.listOf(arbitrary[DictTomb].map(_.s))
-    } yield FeatureMeta(enc, ty, desc, tombs)
+    } yield ConcreteDefinition(enc, ty, desc, tombs)
 
-  implicit def FeatureMetaArbitrary: Arbitrary[FeatureMeta] =
+  implicit def FeatureMetaArbitrary: Arbitrary[ConcreteDefinition] =
     Arbitrary(featureMetaGen(arbitrary[Encoding]))
 
   implicit def DictionaryArbitrary: Arbitrary[Dictionary] =
-    Arbitrary(Gen.mapOf[FeatureId, FeatureMeta](arbitrary[(FeatureId, FeatureMeta)]).map(Dictionary))
+    Arbitrary(Gen.mapOf[FeatureId, Definition](arbitrary[(FeatureId, ConcreteDefinition)]
+      .map(a => a._1 -> a._2.definition)).map(Dictionary))
 
   implicit def EncodingArbitrary: Arbitrary[Encoding] =
     Arbitrary(Gen.oneOf(arbitrary[SubEncoding], arbitrary[ListEncoding]))
@@ -193,7 +194,7 @@ object Arbitraries {
     else Gen.const(v)
   }
 
-  def factWithZoneGen(entity: Gen[String], mgen: Gen[FeatureMeta]): Gen[(FeatureMeta, Fact, DateTimeZone)] = for {
+  def factWithZoneGen(entity: Gen[String], mgen: Gen[ConcreteDefinition]): Gen[(ConcreteDefinition, Fact, DateTimeZone)] = for {
     e      <- entity
     f      <- arbitrary[FeatureId]
     m      <- mgen
@@ -203,13 +204,13 @@ object Arbitraries {
   } yield (m, Fact.newFact(e, f.namespace.name, f.name, dtz.datetime.date, dtz.datetime.time, v), dtz.zone)
 
   /** All generated SparseEntities will have a large range of possible entity id's */
-  case class SparseEntities(meta: FeatureMeta, fact: Fact, zone: DateTimeZone)
+  case class SparseEntities(meta: ConcreteDefinition, fact: Fact, zone: DateTimeZone)
 
   /**
    * Create an arbitrary fact and timezone such that the time in the fact is valid given the timezone
    */
   implicit def SparseEntitiesArbitrary: Arbitrary[SparseEntities] =
-   Arbitrary(factWithZoneGen(Gen.choose(0, 1000).map(testEntityId), arbitrary[FeatureMeta]).map(SparseEntities.tupled))
+   Arbitrary(factWithZoneGen(Gen.choose(0, 1000).map(testEntityId), arbitrary[ConcreteDefinition]).map(SparseEntities.tupled))
 
   implicit def FactArbitrary: Arbitrary[Fact] =
     Arbitrary(arbitrary[SparseEntities].map(_.fact))

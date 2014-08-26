@@ -63,8 +63,8 @@ case class RandomFacts(rand: Random) {
     def createFact(ff: FeatureFlags, d: LocalDate): Option[Fact] = {
       val fid = FeatureId(ff.namespace, ff.name)
       if(rand.nextDouble() > ff.sparcity) dict.meta.get(fid).flatMap {
-        case m: FeatureMeta    => Some(fact(eid, fid, m, d))
-        case _: FeatureVirtual => None
+        case Concrete(m) => Some(fact(eid, fid, m, d))
+        case _: Virtual  => None
       } else None
     }
 
@@ -76,14 +76,16 @@ case class RandomFacts(rand: Random) {
     }).flatMap({ case (ff, d) => createFact(ff, d) })
   }
 
-  def fact(eid: Int, fid: FeatureId, meta: FeatureMeta, date: LocalDate): Fact =
+  def fact(eid: Int, fid: FeatureId, meta: ConcreteDefinition, date: LocalDate): Fact =
     Fact.newFactWithNamespaceName("ID%08d".format(eid), fid.namespace, fid.name, Date.fromLocalDate(date), Time.unsafe(rand.nextInt(86400)), value(meta))
 
-  def value(meta: FeatureMeta): IValue = meta match {
-    case FeatureMeta(BooleanEncoding, _, _, _)   => BooleanValue(rand.nextBoolean)
-    case FeatureMeta(IntEncoding, _, _, _)       => IntValue(rand.nextInt)
-    case FeatureMeta(LongEncoding, _, _, _)      => LongValue(rand.nextLong)
-    case FeatureMeta(DoubleEncoding, _, _, _)    => DoubleValue(rand.nextDouble)
-    case FeatureMeta(StringEncoding, _, _, _)    => StringValue(org.apache.commons.lang.RandomStringUtils.randomAlphanumeric(10))
+  def value(meta: ConcreteDefinition): IValue = meta.encoding match {
+    case BooleanEncoding   => BooleanValue(rand.nextBoolean)
+    case IntEncoding       => IntValue(rand.nextInt)
+    case LongEncoding      => LongValue(rand.nextLong)
+    case DoubleEncoding    => DoubleValue(rand.nextDouble)
+    case StringEncoding    => StringValue(org.apache.commons.lang.RandomStringUtils.randomAlphanumeric(10))
+    case _: StructEncoding => NotImplemented.generate
+    case _: ListEncoding   => NotImplemented.generate
   }
 }

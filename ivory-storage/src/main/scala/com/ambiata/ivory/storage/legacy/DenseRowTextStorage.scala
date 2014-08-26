@@ -37,7 +37,7 @@ object DenseRowTextStorageV1 {
    *
    * Note: It is assumed 'facts' and 'features' are sorted by FeatureId
    */
-  def makeDense(facts: Iterable[Fact], features: List[(Int, FeatureId, Feature)], tombstone: String): List[StringValue] = {
+  def makeDense(facts: Iterable[Fact], features: List[(Int, FeatureId, Definition)], tombstone: String): List[StringValue] = {
     features.foldLeft((facts, List[StringValue]()))({ case ((fs, acc), (_, fid, _)) =>
       val rest = fs.dropWhile(f => f.featureId.toString(".") < fid.toString("."))
       val value = rest.headOption.collect({
@@ -48,18 +48,18 @@ object DenseRowTextStorageV1 {
     })._2.reverse
   }
 
-  def indexDictionary(dict: Dictionary): List[(Int, FeatureId, Feature)] =
+  def indexDictionary(dict: Dictionary): List[(Int, FeatureId, Definition)] =
     dict.meta.toList.filter {
-      case (_, fm: FeatureMeta)     => Encoding.isPrimitive(fm.encoding)
-      case (_, fv: FeatureVirtual)  => false
+      case (_, Concrete(fm)) => Encoding.isPrimitive(fm.encoding)
+      case (_, _: Virtual)   => false
     }.sortBy(_._1.toString(".")).zipWithIndex.map({ case ((f, m), i) => (i, f, m) })
 
-  def featuresToString(features: List[(Int, FeatureId, Feature)], tombstone: String, delim: Char): List[String] = {
+  def featuresToString(features: List[(Int, FeatureId, Definition)], tombstone: String, delim: Char): List[String] = {
     import com.ambiata.ivory.storage.metadata.DictionaryTextStorage
     features.map {
       case (i, fid, f) => i.toString + delim + DictionaryTextStorage.delimitedLineWithDelim(fid -> (f match {
-        case m: FeatureMeta    => m.copy(tombstoneValue = List(tombstone))
-        case _: FeatureVirtual => NotImplemented.virtualDictionaryFeature
+        case Concrete(m) => m.copy(tombstoneValue = List(tombstone))
+        case _: Virtual  => NotImplemented.virtualDictionaryFeature
       }), delim.toString)
     }
   }

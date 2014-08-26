@@ -53,9 +53,9 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
     val factsetId1 = FactsetId.initial
     val factsetId2 = factsetId1.next.get
 
-    val dict = Dictionary(Map(FeatureId("ns1", "fid1") -> FeatureMeta(DoubleEncoding, Some(NumericalType), "desc"),
-                              FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, Some(NumericalType), "desc"),
-                              FeatureId("ns2", "fid3") -> FeatureMeta(BooleanEncoding, Some(CategoricalType), "desc")))
+    val dict = Dictionary(Map(FeatureId("ns1", "fid1") -> Concrete(DoubleEncoding, Some(NumericalType), "desc", Nil),
+                              FeatureId("ns1", "fid2") -> Concrete(IntEncoding, Some(NumericalType), "desc", Nil),
+                              FeatureId("ns2", "fid3") -> Concrete(BooleanEncoding, Some(CategoricalType), "desc", Nil)))
 
     val facts1 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
                                  IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
@@ -92,9 +92,9 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
     val factsetId1 = FactsetId.initial
     val factsetId2 = factsetId1.next.get
 
-    val dict = Dictionary(Map(FeatureId("ns1", "fid1") -> FeatureMeta(DoubleEncoding, Some(NumericalType), "desc"),
-                              FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, Some(NumericalType), "desc"),
-                              FeatureId("ns2", "fid3") -> FeatureMeta(BooleanEncoding, Some(CategoricalType), "desc")))
+    val dict = Dictionary(Map(FeatureId("ns1", "fid1") -> Concrete(DoubleEncoding, Some(NumericalType), "desc", Nil),
+                              FeatureId("ns1", "fid2") -> Concrete(IntEncoding, Some(NumericalType), "desc", Nil),
+                              FeatureId("ns2", "fid3") -> Concrete(BooleanEncoding, Some(CategoricalType), "desc", Nil)))
 
     val facts1 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
                                  IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),

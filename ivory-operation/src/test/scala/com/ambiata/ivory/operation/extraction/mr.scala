@@ -140,7 +140,7 @@ SnapshotReducerSpec
   val serializer = ThriftSerialiser()
 
   case class PriorityDateTimeValue(priority: Priority, datetime: DateTime, value: Value)
-  def priorityDateTimeValue(m: FeatureMeta): Gen[PriorityDateTimeValue] = for {
+  def priorityDateTimeValue(m: ConcreteDefinition): Gen[PriorityDateTimeValue] = for {
     p  <- arbitrary[Priority]
     dt <- arbitrary[DateTime]
     v  <- Gen.frequency(1 -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding, m.tombstoneValue))
@@ -149,7 +149,7 @@ SnapshotReducerSpec
   case class ReducerFacts(facts: List[(Fact, PriorityTag)])
   implicit def ReducerInputArbitrary: Arbitrary[ReducerFacts] =
     Arbitrary(for {
-      (f, m) <- arbitrary[(FeatureId, FeatureMeta)]
+      (f, m) <- arbitrary[(FeatureId, ConcreteDefinition)]
       e = "T+00001"
       dtvs   <- Gen.choose(1, 10).flatMap(n => Gen.listOfN(n, priorityDateTimeValue(m)))
       pfacts = dtvs.map(dtv => (dtv.priority, Fact.newFactWithNamespaceName(e, f.namespace, f.name, dtv.datetime.date, dtv.datetime.time, dtv.value)))

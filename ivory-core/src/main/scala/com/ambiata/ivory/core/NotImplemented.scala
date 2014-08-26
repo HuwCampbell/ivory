@@ -9,4 +9,7 @@ object NotImplemented {
 
   def virtualDictionaryFeature: Nothing =
     sys.error("Virtual features are not currently supported")
+
+  def generate: Nothing =
+    sys.error("Generate needs some love")
 }

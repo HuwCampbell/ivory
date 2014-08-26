@@ -53,5 +53,5 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
   )
 
   private def dict(enc: Encoding) =
-    Dictionary(Map(fid -> FeatureMeta(enc, Some(BinaryType), "")))
+    Dictionary(Map(fid -> Concrete(enc, Some(BinaryType), "", Nil)))
 }
