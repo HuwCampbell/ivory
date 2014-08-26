@@ -49,6 +49,18 @@ object Priority {
             case Some(_) =>
               c.Expr(q"com.ambiata.ivory.core.Priority.unsafe($p)")
           }
+        /**
+         * scaladoc magically manages to pass java.lang.Integer when compiling code so we need to deal with that case
+         */
+        case Expr(Literal(Constant(p: Int))) =>
+          if (p <= Short.MaxValue) {
+            create(p.toShort) match {
+              case None =>
+                c.abort(c.enclosingPosition, s"This is not a valid priority literal Priority($p).")
+              case Some(_) =>
+                c.Expr(q"com.ambiata.ivory.core.Priority.unsafe($p)")
+            }
+          } else c.abort(c.enclosingPosition, s"Not a short ${showRaw(priority)}.")
         case _ =>
           c.abort(c.enclosingPosition, s"Not a literal ${showRaw(priority)}.")
       }
