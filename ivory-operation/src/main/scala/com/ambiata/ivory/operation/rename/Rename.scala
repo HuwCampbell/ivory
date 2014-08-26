@@ -67,8 +67,8 @@ object Rename {
 
   /** Rename the old feature to the new mapping and remove everything else */
   def renameDictionary(mapping: RenameMapping, dictionary: Dictionary): Dictionary =
-    dictionary.forFeatureIds((mapping.newFeatures ++ mapping.oldFeatures).toSet).copy(definitions = dictionary.definitions.flatMap(d =>
-      mapping.mapping.find(_._1 == d.featureId).map({ case (_, newFid) => d.featureId = newFid })
+    Dictionary(dictionary.definitions.flatMap(d =>
+      mapping.mapping.find(_._1 == d.featureId).map({ case (_, newFid) => d.featureId = newFid})
     ))
 }
 
