@@ -12,20 +12,11 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.TempFiles
-import com.nicta.scoobi.testing.TestFiles._
 import org.specs2.matcher.MustThrownMatchers
 
 import scalaz.{DList => _}
 
 trait SampleFacts extends MustThrownMatchers {
-
-  def createEntitiesFiles(directory: String)(implicit sc: ScoobiConfiguration) = {
-    implicit val fs = sc.fileSystem
-    val entities = Seq("eid1|2012-09-15", "eid2|2012-12-01", "eid1|2012-11-01")
-
-    lazy val entitiesFile = new File(directory + "/entities")
-    TempFiles.writeLines(entitiesFile, entities, isRemote)
-  }
 
   def createDictionary(repo: HdfsRepository) = {
     val dict = Dictionary(List(

@@ -58,4 +58,12 @@ ChordSpec
       dict    <- DictionaryTextStorageV2.fromStore(dictRef)
     } yield dict) must beOkLike(d1 => dictionaryFromIvory(repo) must beOkValue(d1))
   }
+
+  def createEntitiesFiles(directory: String)(implicit sc: ScoobiConfiguration) = {
+    implicit val fs = sc.fileSystem
+    val entities = Seq("eid1|2012-09-15", "eid2|2012-12-01", "eid1|2012-11-01")
+
+    lazy val entitiesFile = new File(directory + "/entities")
+    TempFiles.writeLines(entitiesFile, entities, isRemote)
+  }
 }
