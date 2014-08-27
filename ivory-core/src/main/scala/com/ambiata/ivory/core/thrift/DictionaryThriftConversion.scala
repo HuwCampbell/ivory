@@ -93,12 +93,12 @@ object DictionaryThriftConversion {
 
   object virtual {
     def to(cd: VirtualDefinition): ThriftDictionaryVirtual = {
-      val virt = new ThriftDictionaryVirtual(featureId.to(cd.alias))
+      val virt = new ThriftDictionaryVirtual(featureId.to(cd.source))
       cd.window.map(window.to).foreach(virt.setWindow)
       virt
     }
     def from(virt: ThriftDictionaryVirtual): String \/ VirtualDefinition =
-      featureId.from(virt.getAliasName).map(VirtualDefinition(_, virt.isSetWindow.option(window.from(virt.getWindow))))
+      featureId.from(virt.getSourceName).map(VirtualDefinition(_, virt.isSetWindow.option(window.from(virt.getWindow))))
   }
 
   val concrete = new {

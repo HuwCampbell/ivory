@@ -23,15 +23,15 @@ object Definition {
   def concrete(featureId: FeatureId, encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String]): Definition =
     Concrete(featureId, ConcreteDefinition(encoding, ty, desc, tombstoneValue))
 
-  def virtual(featureId: FeatureId, alias: FeatureId, window: Option[Window]): Definition =
-    Virtual(featureId, VirtualDefinition(alias, window))
+  def virtual(featureId: FeatureId, source: FeatureId, window: Option[Window]): Definition =
+    Virtual(featureId, VirtualDefinition(source, window))
 }
 
 case class ConcreteDefinition(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String]) {
   def toDefinition(featureId: FeatureId): Definition =
     Concrete(featureId, this)
 }
-case class VirtualDefinition(alias: FeatureId, window: Option[Window]) {
+case class VirtualDefinition(source: FeatureId, window: Option[Window]) {
   def toDefinition(featureId: FeatureId): Definition =
     Virtual(featureId, this)
 }

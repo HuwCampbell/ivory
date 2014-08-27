@@ -28,7 +28,7 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
       if (tombstone.isEmpty) None else Some("tombstone" -> tombstone.mkString(","))
     )
     case Virtual(_, d) => List(
-      Some("alias" -> d.alias.toString(":")),
+      Some("source" -> d.source.toString(":")),
       d.window.map(Window.asString).map("window" ->)
     )
   }).flatten.map { case (k, v) => k + "=" + v}.mkString(DELIM)
@@ -64,7 +64,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
   )
 
   private def metaFromMap(featureId: FeatureId, m: Map[String, String]): ValidationNel[String, Definition] = {
-    (m.get("encoding"), m.get("alias")) match {
+    (m.get("encoding"), m.get("source")) match {
       case (Some(encv), None) =>
         val enc = DictionaryTextStorage.parseEncoding(encv).toValidationNel |||
           DictionaryTextStorageV2(encv, DELIMITER).parseList |||
@@ -73,7 +73,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
         val desc = m.getOrElse("description", "")
         val tomb = m.get("tombstone").cata(Delimited.parseCsv, Nil)
         (enc |@| ty)(Definition.concrete(featureId, _, _, desc, tomb))
-      case (None, Some(alias)) =>
+      case (None, Some(source)) =>
         val window = m.get("window").traverseU { s =>
            s.split(" ", 2) match {
              case Array(len, unitStr) =>
@@ -84,12 +84,12 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
                s"Invalid duration format $s".left
            }
         }
-        DictionaryTextStorageV2(alias, DELIMITER).featureId.run().fold(formatError(_).failureNel,
+        DictionaryTextStorageV2(source, DELIMITER).featureId.run().fold(formatError(_).failureNel,
           fid => (fid |@| window)(Definition.virtual(featureId, _, _)).validation.toValidationNel)
       case (Some(_), Some(_))  =>
-        "Must specify either 'encoding' or 'alias' but not both".failureNel
+        "Must specify either 'encoding' or 'source' but not both".failureNel
       case (None, None)        =>
-        "Must either specify at least 'encoding' or 'alias'".failureNel
+        "Must either specify at least 'encoding' or 'source'".failureNel
     }
   }
 
