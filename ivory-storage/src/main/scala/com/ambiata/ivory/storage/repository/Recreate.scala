@@ -93,7 +93,7 @@ object Recreate { outer =>
   } yield ()
 
   private def copyDictionary(from: HdfsRepository, to: HdfsRepository, dry: Boolean) = (path: Path) =>
-    Hdfs.log(s"Copy dictionary ${path.getName} from ${from.dictionaryByName(path.getName)} to ${to.dictionaryByName(path.getName)}") >>
+    Hdfs.log(s"Copy dictionary ${path.getName} from ${from.dictionaryById(DictionaryId(path.getName))} to ${to.dictionaryById(DictionaryId(path.getName))}") >>
     Hdfs.fromResultTIO(dictionaryFromIvory(from) >>= { dict: Dictionary =>
       dictionaryToIvory(to, dict)
     }).unless(dry)
