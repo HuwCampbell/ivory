@@ -36,6 +36,7 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftDictionaryVirtual");
 
   private static final org.apache.thrift.protocol.TField ALIAS_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("aliasName", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+  private static final org.apache.thrift.protocol.TField WINDOW_FIELD_DESC = new org.apache.thrift.protocol.TField("window", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -44,10 +45,12 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
   }
 
   public ThriftDictionaryFeatureId aliasName; // required
+  public ThriftDictionaryWindow window; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    ALIAS_NAME((short)1, "aliasName");
+    ALIAS_NAME((short)1, "aliasName"),
+    WINDOW((short)2, "window");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -64,6 +67,8 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
       switch(fieldId) {
         case 1: // ALIAS_NAME
           return ALIAS_NAME;
+        case 2: // WINDOW
+          return WINDOW;
         default:
           return null;
       }
@@ -104,11 +109,14 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
   }
 
   // isset id assignments
+  private _Fields optionals[] = {_Fields.WINDOW};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.ALIAS_NAME, new org.apache.thrift.meta_data.FieldMetaData("aliasName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftDictionaryFeatureId.class)));
+    tmpMap.put(_Fields.WINDOW, new org.apache.thrift.meta_data.FieldMetaData("window", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftDictionaryWindow.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftDictionaryVirtual.class, metaDataMap);
   }
@@ -130,6 +138,9 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
     if (other.isSetAliasName()) {
       this.aliasName = new ThriftDictionaryFeatureId(other.aliasName);
     }
+    if (other.isSetWindow()) {
+      this.window = new ThriftDictionaryWindow(other.window);
+    }
   }
 
   public ThriftDictionaryVirtual deepCopy() {
@@ -139,6 +150,7 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
   @Override
   public void clear() {
     this.aliasName = null;
+    this.window = null;
   }
 
   public ThriftDictionaryFeatureId getAliasName() {
@@ -165,6 +177,30 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
     }
   }
 
+  public ThriftDictionaryWindow getWindow() {
+    return this.window;
+  }
+
+  public ThriftDictionaryVirtual setWindow(ThriftDictionaryWindow window) {
+    this.window = window;
+    return this;
+  }
+
+  public void unsetWindow() {
+    this.window = null;
+  }
+
+  /** Returns true if field window is set (has been assigned a value) and false otherwise */
+  public boolean isSetWindow() {
+    return this.window != null;
+  }
+
+  public void setWindowIsSet(boolean value) {
+    if (!value) {
+      this.window = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case ALIAS_NAME:
@@ -175,6 +211,14 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
       }
       break;
 
+    case WINDOW:
+      if (value == null) {
+        unsetWindow();
+      } else {
+        setWindow((ThriftDictionaryWindow)value);
+      }
+      break;
+
     }
   }
 
@@ -182,6 +226,9 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
     switch (field) {
     case ALIAS_NAME:
       return getAliasName();
+
+    case WINDOW:
+      return getWindow();
 
     }
     throw new IllegalStateException();
@@ -196,6 +243,8 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
     switch (field) {
     case ALIAS_NAME:
       return isSetAliasName();
+    case WINDOW:
+      return isSetWindow();
     }
     throw new IllegalStateException();
   }
@@ -222,6 +271,15 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
         return false;
     }
 
+    boolean this_present_window = true && this.isSetWindow();
+    boolean that_present_window = true && that.isSetWindow();
+    if (this_present_window || that_present_window) {
+      if (!(this_present_window && that_present_window))
+        return false;
+      if (!this.window.equals(that.window))
+        return false;
+    }
+
     return true;
   }
 
@@ -244,6 +302,16 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
     }
     if (isSetAliasName()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aliasName, other.aliasName);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetWindow()).compareTo(other.isSetWindow());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetWindow()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.window, other.window);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -275,6 +343,16 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
       sb.append(this.aliasName);
     }
     first = false;
+    if (isSetWindow()) {
+      if (!first) sb.append(", ");
+      sb.append("window:");
+      if (this.window == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.window);
+      }
+      first = false;
+    }
     sb.append(")");
     return sb.toString();
   }
@@ -284,6 +362,9 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
     // check for sub-struct validity
     if (aliasName != null) {
       aliasName.validate();
+    }
+    if (window != null) {
+      window.validate();
     }
   }
 
@@ -330,6 +411,15 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 2: // WINDOW
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+              struct.window = new ThriftDictionaryWindow();
+              struct.window.read(iprot);
+              struct.setWindowIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -349,6 +439,13 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
         oprot.writeFieldBegin(ALIAS_NAME_FIELD_DESC);
         struct.aliasName.write(oprot);
         oprot.writeFieldEnd();
+      }
+      if (struct.window != null) {
+        if (struct.isSetWindow()) {
+          oprot.writeFieldBegin(WINDOW_FIELD_DESC);
+          struct.window.write(oprot);
+          oprot.writeFieldEnd();
+        }
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -371,20 +468,31 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
       if (struct.isSetAliasName()) {
         optionals.set(0);
       }
-      oprot.writeBitSet(optionals, 1);
+      if (struct.isSetWindow()) {
+        optionals.set(1);
+      }
+      oprot.writeBitSet(optionals, 2);
       if (struct.isSetAliasName()) {
         struct.aliasName.write(oprot);
+      }
+      if (struct.isSetWindow()) {
+        struct.window.write(oprot);
       }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, ThriftDictionaryVirtual struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(1);
+      BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
         struct.aliasName = new ThriftDictionaryFeatureId();
         struct.aliasName.read(iprot);
         struct.setAliasNameIsSet(true);
+      }
+      if (incoming.get(1)) {
+        struct.window = new ThriftDictionaryWindow();
+        struct.window.read(iprot);
+        struct.setWindowIsSet(true);
       }
     }
   }

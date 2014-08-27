@@ -49,12 +49,12 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
   )
 
   def virtualMissingAlias = prop((dict: Dictionary, fid: FeatureId, alias: FeatureId) => !dict.meta.contains(alias) ==> {
-    val fullDict = dict append Dictionary(Map(fid -> Definition.virtual(alias)))
+    val fullDict = dict append Dictionary(Map(fid -> Definition.virtual(alias, None)))
     validateSelf(fullDict) ==== InvalidVirtualAlias(alias, ValidationPath(fid)).failureNel
   })
 
   def virtualVirtualAlias = prop((fid: FeatureId, alias: FeatureId, cd: ConcreteDefinition) => {
-    val dict = Dictionary(Map(fid -> cd.definition)) append Dictionary(Map(fid -> Definition.virtual(alias)))
+    val dict = Dictionary(Map(fid -> cd.definition)) append Dictionary(Map(fid -> Definition.virtual(alias, None)))
     validateSelf(dict) ==== InvalidVirtualAlias(alias, ValidationPath(fid)).failureNel
   })
 

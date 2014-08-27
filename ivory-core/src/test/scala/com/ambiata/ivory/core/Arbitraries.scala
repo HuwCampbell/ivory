@@ -128,10 +128,16 @@ object Arbitraries {
       tombs <- Gen.listOf(arbitrary[DictTomb].map(_.s))
     } yield ConcreteDefinition(enc, ty, desc, tombs)
 
+  implicit def WindowArbitrary: Arbitrary[Window] = Arbitrary(for {
+    length <- Gen.posNum[Int]
+    unit   <- Gen.oneOf(Days, Weeks, Months, Years)
+  } yield Window(length, unit))
+
   def virtualDefGen(gen: (FeatureId, ConcreteDefinition)): Gen[Option[(FeatureId, VirtualDefinition)]] = {
     Gen.frequency(70 -> Gen.const(None), 30 -> (for {
       fid        <- arbitrary[FeatureId]
-    } yield Some(fid -> VirtualDefinition(gen._1))))
+      window     <- arbitrary[Option[Window]]
+    } yield Some(fid -> VirtualDefinition(gen._1, window))))
   }
 
   implicit def FeatureMetaArbitrary: Arbitrary[ConcreteDefinition] =

@@ -74,11 +74,31 @@ object DictionaryThriftConversion {
     case NUMERICAL => NumericalType
   })
 
+  object window {
+    def to(window: Window): ThriftDictionaryWindow =
+      new ThriftDictionaryWindow(window.length, window.unit match {
+        case Days   => ThriftDictionaryWindowUnit.DAYS
+        case Weeks  => ThriftDictionaryWindowUnit.WEEKS
+        case Months => ThriftDictionaryWindowUnit.MONTHS
+        case Years  => ThriftDictionaryWindowUnit.YEARS
+      })
+    def from(window: ThriftDictionaryWindow): Window =
+      Window(window.getLength, window.getUnit match {
+        case ThriftDictionaryWindowUnit.DAYS   => Days
+        case ThriftDictionaryWindowUnit.WEEKS  => Weeks
+        case ThriftDictionaryWindowUnit.MONTHS => Months
+        case ThriftDictionaryWindowUnit.YEARS  => Years
+      })
+  }
+
   object virtual {
-    def to(cd: VirtualDefinition): ThriftDictionaryVirtual =
-      new ThriftDictionaryVirtual(featureId.to(cd.alias))
+    def to(cd: VirtualDefinition): ThriftDictionaryVirtual = {
+      val virt = new ThriftDictionaryVirtual(featureId.to(cd.alias))
+      cd.window.map(window.to).foreach(virt.setWindow)
+      virt
+    }
     def from(virt: ThriftDictionaryVirtual): String \/ VirtualDefinition =
-      featureId.from(virt.getAliasName).map(VirtualDefinition)
+      featureId.from(virt.getAliasName).map(VirtualDefinition(_, virt.isSetWindow.option(window.from(virt.getWindow))))
   }
 
   val concrete = new {

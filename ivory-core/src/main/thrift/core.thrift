@@ -142,8 +142,21 @@ struct ThriftDictionaryFeatureMeta {
     5: optional ThriftDictionaryFeatureValue value;
 }
 
+enum ThriftDictionaryWindowUnit {
+    DAYS = 1,
+    WEEKS = 2,
+    MONTHS = 3,
+    YEARS = 4
+}
+
+struct ThriftDictionaryWindow {
+    1: i32 length;
+    2: ThriftDictionaryWindowUnit unit;
+}
+
 struct ThriftDictionaryVirtual {
     1: ThriftDictionaryFeatureId aliasName;
+    2: optional ThriftDictionaryWindow window;
 }
 
 union ThriftDictionaryDefinition {
