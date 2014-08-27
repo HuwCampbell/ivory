@@ -19,7 +19,7 @@ case class Dictionary(definitions: List[Definition]) {
       a definition. This is important for portability across repositories
       and even factsets in a repository over time. */
   val byFeatureIndex: Map[Int, Definition] =
-    definitions.zipWithIndex.map({ case (d, i) => i -> d }).toMap
+    definitions.zipWithIndex.map(_.swap).toMap
 
   /** Reverse index this dictionary by an integer feature index,
       this is the inverse of byFeatureIndex and the same warnings
