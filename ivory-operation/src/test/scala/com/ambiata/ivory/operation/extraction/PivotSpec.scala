@@ -32,7 +32,6 @@ class PivotSpec extends Specification with SampleFacts { def is = s2"""
     val directory = path(TempFiles.createTempDir("pivot").getPath)
     val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 
-    createEntitiesFiles(directory)
     createDictionary(repo)
     createFacts(repo)
 

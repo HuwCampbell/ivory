@@ -26,7 +26,6 @@ class SnapshotSpec extends Specification with SampleFacts { def is = s2"""
     val directory = path(TempFiles.createTempDir("snapshot").getPath)
     val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 
-    createEntitiesFiles(directory)
     createDictionary(repo)
     createFacts(repo)
 
