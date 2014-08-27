@@ -19,8 +19,6 @@ object main {
     countFacts,
     createRepository,
     factDiff,
-    generateDictionary,
-    generateFacts,
     importDictionary,
     ingest,
     pivot,
@@ -45,4 +43,3 @@ object main {
     sys.exit(1)
   }
 }
-
