@@ -144,13 +144,12 @@ object Arbitraries {
     Arbitrary(featureMetaGen(arbitrary[Encoding]))
 
   implicit def DictionaryArbitrary: Arbitrary[Dictionary] =
-    Arbitrary(Gen.listOf(
-      for {
-        cd <- arbitrary[(FeatureId, ConcreteDefinition)]
-        // For every concrete definition there is a change we may have a virtual feature
-        vd <- virtualDefGen(cd)
-      } yield List(cd._1 -> cd._2.definition) ++ vd.map(vd => vd._1 -> vd._2.definition).toList
-    ).map(_.flatten.toMap).map(Dictionary))
+    Arbitrary(for {
+      n <- Gen.choose(10, 20)
+      c <- Gen.listOfN(n, arbitrary[(FeatureId, ConcreteDefinition)])
+      // For every concrete definition there is a chance we may have a virtual feature
+      v <- c.traverse(virtualDefGen).map(_.flatten)
+    } yield Dictionary(c.map({ case (f, d) => d.toDefinition(f) }) ++ v.map({ case (f, d) => d.toDefinition(f) })))
 
   implicit def EncodingArbitrary: Arbitrary[Encoding] =
     Arbitrary(Gen.oneOf(arbitrary[SubEncoding], arbitrary[ListEncoding]))

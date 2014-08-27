@@ -49,17 +49,19 @@ object DenseRowTextStorageV1 {
   }
 
   def indexDictionary(dict: Dictionary): List[(Int, FeatureId, Definition)] =
-    dict.meta.toList.filter {
-      case (_, Concrete(fm)) => Encoding.isPrimitive(fm.encoding)
-      case (_, _: Virtual)   => false
-    }.sortBy(_._1.toString(".")).zipWithIndex.map({ case ((f, m), i) => (i, f, m) })
+    dict.definitions.filter({
+      case Concrete(_, fm) =>
+        Encoding.isPrimitive(fm.encoding)
+      case Virtual(_, _) =>
+        false
+    }).sortBy(_.featureId.toString(".")).zipWithIndex.map({ case (d, i) => (i, d.featureId, d) })
 
   def featuresToString(features: List[(Int, FeatureId, Definition)], tombstone: String, delim: Char): List[String] = {
     import com.ambiata.ivory.storage.metadata.DictionaryTextStorage
     features.map {
       case (i, fid, f) => i.toString + delim + DictionaryTextStorage.delimitedLineWithDelim(fid -> (f match {
-        case Concrete(m) => m.copy(tombstoneValue = List(tombstone))
-        case _: Virtual  => NotImplemented.virtualDictionaryFeature
+        case Concrete(_, m) => m.copy(tombstoneValue = List(tombstone))
+        case Virtual(_, _)  => NotImplemented.virtualDictionaryFeature
       }), delim.toString)
     }
   }

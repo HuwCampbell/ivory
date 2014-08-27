@@ -12,8 +12,8 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
    is valid with a new struct                                      $newStruct
    validates when the struct changes                               $structChanges
    is valid normally                                               $selfValid
-   is invalid with a hanging virtual definition                    $virtualMissingAlias
-   is invalid with a virtual definition with a virtual alias       $virtualVirtualAlias
+   is invalid with a hanging virtual definition                    $virtualMissingSource
+   is invalid with a virtual definition with a virtual source      $virtualVirtualSource
 
 """
 
@@ -31,7 +31,7 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
   })
 
   def newStruct = prop((enc: StructEncoding) =>
-    validate(Dictionary(Map()), dict(enc)) ==== OK
+    validate(Dictionary.empty, dict(enc)) ==== OK
   )
 
   def structChanges = prop((enc: PrimitiveEncoding) =>
@@ -48,14 +48,14 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
     validateSelf(dict) ==== OK
   )
 
-  def virtualMissingAlias = prop((dict: Dictionary, fid: FeatureId, alias: FeatureId) => !dict.meta.contains(alias) ==> {
-    val fullDict = dict append Dictionary(Map(fid -> Definition.virtual(alias, None)))
-    validateSelf(fullDict) ==== InvalidVirtualAlias(alias, ValidationPath(fid)).failureNel
+  def virtualMissingSource = prop((dict: Dictionary, fid: FeatureId, source: FeatureId) => !dict.byFeatureId.contains(source) ==> {
+    val fullDict = dict append Dictionary(List(Definition.virtual(fid, source, None)))
+    validateSelf(fullDict) ==== InvalidVirtualSource(source, ValidationPath(fid)).failureNel
   })
 
-  def virtualVirtualAlias = prop((fid: FeatureId, alias: FeatureId, cd: ConcreteDefinition) => {
-    val dict = Dictionary(Map(fid -> cd.definition)) append Dictionary(Map(fid -> Definition.virtual(alias, None)))
-    validateSelf(dict) ==== InvalidVirtualAlias(alias, ValidationPath(fid)).failureNel
+  def virtualVirtualSource = prop((fid: FeatureId, source: FeatureId, cd: ConcreteDefinition) => {
+    val dict = Dictionary(List(cd.toDefinition(fid))) append Dictionary(List(Definition.virtual(fid, source, None)))
+    validateSelf(dict) ==== InvalidVirtualSource(source, ValidationPath(fid)).failureNel
   })
 
   // At some point it might be worth investigating Prism's from Monocle to share this code with the actual logic
@@ -71,5 +71,5 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
   )
 
   private def dict(enc: Encoding) =
-    Dictionary(Map(fid -> Concrete(enc, Some(BinaryType), "", Nil)))
+    Dictionary(List(Definition.concrete(fid, enc, Some(BinaryType), "", Nil)))
 }

@@ -24,7 +24,7 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
 
   def e1 = prop((dict: Dictionary) => run { (loader, _) =>
     loader.store(dict) >> loader.load
-  } must beOkValue(dict))
+  }.map(_.byFeatureId) must beOkValue(dict.byFeatureId))
 
   def empty = prop((dict: Dictionary) => run { (loader, _) =>
     loader.load
@@ -32,7 +32,7 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
 
   def identifierFirst = prop((dict: Dictionary) => run { (loader, dir) =>
     storeDateDicts(dict, dir) >> loader.store(dict) >> loader.load
-  } must beOkValue(dict))
+  }.map(_.byFeatureId) must beOkValue(dict.byFeatureId))
 
   def dateLoad = prop((dict: PrimitiveDictionary) => run { (loader, dir) =>
     storeDateDicts(dict.dict, dir) >> loader.load
@@ -44,7 +44,7 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
 
   def loadIdentifier = prop((dict: Dictionary) => run { (loader, dir) =>
     loader.store(dict) >>= (id => loader.loadFromId(id._1))
-  } must beOkValue(Some(dict)))
+  }.map(_.map(_.byFeatureId)) must beOkValue(Some(dict.byFeatureId)))
 
   private def storeDateDicts(dict: Dictionary, dir: FilePath): ResultTIO[Unit] = {
     import DictionaryTextStorage._
@@ -59,8 +59,10 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
   // Text dictionaries can only handle primitive encoding _with_ types and _at least_ one tombstone
   case class PrimitiveDictionary(dict: Dictionary)
   implicit def PrimitiveDictionaryArbitrary: Arbitrary[PrimitiveDictionary] =
-    Arbitrary(arbitrary[Dictionary].map(d => d.copy(meta = d.meta.filter {
-      case (k, Concrete(m)) => Encoding.isPrimitive(m.encoding) && m.ty.isDefined && m.tombstoneValue.nonEmpty && !m.desc.contains("\"")
-      case (k, _: Virtual)  => false
+    Arbitrary(arbitrary[Dictionary].map(d => d.copy(definitions = d.definitions.filter {
+      case Concrete(k, m) =>
+        Encoding.isPrimitive(m.encoding) && m.ty.isDefined && m.tombstoneValue.nonEmpty && !m.desc.contains("\"")
+      case Virtual(k, _) =>
+        false
     })).map(PrimitiveDictionary))
 }

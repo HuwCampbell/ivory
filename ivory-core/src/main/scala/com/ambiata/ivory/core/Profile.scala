@@ -1,7 +1,6 @@
 package com.ambiata.ivory.core
 
 object Profile {
-
   def time[R](name: String, block: => R): R = {
     val t0 = System.nanoTime()
     val result = block    // call-by-name

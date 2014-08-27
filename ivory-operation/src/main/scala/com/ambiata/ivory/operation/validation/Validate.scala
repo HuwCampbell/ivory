@@ -61,7 +61,7 @@ case class ValidateStoreHdfs(repo: HdfsRepository, store: FeatureStore, dict: Di
 
       val validated: DList[Validation[String, Fact]] =
         reduced.map({ case (fs, f) =>
-          dict.meta.get(f.featureId).map(fm =>
+          dict.byFeatureId.get(f.featureId).map(fm =>
             Validate.validateFact(f, dict).leftMap(e => s"${e} - Fact set '${fs}'")
           ).getOrElse(s"Dictionary entry '${f.featureId}' doesn't exist!".failure)
         })
@@ -112,10 +112,10 @@ object Validate {
   } yield c
 
   def validateFact(fact: Fact, dict: Dictionary): Validation[String, Fact] =
-    dict.meta.get(fact.featureId)
+    dict.byFeatureId.get(fact.featureId)
       .map {
-        case Concrete(fm) => validateEncoding(fact.value, fm.encoding).map(_ => fact).leftMap(_ + s" '${fact.toString}'")
-        case _: Virtual   => s"Cannot have virtual facts for ${fact.featureId}".failure
+        case Concrete(_, fm) => validateEncoding(fact.value, fm.encoding).map(_ => fact).leftMap(_ + s" '${fact.toString}'")
+        case Virtual(_, _)   => s"Cannot have virtual facts for ${fact.featureId}".failure
       }
       .getOrElse(s"Dictionary entry '${fact.featureId}' doesn't exist!".failure)
 

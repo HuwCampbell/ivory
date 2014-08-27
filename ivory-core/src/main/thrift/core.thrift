@@ -155,7 +155,7 @@ struct ThriftDictionaryWindow {
 }
 
 struct ThriftDictionaryVirtual {
-    1: ThriftDictionaryFeatureId aliasName;
+    1: ThriftDictionaryFeatureId sourceName;
     2: optional ThriftDictionaryWindow window;
 }
 

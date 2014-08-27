@@ -52,9 +52,9 @@ object ReducerLookups {
     val namespaces = new NamespaceLookup
     val features = new FeatureIdLookup
 
-    dict.meta.zipWithIndex.foreach { case ((fid, _), idx) =>
-      namespaces.putToNamespaces(idx, fid.namespace.name)
-      features.putToIds(fid.toString, idx)
+    dict.definitions.zipWithIndex.foreach { case (d, idx) =>
+      namespaces.putToNamespaces(idx, d.featureId.namespace.name)
+      features.putToIds(d.featureId.toString, idx)
     }
     (namespaces, features)
   }

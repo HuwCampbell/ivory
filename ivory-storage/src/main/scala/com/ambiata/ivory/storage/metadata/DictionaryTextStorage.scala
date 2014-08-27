@@ -10,14 +10,16 @@ object DictionaryTextStorage extends TextStorage[(FeatureId, ConcreteDefinition)
   val DELIM = "|"
 
   def fromList(entries: List[(FeatureId, ConcreteDefinition)]): Dictionary =
-    Dictionary(entries.map(f => f._1 -> Concrete(f._2)).toMap)
+    Dictionary(entries.map(f => Concrete(f._1, f._2)))
 
   def toList(d: Dictionary): List[(FeatureId, ConcreteDefinition)] =
-    d.meta.flatMap {
-      case (fid, Concrete(m)) => Some(fid -> m)
+    d.definitions.flatMap {
+      case Concrete(fid, m) =>
+        Some(fid -> m)
       // V1 never handled virtual features, and never will
-      case (_  , m: Virtual)  => None
-    }.toList
+      case Virtual(_, _) =>
+        None
+    }
 
   def parseLine(i: Int, e: String): ValidationNel[String, (FeatureId, ConcreteDefinition)] =
     parseDictionaryEntry(e).toValidationNel

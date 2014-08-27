@@ -39,7 +39,7 @@ Skew Tests
     largeNamespace.forall { case (name, size) =>
       val all = r.filter(_._1 == name)
       val reducers = all.map(_._3).distinct.size
-      if (size > optimalSize && dictionary.forNamespace(name).meta.size > 1)
+      if (size > optimalSize && dictionary.forNamespace(name).definitions.size > 1)
         reducers > 1
       else
         reducers == 1
@@ -49,7 +49,7 @@ Skew Tests
   def large = {
     val (_, r) = Skew.calculate(dictionary, largeNamespace, optimalSize)
     largeNamespace.filter { case (n, size) =>
-      size.toBytes.value > dictionary.forNamespace(n).meta.size.toLong * optimalSize.toBytes.value
+      size.toBytes.value > dictionary.forNamespace(n).definitions.size.toLong * optimalSize.toBytes.value
     }.forall { case (n, size) =>
       val all = r.filter(_._1 == n)
       all.map(_._3).distinct.size must_== all.size
@@ -68,7 +68,7 @@ Skew Tests
   def optimalSize = 256.mb
 
   /** create a dictionary */
-  def dictionary = Dictionary(featureIds.map(_ -> fake.definition).toMap)
+  def dictionary = Dictionary(featureIds.map(fake.toDefinition))
   def featureIds =
     (1 to 10).map(n => FeatureId("demographics", "d" + n)).toList ++
     (1 to 10).map(n => FeatureId("offers", "o" + n)).toList ++
