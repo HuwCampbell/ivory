@@ -30,7 +30,6 @@ class SnapshotSpec extends Specification with SampleFacts { def is = s2"""
     createDictionary(repo)
     createFacts(repo)
 
-    val testDir = "target/"+getClass.getSimpleName+"/"
     Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false) must beOk
   }
 }
