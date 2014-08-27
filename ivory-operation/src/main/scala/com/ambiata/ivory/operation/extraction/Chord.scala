@@ -63,7 +63,7 @@ object Chord {
       outputStore          <- downcast[Any, HdfsStore](outputRef.store, s"Currently output path must be on HDFS. Given value is $outputRef")
       outputPath           =  (outputStore.base </> outputRef.path).toHdfs
       _                    <- serialiseEntities(entities, chordRef)
-      featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotMeta(repository, meta))
+      featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotMeta(repository)(meta))
       dictionary           <- dictionaryFromIvory(repository)
       _                    <- chordScoobiJob(hr, dictionary, store, chordRef, entities.latestDate, featureStoreSnapshot, outputPath, hr.codec).run(hr.scoobiConfiguration)
     } yield ()
@@ -122,7 +122,7 @@ object Chord {
       override def setup() { entities = getEntities }
       override def process(input: ((String, String), Iterable[PrioritizedFact]), emitter: Emitter[PrioritizedFact]) {
         input match { case ((entityId, featureId), fs) =>
-          entities.keepBestFact(entityId, fs).collect { case (date, priority, Some(fact)) if !fact.isTombstone =>
+          entities.keepBestFacts(entityId, fs).collect { case (date, priority, Some(fact)) if !fact.isTombstone =>
             emitter.emit((priority, fact.withEntity(fact.entity + ":" + Date.unsafeFromInt(date).hyphenated)))
           }
         }

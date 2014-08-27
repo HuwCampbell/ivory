@@ -21,14 +21,15 @@ case class Entities(entities: Mappings) {
 
   private case class DateRange(earliest: Date, latest: Date)
 
+  /** get the earliest date and the latest date across all entities */
   private lazy val dateRange: DateRange = entities.values.asScala.foldLeft(DateRange(Date.maxValue, Date.minValue)) { case (DateRange(lmin, lmax), ds) =>
-    val min = Date.unsafeFromInt(ds.min)
-    val max = Date.unsafeFromInt(ds.max)
+    val min = Date.unsafeFromInt(ds.last) // last is the minimum date because the array is sorted
+    val max = Date.unsafeFromInt(ds.head) // head is the maximum date because the array is sorted
     DateRange(Date.min(min, lmin), Date.max(max, lmax))
   }
 
   lazy val earliestDate = dateRange.earliest
-  lazy val latestDate = dateRange.latest
+  lazy val latestDate   = dateRange.latest
 
   /** @return true if this fact concerns one of the entities and happened before the last required date for that entity */
   def keep(f: Fact) = {
@@ -36,7 +37,13 @@ case class Entities(entities: Mappings) {
     dates != null && f.date.int <= dates(0)
   }
 
-  def keepBestFact(entityId: String, facts: Iterable[PrioritizedFact]): Array[(Int, Priority, Option[Fact])] = {
+  /**
+   * From a list of prioritized facts and a given entity
+   * @return the list of (Date, Priority, Fact) where we keep the best fact for a given date
+   *         the "best" facts must be the closest to the required date and then the fact with the highest
+   *         priority
+   */
+  def keepBestFacts(entityId: String, facts: Iterable[PrioritizedFact]): Array[(Int, Priority, Option[Fact])] = {
     // lexical order for a pair (Fact, Priority) so that
     // p1 < p2 <==> f1.datetime > f2.datetime || f1.datetime == f2.datetime && priority1 < priority2
     implicit val ord: Order[(Fact, Priority)] = Order.orderBy { case (f, p) => (-f.datetime.long, p) }
@@ -51,7 +58,7 @@ case class Entities(entities: Mappings) {
       result.map {
         // we found a first suitable fact for that date
         case (date, p, None)    if factDate <= date                               => (date, priority, Some(fact))
-        // we found a better priority at a later time
+        // we found a better priority at an acceptable date but later time or better priority
         case (date, p, Some(f)) if factDate <= date && (fact, priority).<((f, p)) => (date, priority, Some(fact))
         case previous                                                             => previous
       }
@@ -61,6 +68,10 @@ case class Entities(entities: Mappings) {
 
 object Entities {
 
+  /**
+   * Map of entity name to a sorted non-empty array of Dates, represented as Ints.
+   * The dates array is sorted from latest to earliest
+   */
   type Mappings = HashMap[String, Array[Int]]
 
   def serialiseEntities(entities: Entities, ref: ReferenceIO): ResultTIO[Unit] = {
@@ -93,6 +104,8 @@ object Entities {
       Entities(mappings)
     }
   }
+
+  def empty = Entities(new java.util.HashMap[String, Array[Int]])
 
   private def parseLine(DatePattern: Regex): String => (String, Int) = (line: String) =>
     line.split("\\|").toList match {

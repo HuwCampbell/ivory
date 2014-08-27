@@ -142,11 +142,21 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
     }
 
   case class DateOffset(year: Short, month: Byte, day: Byte) {
+    import math._
+
     /** offset an existing date to get a new one */
     def offset(date: Date): Date = {
       val newYear  = (date.year + year).toShort
-      val newMonth = (math.abs((date.month + month) % 12) + 1).toByte
-      val newDay   = (math.abs((date.day + day) % 26) + 1).toByte
+      val newMonth = (abs((date.month + month) % 12) + 1).toByte
+      val newDay   = (abs((date.day + day) % 26) + 1).toByte
+      Date.unsafe(newYear, newMonth, newDay)
+    }
+
+    /**  @return a random date, greater than the passed date */
+    def makeGreaterDateThan(date: Date) = {
+      val newYear  = (date.year + abs(year)).toShort
+      val newMonth = { val m = date.month + abs(month); (if (m >= 12) 12 else m).toByte }
+      val newDay   = { val d = date.day + abs(day);     (if (d >= 31) 31 else d).toByte }
       Date.unsafe(newYear, newMonth, newDay)
     }
   }
