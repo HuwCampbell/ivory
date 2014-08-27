@@ -30,6 +30,9 @@ object Metadata {
   def latestFeatureStoreId(repo: Repository): ResultTIO[Option[FeatureStoreId]] =
     FeatureStoreTextStorage.latestId(repo)
 
+  def latestFeatureStoreIdT: IvoryTIO[Option[FeatureStoreId]] =
+    IvoryT.fromResultTIO(latestFeatureStoreId)
+
   /** @return the latest store or fail if there is none */
   def latestFeatureStoreOrFail(repository: Repository): ResultTIO[FeatureStore] =
     latestFeatureStoreIdOrFail(repository).flatMap(id => featureStoreFromIvory(repository, id))

@@ -37,7 +37,7 @@ case class EavtTextImporter(repository: Repository,
       dictionary <- dictionaryFromIvory(repository)
       inputPath  <- Reference.hdfsPath(input)
       errorPath  <- Reference.hdfsPath(errorRef)
-      partitions <- Namespaces.namespaceSizes(inputPath, namespace).run(hr.configuration)
+      partitions <- namespace.fold(Namespaces.namespaceSizes(inputPath))(ns => Namespaces.namespaceSizesSingle(inputPath, ns).map(List(_))).run(hr.configuration)
       _          <- runJob(hr, dictionary, factsetId, inputPath, errorPath, partitions, timezone)
     } yield ()
   }
