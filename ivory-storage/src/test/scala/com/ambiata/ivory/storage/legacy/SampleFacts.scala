@@ -1,56 +1,24 @@
 package com.ambiata.ivory.storage.legacy
 
-import java.io.File
-
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.data.OldIdentifier
-import com.ambiata.ivory.data.IvoryDataLiterals._
-import com.ambiata.ivory.scoobi.FactFormats._
-import com.ambiata.ivory.storage.legacy.IvoryStorage._
-import com.ambiata.ivory.storage.metadata.Metadata._
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
-import com.nicta.scoobi.Scoobi._
-import com.nicta.scoobi.testing.TempFiles
 import org.specs2.matcher.MustThrownMatchers
 
-import scalaz.{DList => _}
-
+// Please do _not_ use this trait - it's just for legacy tests. Learn you a property test for Great Good.
 trait SampleFacts extends MustThrownMatchers {
 
-  def createDictionary(repo: HdfsRepository) = {
-    val dict = Dictionary(List(
-      Definition.concrete(FeatureId("ns1", "fid1"), StringEncoding, Some(CategoricalType), "desc", Nil),
-      Definition.concrete(FeatureId("ns1", "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
-      Definition.concrete(FeatureId("ns2", "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil)
-    ))
+  val sampleDictionary = Dictionary(List(
+    Definition.concrete(FeatureId("ns1", "fid1"), StringEncoding, Some(CategoricalType), "desc", Nil),
+    Definition.concrete(FeatureId("ns1", "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
+    Definition.concrete(FeatureId("ns2", "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil)
+  ))
 
-    dictionaryToIvory(repo, dict) must beOk
-    dict
-  }
-
-  def createFacts(repo: HdfsRepository)(implicit sc: ScoobiConfiguration) = {
-    val facts1 =
-      fromLazySeq(Seq(StringFact ("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
-        stringFact1,
-        intFact1,
-        intFact2,
-        booleanFact1))
-
-    val facts2 =
-      fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "ghi")))
-
-    val factset1 = Factset(FactsetId(oi"00000"), Partitions(List(Partition("ns1", Date(2012, 10, 1)))))
-    val factset2 = Factset(FactsetId(oi"00001"), Partitions(List(Partition("ns1", Date(2012, 9, 1)))))
-
-    persist(facts1.toIvoryFactset(repo, factset1.id, None), facts2.toIvoryFactset(repo, factset2.id, None))
-    writeFactsetVersion(repo, List(factset1.id, factset2.id)) must beOk
-
-    featureStoreToIvory(repo, FeatureStore.fromList(FeatureStoreId(oi"00000"), List(factset1, factset2)).get) must beOk
-  }
-
-  def stringFact1  = StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1),  Time(0), "def")
-  def intFact1     = IntFact("eid2", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10)
-  def intFact2     = IntFact("eid2", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11)
-  def booleanFact1 = BooleanFact("eid3", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)
+  val sampleFacts = List(List(
+    StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+    StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "def"),
+    IntFact("eid2", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
+    IntFact("eid2", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11),
+    BooleanFact("eid3", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)
+  ), List(
+    StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "ghi")
+  ))
 }

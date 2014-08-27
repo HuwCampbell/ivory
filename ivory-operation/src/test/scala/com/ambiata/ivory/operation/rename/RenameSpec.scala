@@ -1,16 +1,11 @@
 package com.ambiata.ivory.operation.rename
 
 import com.ambiata.ivory.core._, Arbitraries._
-import com.ambiata.ivory.core.thrift.{NamespacedThriftFact, ThriftSerialiser}
-import com.ambiata.ivory.scoobi.FactFormats._
-import com.ambiata.ivory.scoobi.TestConfigurations._
 import com.ambiata.ivory.storage.control._
-import com.ambiata.ivory.storage.legacy.{IvoryStorage, SampleFacts}
-import com.ambiata.ivory.storage.metadata.Metadata
-import com.ambiata.ivory.storage.repository.{RepositoryConfiguration, HdfsRepository, ScoobiRun}
+import com.ambiata.ivory.storage.legacy.IvoryStorage
+import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
-import com.ambiata.mundane.io.Temporary
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.Scoobi._
 import org.joda.time.LocalDate
@@ -19,7 +14,7 @@ import scalaz.scalacheck.ScalazArbitrary._
 
 import scalaz.{Name => _, _}, Scalaz._
 
-class RenameSpec extends Specification with ScalaCheck with SampleFacts{ def is = s2"""
+class RenameSpec extends Specification with ScalaCheck { def is = s2"""
 Rename
 ======
   validate ok                                        $validateOk
@@ -85,28 +80,12 @@ Rename
     )
   }
 
-  def renameWithFacts(mapping: RenameMapping, dictionary: Dictionary, input: List[Seq[Fact]]): ResultTIO[(RenameStats, Seq[Fact])] = Temporary.using { dir =>
-    implicit val sc: ScoobiConfiguration = scoobiConfiguration
-
-    val repo = HdfsRepository(dir, RepositoryConfiguration(sc.configuration))
-
-    val serialiser = ThriftSerialiser()
-    val factsets = input.foldLeft(NonEmptyList(FactsetId.initial)) { case (factsetIds, facts) =>
-      // This hack is because we can't pass a non-lazy Fact directly to fromLazySeq, but we want/need them to be props
-      val bytes = facts.map(f => serialiser.toBytes(f.toNamespacedThrift))
-      IvoryStorage.IvoryFactStorage(fromLazySeq(bytes).map {
-        bytes => serialiser.fromBytesUnsafe(new NamespacedThriftFact with NamespacedThriftFactDerived, bytes)
-      }).toIvoryFactset(repo, factsetIds.head, None)(sc).persist
-      factsetIds.head.next.get <:: factsetIds
-    }.tail.reverse
-    (for {
-      _      <- IvoryStorage.writeFactsetVersionI(factsets)
-      _      <- factsets.traverse(Metadata.incrementFeatureStore)
-      _      <-  Metadata.dictionaryToIvoryT(dictionary)
-      result <- Rename.rename(mapping, 10.mb)
-      facts  <- IvoryT.fromResultT(IvoryStorage.factsFromIvoryFactset(_, result._1).run(sc).map(_.run))
-    } yield (result._3, facts)).run(IvoryRead.testing(repo)).map {
-      case (s, facts) => (s, facts.flatMap(_.toOption))
+  def renameWithFacts(mapping: RenameMapping, dictionary: Dictionary, input: List[Seq[Fact]]): ResultTIO[(RenameStats, Seq[Fact])] =
+    RepositoryBuilder.using { repo => (for {
+        _      <- IvoryT.fromResultTIO(_ => RepositoryBuilder.createRepo(repo, dictionary, input.map(_.toList)))
+        result <- Rename.rename(mapping, 10.mb)
+        sc = repo.scoobiConfiguration
+        facts  <- IvoryT.fromResultT(IvoryStorage.factsFromIvoryFactset(_, result._1).run(sc).map(_.run(sc)))
+      } yield (result._3, facts.flatMap(_.toOption))).run(IvoryRead.testing(repo))
     }
-  }
 }
