@@ -9,7 +9,6 @@ import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.TempFiles
@@ -63,14 +62,4 @@ trait SampleFacts extends MustThrownMatchers {
   def intFact1     = IntFact("eid2", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10)
   def intFact2     = IntFact("eid2", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11)
   def booleanFact1 = BooleanFact("eid3", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)
-
-  def createAll(dirName: String)(implicit sc: ScoobiConfiguration) = {
-    val directory = path(TempFiles.createTempDir(dirName).getPath)
-    val repo = Repository.fromHdfsPath(directory </> "repo", sc)
-
-    createEntitiesFiles(directory)
-    createDictionary(repo)
-    createFacts(repo)
-    directory
-  }
 }
