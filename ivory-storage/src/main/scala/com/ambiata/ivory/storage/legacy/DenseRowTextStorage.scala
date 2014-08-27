@@ -61,7 +61,7 @@ object DenseRowTextStorageV1 {
     features.map {
       case (i, fid, f) => i.toString + delim + DictionaryTextStorage.delimitedLineWithDelim(fid -> (f match {
         case Concrete(_, m) => m.copy(tombstoneValue = List(tombstone))
-        case _: Virtual  => NotImplemented.virtualDictionaryFeature
+        case Virtual(_, _)  => NotImplemented.virtualDictionaryFeature
       }), delim.toString)
     }
   }

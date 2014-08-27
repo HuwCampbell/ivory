@@ -115,7 +115,7 @@ object Validate {
     dict.byFeatureId.get(fact.featureId)
       .map {
         case Concrete(_, fm) => validateEncoding(fact.value, fm.encoding).map(_ => fact).leftMap(_ + s" '${fact.toString}'")
-        case _: Virtual   => s"Cannot have virtual facts for ${fact.featureId}".failure
+        case Virtual(_, _)   => s"Cannot have virtual facts for ${fact.featureId}".failure
       }
       .getOrElse(s"Dictionary entry '${fact.featureId}' doesn't exist!".failure)
 

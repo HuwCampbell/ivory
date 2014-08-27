@@ -35,9 +35,9 @@ object DictionaryImportValidate {
     def validateFeature(id: FeatureId, oldFeature: Definition, newFeature: Definition): DictValidationUnit =
       (oldFeature, newFeature) match {
         case (Concrete(_, oldMeta), Concrete(_, newMeta)) => validateMeta(id, oldMeta, newMeta)
-        case (_: Concrete      , _: Virtual       ) => RealToVirtualEncoding(ValidationPath(id)).failureNel
-        case (_: Virtual       , _: Concrete      ) => OK
-        case (_: Virtual       , _: Virtual       ) => OK
+        case (Concrete(_, _)      , Virtual(_, _)       ) => RealToVirtualEncoding(ValidationPath(id)).failureNel
+        case (Virtual(_, _)       , Concrete(_, _)      ) => OK
+        case (Virtual(_, _)       , Virtual(_, _)       ) => OK
       }
     Maps.outerJoin(oldDict.byFeatureId, newDict.byFeatureId).foldMap {
       case (_,   \&/.This(_))                => OK
