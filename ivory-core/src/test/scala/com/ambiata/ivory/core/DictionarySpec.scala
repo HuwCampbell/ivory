@@ -49,13 +49,13 @@ Append:
        dictionary.byFeatureIndex.get(n)) must beSome(d))))
 
   def byFeatureIdCount = prop((dictionary: Dictionary) =>
-    dictionary.definitions.size == dictionary.byFeatureId.size)
+    dictionary.definitions.size must_== dictionary.byFeatureId.size)
 
   def byFeatureIndexCount = prop((dictionary: Dictionary) =>
-    dictionary.definitions.size == dictionary.byFeatureIndex.size)
+    dictionary.definitions.size must_== dictionary.byFeatureIndex.size)
 
   def byFeatureIndexReverseCount = prop((dictionary: Dictionary) =>
-    dictionary.definitions.size == dictionary.byFeatureIndexReverse.size)
+    dictionary.definitions.size must_== dictionary.byFeatureIndexReverse.size)
 
   def filterNamespace = prop((dictionary: Dictionary, n: Int) => (n > 0 && dictionary.size > 0) ==> {
     val namespace = dictionary.definitions(n % dictionary.size).featureId.namespace
