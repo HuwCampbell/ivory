@@ -72,14 +72,28 @@ object SnapshotMeta {
   } yield SnapshotMeta(snapshotId, date, storeId)
 
   /**
-   * get the latest snapshot which is just before a given date
-   * and return it if it is up to date
+   * Get the latest snapshot which is just before a given date
+   * and return it if it is up to date. The latest snapshot is up to date if
+   *
+   *  latestSnapshot.featureStore == latestFeatureStore
+   *    - and the snapshot.date == date
+   *
+   *    - OR the snapshot.date < date
+   *      but there are no partitions between the snapshot date and date for factsets in the latest feature store
    */
-  def latestUpToDateSnapshot(repository: Repository, date: Date): ResultTIO[Option[SnapshotMeta]] =
-    for {
-      latest     <- latestSnapshot(repository, date)
-      isUpToDate <- latest.traverse(isUpToDate(repository, date)).map(_.getOrElse(false))
-    } yield if (isUpToDate) latest else None
+  def latestUpToDateSnapshot(repository: Repository, date: Date): ResultTIO[Option[SnapshotMeta]] = {
+    latestSnapshot(repository, date).flatMap(_.traverseU { meta: SnapshotMeta =>
+
+      Metadata.latestFeatureStoreOrFail(repository).flatMap { featureStore =>
+        if (meta.featureStoreId == featureStore.id && meta.date == date) ResultT.ok[IO, Option[SnapshotMeta]](Some(meta))
+        else
+          FeatureStoreGlob.between(repository, featureStore, meta.date, date).map { glob =>
+            if (glob.partitions.isEmpty) Some(meta)
+            else                         None
+          }
+      }
+    }).map(_.flatten)
+  }
 
   def latestWithStoreId(repository: Repository, date: Date, featureStoreId: FeatureStoreId): ResultTIO[Option[SnapshotMeta]] =
     latestSnapshot(repository, date).map(_.filter(_.featureStoreId == featureStoreId))
@@ -104,17 +118,8 @@ object SnapshotMeta {
 
   /** 
    * A snapshot is up to date if:
-   * 
-   *  - its date is after the required date
-   *  - its date is before the required date but there is no new factsets just after the snapshot date and before the required date
+   *
    */
-  def isUpToDate(repository: Repository, date: Date): SnapshotMeta => ResultTIO[Boolean] = (meta: SnapshotMeta) =>
-    if (meta.date > date) ResultT.ok[IO, Boolean](true)
-    else
-      for {
-        store      <- Metadata.latestFeatureStoreOrFail(repository)
-        partitions <- FeatureStoreGlob.strictlyAfterAndBefore(repository, store, meta.date, date).map(_.partitions)
-      } yield partitions.isEmpty
 
   /**
    * save the snapshot meta object to disk

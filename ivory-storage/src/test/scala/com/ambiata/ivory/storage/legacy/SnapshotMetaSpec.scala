@@ -28,9 +28,15 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
 
  We define the "latest" snapshot before a date1 as the greatest element having a date <= date1 $latest
 
- The latest snapshot is considered the "latest up to date" snapshot for date1
-   if no facts have been ingested after the snapshot date and before date1 $uptodate
+ The latest snapshot is considered the "latest up to date" snapshot for date1 if:
 
+   - latestSnapshot.featureStore == latestFeatureStore
+     - and the snapshot.date == date1
+
+     - OR the snapshot.date != date1
+       but there are no partitions between the snapshot date and date1 for factsets in the latest feature store
+
+   then the snapshot is up to date $uptodate
 """
 
   def sorting = prop { snaps: List[SnapshotMeta] =>
@@ -148,17 +154,23 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
     def offset(date: Date): Date = {
       val newYear  = (date.year + year).toShort
       val newMonth = (abs((date.month + month) % 12) + 1).toByte
-      val newDay   = (abs((date.day + day) % 26) + 1).toByte
-      Date.unsafe(newYear, newMonth, newDay)
+      val newDay   = (abs((date.day + day) % 31) + 1).toByte
+
+      val newDate = Date.unsafe(newYear, newMonth, newDay)
+      if (isValid(newDate)) newDate else date
     }
 
-    /**  @return a random date, greater than the passed date */
+    /** @return a random date, greater or equal than the passed date */
     def makeGreaterDateThan(date: Date) = {
       val newYear  = (date.year + abs(year)).toShort
       val newMonth = { val m = date.month + abs(month); (if (m >= 12) 12 else m).toByte }
       val newDay   = { val d = date.day + abs(day);     (if (d >= 31) 31 else d).toByte }
-      Date.unsafe(newYear, newMonth, newDay)
+      val newDate = Date.unsafe(newYear, newMonth, newDay)
+      if (isValid(newDate)) newDate else date
     }
+
+    private def isValid(date: Date) =
+      Date.isValid(date.year, date.month, date.day)
   }
 
   /** generate date offsets */
