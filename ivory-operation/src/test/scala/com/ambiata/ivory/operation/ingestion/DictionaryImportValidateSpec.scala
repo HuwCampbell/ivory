@@ -31,7 +31,7 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
   })
 
   def newStruct = prop((enc: StructEncoding) =>
-    validate(Dictionary(Nil), dict(enc)) ==== OK
+    validate(Dictionary.empty, dict(enc)) ==== OK
   )
 
   def structChanges = prop((enc: PrimitiveEncoding) =>

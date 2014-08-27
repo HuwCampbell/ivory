@@ -66,7 +66,7 @@ Eavt Parse Formats
   def badattribute =
     prop((entity: Entity, value: Value, feature: FeatureId, date: Date, zone: DateTimeZone) => {
       EavtParsers.fact(
-        Dictionary(Nil)
+        Dictionary.empty
       , feature.namespace
       , zone
       ).run(List(entity.value, feature.name, Value.toString(value, None).getOrElse("?"), date.hyphenated)).toOption must beNone})

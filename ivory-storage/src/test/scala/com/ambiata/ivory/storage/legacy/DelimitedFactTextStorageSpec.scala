@@ -30,7 +30,7 @@ class DelimitedFactTextStorageSpec extends Specification { def is = s2"""
 
   def e3 = {
     val entry = "928340|widgets:inbound.count.1W|thirty-five|2014-01-08 12:00:00"
-    val dict = Dictionary(Nil)
+    val dict = Dictionary.empty
     DelimitedFactTextStorage.parseFact(dict, entry).toEither must beLeft
   }
 }

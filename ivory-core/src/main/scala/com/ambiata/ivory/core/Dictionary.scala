@@ -10,7 +10,7 @@ case class Dictionary(definitions: List[Definition]) {
     definitions.size
 
   /** Index this dictionaries definitions by FeatureId. */
-  lazy val byFeatureId: Map[FeatureId, Definition] =
+  val byFeatureId: Map[FeatureId, Definition] =
     definitions.map(d => d.featureId -> d).toMap
 
   /** Index this dictionaries definitions by an integer feature index.
@@ -18,13 +18,13 @@ case class Dictionary(definitions: List[Definition]) {
       single command and that there is no persistent integer index of
       a definition. This is important for portability across repositories
       and even factsets in a repository over time. */
-  lazy val byFeatureIndex: Map[Int, Definition] =
+  val byFeatureIndex: Map[Int, Definition] =
     definitions.zipWithIndex.map({ case (d, i) => i -> d }).toMap
 
   /** Reverse index this dictionary by an integer feature index,
       this is the inverse of byFeatureIndex and the same warnings
       apply. */
-  lazy val byFeatureIndexReverse: Map[Definition, Int] =
+  val byFeatureIndexReverse: Map[Definition, Int] =
     definitions.zipWithIndex.toMap
 
   /** Create a `Dictionary` from `this` only containing features in the specified namespace. */
@@ -38,4 +38,9 @@ case class Dictionary(definitions: List[Definition]) {
   /** append the mappings coming from another dictionary */
   def append(other: Dictionary) =
     Dictionary(definitions ++ other.definitions)
+}
+
+object Dictionary {
+  def empty: Dictionary =
+    Dictionary(Nil)
 }
