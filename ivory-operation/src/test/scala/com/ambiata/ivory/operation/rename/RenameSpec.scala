@@ -22,10 +22,10 @@ Rename
 
   rename a dictionary with a mapping                 $renameDictionary
 
-  rename of a multiple features                      $renameAll
-  rename of a one feature                            $renameOneFeature
-  rename of a factset respect priority and time      $renamePriority
-  rename of a factset respect entity                 $renameEntity
+  rename of a multiple features                      $renameAll            ${tag("mr")}
+  rename of a one feature                            $renameOneFeature     ${tag("mr")}
+  rename of a factset respect priority and time      $renamePriority       ${tag("mr")}
+  rename of a factset respect entity                 $renameEntity         ${tag("mr")}
 """
 
   def validateOk = prop((dict: Dictionary, meta: ConcreteDefinition, fid1: FeatureId, fid2: FeatureId) => !dict.byFeatureId.contains(fid1) ==> {
