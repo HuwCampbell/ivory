@@ -13,7 +13,7 @@ object IdentifierStorage {
   type IdentityPath = (Identifier, FilePath)
 
   def get: StoreKeeper[Option[IdentityPath]] = { (store, dir) =>
-    StoreDataUtil.listDir(store, dir)
+    StoreDataUtil.listDirWithoutDotFiles(store, dir)
       .map(_.flatMap(x => Identifier.parse(x.basename.path)).sorted.lastOption)
       .map(_.map(i => i -> (dir </> i.render)))
   }
