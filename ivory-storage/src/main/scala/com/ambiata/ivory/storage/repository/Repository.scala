@@ -28,8 +28,10 @@ sealed trait Repository {
   def metadata: FilePath = root </> "metadata"
   def dictionaries: FilePath = metadata </> "dictionaries"
   def featureStores: FilePath = metadata </> "stores"
+  def commits: FilePath = metadata </> "repositories"
   def dictionaryById(id: DictionaryId): FilePath = dictionaries </> id.render
   def featureStoreById(id: FeatureStoreId): FilePath = featureStores </> id.render
+  def commitById(id: CommitId): FilePath = commits </> id.render
   def factset(id: FactsetId): FilePath = factsets </> id.render
   def namespace(id: FactsetId, namespace: String): FilePath = factset(id) </> namespace
   def snapshot(id: SnapshotId): FilePath = snapshots </> FilePath(id.render)
@@ -66,8 +68,10 @@ object Repository {
   def metadata: FilePath = root </> "metadata"
   def dictionaries: FilePath = metadata </> "dictionaries"
   def featureStores: FilePath = metadata </> "stores"
+  def commits: FilePath = metadata </> "repositories"
   def dictionaryById(id: DictionaryId): FilePath = dictionaries </> id.render
   def featureStoreById(id: FeatureStoreId): FilePath = featureStores </> id.render
+  def commitById(id: CommitId): FilePath = commits </> id.render
   def factset(id: FactsetId): FilePath = factsets </> id.render
   def namespace(set: FactsetId, namespace: String): FilePath = factset(set) </> namespace
   def snapshot(id: SnapshotId): FilePath = snapshots </> FilePath(id.render)

@@ -24,7 +24,7 @@ object createRepository extends IvoryApp {
 
       val actions = for {
         repo <- Repository.fromUriResultTIO(c.path, configuration)
-        _    <- Repositories.onStore(repo)
+        _    <- Repositories.create(repo)
       } yield ()
 
       actions.map {

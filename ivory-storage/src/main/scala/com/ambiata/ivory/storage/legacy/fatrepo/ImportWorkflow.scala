@@ -60,6 +60,7 @@ object ImportWorkflow {
         x
       }
       _        <- Metadata.incrementFeatureStore(factset)
+      // TODO: Update Commit
       t5 = {
         val x = System.currentTimeMillis
         println(s"created store in ${x - t4}ms")
@@ -73,7 +74,7 @@ object ImportWorkflow {
     e  <- repo.toStore.exists(repo.root)
     _  <- if(!e) {
       logger.debug(s"Path '${repo.root.path}' doesn't exist, creating")
-      val res = Repositories.onStore(repo)
+      val res = Repositories.create(repo)
       logger.info(s"Repository '${repo.root.path}' created")
       res
     } else {
