@@ -33,6 +33,7 @@ class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""
       )
     } yield buffer.toString
     } must beOkValue(
+
       """|eid1|ns1|fid1|abc|2012-10-01|00:00:00
          |eid2|ns1|fid2|11|2012-11-01|00:00:00
          |eid3|ns2|fid3|true|2012-03-20|00:00:00
