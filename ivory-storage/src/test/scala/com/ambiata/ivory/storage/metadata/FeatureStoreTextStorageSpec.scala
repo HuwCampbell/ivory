@@ -1,13 +1,11 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.data.OldIdentifier
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
 
 import org.specs2._
-import com.nicta.scoobi.testing.TempFiles
 import scalaz._, Scalaz._
 import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.Arbitraries._
@@ -23,37 +21,48 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck { def is
                                                        """
   import FeatureStoreTextStorage._
 
-  def stringsFeatureStore = prop((fstore: FeatureStore) => {
+  def stringsFeatureStore = prop { fstore: FeatureStore =>
     fromLines(toList(fstore.factsetIds).map(toLine)) must_== fstore.factsetIds.right
-  })
+  }
 
-  def readFeatureStore = prop((fstore: FeatureStore) => {
-    val base = LocalLocation(TempFiles.createTempDir("FeatureStoreTextStorage.e2").getPath)
-    val repo = LocalRepository(base.path)
+  def readFeatureStore = prop { fstore: FeatureStore =>
     val expected = fstore.copy(factsets = fstore.factsets.map(_.map(fs => fs.copy(partitions = fs.partitions.sorted))))
-    (writeFeatureStore(repo, fstore) must beOk) and (fromId(repo, fstore.id) must beOkLike(_ must_== expected))
-  })
 
-  def writeFeatureStore = prop((fstore: FeatureStore) =>  {
-    val base = LocalLocation(TempFiles.createTempDir("FeatureStoreTextStorage.e3").getPath)
-    val repo = LocalRepository(base.path)
-    (toId(repo, fstore) must beOk) and
-    (repo.toStore.utf8.read(Repository.featureStoreById(fstore.id)) must beOkLike(_ must_== delimitedString(fstore.factsetIds)))
-  })
+    Temporary.using { dir =>
+      val base = LocalLocation(dir.path)
+      val repo = LocalRepository(base.path)
 
-  def listFeatureStorIds = prop((ids: SmallFeatureStoreIdList) => {
-    val base = LocalLocation(TempFiles.createTempDir("FeatureStoreTextStorage.e4").getPath)
-    val repo = LocalRepository(base.path)
-    (writeFeatureStoreIds(repo, ids.ids) must beOk) and
-    (Metadata.listFeatureStoreIds(repo) must beOkLike(_ must_== ids.ids))
-  })
+      writeFeatureStore(repo, fstore) >>
+      fromId(repo, fstore.id)
+    } must beOkValue(expected)
+  }
 
-  def latestFeatureStoreIs = prop((ids: SmallFeatureStoreIdList) => {
-    val base = LocalLocation(TempFiles.createTempDir("FeatureStoreTextStorage.e5").getPath)
-    val repo = LocalRepository(base.path)
-    (writeFeatureStoreIds(repo, ids.ids) must beOk) and
-    (Metadata.latestFeatureStoreId(repo) must beOkLike(_ must_== ids.ids.sortBy(_.id).lastOption))
-  })
+  def writeFeatureStore = prop { fstore: FeatureStore =>
+    Temporary.using { dir =>
+      val base = LocalLocation(dir.path)
+      val repo = LocalRepository(base.path)
+      toId(repo, fstore) >>
+      repo.toStore.utf8.read(Repository.featureStoreById(fstore.id))
+    } must beOkLike(_ must_== delimitedString(fstore.factsetIds))
+  }
+
+  def listFeatureStorIds = prop { ids: SmallFeatureStoreIdList =>
+    Temporary.using { dir =>
+      val base = LocalLocation(dir.path)
+      val repo = LocalRepository(base.path)
+      writeFeatureStoreIds(repo, ids.ids) >>
+      Metadata.listFeatureStoreIds(repo)
+    } must beOkValue(ids.ids)
+  }
+
+  def latestFeatureStoreIs = prop { ids: SmallFeatureStoreIdList =>
+    Temporary.using { dir =>
+      val base = LocalLocation(dir.path)
+      val repo = LocalRepository(base.path)
+      writeFeatureStoreIds(repo, ids.ids) >>
+      Metadata.latestFeatureStoreId(repo)
+    } must beOkValue(ids.ids.sortBy(_.id).lastOption)
+  }
 
   def writeFeatureStoreIds(repo: Repository, ids: List[FeatureStoreId]): ResultTIO[Unit] =
     ids.traverse(id => writeFile(repo, Repository.featureStores </> FilePath(id.render), List(""))).void
