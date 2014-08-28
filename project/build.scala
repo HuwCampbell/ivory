@@ -236,6 +236,10 @@ object build extends Build {
   , cancelable := true
   , fork in test := true
   , testOptions in Test += Tests.Setup(() => System.setProperty("log4j.configuration", "file:etc/log4j-test.properties"))
+  , testOptions in Test ++= (if (Option(System.getenv("FORCE_AWS")).isDefined || Option(System.getenv("AWS_ACCESS_KEY")).isDefined)
+                               Seq()
+                             else
+                               Seq(Tests.Argument("--", "exclude", "aws")))
   ) ++ instrumentSettings ++ Seq(ScoverageKeys.highlighting := false)
 
   lazy val prompt = shellPrompt in ThisBuild := { state =>
