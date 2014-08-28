@@ -72,7 +72,7 @@ Eavt Parse Formats
       ).run(List(entity.value, feature.name, Value.toString(value, None).getOrElse("?"), date.hyphenated)).toOption must beNone})
 
   def structFail = {
-    val dict = Dictionary(List(Definition.concrete(FeatureId("ns", "a"), StructEncoding(Map()), None, "", Nil)))
+    val dict = Dictionary(List(Definition.concrete(FeatureId(Name("ns"), "a"), StructEncoding(Map()), None, "", Nil)))
     EavtParsers.parse("e|a|v|t", dict, Name("ns"), DateTimeZone.getDefault).toOption must beNone
   }
 

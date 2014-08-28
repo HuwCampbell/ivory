@@ -1,5 +1,6 @@
 package com.ambiata.ivory.data
 
+import com.ambiata.ivory.reflect.MacrosCompat
 import com.ambiata.mundane.parse.ListParser
 import scalaz._, Scalaz._
 
@@ -24,7 +25,8 @@ class OldIdentifier private (val n: Int) extends AnyVal {
     n ?|? i.n
 }
 
-object OldIdentifier {
+object OldIdentifier extends MacrosCompat {
+
   def initial: OldIdentifier =
     new OldIdentifier(0)
 
@@ -54,4 +56,20 @@ object OldIdentifier {
 
   implicit def OldIdentifierOrdering =
     OldIdentifierOrder.toScalaOrdering
+
+  def apply(string: String): OldIdentifier =
+    macro oldIndentifierMacro
+
+  def oldIndentifierMacro(c: Context)(string: c.Expr[String]): c.Expr[OldIdentifier] = {
+    import c.universe._
+    string match {
+      case Expr(Literal(Constant(str: String))) =>
+        Identifier.parse(str).getOrElse(c.abort(c.enclosingPosition, s"Invalid OldIdentifier: $str"))
+        c.Expr[OldIdentifier](q"OldIdentifier.parse($str).get")
+
+      case other =>
+        c.abort(c.enclosingPosition, s"This is not a valid OldIdentifier string: ${showRaw(string)}")
+    }
+  }
+
 }

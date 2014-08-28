@@ -40,8 +40,6 @@ Identifier Properties
   def next = prop((i: Identifier) =>
     i.next.forall(_ > i))
 
-  def literals = {
-    import IvoryDataLiterals._
-    Some(i"1234") must_== Identifier.parse("1234")
-  }
+  def literals =
+    Some(Identifier("1234")) must_== Identifier.parse("1234")
 }

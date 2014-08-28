@@ -15,7 +15,6 @@ import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.data.OldIdentifier
-import com.ambiata.ivory.data.IvoryDataLiterals._
 import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
@@ -53,17 +52,17 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
     val factsetId1 = FactsetId.initial
     val factsetId2 = factsetId1.next.get
 
-    val dict = Dictionary(List(Definition.concrete(FeatureId("ns1", "fid1"), DoubleEncoding, Some(NumericalType), "desc", Nil),
-                               Definition.concrete(FeatureId("ns1", "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
-                               Definition.concrete(FeatureId("ns2", "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil)))
+    val dict = Dictionary(List(Definition.concrete(FeatureId(Name("ns1"), "fid1"), DoubleEncoding, Some(NumericalType), "desc", Nil),
+                               Definition.concrete(FeatureId(Name("ns1"), "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
+                               Definition.concrete(FeatureId(Name("ns2"), "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil)))
 
-    val facts1 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
-                                 IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
-                                 BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
-    val facts2 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "def")))
+    val facts1 = fromLazySeq(Seq(StringFact("eid1",  FeatureId(Name("ns1"), "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+                                 IntFact("eid1",     FeatureId(Name("ns1"), "fid2"), Date(2012, 10, 1), Time(0), 10),
+                                 BooleanFact("eid1", FeatureId(Name("ns2"), "fid3"), Date(2012, 3, 20), Time(0), true)))
+    val facts2 = fromLazySeq(Seq(StringFact("eid1",  FeatureId(Name("ns1"), "fid1"), Date(2012, 10, 1), Time(0), "def")))
 
-    val factset1 = Factset(FactsetId(oi"00000"), Partitions(List(Partition("ns1", Date(2012, 10, 1)), Partition("ns2", Date(2012, 3, 20)))))
-    val factset2 = Factset(FactsetId(oi"00001"), Partitions(List(Partition("ns1", Date(2012, 10, 1)))))
+    val factset1 = Factset(FactsetId(OldIdentifier("00000")), Partitions(List(Partition(Name("ns1"), Date(2012, 10, 1)), Partition(Name("ns2"), Date(2012, 3, 20)))))
+    val factset2 = Factset(FactsetId(OldIdentifier("00001")), Partitions(List(Partition(Name("ns1"), Date(2012, 10, 1)))))
 
     persist(facts1.toIvoryFactset(repo, factsetId1, None), facts2.toIvoryFactset(repo, factsetId2, None))
     writeFactsetVersion(repo, List(factsetId1, factsetId2)) must beOk
@@ -92,13 +91,13 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
     val factsetId1 = FactsetId.initial
     val factsetId2 = factsetId1.next.get
 
-    val dict = Dictionary(List(Definition.concrete(FeatureId("ns1", "fid1"), DoubleEncoding, Some(NumericalType), "desc", Nil),
-                               Definition.concrete(FeatureId("ns1", "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
-                               Definition.concrete(FeatureId("ns2", "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil)))
+    val dict = Dictionary(List(Definition.concrete(FeatureId(Name("ns1"), "fid1"), DoubleEncoding, Some(NumericalType), "desc", Nil),
+                               Definition.concrete(FeatureId(Name("ns1"), "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
+                               Definition.concrete(FeatureId(Name("ns2"), "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil)))
 
-    val facts1 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
-                                 IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
-                                 BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
+    val facts1 = fromLazySeq(Seq(StringFact("eid1",  FeatureId(Name("ns1"), "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+                                 IntFact("eid1",     FeatureId(Name("ns1"), "fid2"), Date(2012, 10, 1), Time(0), 10),
+                                 BooleanFact("eid1", FeatureId(Name("ns2"), "fid3"), Date(2012, 3, 20), Time(0), true)))
 
     facts1.toIvoryFactset(repo, factsetId1, None).persist
     writeFactsetVersion(repo, List(factsetId1)) must beOk

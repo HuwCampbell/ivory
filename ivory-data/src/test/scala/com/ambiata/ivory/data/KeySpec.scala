@@ -15,10 +15,8 @@ Key Properties
   def symmetric = prop((k: Key) =>
     Key.create(k.render) must_== Some(k))
 
-  def literals = {
-    import IvoryDataLiterals._
-    Some(k"hello") must_== Key.create("hello")
-  }
+  def literals =
+    Some(Key("hello")) must_== Key.create("hello")
 
   implicit def KeyArbitrary: Arbitrary[Key] =
     Arbitrary(Gen.identifier map (s => Key.create(s).get))

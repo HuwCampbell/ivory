@@ -70,10 +70,10 @@ Skew Tests
   /** create a dictionary */
   def dictionary = Dictionary(featureIds.map(fake.toDefinition))
   def featureIds =
-    (1 to 10).map(n => FeatureId("demographics", "d" + n)).toList ++
-    (1 to 10).map(n => FeatureId("offers", "o" + n)).toList ++
-    (1 to 10).map(n => FeatureId("widgets", "w" + n)).toList ++
-    (1 to 10).map(n => FeatureId("knobs", "k" + n)).toList ++
-    (1 to 10).map(n => FeatureId("flavours", "f" + n)).toList
+    (1 to 10).map(n => FeatureId(Name("demographics"), "d" + n)).toList ++
+    (1 to 10).map(n => FeatureId(Name("offers"), "o" + n)).toList ++
+    (1 to 10).map(n => FeatureId(Name("widgets"), "w" + n)).toList ++
+    (1 to 10).map(n => FeatureId(Name("knobs"), "k" + n)).toList ++
+    (1 to 10).map(n => FeatureId(Name("flavours"), "f" + n)).toList
 
 }

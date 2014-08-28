@@ -16,7 +16,7 @@ import scalaz.{Name => _,_}, Scalaz._
  *
  * As a result it can be used to create a file name
  */
-case class Name private(name: String) extends AnyVal
+class Name private(val name: String) extends AnyVal
 
 object Name extends MacrosCompat {
 
@@ -31,7 +31,7 @@ object Name extends MacrosCompat {
    * use this method to create a Name from a String when
    * it could potentially be incorrect
    */
-  def unsafe(s: String): Name = Name(s)
+  def unsafe(s: String): Name = new Name(s)
 
   def listParser: ListParser[Name] =
     ListParser.string.flatMap[Name] { s =>
@@ -52,17 +52,17 @@ object Name extends MacrosCompat {
   implicit def NameOrdering: scala.Ordering[Name] =
     NameOrder.toScalaOrdering
 
-  implicit def createNameFromString(s: String): Name =
+  def apply(s: String): Name =
     macro createNameFromStringMacro
 
   def fromPathName(path: Path): Name =
-    Name(path.getName)
+    new Name(path.getName)
 
   def nameFromString(s: String): Option[Name] =
     nameFromStringDisjunction(s).toOption
 
   def nameFromStringDisjunction(s: String): String \/ Name =
-    if (s.matches("([A-Z]|[a-z]|[0-9]|\\-|_)+") && !s.startsWith("_")) Name(s).right
+    if (s.matches("([A-Z]|[a-z]|[0-9]|\\-|_)+") && !s.startsWith("_")) (new Name(s)).right
     else                                                               s"$s is not a valid Name".left
 
   def createNameFromStringMacro(c: Context)(s: c.Expr[String]): c.Expr[Name] = {
