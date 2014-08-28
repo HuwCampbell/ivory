@@ -23,8 +23,8 @@ object Metadata {
    * This will read the latest FeatureStore, add the given FactsetId to it then persist
    * back to the repository with a new FeatureStoreId
    */
-  def incrementFeatureStore(factset: FactsetId): IvoryTIO[FeatureStore] =
-    FeatureStoreTextStorage.increment(factset)
+  def incrementFeatureStore(factset: FactsetId): IvoryTIO[FeatureStore] = IvoryT.fromResultTIO(repo =>
+    FeatureStoreTextStorage.increment(repo, factset))
 
   def latestFeatureStoreId(repo: Repository): ResultTIO[Option[FeatureStoreId]] =
     FeatureStoreTextStorage.latestId(repo)
