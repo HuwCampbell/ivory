@@ -24,25 +24,17 @@ class PivotSpec extends Specification with SampleFacts { def is = s2"""
 
 """
   def pivot =
-    RepositoryBuilder.using(createPivot) must beOkLike { lines: List[String] =>
+    RepositoryBuilder.using(createPivot) must beOkLike { case (lines, _) =>
       lines.mkString("\n").trim must_==
         """|eid1|abc|NA|NA
-          |eid2|NA|11|NA
-          |eid3|NA|NA|true
+           |eid2|NA|11|NA
+           |eid3|NA|NA|true
         """.stripMargin.trim
     }
 
 
   def dictionary =
-    RepositoryBuilder.using { repo =>
-      createPivot(repo) >>
-      Temporary.using { dir =>
-        (for {
-          dictRef <- Reference.fromUriResultTIO((dir </> "pivot" </> ".dictionary").path, repo.configuration)
-          lines   <- dictRef.run(_.linesUtf8.read)
-        } yield lines)
-      }
-    } must beOkLike { lines =>
+    RepositoryBuilder.using(createPivot) must beOkLike { case (_, lines) =>
       lines must_== List("0|ns1|fid1|string|categorical|desc|NA",
                          "1|ns1|fid2|int|numerical|desc|NA",
                          "2|ns2|fid3|boolean|categorical|desc|NA")
@@ -57,10 +49,12 @@ class PivotSpec extends Specification with SampleFacts { def is = s2"""
         snap  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false)
         (_, snapId) = snap
         input = repo.toReference(Repository.snapshot(snapId))
-        dict  <- dictionaryFromIvory(repo)
-        _     <- Pivot.withDictionary(repo, input, pivot, dict, '|', "NA")
-        lines <- readLines(pivot)
-      } yield lines
+        dict             <- dictionaryFromIvory(repo)
+        _                <- Pivot.withDictionary(repo, input, pivot, dict, '|', "NA")
+        dictRef          <- Reference.fromUriResultTIO((dir </> "pivot" </> ".dictionary").path, repo.configuration)
+        dictionaryLines  <- dictRef.run(_.linesUtf8.read)
+        pivotLines       <- readLines(pivot)
+      } yield (pivotLines, dictionaryLines)
     }
   }
 
