@@ -27,6 +27,7 @@ object DictionaryImporter {
       validation = validate(oldDictionary, newDictionary) |+| validateSelf(newDictionary)
       doImport = validation.isSuccess || importOpts.force
       path <- if (doImport) storage.store(newDictionary).map(_._2).map(some) else None.pure[ResultTIO]
+      // TODO: Update Commit
     } yield validation -> path
   }
 

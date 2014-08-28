@@ -7,7 +7,7 @@ import scalaz.Scalaz._
 import scalaz.effect.IO
 
 object Repositories {
-  def onStore(repo: Repository): ResultTIO[Unit] = {
+  def create(repo: Repository): ResultTIO[Unit] = {
     val store: Store[ResultTIO] = repo.toStore
     for {
       e <- store.exists(Repository.root </> ".allocated")
@@ -20,6 +20,7 @@ object Repositories {
         Repository.snapshots,
         Repository.errors
       ).traverse(p => store.utf8.write(p </> ".allocated", "")).void
+      // TODO: Set initial Commit
     } yield r
   }
 }

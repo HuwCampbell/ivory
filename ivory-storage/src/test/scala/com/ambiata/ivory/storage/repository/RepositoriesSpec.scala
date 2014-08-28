@@ -51,8 +51,8 @@ Create repository should always create all folders
   }
 
   def createRepository(repo: Repository) = {
-    Repositories.onStore(repo) must beOk
-    Repositories.onStore(repo) must beOk
+    Repositories.create(repo) must beOk
+    Repositories.create(repo) must beOk
   }
 
   def checkRepository(repo: Repository): ResultTIO[List[Boolean]] = {

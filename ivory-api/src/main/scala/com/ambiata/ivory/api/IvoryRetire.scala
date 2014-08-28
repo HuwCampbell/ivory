@@ -31,7 +31,7 @@ object IvoryRetire {
   val snapshotFromHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotFromHdfs _
   val snapshotToHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotToHdfs _
 
-  val createRepository = Repositories.onStore _
+  val createRepository = Repositories.create _
 
   /**
    * Ingest types. These components expose the internal representations of ivory.
