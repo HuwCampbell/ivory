@@ -182,7 +182,7 @@ object Recreate { outer =>
 
   private def nonEmptyFactsetIds(from: Repository, to: Repository): Hdfs[List[FactsetId]] = {
     def getChildren(paths: List[Path]): Hdfs[Set[String]] =
-      paths.traverse(p => Hdfs.globFiles(p, "*/*/*/*/*").map(ps => (p, ps.isEmpty)) ||| Hdfs.value((p, true))).map(_.filterNot(_._2).map(_._1.getName).toSet)
+      paths.traverse(p => Hdfs.globFiles(p, "*/*/*/*/*").filterHidden.map(ps => (p, ps.isEmpty)) ||| Hdfs.value((p, true))).map(_.filterNot(_._2).map(_._1.getName).toSet)
 
     for {
       paths            <- Hdfs.globPaths(from.factsets.toHdfs)
