@@ -23,7 +23,7 @@ class RecreateSpec extends Specification with SampleFacts { def is = s2"""
         // recreate the factset in the target repository
         val codec: Option[CompressionCodec] = Some(new DefaultCodec)
         for {
-          factset <- RepositoryBuilder.createFacts(from, List((1 to 3).map(fact).toList)).map(_.head.factsetIds.head.value)
+          factset <- RepositoryBuilder.createFactset(from, (1 to 3).map(fact).toList)
           _   <- Recreate.copyFactset(sampleDictionary, from, to, codec, 30.mb, false)(factset).run(to.scoobiConfiguration)
           // check that it has been properly created
           _   <- Versions.read(to, factset)

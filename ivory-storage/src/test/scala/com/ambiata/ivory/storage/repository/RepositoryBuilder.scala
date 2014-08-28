@@ -27,6 +27,9 @@ object RepositoryBuilder {
     stores <- createFacts(repo, facts)
   } yield stores
 
+  def createFactset(repo: HdfsRepository, facts: List[Fact]): ResultTIO[FactsetId] =
+    createFacts(repo, List(facts)).map(_.head.factsetIds.head.value)
+
   def createFacts(repo: HdfsRepository, facts: List[List[Fact]]): ResultTIO[List[FeatureStore]] = {
     val serialiser = ThriftSerialiser()
     val factsets = facts.foldLeft(NonEmptyList(FactsetId.initial)) { case (factsetIds, facts) =>
