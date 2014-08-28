@@ -75,7 +75,7 @@ object Ingest {
    *  - allocate a new factset id
    */
   def createNewFactsetId(repository: Repository): ResultTIO[FactsetId] = for {
-    _         <- CreateRepository.createRepository(repository).timed("created repository")
+    _         <- Repositories.create(repository).timed("created repository")
     factsetId <- Factsets.allocateFactsetId(repository).timed("created fact set")
   } yield factsetId
 
