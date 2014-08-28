@@ -32,7 +32,7 @@ class NamespacesSpec extends Specification with ScalaCheck { def is = s2"""
   } must beOkLike((_: List[(Name, BytesQuantity)]) must contain ((Name("ns1"), 4.bytes), (Name("ns2"), 4.bytes)))
 
   def e2 = prepare { factsetPath =>
-    namespaceSizesSingle(new Path(factsetPath, "ns1"), "namespace")
+    namespaceSizesSingle(new Path(factsetPath, "ns1"), Name("namespace"))
   } must beOkValue((Name("namespace"), 4.bytes))
 
   def e3 = prop((nsInc: Set[FeatureNamespace], nsExc: Set[FeatureNamespace], fsInc: FactsetIdList, fsExc: FactsetIdList) =>

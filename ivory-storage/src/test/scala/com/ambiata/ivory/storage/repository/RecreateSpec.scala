@@ -15,7 +15,7 @@ class RecreateSpec extends Specification with SampleFacts { def is = s2"""
   recompression of a factset $e1
 """
 
-  def fact(i: Int) = StringFact("eid1", FeatureId("ns1", "fid1"), Date.fromLocalDate(new LocalDate(2012, 9, i)),  Time(0), "def")
+  def fact(i: Int) = StringFact("eid1", FeatureId(Name("ns1"), "fid1"), Date.fromLocalDate(new LocalDate(2012, 9, i)),  Time(0), "def")
 
   def e1 =
     RepositoryBuilder.using { from =>
@@ -31,4 +31,5 @@ class RecreateSpec extends Specification with SampleFacts { def is = s2"""
         } yield out
       }
     } must beOkLike((_: List[_]) must not(beEmpty))
+
 }

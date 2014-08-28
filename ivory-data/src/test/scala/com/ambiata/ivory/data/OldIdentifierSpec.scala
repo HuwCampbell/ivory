@@ -6,7 +6,7 @@ import com.ambiata.ivory.data.Arbitraries._
 
 import scalaz._, Scalaz._
 
-class OldIdentiferSpec extends Specification with ScalaCheck { def is = s2"""
+class OldIdentifierSpec extends Specification with ScalaCheck { def is = s2"""
 
 Old Identifier Properties
 ---------------------
@@ -17,6 +17,7 @@ Old Identifier Properties
   Render/parse is symmetric                       $symmetric
   Initial starts with zero                        $initial
   If next succeeds identifier is always larger    $next
+  It can be created as a literal                  $literal
 
 """
   def overflow = {
@@ -46,4 +47,7 @@ Old Identifier Properties
 
   def next = prop((i: OldIdentifier) =>
     i.next.forall(_ > i))
+
+  def literal =
+    Some(OldIdentifier("1234")) must_== OldIdentifier.parse("1234")
 }

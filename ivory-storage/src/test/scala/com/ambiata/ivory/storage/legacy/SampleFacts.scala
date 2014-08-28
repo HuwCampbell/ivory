@@ -7,18 +7,19 @@ import org.specs2.matcher.MustThrownMatchers
 trait SampleFacts extends MustThrownMatchers {
 
   val sampleDictionary = Dictionary(List(
-    Definition.concrete(FeatureId("ns1", "fid1"), StringEncoding, Some(CategoricalType), "desc", Nil),
-    Definition.concrete(FeatureId("ns1", "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
-    Definition.concrete(FeatureId("ns2", "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil)
+    Definition.concrete(FeatureId(Name("ns1"), "fid1"), StringEncoding, Some(CategoricalType), "desc", Nil),
+    Definition.concrete(FeatureId(Name("ns1"), "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
+    Definition.concrete(FeatureId(Name("ns2"), "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil)
   ))
 
   val sampleFacts = List(List(
-    StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
-    StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "def"),
-    IntFact("eid2", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
-    IntFact("eid2", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11),
-    BooleanFact("eid3", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)
+    StringFact("eid1",  FeatureId(Name("ns1"), "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+    StringFact("eid1",  FeatureId(Name("ns1"), "fid1"), Date(2012, 9, 1), Time(0), "def"),
+    IntFact("eid2",     FeatureId(Name("ns1"), "fid2"), Date(2012, 10, 1), Time(0), 10),
+    IntFact("eid2",     FeatureId(Name("ns1"), "fid2"), Date(2012, 11, 1), Time(0), 11),
+    BooleanFact("eid3", FeatureId(Name("ns2"), "fid3"), Date(2012, 3, 20), Time(0), true)
   ), List(
-    StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "ghi")
+    StringFact("eid1", FeatureId(Name("ns1"), "fid1"), Date(2012, 9, 1), Time(0), "ghi")
   ))
+
 }

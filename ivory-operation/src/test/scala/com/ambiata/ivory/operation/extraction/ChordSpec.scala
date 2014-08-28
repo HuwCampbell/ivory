@@ -44,9 +44,9 @@ ChordSpec
     }
   } must beOkLike {
     case (dict, repoDict, facts) => (dict ==== repoDict) and (facts must containTheSameElementsAs(List(
-      StringFact("eid1:2012-09-15", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "ghi"),
-      StringFact("eid1:2012-11-01", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
-      IntFact("eid2:2012-12-01", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11)
+      StringFact("eid1:2012-09-15", FeatureId(Name("ns1"), "fid1"), Date(2012, 9, 1), Time(0), "ghi"),
+      StringFact("eid1:2012-11-01", FeatureId(Name("ns1"), "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+      IntFact("eid2:2012-12-01",    FeatureId(Name("ns1"), "fid2"), Date(2012, 11, 1), Time(0), 11)
     )))
   }
 }

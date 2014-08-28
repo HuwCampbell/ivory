@@ -1,5 +1,7 @@
 package com.ambiata.ivory.data
 
+import com.ambiata.ivory.reflect.MacrosCompat
+
 import scalaz._, Scalaz._
 
 class Identifier private (val n: Int) extends AnyVal {
@@ -19,7 +21,7 @@ class Identifier private (val n: Int) extends AnyVal {
     n ?|? i.n
 }
 
-object Identifier {
+object Identifier extends MacrosCompat {
   def initial: Identifier =
     new Identifier(0)
 
@@ -38,4 +40,21 @@ object Identifier {
 
   implicit def IdentifierOrdering =
     IdentifierOrder.toScalaOrdering
+
+  def apply(string: String): Identifier =
+    macro identifierMacro
+
+  def identifierMacro(c: Context)(string: c.Expr[String]): c.Expr[Identifier] = {
+    import c.universe._
+    string match {
+      case Expr(Literal(Constant(str: String))) =>
+        Identifier.parse(str).getOrElse(c.abort(c.enclosingPosition, s"Invalid Identifier: $str"))
+        c.Expr[Identifier](q"Identifier.parse($str).get")
+
+      case other =>
+        c.abort(c.enclosingPosition, s"This is not a valid Identifier string: ${showRaw(string)}")
+    }
+  }
+
+
 }

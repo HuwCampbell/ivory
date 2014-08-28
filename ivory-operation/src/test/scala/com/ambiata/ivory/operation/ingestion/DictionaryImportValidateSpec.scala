@@ -19,7 +19,7 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
 
   import DictionaryImportValidate._
 
-  val fid = FeatureId("a", "b")
+  val fid = FeatureId(Name("a"), "b")
   val path = ValidationPath(fid)
 
   def encodingSame = prop((enc: Encoding) =>
