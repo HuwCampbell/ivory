@@ -2,6 +2,7 @@ package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.mundane.control._
 
+import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.Factsets
@@ -70,7 +71,7 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
     p.value.render
 
   def listIds(repo: Repository): ResultTIO[List[FeatureStoreId]] = for {
-    paths <- repo.toStore.list(Repository.featureStores)
+    paths <- repo.toStore.list(Repository.featureStores).map(_.filterHidden)
     ids   <- paths.traverseU(p =>
                ResultT.fromOption[IO, FeatureStoreId](FeatureStoreId.parse(p.basename.path),
                                                       s"Can not parse Feature Store id '${p}'"))
