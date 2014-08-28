@@ -13,7 +13,7 @@ import scalaz._, Scalaz._, effect._, \&/._
 object Factsets {
 
   def listIds(repo: Repository): ResultTIO[List[FactsetId]] = for {
-    names <- StoreDataUtil.listDir(repo.toStore, Repository.factsets).map(_.map(_.basename.path))
+    names <- StoreDataUtil.listDirWithoutDotFiles(repo.toStore, Repository.factsets).map(_.map(_.basename.path))
     fids  <- names.traverseU(n => ResultT.fromOption[IO, FactsetId](FactsetId.parse(n), s"Can not parse factset id '${n}'"))
   } yield fids
 

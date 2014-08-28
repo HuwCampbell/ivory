@@ -1,9 +1,10 @@
 package com.ambiata.ivory.core
 
+import com.ambiata.ivory.data.DataSyntax
 import com.ambiata.mundane.io._
 import org.apache.hadoop.fs.Path
 
-trait IvorySyntax {
+trait IvorySyntax extends DataSyntax {
   implicit class IvoryFilePathSyntax(f: FilePath) {
     def toHdfs: Path = new Path(f.path)
 
@@ -14,10 +15,6 @@ trait IvorySyntax {
       (1 to n).toList.foldLeft(f.parent)((acc, _) => acc.flatMap(_.parent))
   }
 
-  implicit class IvoryFilePathListSyntax(l: List[FilePath]) {
-    def filterHidden: List[FilePath] =
-      l.filter(f => !f.basename.path.startsWith(".") && !f.basename.path.startsWith("_"))
-  }
 }
 
 object IvorySyntax extends IvorySyntax

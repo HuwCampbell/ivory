@@ -28,7 +28,7 @@ sealed trait Repository {
   def metadata: FilePath = root </> "metadata"
   def dictionaries: FilePath = metadata </> "dictionaries"
   def featureStores: FilePath = metadata </> "stores"
-  def commits: FilePath = metadata </> "repositories"
+  def commits: FilePath = metadata </> "commits"
   def dictionaryById(id: DictionaryId): FilePath = dictionaries </> id.render
   def featureStoreById(id: FeatureStoreId): FilePath = featureStores </> id.render
   def commitById(id: CommitId): FilePath = commits </> id.render
