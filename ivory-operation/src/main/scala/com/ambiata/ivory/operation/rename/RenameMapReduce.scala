@@ -58,7 +58,7 @@ class RenameMapper extends Mapper[NullWritable, BytesWritable, LongLongWritable,
        ***************************************************************/
       f.toThrift.setAttribute(to.newName)
 
-      // Write out the namespace + date + time + priority
+      // Write out the featureId + date + time + priority
       // We partition by the namespace, we sort by everything but group by namespace + date + time
       kout.set((to.ns.toLong << 32) | f.date.int.toLong, (f.time.seconds.toLong << 32) | priority.underlying.toLong)
 
