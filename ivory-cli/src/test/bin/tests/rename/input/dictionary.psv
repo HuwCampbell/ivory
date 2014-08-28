@@ -1,4 +1,5 @@
 halibut:preheat|encoding=boolean|type=categorical|description=11s|tombstone=NA
+halibut:cooldown|encoding=string|type=categorical|description=11s|tombstone=NA
 halibut:swiss_cheese|encoding=double|type=binary|description=Gjc3K09|tombstone=NA
 sauerkraut:chutney|encoding=double|type=binary|description=tEe9GOSGH1mpDhN9SxqMuJG|tombstone=NA
 sauerkraut:grapefruits|encoding=int|type=numerical|description=0JHiy6vqsszX6uiIxN4|tombstone=NA

@@ -21,7 +21,7 @@ struct FactsetVersionLookup {
 }
 
 struct FeatureMappingValue {
-    1: i32 ns;
+    1: i32 featureId;
     2: string newName;
 }
 

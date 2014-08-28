@@ -22,9 +22,10 @@ Rename
 
   rename a dictionary with a mapping                 $renameDictionary
 
-  rename of a multiple features                      $renameAll
-  rename of a one feature                            $renameOneFeature
-  rename of a factset respect priority and time      $renamePriority
+  rename of a multiple features                      $renameAll            ${tag("mr")}
+  rename of a one feature                            $renameOneFeature     ${tag("mr")}
+  rename of a factset respect priority and time      $renamePriority       ${tag("mr")}
+  rename of a factset respect entity                 $renameEntity         ${tag("mr")}
 """
 
   def validateOk = prop((dict: Dictionary, meta: ConcreteDefinition, fid1: FeatureId, fid2: FeatureId) => !dict.byFeatureId.contains(fid1) ==> {
@@ -79,6 +80,13 @@ Rename
       RenameStats(3) -> Set(f(2, 1, "2d", tid), f(2, 2, "1d", tid), f(1, 0, "2a", tid))
     )
   }
+
+  def renameEntity = prop((fid: FeatureId, tid: FeatureId, fact: Fact, cd: ConcreteDefinition) => {
+    val dictionary = Dictionary(List(cd.toDefinition(fid)))
+    val facts = Set(fact.withFeatureId(fid), fact.withFeatureId(fid).withEntity(fact.entity + "1"))
+    renameWithFacts(RenameMapping(List(fid -> tid)), dictionary, List(facts.toList))
+      .map(r => r._1 -> r._2.toSet) must beOkValue(RenameStats(facts.size) -> facts.map(_.withFeatureId(tid)))
+  }).set(minTestsOk = 1, minSize = 1, maxSize = 5)
 
   def renameWithFacts(mapping: RenameMapping, dictionary: Dictionary, input: List[Seq[Fact]]): ResultTIO[(RenameStats, Seq[Fact])] =
     RepositoryBuilder.using { repo => (for {

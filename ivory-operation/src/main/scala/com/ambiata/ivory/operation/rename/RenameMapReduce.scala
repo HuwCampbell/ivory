@@ -58,9 +58,9 @@ class RenameMapper extends Mapper[NullWritable, BytesWritable, LongLongWritable,
        ***************************************************************/
       f.toThrift.setAttribute(to.newName)
 
-      // Write out the namespace + date + time + priority
-      // We partition by the namespace, we sort by everything but group by namespace + date + time
-      kout.set((to.ns.toLong << 32) | f.date.int.toLong, (f.time.seconds.toLong << 32) | priority.underlying.toLong)
+      // Write out the featureId + date + time + priority
+      // We partition by the featureId, we sort by everything but group by featureId + date + time
+      kout.set((to.featureId.toLong << 32) | f.date.int.toLong, (f.time.seconds.toLong << 32) | priority.underlying.toLong)
 
       val bytes = serializer.toBytes(f.toThrift)
       vout.set(bytes, 0, bytes.length)
@@ -81,6 +81,10 @@ class RenameReducer extends Reducer[LongLongWritable, BytesWritable, NullWritabl
 
   var counter: Counter = null
 
+  val tfact = new ThriftFact
+
+  val serializer = new ThriftSerialiser
+
   override def setup(context: ReducerContext): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.NamespaceLookup, lookup)
@@ -99,8 +103,12 @@ class RenameReducer extends Reducer[LongLongWritable, BytesWritable, NullWritabl
     while (iter.hasNext) {
       val next = iter.next
       val time = (key.l2 >>> 32).toInt
+      val previousEntity = tfact.getEntity
+      // Make sure we don't clobber different entities with the same date + time
+      // The alternative is we change the key to include the entity, which may (or may not) be better
+      serializer.fromBytesViewUnsafe(tfact, next.getBytes, 0, next.getLength)
       // Because we are sorting by priority we can ignore anything after the first unique time value
-      if (previousTime != time) {
+      if (previousTime != time || previousEntity != tfact.getEntity) {
         out.write(FactsetJobKeys.Out, NullWritable.get, next, path)
         previousTime = time
         counter.increment(1)
