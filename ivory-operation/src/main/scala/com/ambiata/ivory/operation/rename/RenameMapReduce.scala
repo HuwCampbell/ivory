@@ -59,8 +59,8 @@ class RenameMapper extends Mapper[NullWritable, BytesWritable, LongLongWritable,
       f.toThrift.setAttribute(to.newName)
 
       // Write out the featureId + date + time + priority
-      // We partition by the namespace, we sort by everything but group by namespace + date + time
-      kout.set((to.ns.toLong << 32) | f.date.int.toLong, (f.time.seconds.toLong << 32) | priority.underlying.toLong)
+      // We partition by the featureId, we sort by everything but group by featureId + date + time
+      kout.set((to.featureId.toLong << 32) | f.date.int.toLong, (f.time.seconds.toLong << 32) | priority.underlying.toLong)
 
       val bytes = serializer.toBytes(f.toThrift)
       vout.set(bytes, 0, bytes.length)
