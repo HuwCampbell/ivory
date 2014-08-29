@@ -56,13 +56,21 @@ class PivotOutputSpec extends Specification with SampleFacts with ThrownExpectat
     Temporary.using { dir =>
       for {
         _     <- RepositoryBuilder.createRepo(repo, sampleDictionary, facts)
-        pivot <- Reference.fromUriResultTIO((dir </> "pivot").path, repo.configuration)
+        pivot <- Reference.fromDirPath(dir </> "pivot", repo.repositoryConfiguration)
         meta  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), incremental = false)
         input     = repo.toReference(Repository.snapshot(meta.snapshotId))
         _                <- PivotOutput.createPivot(repo, input, pivot, '|', "NA")
         dictRef          <- Reference.fromUriResultTIO((dir </> "pivot" </> ".dictionary").path, repo.configuration)
         dictionaryLines  <- dictRef.run(_.linesUtf8.read)
         pivotLines       <- pivot.readLines
+        pivotLines       <- readLines(pivot)
       } yield (pivotLines.mkString("\n").trim, dictionaryLines)
     }
+
+  def readDictionary(outPath: FilePath, configuration: IvoryConfiguration): ResultTIO[List[String]] =
+    for {
+      dictRef <- Reference.fromFilePath(outPath <|> ".dictionary", configuration)
+      lines   <- ReferenceStore.readLines(dictRef)
+    } yield lines
+
 }

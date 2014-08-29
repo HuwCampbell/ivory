@@ -1,8 +1,10 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core.{ParseError => _, _}
+import com.ambiata.mundane.control._
 import com.ambiata.mundane.parse._
 import org.parboiled2._, Parser.DeliveryScheme.Either
+import scalaz.effect.IO
 import scalaz.{Name =>_,_}, Scalaz._, Validation._
 import shapeless._
 
@@ -13,6 +15,30 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
 
   def fromList(entries: List[(FeatureId, Definition)]): ValidationNel[String, Dictionary] =
     Validation.success(Dictionary(entries.map(_._2)))
+
+  def fromFiles[F[+_] : Monad](ref: Reference[F]): F[Option[Dictionary]] =
+    fromDirStore(ref).map(_.fold(ds => Some(Dictionary.reduce(ds)), _ => None))
+
+  def fromFile[F[+_] : Monad](ref: Reference[F]): F[Option[Dictionary]] =
+    fromFileStore(ref).map(_.fold(ds => Some(ds), _ => None))
+
+  def fromFilesOrFail[F[+_] : Monad](ref: Reference[F]): ResultT[F, Dictionary] =
+    ResultT(fromFiles(ref).flatMap { option => failIfMissing[F](option).run })
+
+  /**
+   * specialisation of the fromFilesMethod to avoid getting a ResultT[ResultTIO, Dictionary] result
+   * when ref is a Reference[ResultTIO]
+   *
+   * This should get better with Scalaz 7.1 and the introduction of MonadError
+   */
+  def fromFilesIO(ref: Reference[ResultTIO]): ResultTIO[Dictionary] =
+    fromFiles(ref).flatMap { option => failIfMissing[IO](option) }
+
+  def fromFileIO(ref: Reference[ResultTIO]): ResultTIO[Dictionary] =
+    fromFile(ref).flatMap { option => failIfMissing[IO](option) }
+
+  def failIfMissing[F[+_] : Monad](dictionary: Option[Dictionary]): ResultT[F, Dictionary] =
+    dictionary.fold(ResultT.fail[F, Dictionary]("missing dictionary"))(d => ResultT.ok[F, Dictionary](d))
 
   def toList(dict: Dictionary): List[(FeatureId, Definition)] =
     dict.definitions.map(d => d.featureId -> d).toList

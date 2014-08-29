@@ -38,7 +38,7 @@ object DelimitedFactTextStorage {
       fid    <- value(featureIdParser.run(attr.split(":", 2).toList))
       rawv   <- string
       v      <- value(EavtParsers.validateFeature(dict, fid, rawv))
-      date   <- localDatetime("yyyy-MM-dd HH:mm:ss") // TODO replace with something that doesn't convert to joda
+      date   <- localDatetimeFormat("yyyy-MM-dd HH:mm:ss") // TODO replace with something that doesn't convert to joda
     } yield Fact.newFact(entity, fid.namespace.name, fid.name, Date.fromLocalDate(date.toLocalDate), Time.unsafe(date.getMillisOfDay / 1000), v)
   }
 

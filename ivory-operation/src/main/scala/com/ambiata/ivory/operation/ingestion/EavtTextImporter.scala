@@ -24,10 +24,13 @@ case class EavtTextImporter(repository: Repository,
                             optimal: BytesQuantity,
                             format: Format) {
 
-  import EavtTextImporter._
-
+<<<<<<< HEAD
   val  importFacts = { (factsetId: FactsetId, input: ReferenceIO, timezone: DateTimeZone) =>
-    val errorRef = repository.toReference(Repository.errors </> factsetId.render)
+    val errorRef = repository.toReference(repository.errors <|> factsetId.asFileName)
+=======
+  val  importFacts = { (factsetId: FactsetId, input: ReferenceIO, namespace: Option[Name], timezone: DateTimeZone) =>
+    val errorRef = repository.errors </> factsetId.asFileName
+>>>>>>> removed some unsafe calls
 
     for {
       hr         <- downcast[Repository, HdfsRepository](repository, "Repository must be HDFS")

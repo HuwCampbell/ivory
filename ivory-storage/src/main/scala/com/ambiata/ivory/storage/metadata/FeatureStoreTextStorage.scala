@@ -1,6 +1,5 @@
 package com.ambiata.ivory.storage.metadata
 
-import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.fact.Factsets
 import com.ambiata.mundane.control._
@@ -40,17 +39,17 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
     storeIdsToId(repo, featureStore.id, featureStore.factsetIds)
 
   def storeIdsFromId(repository: Repository, id: FeatureStoreId): ResultTIO[List[Prioritized[FactsetId]]] =
-    storeIdsFromReference(repository.toReference(Repository.featureStoreById(id)))
+    storeIdsFromReference(repository.featureStoreById(id))
 
   def storeIdsToId(repository: Repository, id: FeatureStoreId, fstore: List[Prioritized[FactsetId]]): ResultTIO[Unit] =
-    storeIdsToReference(repository.toReference(Repository.featureStoreById(id)), fstore)
+    storeIdsToReference(repository.featureStoreById(id), fstore)
 
   def storeIdsFromReference(ref: ReferenceIO): ResultTIO[List[Prioritized[FactsetId]]] =
-    ref.run(store => path => store.linesUtf8.read(path).flatMap(lines =>
-      ResultT.fromDisjunction[IO, List[Prioritized[FactsetId]]](fromLines(lines.toList).leftMap(\&/.This.apply))))
+    ReferenceStore.readLines(ref).flatMap(lines =>
+      ResultT.fromDisjunction[IO, List[Prioritized[FactsetId]]](fromLines(lines.toList).leftMap(\&/.This.apply)))
 
   def storeIdsToReference(ref: ReferenceIO, fstore: List[Prioritized[FactsetId]]): ResultTIO[Unit] =
-    ref.run(store => path => store.linesUtf8.write(path, toList(fstore).map(toLine)))
+    ReferenceStore.writeLines(ref, toList(fstore).map(toLine))
 
   def fromList(factsets: List[Prioritized[FactsetId]]): ValidationNel[String, List[Prioritized[FactsetId]]] =
     Validation.success(factsets)
@@ -66,13 +65,13 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
   def toLine(p: Prioritized[FactsetId]): String =
     p.value.render
 
-  def listIds(repo: Repository): ResultTIO[List[FeatureStoreId]] = for {
-    paths <- repo.toStore.list(Repository.featureStores).map(_.filterHidden)
+  def listIds(repository: Repository): ResultTIO[List[FeatureStoreId]] = for {
+    paths <- ReferenceStore.list(repository.featureStores).map(_.filterHidden)
     ids   <- paths.traverseU(p =>
-               ResultT.fromOption[IO, FeatureStoreId](FeatureStoreId.parse(p.basename.path),
+               ResultT.fromOption[IO, FeatureStoreId](FeatureStoreId.parse(p.basename.name),
                                                       s"Can not parse Feature Store id '${p}'"))
   } yield ids
 
-  def latestId(repo: Repository): ResultTIO[Option[FeatureStoreId]] =
-    listIds(repo).map(_.sorted.lastOption)
+  def latestId(repository: Repository): ResultTIO[Option[FeatureStoreId]] =
+    listIds(repository).map(_.sorted.lastOption)
 }

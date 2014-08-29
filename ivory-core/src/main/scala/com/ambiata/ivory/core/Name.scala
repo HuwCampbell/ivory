@@ -1,5 +1,6 @@
 package com.ambiata.ivory.core
 
+import com.ambiata.mundane.io._
 import com.ambiata.ivory.reflect.MacrosCompat
 import com.ambiata.mundane.parse.ListParser
 import org.apache.hadoop.fs.Path
@@ -16,7 +17,11 @@ import scalaz.{Name => _,_}, Scalaz._
  *
  * As a result it can be used to create a file name
  */
-class Name private(val name: String) extends AnyVal
+class Name private(val name: String) extends AnyVal {
+  def asFileName = FileName.unsafe(name)
+  def asDirPath = DirPath.unsafe(name)
+  def asFilePath = FilePath.unsafe(name)
+}
 
 object Name extends MacrosCompat {
 

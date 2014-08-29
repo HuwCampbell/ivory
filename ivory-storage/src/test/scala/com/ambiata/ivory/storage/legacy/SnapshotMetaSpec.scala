@@ -48,7 +48,7 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
 
       for {
         _                <- snapshots.metas.traverse(storeSnapshotMeta(repository, _))
-        latestBeforeDate = snapshots.metas.filter(_.date <= date1).sorted.lastOption
+        latestBeforeDate =  snapshots.metas.filter(_.date <= date1).sorted.lastOption
         snapshot         <- SnapshotMeta.latestSnapshot(repository, date1)
       } yield snapshot must_== latestBeforeDate
     } must beOkResult
@@ -61,7 +61,7 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
       for {
         _         <- snapshots.metas.traverse(storeSnapshotMeta(repository, _))
         factsetId <- Factsets.allocateFactsetId(repository)
-        _         <- repository.toStore.utf8.write(Repository.factset(factsetId) </> "ns" </> FilePath(factsetDate.slashed) </> "part", "content")
+        _         <- ReferenceStore.writeUtf8(repository.factset(factsetId) </> "ns" </> DirPath.unsafe(factsetDate.slashed) </> "part", "content")
         store     <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.testing(repository))
         _         <- writeFactsetVersion(repository, List(factsetId))
         snapshot  <- SnapshotMeta.latestUpToDateSnapshot(repository, date1)
@@ -185,14 +185,14 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
   def createRepository[R : AsResult](f: Repository => R): org.specs2.execute.Result = {
     val sc: ScoobiConfiguration = scoobiConfiguration
     Temporary.using { dir =>
-      val repo = Repository.fromHdfsPath(dir </> "repo", sc)
+      val repo = HdfsRepository(dir </> FileName.unsafe("repo"), RepositoryConfiguration(sc))
       ResultT.ok[IO, org.specs2.execute.Result](AsResult(f(repo)))
     } must beOkLike(_.isSuccess)
   }
 
   def storeSnapshotMeta(repo: Repository, meta: SnapshotMeta): ResultTIO[Unit] = {
-    val path = Repository.snapshots </> FilePath(meta.snapshotId.render) </> SnapshotMeta.fname
-    repo.toReference(path).run(store => p => store.linesUtf8.write(p, meta.stringLines))
+    val ref = repo.snapshots </> meta.snapshotId.asFileName </> SnapshotMeta.fname
+    ReferenceStore.writeLines(ref, meta.stringLines)
   }
 
 }

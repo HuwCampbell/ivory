@@ -4,7 +4,6 @@ import com.ambiata.ivory.core.Repository
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
 import MemoryConversions._
-import scalaz._, Scalaz._
 
 object recreate extends IvoryApp {
   case class CliArguments(input: String, output: String, clean: Boolean, dry: Boolean, overwrite: Boolean, recreateData: List[RecreateData], maxNumber: Option[Int], reducerSize: Option[Long])
@@ -28,19 +27,22 @@ object recreate extends IvoryApp {
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments(input = "", output = "", clean = true, dry = false, overwrite = false, recreateData = RecreateData.ALL, maxNumber = None, reducerSize = None),
     IvoryRunner { configuration => c =>
-      val rconf = RecreateConfig(from = Repository.fromHdfsPath(FilePath(c.input), configuration),
-                                 to = Repository.fromHdfsPath(FilePath(c.output), configuration),
-                                 sc = configuration.scoobiConfiguration,
-                                 codec = configuration.codec,
-                                 clean = c.clean,
-                                 dry = c.dry,
-                                 overwrite = c.overwrite,
-                                 recreateData = c.recreateData,
-                                 reducerSize = c.reducerSize.map(_.bytes).getOrElse(256.mb),
-                                 maxNumber = c.maxNumber,
-                                 logger = consoleLogging)
-
-      Recreate.all.run(rconf).as(Nil)
+      for {
+        from  <- Repository.fromUriResultTIO(c.input, configuration)
+        to    <- Repository.fromUriResultTIO(c.output, configuration)
+        rconf =  RecreateConfig(from = from,
+                                to = to,
+                                sc = configuration.scoobiConfiguration,
+                                codec = configuration.codec,
+                                clean = c.clean,
+                                dry = c.dry,
+                                overwrite = c.overwrite,
+                                recreateData = c.recreateData,
+                                reducerSize = c.reducerSize.map(_.bytes).getOrElse(256.mb),
+                                maxNumber = c.maxNumber,
+                                logger = consoleLogging)
+        _     <- Recreate.all.run(rconf)
+      } yield Nil
     })
 
 }

@@ -22,31 +22,31 @@ Repository Known Answer Tests
   def hdfs =
     Repository.fromUri("hdfs:///some/path", conf).toEither must beRight((r: Repository) => r must beLike({
       case HdfsRepository(_, _) =>
-        r must_== HdfsRepository("/some/path".toFilePath, conf)
+        r must_== HdfsRepository(DirPath.Root </> "some" </> "path", conf)
     }))
 
   def s3 =
     Repository.fromUri("s3://bucket/key", conf).toEither must beRight((r: Repository) => r must beLike({
       case repository: S3Repository =>
-        r must_== S3Repository("bucket", "key".toFilePath, conf)
+        r must_== S3Repository("bucket", DirPath.Empty </> "key", conf)
     }))
 
   def local =
-    Repository.fromUri("file:///some/path", conf).toEither must beRight(LocalRepository(FilePath.root </> "some" </> "path"))
+    Repository.fromUri("file:///some/path", conf).toEither must beRight(LocalRepository(DirPath.Root </> "some" </> "path"))
 
   def relative =
-    Repository.fromUri("file:some/path", conf).toEither must beRight(LocalRepository("some" </> "path"))
+    Repository.fromUri("file:some/path", conf).toEither must beRight(LocalRepository(DirPath.Empty </> "some" </> "path"))
 
   def dfault =
     Repository.fromUri("/some/path", conf).toEither must beRight((r: Repository) => r must beLike({
       case HdfsRepository(_, _) =>
-        r must_== HdfsRepository("/some/path".toFilePath, conf)
+        r must_== HdfsRepository(DirPath.Root </> "some" </> "path", conf)
     }))
 
   def fragment =
     Repository.fromUri("some/path", conf).toEither must beRight((r: Repository) => r must beLike({
       case HdfsRepository(_, _) =>
-        r must_== HdfsRepository("some/path".toFilePath, conf)
+        r must_== HdfsRepository("some" </> "path", conf)
     }))
 
 }

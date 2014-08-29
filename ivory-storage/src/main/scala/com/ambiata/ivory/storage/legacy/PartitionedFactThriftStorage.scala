@@ -5,7 +5,6 @@ import com.ambiata.ivory.storage.fact.{FactsetVersionTwo, FactsetVersion, Factse
 import scalaz.{Name => _, DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.compress.CompressionCodec
-import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._
@@ -14,12 +13,11 @@ import com.ambiata.ivory.storage.fact.FactsetGlob
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.scoobi._
 import FactFormats._
-
-import java.net.URI
+import IvorySyntax._
 
 trait PartitionFactThriftStorage {
   val parsePartition: String => ParseError \/ Partition = scalaz.Memo.mutableHashMapMemo { path: String =>
-    Partition.parseFile(FilePath(path)).leftMap(ParseError.withLine(path)).disjunction
+    Partition.parseFile(path).leftMap(ParseError.withLine(path)).disjunction
   }
 
   def parseFact(path: String, tfact: ThriftFact): ParseError \/ Fact =
@@ -38,7 +36,7 @@ trait PartitionFactThriftStorage {
     dlist <- loadScoobiFromPaths(glob.map(_.paths).getOrElse(Nil))
   } yield dlist
 
-  def loadScoobiFromPaths(paths: List[FilePath]): ScoobiAction[DList[ParseError \/ Fact]] =
+  def loadScoobiFromPaths(paths: List[DirPath]): ScoobiAction[DList[ParseError \/ Fact]] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       if(paths.nonEmpty)
         valueFromSequenceFileWithPaths[ThriftFact](paths.map(_.path).toSeq).map({ case (path, tfact) => parseFact(path, tfact) })
@@ -62,11 +60,11 @@ trait PartitionFactThriftStorage {
     Partition.stringPath(nsd._1, nsd._2)
   }
 
-  case class PartitionedFactThriftStorer(base: String, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
+  case class PartitionedFactThriftStorer(ref: ReferenceIO, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
       dlist.by(f => partitionPath((f.namespace.name, f.date)))
            .mapValues((f: Fact) => f.toThrift)
-           .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](base, identity, overwrite = true).persistWithCodec(codec)
+           .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](ref.toHdfs.toString, identity, overwrite = true).persistWithCodec(codec)
     }
   }
 }

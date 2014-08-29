@@ -15,7 +15,7 @@ object depend {
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140718230620-63e75be" excludeAll(
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140917013241-07f65ad" excludeAll(
     ExclusionRule(organization = "org.specs2"),
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec"),
@@ -23,8 +23,8 @@ object depend {
   ))
 
   val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-store").map(c =>
-                      "com.ambiata"          %% c                 % "1.2.1-20140717072700-5f009f0") ++
-                  Seq("com.ambiata"          %% "mundane-testing" % "1.2.1-20140708033412-e6bdaf5" % "test")
+                      "com.ambiata"          %% c                 % "1.2.1-20140917011435-4cc77b1") ++
+                  Seq("com.ambiata"          %% "mundane-testing" % "1.2.1-20140917011435-4cc77b1" % "test")
 
   val caliper   = Seq("com.google.caliper"   %  "caliper"         % "0.5-rc1",
                       "com.google.guava"     %  "guava"           % "14.0.1" force())
@@ -45,9 +45,9 @@ object depend {
   }
 
   def poacher(version: String) =
-    if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20140801055153-7d5f35d")
-    else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20140801054750-7d5f35d")
-    else                               sys.error(s"unsupported poacher version, can not build for $version")
+  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20140917013254-398c02d")
+  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20140917013254-398c02d")
+  else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 
   def reflect(version: String) =

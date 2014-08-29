@@ -16,7 +16,7 @@ import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.repository.RecreateData._
 import com.ambiata.mundane.control.{ResultT, ResultTIO}
-import com.ambiata.mundane.io.{BytesQuantity, FilePath}
+import com.ambiata.mundane.io._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodec
@@ -68,7 +68,7 @@ object Recreate { outer =>
   /**
    * recreate a given set of data and log before/after count and size
    */
-  private def recreate[A, V](data: RecreateData, f: Repository => FilePath)(action: RecreateConfig => RecreateAction[A]): RecreateAction[Unit] =
+  private def recreate[A, V](data: RecreateData, f: Repository => ReferenceIO)(action: RecreateConfig => RecreateAction[A]): RecreateAction[Unit] =
     configuration.flatMap { conf =>
       val name = data.plural
       val todo =

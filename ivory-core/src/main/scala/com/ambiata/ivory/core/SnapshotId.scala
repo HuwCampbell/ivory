@@ -6,6 +6,7 @@ import scalaz._, Scalaz._
 
 case class SnapshotId(id: Identifier) {
   def render = id.render
+  def asFileName = id.asFileName
   def next = id.next.map(SnapshotId.apply)
   def order(other: SnapshotId): Ordering =
     id ?|? other.id

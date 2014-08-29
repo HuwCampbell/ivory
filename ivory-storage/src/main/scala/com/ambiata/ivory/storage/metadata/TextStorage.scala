@@ -14,15 +14,23 @@ trait TextStorage[L, T] {
   def toList(t: T): List[L]
   def toLine(l: L): String
 
-  def fromStore[F[+_] : Monad](path: ReferenceResultT[F]): ResultT[F, T] = for {
-    exists <- path.run(_.exists)
-    _      <- if (!exists) ResultT.fail[F, Unit](s"Path ${path.path} does not exist in ${path.store}!") else ResultT.ok[F, Unit](())
-    lines  <- path.run(_.linesUtf8.read)
-    t      <- ResultT.fromDisjunction[F, T](fromLines(lines).leftMap(\&/.This(_)))
-  } yield t
+  def fromFileStore[F[+_] : Monad](ref: Reference[F]): F[Result[T]] = for {
+    lines  <- ReferenceStore.readLines[F](ref)
+  } yield Result.fromDisjunctionString(fromLines(lines))
 
-  def toStore[F[+_] : Monad](path: ReferenceResultT[F], t: T): ResultT[F, Unit] =
-    path.run(store => path => store.utf8.write(path, delimitedString(t)))
+  def fromFileStoreIO(ref: ReferenceIO): ResultTIO[T] =
+    ReferenceStore.readLines(ref).flatMap(lines => ResultT.fromDisjunctionString[IO, T](fromLines(lines)))
+
+  def fromDirStore[F[+_] : Monad](ref: Reference[F]): F[Result[List[T]]] = for {
+    files <- ReferenceStore.list[F](ref)
+    ts    <- files.traverseU(file => fromFileStore[F](ref </> file))
+  } yield ts.sequence
+
+  def toFileStore[F[+_] : Monad](ref: Reference[F], t: T): ResultT[F, Unit] =
+    new ResultT[F, Unit](ReferenceStore.writeUtf8[F](ref, delimitedString(t)).as(Result.ok(())))
+
+  def toFileStoreIO(ref: ReferenceIO, t: T): ResultTIO[Unit] =
+    ReferenceStore.writeUtf8(ref, delimitedString(t))
 
   def fromString(s: String): ValidationNel[String, T] =
     fromLinesAll(s.lines.toList)

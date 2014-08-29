@@ -5,6 +5,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control.ResultT
 import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.io._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
 import org.specs2.matcher.{ThrownExpectations, FileMatchers}
@@ -31,7 +32,7 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
 
   def featureStore = {
     RepositoryBuilder.using { repo =>
-      val outpath = repo.root </> "out"
+      val outpath = repo.rootPath </> "out"
       val dict = Dictionary(List(
         Definition.concrete(FeatureId(Name("ns1"), "fid1"), DoubleEncoding, Some(NumericalType), "desc", Nil),
         Definition.concrete(FeatureId(Name("ns1"), "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
@@ -50,11 +51,11 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
       implicit val sc = repo.scoobiConfiguration
       for {
         fsid <- RepositoryBuilder.createFacts(repo, List(facts1, facts2)).map(_._1)
-        fs  <- Metadata.featureStoreFromIvory(repo, fsid)
-        _   <- ValidateStoreHdfs(repo, fs, dict, false).exec(outpath.toHdfs).run(sc)
-        res <- ResultT.ok[IO, List[String]](fromTextFile(outpath.path).run.toList)
-      } yield (fsid, res)
-    } must beOkLike { case (fsid, res) =>
+        fs   <- Metadata.featureStoreFromIvory(repo, fsid)
+        _    <- ValidateStoreHdfs(repo, fs, dict, false).exec(outpath.toHdfs).run(sc)
+        res  <- ResultT.ok[IO, List[String]](fromTextFile(outpath.path).run.toList)
+      } yield (res, fsid)
+    } must beOkLike { case (res, fsid) =>
       res must have size(1)
       res must contain("Not a valid double!")
       res must contain("eid1")
@@ -66,7 +67,7 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
 
   def factSet = {
     RepositoryBuilder.using { repo =>
-      val outpath = repo.root </> "out"
+      val outpath = repo.rootPath </> "out"
 
       val dict = Dictionary(List(
         Definition.concrete(FeatureId(Name("ns1"), "fid1"), DoubleEncoding, Some(NumericalType), "desc", Nil),

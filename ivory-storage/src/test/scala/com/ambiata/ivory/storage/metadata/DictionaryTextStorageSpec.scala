@@ -37,8 +37,8 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
   }
 
   def e4 = {
-    val reference = Reference(PosixStore(FilePath("ivory-storage/src/test/resources")), FilePath("good_dictionary.txt"))
-    DictionaryTextStorage.fromStore(reference).run.unsafePerformIO().toDisjunction must_== Dictionary(List(
+    val reference = Reference(PosixStore("ivory-storage" </> "src" </> "test" </> "resources")) </> "good_dictionary.txt"
+    DictionaryTextStorage.fromFileIO(reference).run.unsafePerformIO().toDisjunction must_== Dictionary(List(
      Definition.concrete(FeatureId(Name("demo"), "gender"), StringEncoding, Some(CategoricalType), "Gender", List("☠")),
      Definition.concrete(FeatureId(Name("widgets"), "count.1W"), IntEncoding, Some(NumericalType), "Count in the last week", List("☠")),
      Definition.concrete(FeatureId(Name("demo"), "postcode"), StringEncoding, Some(CategoricalType), "Postcode", List("☠"))
@@ -46,8 +46,8 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
   }
 
   def e5 = {
-    val reference = Reference(PosixStore(FilePath("ivory-storage/src/test/resources")), FilePath("bad_dictionary.txt"))
-    DictionaryTextStorage.fromStore(reference).run.unsafePerformIO().toEither must beLeft
+    val reference = Reference(PosixStore("ivory-storage" </> "src" </> "test" </> "resources")) </> "bad_dictionary.txt"
+    DictionaryTextStorage.fromFileIO(reference).run.unsafePerformIO().toEither must beLeft
   }
 
   def parseEncoding =

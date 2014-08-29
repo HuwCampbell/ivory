@@ -247,7 +247,7 @@ object SnapshotFactsetMapper {
 
   def setupVersionAndPriority(thriftCache: ThriftCache, configuration: Configuration, inputSplit: InputSplit): (FactsetVersion, VersionedFactConverter, Priority) = {
     val versionLookup = new FactsetVersionLookup <| (fvl => thriftCache.pop(configuration, SnapshotJob.Keys.FactsetVersionLookup, fvl))
-    val path = FilePath(MrContext.getSplitPath(inputSplit).toString)
+    val path = FilePath.unsafe(MrContext.getSplitPath(inputSplit).toString)
     val (factsetId, partition) = Factset.parseFile(path) match {
       case Success(r) => r
       case Failure(e) => Crash.error(Crash.DataIntegrity, s"Can not parse factset path ${e}")

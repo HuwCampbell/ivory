@@ -1,18 +1,17 @@
 package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core.Arbitraries._
-import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.TestConfigurations._
-import com.ambiata.ivory.storage.control.IvoryRead
-import com.ambiata.mundane.control.ResultT
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
-import com.ambiata.poacher.hdfs._
+import com.ambiata.ivory.core._
+import com.ambiata.mundane.control._
+
 import org.specs2._
 import org.specs2.execute.{AsResult, Result}
 
-import scalaz._, Scalaz._, effect.IO
+import scalaz._, Scalaz._
 
 object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -25,7 +24,7 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
   def latest = prop { ids: FactsetIdList =>
     withRepository { repo =>
       (for {
-        _ <- ids.ids.traverseU(id => allocatePath(repo.factset(id)).run(repo.configuration))
+        _ <- ids.ids.traverseU(id => allocatePath(repo.factset(id)))
         l <- Factsets.latestId(repo)
       } yield l) must beOkLike(_ must_== ids.ids.sorted.lastOption)
     }
@@ -36,9 +35,9 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
       val expected = factsetId.next.map((true, _))
 
       val res = for {
-        _ <- allocatePath(repo.factset(factsetId)).run(repo.configuration)
+        _ <- allocatePath(repo.factset(factsetId))
         n <- Factsets.allocateFactsetId(repo)
-        e <- Hdfs.exists(repo.factset(factsetId.next.get).toHdfs).run(repo.configuration)
+        e <- ReferenceStore.exists(repo.factset(factsetId.next.get))
       } yield (e, n)
 
       expected.map(e => res must beOkLike(_ must_== e)).getOrElse(res.run.unsafePerformIO.toOption must beNone)
@@ -50,7 +49,7 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
       val expected = factsets.factsets.map(fs => fs.copy(partitions = fs.partitions.sorted)).sortBy(_.id)
 
       (factsets.factsets.traverseU(fs =>
-        fs.partitions.partitions.traverseU(p => writeDataFile(repo.factset(fs.id) </> p.path)).run(repo.configuration)
+        fs.partitions.partitions.traverseU(p => writeDataFile(repo.factset(fs.id) </> p.path))
       ) must beOk) and
         (Factsets.factsets(repo) must beOkLike(_ must containTheSameElementsAs(expected)))
     }
@@ -60,22 +59,24 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
     withRepository { repo =>
       val expected = factset.copy(partitions = factset.partitions.sorted)
 
-      (factset.partitions.partitions.traverseU(p => writeDataFile(repo.factset(factset.id) </> p.path)).run(repo.configuration) must beOk) and
+      (factset.partitions.partitions.traverseU(p => writeDataFile(repo.factset(factset.id) </> p.path)) must beOk) and
         (Factsets.factset(repo, factset.id) must beOkValue(expected))
     }
   }
 
-  def withRepository[R : AsResult](f: HdfsRepository => R): Result =
+  def withRepository[R : AsResult](f: Repository => R): Result =
     Temporary.using { dir =>
-      ResultT.ok[IO, Result](AsResult(f(Repository.fromHdfsPath(dir </> "repo", scoobiConfiguration))))
+      for {
+        repository <- Repository.fromUriResultTIO((dir </> "repo").path, RepositoryConfiguration(scoobiConfiguration))
+      } yield AsResult(f(repository))
     } must beOkLike(r => r.isSuccess aka r.message must beTrue)
 
-  def allocatePath(path: FilePath): Hdfs[Unit] =
-    writeEmptyFile(path </> FilePath(".allocated"))
+  def allocatePath(ref: ReferenceIO): ResultTIO[Unit] =
+    writeEmptyFile(ref </> ".allocated")
 
-  def writeDataFile(path: FilePath): Hdfs[Unit] =
-    writeEmptyFile(path </> FilePath("data"))
+  def writeDataFile(ref: ReferenceIO): ResultTIO[Unit] =
+    writeEmptyFile(ref </> "data")
 
-  def writeEmptyFile(file: FilePath): Hdfs[Unit] =
-    Hdfs.writeWith(file.toHdfs, os => Streams.write(os, ""))
+  def writeEmptyFile(ref: ReferenceIO): ResultTIO[Unit] =
+    ReferenceStore.writeUtf8(ref, "")
 }

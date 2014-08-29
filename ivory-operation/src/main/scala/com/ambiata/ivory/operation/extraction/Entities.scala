@@ -75,18 +75,18 @@ object Entities {
 
   def serialiseEntities(entities: Entities, ref: ReferenceIO): ResultTIO[Unit] = {
     import java.io.ObjectOutputStream
-    ref.run(store => path => store.unsafe.withOutputStream(path)(os => ResultT.safe({
+    ref.store.unsafe.withOutputStream(ref.filePath)(os => ResultT.safe({
       val bOut = new ObjectOutputStream(os)
       bOut.writeObject(entities.entities)
       bOut.close()
-    })))
+    }))
   }
 
   // TODO Change to thrift serialization, see #131
   def deserialiseEntities(ref: ReferenceIO): ResultTIO[Entities] = {
     import java.io.{ByteArrayInputStream, ObjectInputStream}
-    ref.run(store => path => store.bytes.read(path).flatMap(bytes =>
-      ResultT.safe(Entities(new ObjectInputStream(new ByteArrayInputStream(bytes.toArray)).readObject.asInstanceOf[Mappings]))))
+    ReferenceStore.readBytes(ref).flatMap(bytes =>
+      ResultT.safe(Entities(new ObjectInputStream(new ByteArrayInputStream(bytes.toArray)).readObject.asInstanceOf[Mappings])))
   }
 
   /**
@@ -95,7 +95,7 @@ object Entities {
   def readEntitiesFrom(ref: ReferenceIO): ResultTIO[Entities] = {
     val DatePattern = """(\d{4})-(\d{2})-(\d{2})""".r
 
-    ref.run(s => s.linesUtf8.read).map { lines =>
+    ReferenceStore.readLines(ref).map { lines =>
       val mappings = new HashMap[String, Array[Int]](lines.length)
       lines.map(parseLine(DatePattern)).groupBy(_._1).foreach { case (k, v) =>
         mappings.put(k, v.map(_._2).toArray.sorted.reverse)

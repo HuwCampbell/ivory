@@ -1,12 +1,16 @@
 package com.ambiata.ivory.data
 
 import com.ambiata.ivory.reflect.MacrosCompat
+import com.ambiata.mundane.io.FileName
 import com.ambiata.mundane.parse.ListParser
 import scalaz._, Scalaz._
 
 class Identifier private (val n: Int) extends AnyVal {
   def render: String =
     String.format("%08x", java.lang.Integer.valueOf(n))
+
+  def asFileName =
+    FileName.unsafe(render)
 
   override def toString: String =
     render

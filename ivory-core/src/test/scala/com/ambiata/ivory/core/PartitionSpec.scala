@@ -3,10 +3,7 @@ package com.ambiata.ivory.core
 import org.specs2._
 import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.Arbitraries._
-import com.ambiata.mundane.io.FilePath
-import java.io.File
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, Path}
+import com.ambiata.mundane.io._
 
 import scalaz._, Scalaz._
 
@@ -29,7 +26,7 @@ Parsing a Partition from a dir:
   Fails when the namespace is missing                 $dirMissingNamespace
 
 Can create a Partition path as a:
-  FilePath                $filePath
+  DirPath                 $dirPath
   String                  $stringPath
 
 Can filter Partitions:
@@ -49,43 +46,43 @@ Can filter Partitions:
     } yield MalformedDateString(str))
 
   def file = prop((partition: Partition) => {
-    val fp = FilePath("/a/b/c") </> FilePath(partition.namespace.name) </> FilePath(partition.date.slashed) </> FilePath("file")
+    val fp = "a" </> "b" </> "c" </> partition.path <|> "file"
     Partition.parseFile(fp) ==== partition.success[String]
   })
 
   def fileIsDir =
-    Partition.parseFile(FilePath("/root/ns/2104/08/11")).toOption ==== None
+    Partition.parseFile("root" </> "ns" </> "2104" </> "08" <|> "11").toOption ==== None
 
   def fileMalformedDate = prop((malformed: MalformedDateString) =>
-    Partition.parseFile(FilePath("/root/ns") </> FilePath(malformed.date) </> FilePath("file")).toOption ==== None)
+    Partition.parseFile("root" </> "ns" </> DirPath.unsafe(malformed.date) <|> "file").toOption ==== None)
 
   def fileMissingNamespace =
-    Partition.parseFile(FilePath("/2014/08/11/file")).toOption ==== None
+    Partition.parseFile("2014" </> "08" </> "11" <|> "file").toOption ==== None
 
   def dir = prop((partition: Partition) => {
-    val dp = FilePath("/d/e") </> FilePath(partition.namespace.name) </> FilePath(partition.date.slashed)
+    val dp = "d" </> "e" </> partition.path
     Partition.parseDir(dp) ==== partition.success[String]
   })
 
   def dirIsFile = prop((partition: Partition) => {
-    val dp = FilePath("/d/e") </> FilePath(partition.namespace.name) </> FilePath(partition.date.slashed) </> FilePath("file")
+    val dp = "d" </> "e" </> partition.path </> "file"
     Partition.parseDir(dp).toOption ==== None
   })
 
   def dirIncomplete =
-    Partition.parseDir(FilePath("/root/ns/2104/08")).toOption ==== None
+    Partition.parseDir("root" </> "ns" </> "2104" </> "08").toOption ==== None
 
   def dirMalformedDate = prop((malformed: MalformedDateString) =>
-    Partition.parseFile(FilePath("/root/ns") </> FilePath(malformed.date)).toOption ==== None)
+    Partition.parseFile("root" </> "ns" </> FilePath.unsafe(malformed.date)).toOption ==== None)
 
   def dirMissingNamespace =
-    Partition.parseDir(FilePath("/2014/08/11")).toOption ==== None
+    Partition.parseDir("2014" </> "08" </> "11").toOption ==== None
 
-  def filePath = prop((partition: Partition) =>
-    partition.path ==== FilePath(partition.namespace.name) </> FilePath(partition.date.slashed))
+  def dirPath = prop((p: Partition) =>
+    Partition.dirPath(p.namespace, p.date) ==== p.path)
 
   def stringPath = prop((p: Partition) =>
-    Partition.stringPath(p.namespace.name, p.date) ==== s"${p.namespace.name}/${p.date.slashed}")
+    Partition.stringPath(p.namespace.name, p.date) ==== p.path.path)
 
   def between = prop((partitions: Partitions, dates: UniqueDates) => {
     val ps = partitions.partitions

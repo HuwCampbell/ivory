@@ -1,6 +1,7 @@
 package com.ambiata.ivory.data
 
 import com.ambiata.ivory.reflect.MacrosCompat
+import com.ambiata.mundane.io.FileName
 import com.ambiata.mundane.parse.ListParser
 import scalaz._, Scalaz._
 
@@ -11,6 +12,9 @@ import scalaz._, Scalaz._
 class OldIdentifier private (val n: Int) extends AnyVal {
   def render: String =
     String.format("%05d", java.lang.Integer.valueOf(n))
+
+  def asFileName =
+    FileName.unsafe(render)
 
   override def toString: String =
     render

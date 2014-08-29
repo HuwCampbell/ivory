@@ -1,20 +1,17 @@
 package com.ambiata.ivory.core
 
-import java.io.File
-
-import com.ambiata.ivory.core.IvorySyntax._
-import com.ambiata.mundane.io.FilePath
+import com.ambiata.mundane.io._
 import com.ambiata.mundane.parse.ListParser
 
 import scalaz.Scalaz._
 import scalaz._
 
 case class Partition(namespace: Name, date: Date) {
-  def path: FilePath =
-    FilePath(Partition.stringPath(namespace.name, date))
+  def path: DirPath =
+    Partition.dirPath(namespace, date)
 
   def order(other: Partition): Ordering =
-    (namespace ?|? other.namespace) match {
+    namespace ?|? other.namespace match {
       case Ordering.EQ => date ?|? other.date
       case o           => o
     }
@@ -27,23 +24,19 @@ object Partition {
   implicit def PartitionOrdering =
     PartitionOrder.toScalaOrdering
 
-  def parseDir(dir: FilePath): Validation[String, Partition] =
+  def parseDir(dir: DirPath): Validation[String, Partition] =
     listParser.flatMap(p => ListParser.consumeRest.as(p)).run(dir.components.reverse)
 
+  def parseFile(file: String): Validation[String, Partition] =
+    parseFile(FilePath.unsafe(file))
+
   def parseFile(file: FilePath): Validation[String, Partition] = for {
-    parent    <- file.parent.toSuccess(s"Expecting parent in path '${file}', but got none")
+    parent    <- file.dirname.success[String]
     partition <- parseDir(parent)
   } yield partition
 
   def listParser: ListParser[Partition] = {
     import com.ambiata.mundane.parse.ListParser._
-    // TODO remove once we depend on a version of mundane which contains this combinator
-    def byte: ListParser[Byte] = for {
-      s         <- string
-      position  <- getPosition
-      result    <- value(s.parseByte.leftMap(_ => s"""not a byte: '$s'"""))
-    } yield result
-
     for {
       d    <- byte
       m    <- byte
@@ -58,6 +51,9 @@ object Partition {
 
   def stringPath(namespace: String, date: Date): String =
     namespace + "/" + "%4d/%02d/%02d".format(date.year, date.month, date.day)
+
+  def dirPath(namespace: Name, date: Date): DirPath =
+    namespace.asDirPath </> DirPath.unsafe("%4d/%02d/%02d".format(date.year, date.month, date.day))
 }
 
 case class Partitions(partitions: List[Partition]) {

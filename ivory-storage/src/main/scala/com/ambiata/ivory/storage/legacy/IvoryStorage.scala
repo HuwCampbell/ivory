@@ -29,8 +29,8 @@ object IvoryStorage {
   val factsetVersion =
     FactsetVersionTwo
 
-  def factsetStorer(path: String, codec: Option[CompressionCodec]): IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] =
-    PartitionFactThriftStorageV2.PartitionedFactThriftStorer(path, codec)
+  def factsetStorer(ref: ReferenceIO, codec: Option[CompressionCodec]): IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] =
+    PartitionFactThriftStorageV2.PartitionedFactThriftStorer(ref, codec)
 
   /**
    * Get the loader for a given version
@@ -53,7 +53,7 @@ object IvoryStorage {
 
   implicit class IvoryFactStorage(dlist: DList[Fact]) {
     def toIvoryFactset(repo: HdfsRepository, factset: FactsetId, codec: Option[CompressionCodec])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] =
-      IvoryStorage.factsetStorer(repo.factset(factset).path, codec).storeScoobi(dlist)
+      IvoryStorage.factsetStorer(repo.factset(factset), codec).storeScoobi(dlist)
   }
 
   /** Facts */

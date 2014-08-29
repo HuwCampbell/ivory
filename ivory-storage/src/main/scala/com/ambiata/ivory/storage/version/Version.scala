@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.version
 
-import com.ambiata.ivory.core.Reference
+import com.ambiata.ivory.core.{ReferenceStore, Reference}
 import com.ambiata.mundane.io._
 
 import scalaz.Scalaz._
@@ -10,11 +10,11 @@ case class Version(override val toString: String)
 
 object Version {
 
-  private val VERSION = ".version".toFilePath
+  private val VERSION: FileName = ".version"
 
-  def read[F[+_] : Functor](path: Reference[F]): F[Version] =
-    (path </> VERSION).run(_.utf8.read).map(v => new Version(v.trim))
+  def read[F[_] : Functor](path: Reference[F]): F[Version] =
+    ReferenceStore.readUtf8[F](path </> VERSION).map(v => new Version(v.trim))
 
-  def write[F[+_]](path: Reference[F], version: Version): F[Unit] =
-    (path </> VERSION).run(s => s.utf8.write(_, version.toString))
+  def write[F[_]: Monad](path: Reference[F], version: Version): F[Unit] =
+    ReferenceStore.writeUtf8[F](path </> VERSION, version.toString)
 }

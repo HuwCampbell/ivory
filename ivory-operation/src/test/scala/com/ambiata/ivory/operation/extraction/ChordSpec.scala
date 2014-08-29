@@ -27,18 +27,18 @@ ChordSpec
       implicit val sc = repo.scoobiConfiguration
       for {
         _           <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
-        entitiesRef <- Reference.fromUriResultTIO((directory </> "entities").path, sc)
-        _           <- entitiesRef.run(s => s.linesUtf8.write(_, entities))
+        entitiesRef <- Reference.fromDirPath(directory </> "entities", repo.repositoryConfiguration)
+        _           <- ReferenceStore.writeLines(entitiesRef, entities)
         outPath     <- Chord.createChord(repo, entitiesRef, takeSnapshot = true)
-        facts       <- ResultT.safe[IO, List[Fact]](valueFromSequenceFile[Fact]((repo.root </> outPath).path).run.toList)
+        facts       <- ResultT.safe[IO, List[Fact]](valueFromSequenceFile[Fact]((repo.root </> outPath).path.path).run.toList)
       } yield facts
     }
   } must beOkLike {
     case facts =>
       facts must containTheSameElementsAs(List(
-      StringFact("eid1:2012-09-15", FeatureId(Name("ns1"), "fid1"), Date(2012, 9, 1), Time(0), "ghi"),
-      StringFact("eid1:2012-11-01", FeatureId(Name("ns1"), "fid1"), Date(2012, 10, 1), Time(0), "abc"),
-      IntFact("eid2:2012-12-01",    FeatureId(Name("ns1"), "fid2"), Date(2012, 11, 1), Time(0), 11)
-    ))
+        StringFact("eid1:2012-09-15", FeatureId(Name("ns1"), "fid1"), Date(2012, 9, 1), Time(0), "ghi"),
+        StringFact("eid1:2012-11-01", FeatureId(Name("ns1"), "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+        IntFact("eid2:2012-12-01",    FeatureId(Name("ns1"), "fid2"), Date(2012, 11, 1), Time(0), 11)
+      ))
   }
 }

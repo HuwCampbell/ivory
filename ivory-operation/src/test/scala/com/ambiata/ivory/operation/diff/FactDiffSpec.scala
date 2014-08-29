@@ -73,15 +73,15 @@ class FactDiffSpec extends Specification with ThrownExpectations with FileMatche
     implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
     Temporary.using { dir =>
       val directory = TestFiles.path(dir.path)
-      val input1 = directory + "/1"
-      val input2 = directory + "/2"
-      val output = directory + "/out"
+      val input1 = Reference.parseUri(directory + "/1", RepositoryConfiguration(sc)).toOption.get
+      val input2 = Reference.parseUri(directory + "/2", RepositoryConfiguration(sc)).toOption.get
+      val output = Reference.parseUri(directory + "/out", RepositoryConfiguration(sc)).toOption.get
 
       persist(PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input1, None).storeScoobi(facts1),
         PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input2, None).storeScoobi(facts2))
 
       FactDiff.partitionFacts(input1, input2, output).run(sc) must beOk
-      ResultT.ok[IO, Result](AsResult(f(output, sc)))
+      ResultT.ok[IO, Result](AsResult(f(output.fullDirPath.path, sc)))
     }.run.unsafePerformIO.toOption.get
   }
 }

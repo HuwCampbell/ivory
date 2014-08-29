@@ -1,6 +1,5 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.ivory.data.DataSyntax
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import org.apache.commons.logging.Log
@@ -8,15 +7,21 @@ import org.apache.hadoop.fs.Path
 
 import scalaz.effect.IO
 
-trait IvorySyntax extends DataSyntax {
-  implicit class IvoryFilePathSyntax(f: FilePath) {
-    def toHdfs: Path = new Path(f.path)
+trait IvorySyntax {
+  implicit class IvoryFilePathSyntax(file: FilePath) {
+    def toHdfs: Path = new Path(file.path)
+  }
 
-    // TODO move to FilePath
-    def components: List[String] =
-      f.path.split("/").toList
-    def drop(n: Int): Option[FilePath] =
-      (1 to n).toList.foldLeft(f.parent)((acc, _) => acc.flatMap(_.parent))
+  implicit class IvoryDirPathSyntax(dir: DirPath) {
+    def toHdfs: Path = new Path(dir.path)
+  }
+
+  implicit class IvoryReferenceIOSyntax[F[_]](ref: Reference[F]) {
+    def toHdfs: Path = ref.fullFilePath.toHdfs
+  }
+
+  implicit class PathToIvoryDirPathSyntax(path: Path) {
+    def toDirPath: DirPath = DirPath.unsafe(path.toString)
   }
 
   def checkThat[A](a: =>A, condition: Boolean, message: String): ResultTIO[A] =

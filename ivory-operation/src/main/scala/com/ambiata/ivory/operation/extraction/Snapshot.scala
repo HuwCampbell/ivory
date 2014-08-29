@@ -70,11 +70,11 @@ object Snapshot {
   def createSnapshot(repository: Repository, date: Date): Option[SnapshotMeta] => ResultTIO[SnapshotMeta] = (previousSnapshot: Option[SnapshotMeta]) =>
     for {
       newSnapshot <- SnapshotMeta.createSnapshotMeta(repository, date)
-      output      =  repository.toReference(Repository.snapshot(newSnapshot.snapshotId))
+      output      =  repository.snapshot(newSnapshot.snapshotId)
       _           <- runSnapshot(repository, newSnapshot, previousSnapshot, date, output).info(s"""
                                  | Running extractor on:
                                  |
-                                 | Repository     : ${repository.root.path}
+                                 | Repository     : ${repository.root.fullDirPath.path}
                                  | Feature Store  : ${newSnapshot.featureStoreId.render}
                                  | Date           : ${date.hyphenated}
                                  | Output         : $output
@@ -89,12 +89,12 @@ object Snapshot {
     for {
       hr              <- downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'")
       outputStore     <- downcast[Any, HdfsStore](output.store, s"Snapshot output must be on HDFS, got '$output'")
-      out             =  (outputStore.base </> output.path).toHdfs
-      dictionary      <- dictionaryForSnapshot(repository, newSnapshot)
+      out             =  output.toHdfs
+      dictionary      <- latestDictionaryFromIvory(repository)
       windows         =  SnapshotWindows.planWindow(dictionary, date)
       newFactsetGlobs <- calculateGlobs(repository, dictionary, windows, newSnapshot, previousSnapshot, date)
       _               <- job(hr, previousSnapshot, newFactsetGlobs, date, out, windows, hr.codec).run(hr.configuration)
-      _               <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), dictionary)
+      _               <- DictionaryTextStorageV2.toFileStoreIO(output </> ".dictionary", dictionary)
       _               <- SnapshotMeta.save(newSnapshot, output)
     } yield ()
 
@@ -131,7 +131,7 @@ object Snapshot {
   /** This is exposed through the external API */
   def snapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Path] = for {
     sc   <- ScoobiAction.scoobiConfiguration
-    repo <- Repository.fromHdfsPath(repoPath.toString.toFilePath, sc).pure[ScoobiAction]
+    repo <- ScoobiAction.fromResultTIO(Repository.fromUriResultTIO(repoPath.toString, RepositoryConfiguration.apply(sc)))
     snap <- ScoobiAction.fromResultTIO(takeSnapshot(repo, date, incremental).map(res => repo.snapshot(res.snapshotId).toHdfs))
   } yield snap
 

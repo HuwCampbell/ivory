@@ -78,6 +78,9 @@ case class Dictionary(definitions: List[Definition]) {
 object Dictionary {
   val empty: Dictionary =
     Dictionary(Nil)
+
+  def reduce(dictionaries: List[Dictionary]) =
+    dictionaries.foldLeft(Dictionary.empty)(_ append _)
 }
 
 /** Represents a dictionary grouped by the concrete definitions */

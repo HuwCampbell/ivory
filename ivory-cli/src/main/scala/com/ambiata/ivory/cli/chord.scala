@@ -13,10 +13,10 @@ object chord extends IvoryApp {
 
   val parser = Extract.options(new scopt.OptionParser[CliArguments]("chord") {
     head("""
-         |Extract the latest features from a given ivory repo using a list of entity id and date pairs
-         |
-         |The output entity ids will be of the form eid:yyyy-MM-dd
-         |""".stripMargin)
+           |Extract the latest features from a given ivory repo using a list of entity id and date pairs
+           |
+           |The output entity ids will be of the form eid:yyyy-MM-dd
+           |""".stripMargin)
 
     help("help") text "shows this usage text"
     opt[String]('c', "entities") action { (x, c) => c.copy(entities = x) }  required() text "Path to file containing entity/date pairs (eid|yyyy-MM-dd)."
@@ -25,7 +25,8 @@ object chord extends IvoryApp {
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments("", true, ExtractOutput()), { repo => conf => c =>
     for {
-      ent  <- Reference.fromUriResultTIO(c.entities, conf)
+      repo <- Repository.fromUriResultTIO(c.repo, conf)
+      ent  <- Reference.fromUriAsDir(c.entities, conf)
       of   <- Extract.parse(conf, c.formats)
       _    <- ResultT.when(of.outputs.isEmpty, ResultT.fail[IO, Unit]("No output/format specified"))
       out  <- IvoryRetire.chord(repo, ent, c.takeSnapshot)

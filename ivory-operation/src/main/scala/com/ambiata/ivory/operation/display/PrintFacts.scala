@@ -55,7 +55,7 @@ object PrintFacts {
   /** @return true if the path is a partition */
   private def isPartition(config: Configuration)(path: Path): IOAction[Boolean] = {
     val (basePath, glob) = Hdfs.pathAndGlob(path)
-    IOActions.fromResultT(Hdfs.globFiles(basePath, glob).map(_.exists(p => Partition.parseFile(FilePath(p.toUri.toString)).toOption.isDefined)).run(config))
+    IOActions.fromResultT(Hdfs.globFiles(basePath, glob).map(_.exists(p => Partition.parseFile(FilePath.unsafe(p.toUri.toString)).toOption.isDefined)).run(config))
   }
 
 }

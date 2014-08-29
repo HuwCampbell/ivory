@@ -53,14 +53,14 @@ class EavtTextImporterSpec extends Specification with ThrownExpectations with Fi
     } must beOkLike(r => r.isSuccess aka r.message must beTrue)
 }
 
-class Setup(val directory: FilePath) extends MustThrownMatchers {
+class Setup(val directory: DirPath) extends MustThrownMatchers {
   implicit def sc: ScoobiConfiguration = TestConfigurations.scoobiConfiguration
   implicit lazy val fs = sc.fileSystem
 
-  lazy val base = Reference(HdfsStore(sc, directory), FilePath.root)
+  lazy val base = Reference(HdfsStore(sc, directory), DirPath.Root)
   lazy val input = base </> "input"
-  lazy val namespaced = (input </> "ns1").path
-  lazy val repository = Repository.fromHdfsPath(directory </> "repo", sc)
+  lazy val namespaced = input </> "ns1"
+  lazy val repository = HdfsRepository(directory </> "repo", RepositoryConfiguration(sc))
   lazy val errors = base </> "errors"
   lazy val ns1 = Name("ns1")
 
@@ -87,7 +87,7 @@ class Setup(val directory: FilePath) extends MustThrownMatchers {
     import com.ambiata.ivory.operation.ingestion.thrift._
     val serializer = ThriftSerialiser()
 
-    SequenceUtil.writeBytes(directory </> "input" </> "ns1" </> java.util.UUID.randomUUID().toString, None) {
+    SequenceUtil.writeBytes(directory </> "input" </> "ns1" <|> FileName.unsafe(java.util.UUID.randomUUID().toString), None) {
       writer => ResultT.safe(expected.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
     }.run(sc) must beOk
   }
@@ -98,8 +98,9 @@ class Setup(val directory: FilePath) extends MustThrownMatchers {
                    "pid1|fid3|3.0|2012-03-20 00:00:30")
     save(namespaced, raw) must beOk
   }
-  def save(path: FilePath, raw: List[String]) =
-    (base </> path </> "part").run(store => fp => store.linesUtf8.write(fp, raw))
+
+  def save(path: ReferenceIO, raw: List[String]) =
+    ReferenceStore.writeLines(path </> "part", raw)
 
   def importAs(format: Format) = {
     val action =

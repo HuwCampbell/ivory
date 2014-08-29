@@ -3,12 +3,12 @@ package com.ambiata.ivory.operation.ingestion
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.ingestion.DictionaryImporter._
 import com.ambiata.ivory.core.Arbitraries.DictionaryArbitrary
-import com.ambiata.ivory.storage.Arbitraries.StoreTypeArbitrary
 import com.ambiata.ivory.storage.fact.FactsetsSpec._
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
+import com.ambiata.mundane.store.PosixStore
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.specs2.Specification
 import org.specs2.matcher.ThrownExpectations
@@ -28,26 +28,28 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations { def
   val opts = ImportOpts(Override, force = false)
 
   def local = {
-    val dictionaryPath = FilePath("dictionary.psv")
 
     val dict = Dictionary(List(Definition.concrete(FeatureId(Name("demo"), "postcode"), StringEncoding, Some(CategoricalType), "Postcode", List("☠"))))
-    Temporary.using(dir => for {
-      _    <- Streams.write(new java.io.FileOutputStream((dir </> dictionaryPath).toFile), DictionaryTextStorageV2.delimitedString(dict))
-      repo = Repository.fromLocalPath(dir)
-      _    <- fromPath(repo, Reference(repo.toStore, dictionaryPath), opts.copy(ty = Override))
-      out  <- latestDictionaryFromIvory(repo)
-    } yield out) must beOkValue(dict)
+    Temporary.using { dir =>
+      val dictionaryPath = dir <|> "dictionary.psv"
+      for {
+        _    <- Streams.write(new java.io.FileOutputStream(dictionaryPath.toFile), DictionaryTextStorageV2.delimitedString(dict))
+        repo = Repository.fromLocalPath(dir)
+        _    <- DictionaryImporter.importFromPath(repo, Reference(PosixStore(dictionaryPath.toDirPath)), opts.copy(ty = Override))
+        out  <- latestDictionaryFromIvory(repo)
+      } yield out
+    } must beOkValue(dict)
   }
 
   def updated = {
     val dict1 = Dictionary(List(Definition.concrete(FeatureId(Name("a"), "b"), StringEncoding, Some(CategoricalType), "", Nil)))
     val dict2 = Dictionary(List(Definition.concrete(FeatureId(Name("c"), "d"), StringEncoding, Some(CategoricalType), "", Nil)))
     Temporary.using { dir =>
-      val repo = Repository.fromLocalPath(dir)
       for {
-        _ <- fromDictionary(repo, dict1, opts.copy(ty = Override))
-        _ <- fromDictionary(repo, dict2, opts.copy(ty = Update))
-        out <- latestDictionaryFromIvory(repo)
+        repo <- Repository.fromUriResultTIO(dir.path, RepositoryConfiguration.Empty)
+        _    <- fromDictionary(repo, dict1, opts.copy(ty = Override))
+        _    <- fromDictionary(repo, dict2, opts.copy(ty = Update))
+        out  <- latestDictionaryFromIvory(repo)
       } yield out
     }.map(_.byFeatureId) must beOkValue(dict1.append(dict2).byFeatureId)
   }
@@ -57,7 +59,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations { def
     val dict1 = Dictionary(List(Definition.concrete(fid, StringEncoding, Some(CategoricalType), "", Nil)))
     val dict2 = Dictionary(List(Definition.concrete(fid, BooleanEncoding, Some(CategoricalType), "", Nil)))
     Temporary.using { dir =>
-      val repo = Repository.fromLocalPath(dir)
+      val repo = LocalRepository(dir)
       fromDictionary(repo, dict1, opts.copy(ty = Override))
         .flatMap(_ => fromDictionary(repo, dict2, opts.copy(ty = Override, force = force)))
     }

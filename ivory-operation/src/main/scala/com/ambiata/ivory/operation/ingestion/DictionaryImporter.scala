@@ -1,16 +1,18 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control._
 import scalaz._, Scalaz._
+import scalaz.effect.IO
 
 object DictionaryImporter {
 
   import com.ambiata.ivory.operation.ingestion.DictionaryImportValidate._
 
-  def fromPath(repository: Repository, source: ReferenceIO, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[DictionaryId])] =
-    DictionaryTextStorageV2.fromStore(source).flatMap(fromDictionary(repository, _, importOpts))
+  def importFromPath(repository: Repository, source: ReferenceIO, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[DictionaryId])] =
+    DictionaryTextStorageV2.fromFileIO(source).flatMap(fromDictionary(repository, _, importOpts))
 
   def fromDictionary(repository: Repository, dictionary: Dictionary, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[DictionaryId])] = {
     val storage = DictionaryThriftStorage(repository)

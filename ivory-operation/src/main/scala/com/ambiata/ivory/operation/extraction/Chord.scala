@@ -25,14 +25,14 @@ import scala.collection.JavaConversions._
 
 /**
  * A Chord is the extraction of feature values for some entities at some dates
- * 
+ *
  * Use the latest snapshot (if available) to get the latest values
  */
 object Chord {
   private implicit val logger = LogFactory.getLog("ivory.operation.Snapshot")
 
   type PrioritizedFact = (Priority, Fact)
-  
+
   /**
    * Create a chord from a list of entities
    * If takeSnapshot = true, take a snapshot first, otherwise use the latest available snapshot
@@ -40,7 +40,7 @@ object Chord {
    * Returns a newly created [[FilePath]] to the chord in thrift format, which can be fed into other jobs.
    * Consumers of this method should delete the returned path when finished with the result.
    */
-  def createChord(repository: Repository, entitiesRef: ReferenceIO, takeSnapshot: Boolean): ResultTIO[FilePath] = for {
+  def createChord(repository: Repository, entitiesRef: ReferenceIO, takeSnapshot: Boolean): ResultTIO[DirPath] = for {
     _                   <- checkThat(repository, repository.isInstanceOf[HdfsRepository], "Chord only works on HDFS repositories at this stage.")
     entities            <- Entities.readEntitiesFrom(entitiesRef)
     _                   <- logInfo(s"Earliest date in chord file is '${entities.earliestDate}'")
@@ -54,18 +54,18 @@ object Chord {
   /**
    * Run the chord extraction on Hdfs, returning the [[FilePath]] where the chord was written to.
    */
-  def runChordOnHdfs(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotMeta]): ResultTIO[FilePath] = {
-    val chordRef = repository.toReference("tmp" </> java.util.UUID.randomUUID.toString)
-    val outputPath = FilePath("tmp") </> java.util.UUID.randomUUID.toString
+  def runChordOnHdfs(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotMeta]): ResultTIO[DirPath] = {
+    val chordRef = repository.toReference("tmp" <|> FileName(java.util.UUID.randomUUID))
+    val outputPath = DirPath("tmp") </> FileName(java.util.UUID.randomUUID)
     for {
       hr                   <- downcast[Repository, HdfsRepository](repository, "Chord only works on HDFS repositories at this stage.")
       _                    <- serialiseEntities(entities, chordRef)
       featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotMeta(repository)(meta))
       dictionary           <- latestDictionaryFromIvory(repository)
       _                    <- chordScoobiJob(hr, dictionary, store, chordRef, entities.latestDate, featureStoreSnapshot,
-        (repository.root </> outputPath).toHdfs, hr.codec).run(hr.scoobiConfiguration)
+                                             (repository.root </> outputPath).toHdfs, hr.codec).run(hr.scoobiConfiguration)
       // Delete the temporary chordRef - no longer needed
-      _                    <- chordRef.run(_.deleteAll)
+      _                    <- ReferenceStore.deleteAll(chordRef)
     } yield outputPath
   }
 
@@ -77,23 +77,23 @@ object Chord {
                      latestDate: Date, snapshot: Option[FeatureStoreSnapshot],
                      outputPath: Path, codec: Option[CompressionCodec]): ScoobiAction[Unit] = ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
 
-      lazy val entities = getEntities(chordReference)
+    lazy val entities = getEntities(chordReference)
 
-      Chord.readFacts(repository, store, latestDate, snapshot).map { facts =>
+    Chord.readFacts(repository, store, latestDate, snapshot).map { facts =>
 
-        /** get only the facts for the chord entities */
-        val entitiesFacts: DList[PrioritizedFact] = filterFacts(facts, entities)
-        /**
-         * 1. group by entity and feature id
-         * 2. for a given entity and feature id, get the latest facts, with the lowest priority
-         */
-        val latestFacts: DList[PrioritizedFact] = getBestFacts(entitiesFacts, entities)
+      /** get only the facts for the chord entities */
+      val entitiesFacts: DList[PrioritizedFact] = filterFacts(facts, entities)
+      /**
+       * 1. group by entity and feature id
+       * 2. for a given entity and feature id, get the latest facts, with the lowest priority
+       */
+      val latestFacts: DList[PrioritizedFact] = getBestFacts(entitiesFacts, entities)
 
-        val validated: DList[PrioritizedFact] = validateFacts(latestFacts, dictionary, store, snapshot)
+      val validated: DList[PrioritizedFact] = validateFacts(latestFacts, dictionary, store, snapshot)
 
-        validated.valueToSequenceFile(outputPath.toString, overwrite = true).persistWithCodec(codec); ()
-      }
-    }.flatten
+      validated.valueToSequenceFile(outputPath.toString, overwrite = true).persistWithCodec(codec); ()
+    }
+  }.flatten
 
   /**
    * filter out the facts which are not in the entityMap or
@@ -118,18 +118,18 @@ object Chord {
     facts
       .groupBy { case (p, f) => (f.entity, f.featureId.toString) }
       .parallelDo(new DoFn[((String, String), Iterable[PrioritizedFact]), PrioritizedFact] {
-        var entities: Entities = null
-        override def setup() { entities = getEntities }
-        override def process(input: ((String, String), Iterable[PrioritizedFact]), emitter: Emitter[PrioritizedFact]) {
-          input match {
-            case ((entityId, featureId), fs) =>
-              entities.keepBestFacts(entityId, fs).collect { case (date, priority, Some(fact)) if !fact.isTombstone =>
-                emitter.emit((priority, fact.withEntity(fact.entity + ":" + Date.unsafeFromInt(date).hyphenated)))
-              }
-          }; ()
-        }
-        override def cleanup(emitter: Emitter[PrioritizedFact]) { }
-      })
+      var entities: Entities = null
+      override def setup() { entities = getEntities }
+      override def process(input: ((String, String), Iterable[PrioritizedFact]), emitter: Emitter[PrioritizedFact]) {
+        input match {
+          case ((entityId, featureId), fs) =>
+            entities.keepBestFacts(entityId, fs).collect { case (date, priority, Some(fact)) if !fact.isTombstone =>
+              emitter.emit((priority, fact.withEntity(fact.entity + ":" + Date.unsafeFromInt(date).hyphenated)))
+            }
+        }; ()
+      }
+      override def cleanup(emitter: Emitter[PrioritizedFact]) { }
+    })
 
   /**
    * Validate that facts are in the dictionary with the right encoding
@@ -138,7 +138,7 @@ object Chord {
     // for each priority we get its snapshot id or factset id
     val priorities: util.Map[Priority, String] =
       mapAsJavaMap((incremental     .map(i =>  (Priority.Max, s"Snapshot '${i.snapshotId.render}'")) ++
-                    store.factsetIds.map(fs => (fs.priority,  s"Factset  '${fs.value.render}'"))).toMap.withDefault(p => s"Unknown, priority $p"))
+        store.factsetIds.map(fs => (fs.priority,  s"Factset  '${fs.value.render}'"))).toMap.withDefault(p => s"Unknown, priority $p"))
 
     facts.map { case (priority, fact) =>
       Validate.validateFact(fact, dictionary).disjunction match {
@@ -179,7 +179,7 @@ object Chord {
   implicit class ScoobiParsedListExitOps[A : WireFormat](action: ScoobiAction[DList[ParseError \/ A]]) {
     def exitOnParseError: ScoobiAction[DList[A]] = action.failError("cannot read facts")
   }
-  
+
   implicit class ScoobiParsedListFailOps[E, A : WireFormat](action: ScoobiAction[DList[E \/ A]]) {
     def failError(message: String): ScoobiAction[DList[A]] =
       action.map { list =>

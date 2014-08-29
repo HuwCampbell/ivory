@@ -2,6 +2,7 @@ package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control.ResultTIO
+import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.impl.ScoobiConfiguration
 import org.specs2.{ScalaCheck, Specification}
@@ -42,12 +43,12 @@ Create repository should always create all folders
 
   def checkRepository(repo: Repository): ResultTIO[List[Boolean]] = {
     List(
-      Repository.root,
-      Repository.dictionaries,
-      Repository.featureStores,
-      Repository.factsets,
-      Repository.snapshots,
-      Repository.errors
-    ).traverse(x => repo.toStore.exists(x </> ".allocated"))
+      repo.root,
+      repo.dictionaries,
+      repo.featureStores,
+      repo.factsets,
+      repo.snapshots,
+      repo.errors
+    ).traverse(ref => ReferenceStore.exists(ref </> ".allocated"))
   }
 }

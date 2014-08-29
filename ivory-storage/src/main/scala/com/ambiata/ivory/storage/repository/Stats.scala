@@ -2,6 +2,8 @@ package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
+import com.ambiata.mundane.io._
+import org.apache.hadoop.conf.Configuration
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.{BytesQuantity, FilePath}
 import com.ambiata.poacher.hdfs.Hdfs.{numberOfFilesRecursively, totalSize}
@@ -37,20 +39,20 @@ object Stats {
     case _                 => fail("Unsupported repository!")
   }
 
-  def sizeOf(path: Repository => FilePath): StatAction[BytesQuantity] = repository.flatMap {
+  def sizeOf(path: Repository => ReferenceIO): StatAction[BytesQuantity] = repository.flatMap {
     case r: HdfsRepository => fromHdfs(totalSize(path(r).toHdfs))
     case _                 => fail("Unsupported repository!")
   }
 
-  def showSizeOfInBytes(path: Repository => FilePath): StatAction[String] =
+  def showSizeOfInBytes(path: Repository => ReferenceIO): StatAction[String] =
     sizeOf(path).map(_.show)
 
-  def numberOf(path: Repository => FilePath): StatAction[Int] = repository.flatMap {
+  def numberOf(path: Repository => ReferenceIO): StatAction[Int] = repository.flatMap {
     case r: HdfsRepository => fromHdfs(Hdfs.globPaths(path(r).toHdfs).map(_.size))
     case _                 => fail("Unsupported repository!")
   }
 
-  def listOf(path: Repository => FilePath): StatAction[List[String]] = repository.flatMap {
+  def listOf(path: Repository => ReferenceIO): StatAction[List[String]] = repository.flatMap {
     case r: HdfsRepository => fromHdfs(Hdfs.globPaths(path(r).toHdfs).map(_.map(_.toUri.toString)))
     case _                 => fail("Unsupported repository!")
   }

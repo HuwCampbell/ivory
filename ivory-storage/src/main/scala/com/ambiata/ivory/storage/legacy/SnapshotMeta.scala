@@ -1,7 +1,6 @@
 package com.ambiata.ivory.storage.legacy
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.data.{IdentifierStorage, StoreDataUtil}
 import com.ambiata.ivory.storage.fact.FeatureStoreGlob
 import com.ambiata.ivory.storage.metadata._
 
@@ -14,9 +13,6 @@ import scalaz._, Scalaz._, \&/._, effect.IO
 
 case class SnapshotMeta(snapshotId: SnapshotId, date: Date, featureStoreId: FeatureStoreId, commitId: Option[CommitId]) {
 
-  def toReference(ref: ReferenceIO): ResultTIO[Unit] =
-    ref.run(featureStore => path => featureStore.linesUtf8.write(path, stringLines))
-
   lazy val stringLines: List[String] =
     List(date.string("-"), featureStoreId.render) ++ commitId.map(_.render)
 
@@ -26,7 +22,8 @@ case class SnapshotMeta(snapshotId: SnapshotId, date: Date, featureStoreId: Feat
 
 object SnapshotMeta {
 
-  val fname = FilePath(".snapmeta")
+  val fname: FileName = ".snapmeta"
+  val allocated: FileName = ".allocated"
 
   implicit def SnapshotMetaOrder: Order[SnapshotMeta] =
     Order.order(_ order _)
@@ -35,15 +32,15 @@ object SnapshotMeta {
     SnapshotMetaOrder.toScalaOrdering
 
   def fromReference(ref: ReferenceIO): ResultTIO[SnapshotMeta] = for {
-    lines      <- ref.run(store => store.linesUtf8.read)
+  lines      <- ReferenceStore.readLines(ref)
     // Ensure we have at least 3 lines (to include new commitId)
     safeLines   = if (lines.length == 2) lines ++ List("") else lines
-    snapshotId <- ResultT.fromOption[IO, SnapshotId](SnapshotId.parse(ref.path.dirname.basename.path), s"can't parse ${ref.path.basename.path} as a snapshot id")
+    snapshotId <- ResultT.fromOption[IO, SnapshotId](SnapshotId.parse(ref.path.dirname.basename.name), s"can't parse ${ref.path.basename.name} as a snapshot id")
     sm         <- ResultT.fromDisjunction[IO, SnapshotMeta](parser(snapshotId).run(safeLines).disjunction.leftMap(This.apply))
   } yield sm
 
-  def fromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[SnapshotMeta] =
-    fromReference(repo.toReference(Repository.snapshots </> FilePath(id.render) </> fname))
+  def fromIdentifier(repository: Repository, id: SnapshotId): ResultTIO[SnapshotMeta] =
+    fromReference(repository.snapshot(id) </> fname)
 
   /**
    * Parse a snapshot meta file for a given snapshot id
@@ -61,9 +58,8 @@ object SnapshotMeta {
    * create a new Snapshot id by create a new .allocated sub-directory
    * with the latest available identifier + 1
    */
-  def allocateId(repository: Repository): ResultTIO[SnapshotId] = for {
-    res <- IdentifierStorage.write(FilePath(".allocated"), scodec.bits.ByteVector.empty)(repository.toStore, Repository.snapshots)
-  } yield SnapshotId(res._1)
+  def allocateId(repository: Repository): ResultTIO[SnapshotId] =
+    IdentifierStorage.write(repository.snapshots, allocated, scodec.bits.ByteVector.empty).map(SnapshotId.apply)
 
   /**
    * create a new Snapshot meta object by allocating a new snapshot id
@@ -117,7 +113,7 @@ object SnapshotMeta {
    *
    */
   def latestSnapshot(repository: Repository, date: Date): ResultTIO[Option[SnapshotMeta]] = for {
-    ids      <- repository.toReference(Repository.snapshots).run(s => p => StoreDataUtil.listDir(s, p)).map(_.map(_.basename.path))
+    ids      <- ReferenceStore.listDirs(repository.snapshots).map(_.map(_.basename.name))
     metas    <- ids.traverseU(sid => SnapshotId.parse(sid).map(id => fromIdentifier(repository, id)).sequenceU)
     filtered =  metas.flatten.filter(_.date isBeforeOrEqual date)
   } yield filtered.sorted.lastOption
@@ -131,6 +127,6 @@ object SnapshotMeta {
    * save the snapshot meta object to disk
    */
   def save(snapshotMeta: SnapshotMeta, output: ReferenceIO): ResultTIO[Unit] =
-    snapshotMeta.toReference(output </> SnapshotMeta.fname)
-  
+    ReferenceStore.writeLines(output </> SnapshotMeta.fname, snapshotMeta.stringLines)
+
 }

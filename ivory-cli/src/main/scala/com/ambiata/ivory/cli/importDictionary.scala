@@ -1,6 +1,8 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.{Reference, Repository}
+import com.ambiata.ivory.data.Identifier
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.operation.ingestion._, DictionaryImporter._
 import scalaz._, effect._
@@ -25,15 +27,16 @@ object importDictionary extends IvoryApp {
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments("", update = false, force = false), { repository => configuration => c =>
       for {
-        source <- Reference.fromUriResultTIO(c.path, configuration)
+        repository <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(c.repo, configuration).leftMap(\&/.This(_)))
+        source <- Reference.fromUriAsDir(c.path, configuration)
         opts     = ImportOpts(if (c.update) Update else Override, c.force)
-        result  <- DictionaryImporter.fromPath(repository, source, opts)
+        result  <- DictionaryImporter.importFromPath(repository, source, opts)
         _       <- result._1 match {
           case Success(_)        => ResultT.unit[IO]
             // Always print validation errors regardless of force
           case f @ Failure(errors) => ResultT.safe[IO, Unit](errors.list.foreach(println))
         }
-        dictId  <- ResultT.fromOption[IO, DictionaryId](result._2, "Invalid dictionary")
-      } yield List(s"Successfully imported dictionary ${c.path} into ${repository.root.path} as ${dictId.render}.")
+        _       <- ResultT.fromOption[IO, DictionaryId](result._2, "Invalid dictionary")
+      } yield List(s"Successfully imported dictionary ${c.path} into ${c.repo}")
   })
 }

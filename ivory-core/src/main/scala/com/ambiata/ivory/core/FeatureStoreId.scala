@@ -7,6 +7,7 @@ import scalaz._, Scalaz._
 
 case class FeatureStoreId(id: OldIdentifier) {
   def render = id.render
+  def asFileName = id.asFileName
   def next = id.next.map(FeatureStoreId.apply)
   def order(other: FeatureStoreId): Ordering =
     id ?|? other.id

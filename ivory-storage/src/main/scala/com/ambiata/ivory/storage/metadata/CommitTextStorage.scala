@@ -3,8 +3,6 @@ package com.ambiata.ivory.storage.metadata
 import scalaz._, Scalaz._, effect._
 
 import com.ambiata.mundane.control._
-
-import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.data._
 import com.ambiata.ivory.core._
 
@@ -15,24 +13,24 @@ object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Com
 
   val name = "commit"
 
-  def increment(repo: Repository, c: Commit): ResultTIO[CommitId] = for {
-    latest      <- latestId(repo)
+  def increment(repository: Repository, c: Commit): ResultTIO[CommitId] = for {
+    latest      <- latestId(repository)
     nextId      <- ResultT.fromOption[IO, CommitId](latest.map(_.next).getOrElse(Some(CommitId.initial)), "Ran out of Commit ids!")
-    _           <- storeCommitToId(repo, nextId, c)
+    _           <- storeCommitToId(repository, nextId, c)
   } yield nextId
 
-  def fromId(repo: Repository, id: CommitId): ResultTIO[Option[Commit]] = for {
-    commitId <- listIds(repo).map(_.find(_ === id))
+  def fromId(repository: Repository, id: CommitId): ResultTIO[Option[Commit]] = for {
+    commitId <- listIds(repository).map(_.find(_ === id))
     commit <- commitId.cata(x =>
-        fromStore(repo.toReference(Repository.commitById(x))).map(_.some)
+        fromFileStoreIO(repository.commitById(x)).map(_.some)
       , none.pure[ResultTIO])
   } yield commit
 
   def storeCommitToId(repository: Repository, id: CommitId, commit: Commit): ResultTIO[Unit] =
-    storeCommitToReference(repository.toReference(Repository.commitById(id)), commit)
+    storeCommitToReference(repository.commitById(id), commit)
 
   def storeCommitToReference(ref: ReferenceIO, commit: Commit): ResultTIO[Unit] =
-    toStore(ref, commit)
+    toFileStoreIO(ref, commit)
 
   def fromList(entries: List[DictionaryId \/ FeatureStoreId]): ValidationNel[String, Commit] =
     entries match {
@@ -62,9 +60,9 @@ object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Com
     }
 
   def listIds(repo: Repository): ResultTIO[List[CommitId]] = for {
-    paths <- repo.toStore.list(Repository.commits).map(_.filterHidden)
+    paths <- ReferenceStore.list(repo.commits).map(_.filterHidden)
     ids   <- paths.traverseU(p =>
-               ResultT.fromOption[IO, CommitId](CommitId.parse(p.basename.path),
+               ResultT.fromOption[IO, CommitId](CommitId.parse(p.basename.name),
                                                       s"Can not parse Commit id '${p}'"))
   } yield ids
 
