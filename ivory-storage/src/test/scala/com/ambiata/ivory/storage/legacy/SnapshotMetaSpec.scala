@@ -16,7 +16,7 @@ import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
 import org.specs2.execute.AsResult
-import org.specs2.matcher.ThrownExpectations
+import org.specs2.matcher.{Matcher, ThrownExpectations}
 import scalaz._, Scalaz._
 import scalaz.effect.IO
 import scalaz.scalacheck.ScalaCheckBinding._
@@ -44,46 +44,48 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
   }
 
   def latest = prop { (snapshots: Snapshots, date1: Date) =>
-    val repository = createRepository("SnapshotMetaSpec.latest")
-    snapshots.metas.traverse(storeSnapshotMeta(repository, _)) must beOk
+    RepositoryBuilder.using { repository =>
 
-    val latestBeforeDate = snapshots.metas.filter(_.date <= date1).sorted.lastOption
-
-    SnapshotMeta.latestSnapshot(repository, date1) must beOkLike { snapshot =>
-      snapshot must_== latestBeforeDate
-    }
+      for {
+        _                <- snapshots.metas.traverse(storeSnapshotMeta(repository, _))
+        latestBeforeDate = snapshots.metas.filter(_.date <= date1).sorted.lastOption
+        snapshot         <- SnapshotMeta.latestSnapshot(repository, date1)
+      } yield snapshot must_== latestBeforeDate
+    } must beOkResult
   }
 
   def uptodate = prop { (snapshots: Snapshots, date1: Date, dateOffset: DateOffset) =>
-    val repository = createRepository("SnapshotMetaSpec.uptodate")
-    val factsetDate = dateOffset.offset(date1)
+    RepositoryBuilder.using { repository =>
+      val factsetDate = dateOffset.offset(date1)
 
-    val createFactset =
       for {
         _         <- snapshots.metas.traverse(storeSnapshotMeta(repository, _))
         factsetId <- Factsets.allocateFactsetId(repository)
         _         <- repository.toStore.utf8.write(Repository.factset(factsetId) </> "ns" </> FilePath(factsetDate.slashed) </> "part", "content")
         store     <- Metadata.incrementFeatureStore(factsetId).run(IvoryRead.testing(repository))
         _         <- writeFactsetVersion(repository, List(factsetId))
-
-      } yield ()
-
-    createFactset must beOk
-
-    SnapshotMeta.latestUpToDateSnapshot(repository, date1) must beOkLike { snapshot =>
-      snapshot must beSome { meta: SnapshotMeta =>
-        val newFacts =
-          for {
-            store      <- Metadata.latestFeatureStoreOrFail(repository)
-            partitions <- FeatureStoreGlob.strictlyAfterAndBefore(repository, store, meta.date, date1).map(_.partitions)
-          } yield partitions
-
-        newFacts must beOkLike(_ must beEmpty)
-      } or {
-        snapshot must beNone
-      }
-    }
+        snapshot  <- SnapshotMeta.latestUpToDateSnapshot(repository, date1)
+      } yield snapshot must beUpToDate(repository, date1)
+    } must beOkResult
   }.set(minTestsOk = 10)
+
+  def beUpToDate(repository: Repository, date1: Date): Matcher[Option[SnapshotMeta]] = { snapshot: Option[SnapshotMeta] =>
+    snapshot must beSome { meta: SnapshotMeta =>
+      val newFacts =
+        for {
+          store      <- Metadata.latestFeatureStoreOrFail(repository)
+          partitions <- FeatureStoreGlob.strictlyAfterAndBefore(repository, store, meta.date, date1).map(_.partitions)
+        } yield partitions
+
+      newFacts must beOkLike(_ must beEmpty)
+    } or { snapshot must beNone }
+  }
+
+  def beOkResult[R : AsResult]: Matcher[ResultTIO[R]] = (resultTIO: ResultTIO[R]) =>
+    resultTIO must beOkLike { r =>
+      val result = AsResult(r)
+      result.isSuccess aka result.message must beTrue
+    }
 
   /**
    * ARBITRARIES
@@ -130,23 +132,6 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
     snaps <- ids.ids.map(id => SnapshotMeta(id, date, store))
   } yield snaps
 
-  case class Snapshots(snaps: List[(SnapshotMeta, SnapshotId)])
-  implicit def SnapshotsArbitrary: Arbitrary[Snapshots] = Arbitrary(for {
-    ids <- arbitrary[SmallSnapshotIdList]
-    sms <- Gen.oneOf(genSnapshotMetas(ids) // random SnapshotMeta's
-      , genSameDateSnapshotMetas(ids) // same date in all SnapshotMeta's
-      , genSameStoreSnapshotMetas(ids) // same store in all SnapshotMeta's
-      , genSameSnapshotMetas(ids)) // same SnapshotMeta's
-  } yield Snapshots(sms))
-
-  def e1 = prop { (snaps: Snapshots, date: Date) =>
-    createRepo { repo =>
-      val expected = snaps.snaps.filter(_._1.date <= date).sorted.lastOption.map(_.swap)
-
-      (snaps.snaps.traverse({ case (meta, id) => storeSnapshotMeta(repo, id, meta) }) must beOk) and
-        (SnapshotMeta.latest(repo, date) must beOkValue(expected))
-    }
-
   case class DateOffset(year: Short, month: Byte, day: Byte) {
     import math._
 
@@ -183,12 +168,6 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
 
   implicit def DateOffsetArbitrary: Arbitrary[DateOffset] =
     Arbitrary(genDateOffset)
-
-  } // TODO This takes around 30 seconds, needs investigation
-
-  def e2 =
-    prop((snaps: List[SnapshotMeta])          => assertSortOrder(snaps)) and
-    prop((d: Date, ids: List[FeatureStoreId]) => assertSortOrder(ids.map(id => SnapshotMeta(d, id))))
 
   def createRepository[R : AsResult](f: Repository => R): org.specs2.execute.Result = {
     val sc: ScoobiConfiguration = scoobiConfiguration

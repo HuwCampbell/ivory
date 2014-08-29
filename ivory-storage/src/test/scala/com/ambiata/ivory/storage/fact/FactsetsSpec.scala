@@ -40,7 +40,7 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
 
       val res = for {
         _ <- allocatePath(repo.factset(factsetId)).run(repo.configuration)
-        n <- Factsets.allocateFactsetId.run(IvoryRead.testing(repo))
+        n <- Factsets.allocateFactsetId(repo)
         e <- Hdfs.exists(repo.factset(factsetId.next.get).toHdfs).run(repo.configuration)
       } yield (e, n)
 

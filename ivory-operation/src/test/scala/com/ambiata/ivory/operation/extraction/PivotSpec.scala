@@ -8,14 +8,12 @@ import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
-import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import org.joda.time.LocalDate
 import org.specs2.matcher.ThrownExpectations
 import scalaz.{Store => _, _}, Scalaz._
 import org.specs2._
-import IvorySyntax._
 
 class PivotSpec extends Specification with SampleFacts with ThrownExpectations { def is = s2"""
 
@@ -47,10 +45,9 @@ class PivotSpec extends Specification with SampleFacts with ThrownExpectations {
       for {
         _     <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
         pivot <- Reference.fromUriResultTIO((dir </> "pivot").path, repo.configuration)
-        meta  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false)
-        input = repo.toReference(Repository.snapshot(meta.snapshotId))
-        dict             <- dictionaryFromIvory(repo)
-        _                <- Pivot.createPivotWithDictionary(repo, input, pivot, dict, '|', "NA")
+        meta  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), incremental = false)
+        input     = repo.toReference(Repository.snapshot(meta.snapshotId))
+        _                <- Pivot.createPivot(repo, input, pivot, '|', "NA")
         dictRef          <- Reference.fromUriResultTIO((dir </> "pivot" </> ".dictionary").path, repo.configuration)
         dictionaryLines  <- dictRef.run(_.linesUtf8.read)
         pivotLines       <- readLines(pivot)
@@ -61,7 +58,7 @@ class PivotSpec extends Specification with SampleFacts with ThrownExpectations {
   def extractPivot(repository: HdfsRepository, outPath: FilePath): ResultTIO[List[String]] =
     for {
       pivot <- Reference.fromUriFilePathResultTIO(outPath, repository.repositoryConfiguration)
-      meta  <- Snapshot.takeSnapshot(repository, Date.fromLocalDate(LocalDate.now), false)
+      meta  <- Snapshot.takeSnapshot(repository, Date.fromLocalDate(LocalDate.now), incremental = false)
       input =  repository.toReference(Repository.snapshot(meta.snapshotId))
       _     <- Pivot.createPivot(repository, input, pivot, '|', "NA")
       lines <- readLines(pivot)
