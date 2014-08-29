@@ -11,6 +11,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._, Metadata._
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
@@ -38,7 +39,7 @@ ChordSpec
         _           <- entitiesRef.run(s => s.linesUtf8.write(_, entities))
         tmpRef      <- Reference.fromUriResultTIO((directory </> "tmp").path, sc)
 
-        _           <- Chord.onStore(repo, entitiesRef, outRef, tmpRef, true)
+        _           <- Chord.createChord(repo, entitiesRef, outRef, tmpRef, takeSnapshot = true)
 
         dictRef     <- Reference.fromUriResultTIO((outPath </> ".dictionary").path, sc)
         dict        <- DictionaryTextStorageV2.fromStore(dictRef)

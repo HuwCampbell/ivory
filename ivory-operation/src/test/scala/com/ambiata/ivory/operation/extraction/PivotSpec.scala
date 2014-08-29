@@ -2,14 +2,11 @@ package com.ambiata.ivory.operation.extraction
 
 import com.nicta.scoobi.core.ScoobiConfiguration
 import com.ambiata.ivory.core._
-import org.apache.hadoop.fs.{Path}
-import org.joda.time.LocalDate
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi.TestConfigurations
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.storage.repository._
@@ -18,8 +15,7 @@ import org.joda.time.LocalDate
 import org.specs2.matcher.ThrownExpectations
 import scalaz.{Store => _, _}, Scalaz._
 import org.specs2._
-import scalaz.{Store => _, _}, Scalaz._
-import org.specs2._
+import IvorySyntax._
 
 class PivotSpec extends Specification with SampleFacts with ThrownExpectations { def is = s2"""
 
@@ -51,11 +47,10 @@ class PivotSpec extends Specification with SampleFacts with ThrownExpectations {
       for {
         _     <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
         pivot <- Reference.fromUriResultTIO((dir </> "pivot").path, repo.configuration)
-        snap  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false)
-        (_, snapId) = snap
-        input = repo.toReference(Repository.snapshot(snapId))
+        meta  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false)
+        input = repo.toReference(Repository.snapshot(meta.snapshotId))
         dict             <- dictionaryFromIvory(repo)
-        _                <- Pivot.withDictionary(repo, input, pivot, dict, '|', "NA")
+        _                <- Pivot.createPivotWithDictionary(repo, input, pivot, dict, '|', "NA")
         dictRef          <- Reference.fromUriResultTIO((dir </> "pivot" </> ".dictionary").path, repo.configuration)
         dictionaryLines  <- dictRef.run(_.linesUtf8.read)
         pivotLines       <- readLines(pivot)

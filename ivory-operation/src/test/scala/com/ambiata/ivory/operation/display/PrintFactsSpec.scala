@@ -2,7 +2,6 @@ package com.ambiata.ivory.operation.display
 
 import com.ambiata.ivory.storage.fact._
 import org.specs2._
-import com.nicta.scoobi.Scoobi._
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
@@ -12,7 +11,6 @@ import org.apache.hadoop.fs.Path
 import org.specs2._
 import org.joda.time.LocalDate
 import com.ambiata.mundane.testing.ResultTIOMatcher._
-import com.ambiata.mundane.io._
 import scalaz.effect.IO
 
 class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""

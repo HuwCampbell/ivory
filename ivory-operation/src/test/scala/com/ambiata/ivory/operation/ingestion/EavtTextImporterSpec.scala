@@ -75,9 +75,9 @@ class Setup(val directory: FilePath) extends MustThrownMatchers {
 
   // This needs to be a function otherwise Scoobi will serialise with xstream :(
   def expected = List(
-    StringFact("pid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1),  Time(10), "v1"),
-    IntFact(   "pid1", FeatureId("ns1", "fid2"), Date(2012, 10, 15), Time(20), 2),
-    DoubleFact("pid1", FeatureId("ns1", "fid3"), Date(2012, 3, 20),  Time(30), 3.0))
+    StringFact("pid1", FeatureId(Name("ns1"), "fid1"), Date(2012, 10, 1),  Time(10), "v1"),
+    IntFact(   "pid1", FeatureId(Name("ns1"), "fid2"), Date(2012, 10, 15), Time(20), 2),
+    DoubleFact("pid1", FeatureId(Name("ns1"), "fid3"), Date(2012, 3, 20),  Time(30), 3.0))
 
   def saveTextInputFile = {
     val raw = List("pid1|fid1|v1|2012-10-01 00:00:10",
