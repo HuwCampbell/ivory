@@ -46,7 +46,7 @@ object Ivory
   val DoubleEncoding = com.ambiata.ivory.core.DoubleEncoding
   val StringEncoding = com.ambiata.ivory.core.StringEncoding
 
-  // FIX rename???
+  // FIX rename??
   type Type = com.ambiata.ivory.core.Type
   val Type = com.ambiata.ivory.core.Type
   val NumericalType = com.ambiata.ivory.core.NumericalType

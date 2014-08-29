@@ -1,11 +1,11 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-
-import scalaz._, Scalaz._
+import scalaz._, Scalaz._, effect._
 
 object DictionaryImporter {
 
@@ -25,7 +25,20 @@ object DictionaryImporter {
       validation = validate(oldDictionary, newDictionary) |+| validateSelf(newDictionary)
       doImport = validation.isSuccess || importOpts.force
       path <- if (doImport) storage.store(newDictionary).map(_._2).map(some) else None.pure[ResultTIO]
-      // TODO: Update Commit
+      
+      // Update Commit
+      latestFeatureStoreId <- Metadata.latestFeatureStoreId(repository)
+      _ <- path.cata(
+        (x: FilePath) => (for {
+          x <- ResultT.fromOption[IO, Identifier](Identifier.parse(x.basename.path), s"Failed to parse new-ly created dictionary id '$x'")
+          y <- latestFeatureStoreId.cata(
+             (x: FeatureStoreId) => x.pure[ResultTIO]
+            ,{
+              println("no feature store present, creating an empty one")
+              FeatureStoreTextStorage.increment(repository, FactsetId.initial).map(_.id): ResultTIO[FeatureStoreId]
+            })
+          } yield CommitTextStorage.increment(repository, Commit(DictionaryId(x), y)))
+        , ().pure[ResultTIO])
     } yield validation -> path
   }
 

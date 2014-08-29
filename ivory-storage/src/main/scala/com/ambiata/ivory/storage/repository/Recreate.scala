@@ -6,6 +6,7 @@ import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.data._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.poacher.scoobi.ScoobiAction
 import com.ambiata.poacher.scoobi.ScoobiAction.scoobiJob
@@ -93,7 +94,7 @@ object Recreate { outer =>
   } yield ()
 
   private def copyDictionary(from: HdfsRepository, to: HdfsRepository, dry: Boolean) = (path: Path) =>
-    Hdfs.log(s"Copy dictionary ${path.getName} from ${from.dictionaryById(DictionaryId(path.getName))} to ${to.dictionaryById(DictionaryId(path.getName))}") >>
+    Hdfs.log(s"Copy dictionary ${path.getName} from ${from.dictionaryById(DictionaryId(Identifier.parse(path.getName).get))} to ${to.dictionaryById(DictionaryId(Identifier.parse(path.getName).get))}") >>
     Hdfs.fromResultTIO(dictionaryFromIvory(from) >>= { dict: Dictionary =>
       dictionaryToIvory(to, dict)
     }).unless(dry)

@@ -15,7 +15,7 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
   def increment(repo: Repository, factsetId: FactsetId): ResultTIO[FeatureStore] = for {
     factset     <- Factsets.factset(repo, factsetId)
     latest      <- latestId(repo)
-    next        <- ResultT.fromOption[IO, FeatureStoreId](latest.map(_.next).getOrElse(Some(FeatureStoreId.initial)), "Run out of FeatureStore ids!")
+    next        <- ResultT.fromOption[IO, FeatureStoreId](latest.map(_.next).getOrElse(Some(FeatureStoreId.initial)), "Ran out of FeatureStore ids!")
     prev        <- latest.traverse(id => fromId(repo, id))
     newFactsets = prev.map(fs => factset +: fs.factsets.map(_.value)).getOrElse(List(factset))
     newStoreO = FeatureStore.fromList(next, newFactsets)

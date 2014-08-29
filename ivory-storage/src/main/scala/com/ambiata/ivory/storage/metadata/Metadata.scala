@@ -57,4 +57,18 @@ object Metadata {
 
   def dictionaryToIvoryT(dictionary: Dictionary): IvoryTIO[Unit] =
     fromResultT(dictionaryToIvory(_, dictionary))
+
+  /** Commit */
+  def listCommitIds(repo: Repository): ResultTIO[List[CommitId]] =
+    CommitTextStorage.listIds(repo)
+
+  def listCommitIdsT(repo: Repository): IvoryTIO[List[CommitId]] =
+    fromResultT(listCommitIds(_))
+
+  def latestCommitId(repo: Repository): ResultTIO[Option[CommitId]] =
+    CommitTextStorage.latestId(repo)
+
+  def latestCommitIdT(repo: Repository): IvoryTIO[Option[CommitId]] =
+    fromResultT(latestCommitId(_))
+
 }
