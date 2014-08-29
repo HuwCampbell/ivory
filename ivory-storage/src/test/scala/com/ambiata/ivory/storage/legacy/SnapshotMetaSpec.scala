@@ -7,14 +7,15 @@ import org.specs2._
 import org.scalacheck._, Arbitrary._, Arbitraries._
 import com.ambiata.ivory.data.{Identifier, OldIdentifier}
 import com.ambiata.ivory.scoobi.TestConfigurations._
-import com.nicta.scoobi.testing.TempFiles
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
 import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
+import org.specs2.execute.AsResult
 
 import scalaz._, Scalaz._
+import scalaz.effect.IO
 import scalaz.scalacheck.ScalaCheckBinding._
 
 object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
@@ -59,24 +60,26 @@ object SnapshotMetaSpec extends Specification with ScalaCheck { def is = s2"""
       , genSameSnapshotMetas(ids)) // same SnapshotMeta's
   } yield Snapshots(sms))
 
-  def e1 = prop((snaps: Snapshots, date: Date) => {
-    val repo = createRepo("SnapshotMetaSpec.e1")
+  def e1 = prop { (snaps: Snapshots, date: Date) =>
+    createRepo { repo =>
+      val expected = snaps.snaps.filter(_._1.date <= date).sorted.lastOption.map(_.swap)
 
-    val expected = snaps.snaps.filter(_._1.date <= date).sorted.lastOption.map(_.swap)
+      (snaps.snaps.traverse({ case (meta, id) => storeSnapshotMeta(repo, id, meta) }) must beOk) and
+        (SnapshotMeta.latest(repo, date) must beOkValue(expected))
+    }
 
-    (snaps.snaps.traverse({ case (meta, id) => storeSnapshotMeta(repo, id, meta) }) must beOk) and
-      (SnapshotMeta.latest(repo, date) must beOkValue(expected))
-  }) // TODO This takes around 30 seconds, needs investigation
+  } // TODO This takes around 30 seconds, needs investigation
 
   def e2 =
     prop((snaps: List[SnapshotMeta])          => assertSortOrder(snaps)) and
     prop((d: Date, ids: List[FeatureStoreId]) => assertSortOrder(ids.map(id => SnapshotMeta(d, id))))
 
-  def createRepo(prefix: String): Repository = {
+  def createRepo[R : AsResult](f: Repository => R): org.specs2.execute.Result = {
     val sc: ScoobiConfiguration = scoobiConfiguration
-
-    val base = FilePath(TempFiles.createTempDir(prefix).getPath)
-    Repository.fromHdfsPath(base </> "repo", sc)
+    Temporary.using { dir =>
+      val repo = Repository.fromHdfsPath(dir </> "repo", sc)
+      ResultT.ok[IO, org.specs2.execute.Result](AsResult(f(repo)))
+    } must beOkLike(_.isSuccess)
   }
 
   def storeSnapshotMeta(repo: Repository, id: SnapshotId, meta: SnapshotMeta): ResultTIO[Unit] = {
