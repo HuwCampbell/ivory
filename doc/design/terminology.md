@@ -21,7 +21,10 @@ Current state
  `ConcreteDefinition`             | Previously `FeatureMeta`, which represents a feature with real facts
  `VirtualDefinition`              | Represents a derived (aliased) feature definition, over a window (eg. 6 months)
  `Repository`                     | Describe the structure of the Ivory repository in terms of metadata and data
- 
+ `Dataset`                        | Represents either a FactsetDataset or SnapshotDataset
+ `SnapshotDataset`                | Represents a single Snapshot to read from
+ `Datasets`                       | Represents a list of Datasets. This is used as input to operations like Snapshot and Chord
+
 
 
 
@@ -37,7 +40,6 @@ Desired state
  `FeatureStoreId`                 | Identifier for a `FeatureStore`. Represented by an `OldIdentifier`
  `Priority`                       | Represented by a `Short`
  `FactsetId`                      | Identifier for a `FactSet`. Represented by an `Identifier`
- `FactsetDataset`                 | Represents a set of `Facts`, ingested as a whole. Identified by a `FactsetId`. Represented by a list of `Partitions`.
  `Partition`                      | Represents a set of `Facts` in a given `Namespace` for a set of `Dates`
  `Snapshot`                       | Represents a set of `Facts` representing the latest values of all features of a `FeatureStore` on a given `Date`. Represented as `SnapshotId`, `FeatureStoreId`, `Date`
  `SnapshotId`                     | Identifier for a `Snapshot`. Represented as an `Identifier`
