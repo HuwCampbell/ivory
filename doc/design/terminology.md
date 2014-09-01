@@ -45,3 +45,9 @@ Desired state
  `ConcreteDefinition`             | Previously `FeatureMeta`, which represents a feature with real facts
  `VirtualDefinition`              | Represents a derived (aliased) feature definition, with some specific calculation over a window (eg. 6 months)
  `Repository`                     | Describe the structure of the Ivory repository in terms of metadata and data
+ `InputDataSet`                   | Represents data that needs to be loaded into ivory from an external location
+ `OutputDataSet`                  | Represents data that should not be stored in ivory, which will be output to some other location.
+ `ShadowRepository`               | A temporary (Shadow) repository on HDFS that is used whilst running map reduce jobs where data is imported or exported.
+ `ShadowInputDataSet`             | Represents the `InputDataSet` that will be loaded for any ivory operation on the `ShadowRepository`
+ `ShadowOutputDataSet`            | Represents the `OutputDataSet` generated from any ivory operation on the `ShadowRepository` where the data needs to be exported outside of ivory
+ ~~ShadowDataset~~                | There is no need for ~~ShadowDataset~~ as it is simply represented by the `ShadowRepository` which is synced to the `Repository`
