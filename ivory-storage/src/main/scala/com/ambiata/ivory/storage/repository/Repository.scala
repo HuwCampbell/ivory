@@ -77,11 +77,7 @@ object Repository {
   def snapshot(id: SnapshotId): FilePath = snapshots </> FilePath(id.render)
 
   def fromUri(uri: String, repositoryConfiguration: RepositoryConfiguration): String \/ Repository =
-    Reference.storeFromUri(uri, repositoryConfiguration).map {
-      case HdfsStore(config, base)              => fromHdfsPath(base, repositoryConfiguration)
-      case PosixStore(root)                     => fromLocalPath(root)
-      case S3Store(bucket, base, client, cache) => fromS3(bucket, base, repositoryConfiguration)
-    }
+    Reference.storeFromUri(uri, repositoryConfiguration).map(fromStore(_,repositoryConfiguration))
 
   def fromUriResultTIO(uri: String, repositoryConfiguration: RepositoryConfiguration): ResultTIO[Repository] =
     ResultT.fromDisjunction[IO, Repository](fromUri(uri, repositoryConfiguration).leftMap(This.apply))
@@ -100,6 +96,12 @@ object Repository {
 
   def fromS3(bucket: String, path: FilePath, repositoryConfiguration: RepositoryConfiguration): S3Repository =
     S3Repository(bucket, path, repositoryConfiguration)
+
+  def fromStore(store: Store[ResultTIO], repositoryConfiguration: RepositoryConfiguration): Repository = store match {
+      case HdfsStore(config, base)              => fromHdfsPath(base, repositoryConfiguration)
+      case PosixStore(root)                     => fromLocalPath(root)
+      case S3Store(bucket, base, client, cache) => fromS3(bucket, base, repositoryConfiguration)
+    }
 }
 
 case class RepositoryConfiguration(
