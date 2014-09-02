@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage
 
-import com.ambiata.ivory.storage.Temporary._
+import com.ambiata.ivory.storage.TemporaryReferences._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store.{Reference, ReferenceIO}
 import com.ambiata.mundane.control.ResultTIO
@@ -62,19 +62,19 @@ class TemporarySpec extends Specification { def is = s2"""
     withReferenceFile(Reference(PosixStore(createLocalTempDirectory), FilePath("data")))
 
   def withRepository(repository: Repository): MatchResult[ResultTIO[Boolean]] = {
-    Temporary.runWithRepository(repository)(repo =>
+    TemporaryReferences.runWithRepository(repository)(repo =>
       Repositories.create(repo) >> repo.toStore.exists(Repository.root </> ".allocated")) >>
     repository.toStore.exists(Repository.root </> ".allocated") must beOkValue(false)
   }
 
   def withStore(store: Store[ResultTIO]) = {
-    Temporary.runWithStore(store)(store =>
+    TemporaryReferences.runWithStore(store)(store =>
       store.utf8.write(Repository.root </> "test", "") >> store.exists(Repository.root </> "test")) >>
     store.exists(Repository.root </> "test") must beOkValue(false)
   }
 
   def withReferenceFile(reference: ReferenceIO): MatchResult[ResultTIO[Boolean]] = {
-    Temporary.runWithReference(reference)(ref =>
+    TemporaryReferences.runWithReference(reference)(ref =>
       ref.store.utf8.write(ref.path, "") >> ref.store.exists(ref.path)) >>
     reference.store.exists(reference.path) must beOkValue(false)
   }
