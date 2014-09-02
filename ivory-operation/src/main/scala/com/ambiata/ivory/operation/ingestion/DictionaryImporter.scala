@@ -31,13 +31,7 @@ object DictionaryImporter {
       _ <- path.cata(
         (x: FilePath) => (for {
           x <- ResultT.fromOption[IO, Identifier](Identifier.parse(x.basename.path), s"Failed to parse new-ly created dictionary id '$x'")
-          y <- latestFeatureStoreId.cata(
-             (x: FeatureStoreId) => x.pure[ResultTIO]
-            ,{
-              println("no feature store present, creating an empty one")
-              FeatureStoreTextStorage.increment(repository, FactsetId.initial).map(_.id): ResultTIO[FeatureStoreId]
-            })
-          } yield CommitTextStorage.increment(repository, Commit(DictionaryId(x), y)))
+          } yield CommitTextStorage.increment(repository, Commit(DictionaryId(x), latestFeatureStoreId)))
         , ().pure[ResultTIO])
     } yield validation -> path
   }

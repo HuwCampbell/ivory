@@ -32,7 +32,9 @@ object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Com
   def fromList(entries: List[DictionaryId \/ FeatureStoreId]): ValidationNel[String, Commit] =
     entries match {
       case -\/(dict) :: \/-(featurestore) :: Nil =>
-        Validation.success(Commit(dict, featurestore))
+        Validation.success(Commit(dict, featurestore.some))
+      case -\/(dict) :: Nil =>
+        Validation.success(Commit(dict, none))
       case _ => Validation.failure(NonEmptyList("malformed commit metadata, not 2 lines long"))
     }
 
@@ -52,8 +54,10 @@ object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Com
     case \/-(r) => r.id.render
   }
 
-  def toList(t: Commit): List[DictionaryId \/ FeatureStoreId] =
-    List(-\/(t.dictionaryId), \/-(t.featureStoreId))
+  def toList(t: Commit): List[DictionaryId \/ FeatureStoreId] = t match {
+      case Commit(dict, None) => List(-\/(dict))
+      case Commit(dict, Some(feat)) => List(-\/(dict), \/-(feat))
+    }
 
   def listIds(repo: Repository): ResultTIO[List[CommitId]] = for {
     paths <- repo.toStore.list(Repository.commits).map(_.filterHidden)

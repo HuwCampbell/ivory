@@ -27,9 +27,8 @@ object Repositories {
         ).traverse(p => store.utf8.write(p </> ".allocated", "")).void
 
         // Set the initial commit
-        diid <- DictionaryThriftStorage(repo).store(Dictionary.empty)
-        fst <- FeatureStoreTextStorage.increment(repo, FactsetId.initial)
-        _ <- CommitTextStorage.increment(repo, Commit(DictionaryId(diid._1), fst.id))
+        dict <- DictionaryThriftStorage(repo).store(Dictionary.empty)
+        _ <- CommitTextStorage.increment(repo, Commit(DictionaryId(dict._1), none))
       } yield ()
     } yield r
   }
