@@ -1,20 +1,15 @@
-package com.ambiata.ivory.storage.repository
+package com.ambiata.ivory.core.repository
 
-import com.ambiata.saws.core.Clients
+import com.ambiata.ivory.core._
+import com.ambiata.mundane.control._
+import com.ambiata.mundane.io.{HdfsLocation => _, LocalLocation => _, Location => _, S3Location => _, _}
+import com.ambiata.mundane.store._
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.compress.CompressionCodec
 
-import scalaz.{Store => _, _}, effect.IO, \&/.This
-import org.apache.hadoop.conf.Configuration
-import com.amazonaws.services.s3.AmazonS3Client
-import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.{Location => _, S3Location => _, HdfsLocation => _, LocalLocation => _, _}
-import com.ambiata.mundane.store._
-import com.ambiata.saws.s3._
-import com.ambiata.ivory.core._
-import com.ambiata.poacher.hdfs._
-import com.ambiata.ivory.storage.store._
-import com.nicta.scoobi.Scoobi._
-import com.ambiata.poacher.hdfs._
+import scalaz.\&/.This
+import scalaz.effect.IO
+import scalaz.{Store => _, _}
 
 sealed trait Repository {
   def toStore: Store[ResultTIO]
