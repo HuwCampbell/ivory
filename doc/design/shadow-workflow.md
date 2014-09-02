@@ -27,7 +27,7 @@ InputDataset -> ShadowInputDataSet
 ShadowOutputDataset -> OutputDataSet
 
 
-`Where ``InputDataset`` / ``OutputDataSet`` represents a location on S3 / HDFS / local`
+`Where InputDataset / OutputDataSet represents a location on S3 / HDFS / local`
 
 
 ## Sync
@@ -36,11 +36,11 @@ Synchronise `Datasets` between a `Repository` and a `ShadowRepository` or vice v
 
 #### Supported sync operations
 
- Origin           |   Source          |  Implementation
- ---------------- | ----------------- | ---------------------
- S3               | HDFS(Shadow)      |
- local            | HDFS(Shadow)      | poacher (Hdfs)
- HDFS             | HDFS(Shadow)      | no data moves
- HDFS(Shadow)     | HDFS              | no data moves
- HDFS(Shadow)     | S3                |
- HDFS(Shadow)     | local             | poacher (Hdfs)
+ Origin           |   Source
+ ---------------- | -----------------
+ S3               | HDFS(Shadow)
+ local            | HDFS(Shadow)
+ HDFS             | HDFS(Shadow)
+ HDFS(Shadow)     | HDFS
+ HDFS(Shadow)     | S3
+ HDFS(Shadow)     | local

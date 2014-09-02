@@ -49,6 +49,7 @@ Desired state
  `Repository`                     | Describe the structure of the Ivory repository in terms of metadata and data
  `InputDataSet`                   | Represents data that needs to be loaded into ivory from an external location
  `OutputDataSet`                  | Represents data that should not be stored in ivory, which will be output to some other location.
+ `Shadow*`                        | Generally represents syncing `Datasets` to HDFS to run specific map reduce jobs
  `ShadowRepository`               | A temporary (Shadow) repository on HDFS that is used whilst running map reduce jobs where data is imported or exported.
  `ShadowInputDataSet`             | Represents the `InputDataSet` that will be loaded for any ivory operation on the `ShadowRepository`
  `ShadowOutputDataSet`            | Represents the `OutputDataSet` generated from any ivory operation on the `ShadowRepository` where the data needs to be exported outside of ivory
