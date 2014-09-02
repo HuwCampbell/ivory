@@ -9,8 +9,8 @@ object DictionaryTextStorage extends TextStorage[(FeatureId, ConcreteDefinition)
   val name = "dictionary"
   val DELIM = "|"
 
-  def fromList(entries: List[(FeatureId, ConcreteDefinition)]): Dictionary =
-    Dictionary(entries.map(f => Concrete(f._1, f._2)))
+  def fromList(entries: List[(FeatureId, ConcreteDefinition)]): ValidationNel[String, Dictionary] =
+    Validation.success(Dictionary(entries.map(f => Concrete(f._1, f._2))))
 
   def toList(d: Dictionary): List[(FeatureId, ConcreteDefinition)] =
     d.definitions.flatMap {

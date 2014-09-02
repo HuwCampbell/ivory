@@ -10,7 +10,7 @@ trait TextStorage[L, T] {
 
   def name: String
   def parseLine(i: Int, l: String): ValidationNel[String, L]
-  def fromList(s: List[L]): T
+  def fromList(s: List[L]): ValidationNel[String, T]
   def toList(t: T): List[L]
   def toLine(l: L): String
 
@@ -33,7 +33,7 @@ trait TextStorage[L, T] {
 
   def fromLinesAll(lines: List[String]): ValidationNel[String, T] = {
     val numbered = lines.zipWithIndex.map({ case (l, n) => (l, n + 1) })
-    numbered.traverseU({ case (l, n) => parseLine(n, l).leftMap(_.map(s"Line $n: " +))}).map(fromList)
+    numbered.traverseU({ case (l, n) => parseLine(n, l).leftMap(_.map(s"Line $n: " +))}).flatMap(fromList)
   }
 
   def delimitedString(t: T): String =

@@ -52,8 +52,8 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
   def storeIdsToReference(ref: ReferenceIO, fstore: List[Prioritized[FactsetId]]): ResultTIO[Unit] =
     ref.run(store => path => store.linesUtf8.write(path, toList(fstore).map(toLine)))
 
-  def fromList(factsets: List[Prioritized[FactsetId]]): List[Prioritized[FactsetId]] =
-    factsets
+  def fromList(factsets: List[Prioritized[FactsetId]]): ValidationNel[String, List[Prioritized[FactsetId]]] =
+    Validation.success(factsets)
 
   def toList(store: List[Prioritized[FactsetId]]): List[Prioritized[FactsetId]] =
     store.sorted

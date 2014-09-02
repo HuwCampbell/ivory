@@ -16,7 +16,6 @@ import com.ambiata.ivory.storage.store._
 object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Commit] {
 
   val name = "commit"
-  val DELIM = "|"
 
   def increment(repo: Repository, c: Commit): ResultTIO[CommitId] = for {
     latest      <- latestId(repo)
@@ -30,13 +29,12 @@ object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Com
   def storeCommitToReference(ref: ReferenceIO, commit: Commit): ResultTIO[Unit] =
     ref.run(store => path => store.linesUtf8.write(path, toList(commit).map(toLine)))
 
-  def fromList(entries: List[DictionaryId \/ FeatureStoreId]): Commit =
-    if (entries.size != 2 || entries(0).isRight || entries(1).isLeft) {
-      sys.error("malformed commit metadata, not 2 lines long")
-    } else (for {
-      l <- entries(0).swap.toOption
-      r <- entries(1).toOption
-    } yield Commit(l, r)).getOrElse(sys.error("impossible"))
+  def fromList(entries: List[DictionaryId \/ FeatureStoreId]): ValidationNel[String, Commit] =
+    entries match {
+      case -\/(dict) :: \/-(featurestore) :: Nil =>
+        Validation.success(Commit(dict, featurestore))
+      case _ => Validation.failure(NonEmptyList("malformed commit metadata, not 2 lines long"))
+    }
 
   def parseLine(i: Int, l: String): ValidationNel[String, DictionaryId \/ FeatureStoreId] =
     if (i == 1) {
