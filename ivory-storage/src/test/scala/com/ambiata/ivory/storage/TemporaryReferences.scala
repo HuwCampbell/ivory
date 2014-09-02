@@ -29,7 +29,7 @@ case class TemporaryRepository(repo: Repository) {
     repo.toStore.deleteAll(Repository.root)
 }
 
-object Temporary {
+object TemporaryReferences {
   sealed trait TemporaryType
   case object Posix extends TemporaryType
   case object S3    extends TemporaryType

@@ -9,7 +9,7 @@ import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
-import com.ambiata.ivory.storage.{Temporary => T}
+import com.ambiata.ivory.storage.{TemporaryReferences => T}
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.specs2.Specification

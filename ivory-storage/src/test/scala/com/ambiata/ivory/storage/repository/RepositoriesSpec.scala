@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.repository
 
-import com.ambiata.ivory.storage.{Temporary => T}
+import com.ambiata.ivory.storage.{TemporaryReferences => T}
 import com.ambiata.mundane.control.ResultTIO
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.impl.ScoobiConfiguration
