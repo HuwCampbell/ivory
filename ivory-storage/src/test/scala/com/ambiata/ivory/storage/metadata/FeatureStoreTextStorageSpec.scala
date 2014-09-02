@@ -1,7 +1,7 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.ScalaCheckResourceProperties
+import com.ambiata.ivory.storage.ScalaCheckManagedProperties
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
@@ -12,7 +12,7 @@ import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
-class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with ScalaCheckResourceProperties { def is = s2"""
+class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with ScalaCheckManagedProperties { def is = s2"""
 
   Parse a list of strings into a FeatureStore          $stringsFeatureStore
   Read a FeatureStore from a Repository                $readFeatureStore
@@ -26,7 +26,7 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
     fromLines(toList(fstore.factsetIds).map(toLine)) must_== fstore.factsetIds.right
   }
 
-  def readFeatureStore = property { (temp: Temporary, fstore: FeatureStore) =>
+  def readFeatureStore = managed { temp: Temporary => fstore: FeatureStore =>
     val expected = fstore.copy(factsets = fstore.factsets.map(_.map(fs => fs.copy(partitions = fs.partitions.sorted))))
 
     val base = LocalLocation(temp.file.path)
@@ -36,7 +36,7 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
     fromId(repo, fstore.id) must beOkValue(expected)
   }
 
-  def writeFeatureStore = property { (temp: Temporary, fstore: FeatureStore) =>
+  def writeFeatureStore = managed { temp: Temporary => fstore: FeatureStore =>
     val base = LocalLocation(temp.file.path)
     val repo = LocalRepository(base.path)
     toId(repo, fstore) >>
@@ -44,14 +44,14 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
       beOkLike(_ must_== delimitedString(fstore.factsetIds))
   }
 
-  def listFeatureStorIds = property { (temp: Temporary, ids: SmallFeatureStoreIdList) =>
+  def listFeatureStorIds = managed { temp: Temporary => ids: SmallFeatureStoreIdList =>
     val base = LocalLocation(temp.file.path)
     val repo = LocalRepository(base.path)
     writeFeatureStoreIds(repo, ids.ids) >>
     Metadata.listFeatureStoreIds(repo) must beOkValue(ids.ids)
   }
 
-  def latestFeatureStoreIs = property { (temp: Temporary, ids: SmallFeatureStoreIdList) =>
+  def latestFeatureStoreIs = managed { temp: Temporary => ids: SmallFeatureStoreIdList =>
     val base = LocalLocation(temp.file.path)
     val repo = LocalRepository(base.path)
     writeFeatureStoreIds(repo, ids.ids) >>
