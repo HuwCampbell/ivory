@@ -23,11 +23,18 @@ object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Com
     _           <- storeCommitToId(repo, nextId, c)
   } yield nextId
 
+  def fromId(repo: Repository, id: CommitId): ResultTIO[Option[Commit]] = for {
+    commitId <- listIds(repo).map(_.find(_ === id))
+    commit <- commitId.cata(x =>
+        fromStore(repo.toReference(Repository.commitById(x))).map(_.some)
+      , none.pure[ResultTIO])
+  } yield commit
+
   def storeCommitToId(repository: Repository, id: CommitId, commit: Commit): ResultTIO[Unit] =
     storeCommitToReference(repository.toReference(Repository.commitById(id)), commit)
 
   def storeCommitToReference(ref: ReferenceIO, commit: Commit): ResultTIO[Unit] =
-    ref.run(store => path => store.linesUtf8.write(path, toList(commit).map(toLine)))
+    toStore(ref, commit)
 
   def fromList(entries: List[DictionaryId \/ FeatureStoreId]): ValidationNel[String, Commit] =
     entries match {

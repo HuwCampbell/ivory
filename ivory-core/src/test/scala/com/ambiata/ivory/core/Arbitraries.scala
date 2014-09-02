@@ -297,6 +297,10 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   implicit def DictionaryIdArbitrary: Arbitrary[DictionaryId] =
     Arbitrary(arbitrary[Identifier].map(DictionaryId.apply))
 
+  implicit def CommitIdArbitrary: Arbitrary[CommitId] = Arbitrary(for {
+    x <- arbitrary[Identifier]
+  } yield CommitId(x))
+
   implicit def CommitArbitrary: Arbitrary[Commit] = Arbitrary(for {
     dictId     <- arbitrary[DictionaryId]
     fsid       <- arbitrary[Option[FeatureStoreId]]

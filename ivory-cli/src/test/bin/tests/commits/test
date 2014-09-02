@@ -1,0 +1,16 @@
+#!/bin/sh -eux
+
+DIR=$(dirname $0)
+. "${DIR}/../../setup.sh"
+
+$IVORY create-repository -p "${REPOSITORY}"
+
+diff_test ${REPOSITORY}/metadata/commits/00000000 ${DIR}/expected/00000000
+
+$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
+
+diff_test ${REPOSITORY}/metadata/commits/00000000 ${DIR}/expected/00000000
+
+$IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts"  -n HALIBUT
+
+diff_test ${REPOSITORY}/metadata/commits/00000001 ${DIR}/expected/00000001

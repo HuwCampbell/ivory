@@ -14,8 +14,8 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"""
 
   Parse a list of strings into a Commit                $stringsCommit
-  Read a Commit from a Repository                       readCommit
-  Write a Commit to a Repository                        writeCommit
+  Read a Commit from a Repository                      $readCommit
+  Write a Commit to a Repository                       $writeCommit
   Can list all Commit Ids in a Repository              $listCommitIds
   Can get latest CommitId from a Repository            $latestCommitId
                                                        """
@@ -25,25 +25,24 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
     fromLines(toList(commit).map(toLine)) must_== commit.right
   }
 
-  // TODO: 
-  // def readCommit = prop { (commit: Commit, commitId: CommitId) =>
-  //   Temporary.using { dir =>
-  //     val base = LocalLocation(dir.path)
-  //     val repo = LocalRepository(base.path)
-  //
-  //     writeCommit(repo, commit) >>
-  //     fromId(repo, commitId)
-  //   } must beOkValue(commit)
-  // }
+  def readCommit = prop { (commit: Commit, commitId: CommitId) =>
+    Temporary.using { dir =>
+      val base = LocalLocation(dir.path)
+      val repo = LocalRepository(base.path)
 
-  // def writeCommit = prop { commit: Commit =>
-  //   Temporary.using { dir =>
-  //     val base = LocalLocation(dir.path)
-  //     val repo = LocalRepository(base.path)
-  //     toId(repo, commit) >>
-  //     repo.toStore.utf8.read(Repository.commitById(commit.id))
-  //   } must beOkLike(_ must_== delimitedString(commit.factsetIds))
-  // }
+      storeCommitToId(repo, commitId, commit) >>
+      fromId(repo, commitId)
+    } must beOkValue(Some(commit))
+  }
+
+  def writeCommit = prop { (commit: Commit, commitId: CommitId) =>
+    Temporary.using { dir =>
+      val base = LocalLocation(dir.path)
+      val repo = LocalRepository(base.path)
+      storeCommitToId(repo, commitId, commit) >>
+      repo.toStore.utf8.read(Repository.commitById(commitId))
+    } must beOkLike(_ must_== delimitedString(commit))
+  }
 
   def listCommitIds = prop { ids: SmallCommitIdList =>
     Temporary.using { dir =>
