@@ -4,6 +4,117 @@ First-class feature generation
 Specification for adding first-class support for feature generation into
 Ivory.
 
+Windowing functions
+-------------------
+Functions applied to sets of values. These functions basically return functions
+of the form:
+
+```
+type FeatureFunction = (DateTime, Stream[(Value, DateTime)]) => Value
+```
+
+* `ref`: First argument is the reference date/time of the snapshot/chord;
+* `facts`: Second argument is an ordered stream of timestamped facts (timestamps will
+less than or equal to `ref`);
+* Returns the computed feature value.
+
+### `latest`
+Return the most recent fact in `facts` with respect to `ref`.
+
+### `count`
+Return the number of facts in `facts`.
+
+### `sum`
+Return the sum of the facts in `facts`. Only applicable to fact values that can
+be summed.
+
+### `count_unique`
+Return the number of unique fact values in `facts`.
+
+### `days_since_latest`, `weeks_since_latest`, ...
+Return the number of days (or weeks, etc) between the most recent fact in
+`facts` and `ref`.
+
+### `days_since_earliest`, `weeks_since_earliest`, ...
+Return the number of days (or weeks, etc) between the earliest fact in `facts` and
+`ref`.
+
+### `count_by(field)`
+Return the number of facts in `facts` grouped by `field`.
+
+### `sum_by(field)`
+Return the sum of facts in `facts` grouped by `field`.
+
+### `days_since_latest_by(field)`
+Return the number of days between the most recent fact in `facts` and `ref`, grouped
+by `field`.
+
+### `days_since_earliest_by(field)`
+Return the number of days between the earliest fact in `facts` and `ref`, grouped
+by `field`.
+
+### `count_days`
+Return the number of days that facts in `facts` are attributed to.
+
+### `average_on_days`
+Return the number of facts in `facts` attributed to a given day on average.
+
+### `maximum_on_days`
+Return the number of facts in `facts` attributed to a given day that is the maximum.
+
+### `minimum_on_days`
+Return the number of facts in `facts` attributed to a given day that is the minimum.
+
+### `average_on_times`
+Return the number of facts in `facts` attributed to a given time range on average,
+grouped by the time range (00-06, 06-12, 12-18, 18-24).
+
+### `proportion(field)`
+Proportion of facts in `facts` attributed to a `field` value to all facts.
+
+
+### gradient
+
+Only applicable to "continous" ("numerical") facts:
+
+```
+// period - number of days, months going back, e.g. 1,2,3,6,12,18 (configurable)
+// need to consider calendar months (not just a nubmer of days)
+gradient(period):
+  v0 = latest value at ref
+  vp = latest value at ref - period
+  (v0 - vp)/v0  iff v0 != 0, no feature generated otherwise
+```
+
+### difference
+
+For "continuous" ("numerical") features:
+
+```
+// period - number of days, months going back, e.g. 1,2,3,6,12,18 (configurable)
+// need to consider calendar months (not just a nubmer of days)
+difference(period):
+  v0 = latest value at ref
+  vp = latest value at ref - period
+  v0 - vp
+```
+
+For "categorical" features:
+
+```
+// ref - reference time (of snapshot/chord)
+// period - number of days, months going back, e.g. 1,2,3,6,12,18 (configurable)
+// need to consider calendar months (not just a nubmer of days)
+difference(ref, period):
+  v0 = latest value at ref
+  vp = latest value at ref - period
+  if (vp != v0)
+    true
+  else
+    false // OR no feature
+```
+
+
 Feature examples
 ----------------
 
