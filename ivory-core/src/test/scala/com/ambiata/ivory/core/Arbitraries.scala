@@ -133,12 +133,10 @@ object Arbitraries {
     unit   <- Gen.oneOf(Days, Weeks, Months, Years)
   } yield Window(length, unit))
 
-  def virtualDefGen(gen: (FeatureId, ConcreteDefinition)): Gen[Option[(FeatureId, VirtualDefinition)]] = {
-    Gen.frequency(70 -> Gen.const(None), 30 -> (for {
-      fid        <- arbitrary[FeatureId]
-      window     <- arbitrary[Option[Window]]
-    } yield Some(fid -> VirtualDefinition(gen._1, window))))
-  }
+  def virtualDefGen(gen: (FeatureId, ConcreteDefinition)): Gen[(FeatureId, VirtualDefinition)] = for {
+    fid        <- arbitrary[FeatureId]
+    window     <- arbitrary[Option[Window]]
+  } yield (fid, VirtualDefinition(gen._1, window))
 
   implicit def FeatureMetaArbitrary: Arbitrary[ConcreteDefinition] =
     Arbitrary(featureMetaGen(arbitrary[Encoding]))
@@ -148,7 +146,7 @@ object Arbitraries {
       n <- Gen.choose(10, 20)
       c <- Gen.listOfN(n, arbitrary[(FeatureId, ConcreteDefinition)])
       // For every concrete definition there is a chance we may have a virtual feature
-      v <- c.traverse(virtualDefGen).map(_.flatten)
+      v <- c.traverse(x => Gen.frequency(70 -> Gen.const(None), 30 -> virtualDefGen(x).map(some))).map(_.flatten)
     } yield Dictionary(c.map({ case (f, d) => d.toDefinition(f) }) ++ v.map({ case (f, d) => d.toDefinition(f) })))
 
   implicit def EncodingArbitrary: Arbitrary[Encoding] =
