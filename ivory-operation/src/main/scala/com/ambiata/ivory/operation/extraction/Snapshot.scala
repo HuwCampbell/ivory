@@ -2,8 +2,8 @@ package com.ambiata.ivory.operation.extraction
 
 import org.apache.commons.logging.LogFactory
 
-import scalaz.{DList => _, _}, Scalaz._, effect._
 import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata.Metadata._
@@ -92,11 +92,21 @@ object Snapshot {
       outputStore     <- downcast[Any, HdfsStore](output.store, s"Snapshot output must be on HDFS, got '$output'")
       out             =  (outputStore.base </> output.path).toHdfs
       dictionary      <- dictionaryForSnapshot(repository, newSnapshot)
-      newFactsetGlobs <- FeatureStoreSnapshot.newFactsetGlobs(repository, previousSnapshot, date)
+      newFactsetGlobs <- calculateGlobs(repository, newSnapshot, previousSnapshot, date)
       _               <- job(hr, previousSnapshot, newFactsetGlobs, date, out, hr.codec).run(hr.configuration)
       _               <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), dictionary)
       _               <- SnapshotMeta.save(newSnapshot, output)
     } yield ()
+
+  def calculateGlobs(repository: Repository, newSnapshot: SnapshotMeta, previousSnapshot: Option[SnapshotMeta], date: Date): ResultTIO[List[Prioritized[FactsetGlob]]] =
+    for {
+      currentFeatureStore <- Metadata.latestFeatureStoreOrFail(repository)
+      parts           <- previousSnapshot.cata(sm => for {
+        prevStore     <- featureStoreFromIvory(repository, sm.featureStoreId)
+        sp            =  SnapshotPartition.partitionIncremental(currentFeatureStore, prevStore, date, sm.date)
+      } yield sp,        ResultT.ok[IO, List[SnapshotPartition]](SnapshotPartition.partitionAll(currentFeatureStore, date)))
+      newFactsetGlobs <- newFactsetGlobs(repository, parts)
+    } yield newFactsetGlobs
 
   /**
    * create a new snapshot as a Map-Reduce job
@@ -129,4 +139,7 @@ object Snapshot {
       } yield dict,
       latestDictionaryFromIvory(repository)
     )
+
+  def newFactsetGlobs(repo: Repository, partitions: List[SnapshotPartition]): ResultTIO[List[Prioritized[FactsetGlob]]] =
+    partitions.traverseU(s => FeatureStoreGlob.between(repo, s.store, s.start, s.end).map(_.globs)).map(_.flatten)
 }
