@@ -1,9 +1,7 @@
 package com.ambiata.ivory.operation.extraction
 
 import scalaz.{DList => _, _}, Scalaz._, effect._
-import scala.math.{Ordering => SOrdering}
-import org.joda.time.LocalDate
-import org.apache.hadoop.fs.{Path}
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
