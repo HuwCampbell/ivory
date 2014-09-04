@@ -35,6 +35,20 @@ case class Dictionary(definitions: List[Definition]) {
   def forFeatureIds(featureIds: Set[FeatureId]): Dictionary =
     Dictionary(definitions.filter(d => featureIds.contains(d.featureId)))
 
+  def byConcrete: DictionaryConcrete = DictionaryConcrete(
+    definitions.map {
+      case Concrete(fid, cd) => fid       -> None
+      case Virtual(fid, vd)  => vd.source -> (fid, vd).some
+    }.groupBy(_._1).flatMap {
+      case (fid, cg) =>
+        byFeatureId.get(fid).flatMap {
+          case Concrete(_, cd) => (fid, ConcreteGroup(cd, cg.map(_._2).flatten)).some
+          // Currently we don't support virtual sourcing another virtual
+          case Virtual(_, _)   => none
+        }
+    }
+  )
+
   /** append the mappings coming from another dictionary */
   def append(other: Dictionary) =
     Dictionary(definitions ++ other.definitions)
@@ -44,3 +58,7 @@ object Dictionary {
   val empty: Dictionary =
     Dictionary(Nil)
 }
+
+/** Represents a dictionary grouped by the concrete definitions */
+case class DictionaryConcrete(sources: Map[FeatureId, ConcreteGroup])
+case class ConcreteGroup(definition: ConcreteDefinition, virtual: List[(FeatureId, VirtualDefinition)])
