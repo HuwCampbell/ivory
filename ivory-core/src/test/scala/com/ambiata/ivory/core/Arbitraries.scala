@@ -10,7 +10,7 @@ import Gen._
 
 import scalaz._, Scalaz._, scalacheck.ScalaCheckBinding._
 
-object Arbitraries {
+object Arbitraries extends arbitraries.ArbitrariesDictionary {
   case class Entity(value: String)
   implicit def EntityArbitrary: Arbitrary[Entity] =
     Arbitrary(Gen.identifier map Entity.apply)
