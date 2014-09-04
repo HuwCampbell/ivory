@@ -21,7 +21,9 @@ Current state
  `ConcreteDefinition`             | Previously `FeatureMeta`, which represents a feature with real facts
  `VirtualDefinition`              | Represents a derived (aliased) feature definition, over a window (eg. 6 months)
  `Repository`                     | Describe the structure of the Ivory repository in terms of metadata and data
- 
+ `Dataset`                        | Represents either a FactsetDataset or SnapshotDataset
+ `SnapshotDataset`                | Represents a single Snapshot to read from
+ `Datasets`                       | Represents a list of Datasets. This is used as input to operations like Snapshot and Chord
 
 
 
@@ -37,7 +39,6 @@ Desired state
  `FeatureStoreId`                 | Identifier for a `FeatureStore`. Represented by an `OldIdentifier`
  `Priority`                       | Represented by a `Short`
  `FactsetId`                      | Identifier for a `FactSet`. Represented by an `Identifier`
- `FactsetDataset`                 | Represents a set of `Facts`, ingested as a whole. Identified by a `FactsetId`. Represented by a list of `Partitions`.
  `Partition`                      | Represents a set of `Facts` in a given `Namespace` for a set of `Dates`
  `Snapshot`                       | Represents a set of `Facts` representing the latest values of all features of a `FeatureStore` on a given `Date`. Represented as `SnapshotId`, `FeatureStoreId`, `Date`
  `SnapshotId`                     | Identifier for a `Snapshot`. Represented as an `Identifier`
@@ -45,3 +46,10 @@ Desired state
  `ConcreteDefinition`             | Previously `FeatureMeta`, which represents a feature with real facts
  `VirtualDefinition`              | Represents a derived (aliased) feature definition, with some specific calculation over a window (eg. 6 months)
  `Repository`                     | Describe the structure of the Ivory repository in terms of metadata and data
+ `InputDataSet`                   | Represents data that needs to be loaded into ivory from an external location
+ `OutputDataSet`                  | Represents data that should not be stored in ivory, which will be output to some other location.
+ `Shadow*`                        | Primarily is where the "work" happens, and the types are specific enough to exclude the possibility of data being somewhere we can't do processing on.
+ `ShadowRepository`               | Represents a `Repository` which is specialized to only those stores that we can perform batch operations on. Right now this is only HDFS, in the future it may include other file systems or streaming processes.
+ `ShadowInputDataSet`             | Represents the `InputDataSet` that will be loaded for any ivory operation on the `ShadowRepository`
+ `ShadowOutputDataSet`            | Represents the `OutputDataSet` generated from any ivory operation on the `ShadowRepository` where the data needs to be exported outside of ivory
+ ~~ShadowDataset~~                | There is no need for ~~ShadowDataset~~ as it is simply represented by the `ShadowRepository` which is synced to the `Repository`
