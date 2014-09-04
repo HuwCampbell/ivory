@@ -164,7 +164,7 @@ case class VersionTwoFactConverter(partition: Partition) extends VersionedFactCo
 /**
  * Factset mapper for ivory-snapshot.
  *
- * The input is a standard SequenceFileInputFormat. The path is used to determin the
+ * The input is a standard SequenceFileInputFormat. The path is used to determine the
  * factset/namespace/year/month/day, and a factset priority is pull out of a lookup
  * table in the distributes cache.
  *
@@ -343,7 +343,7 @@ object SnapshotIncrementalMapper {
  *
  * This reducer takes the latest fact with the same entity|namespace|attribute key
  *
- * The input values are serialized conainers of factset priority and bytes of serialized NamespacedFact.
+ * The input values are serialized containers of factset priority and bytes of serialized NamespacedFact.
  *
  * The output is a sequence file, with no key, and the bytes of the serialized NamespacedFact.
  */
