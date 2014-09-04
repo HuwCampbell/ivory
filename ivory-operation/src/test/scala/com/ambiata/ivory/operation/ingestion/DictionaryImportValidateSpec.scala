@@ -48,14 +48,14 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
     validateSelf(dict) ==== OK
   )
 
-  def virtualMissingSource = prop((dict: Dictionary, fid: FeatureId, source: FeatureId) => !dict.byFeatureId.contains(source) ==> {
-    val fullDict = dict append Dictionary(List(Definition.virtual(fid, source, None)))
-    validateSelf(fullDict) ==== InvalidVirtualSource(source, ValidationPath(fid)).failureNel
+  def virtualMissingSource = prop((dict: VirtualDictionary, fid: FeatureId) => {
+    val fullDict = Dictionary(List(Virtual(fid, dict.vd)))
+    validateSelf(fullDict) ==== InvalidVirtualSource(dict.vd.source, ValidationPath(fid)).failureNel
   })
 
-  def virtualVirtualSource = prop((fid: FeatureId, source: FeatureId, cd: ConcreteDefinition) => {
-    val dict = Dictionary(List(cd.toDefinition(fid))) append Dictionary(List(Definition.virtual(fid, source, None)))
-    validateSelf(dict) ==== InvalidVirtualSource(source, ValidationPath(fid)).failureNel
+  def virtualVirtualSource = prop((vdict1: VirtualDictionary, vdict2: VirtualDictionary) => {
+    val dict = vdict1.dictionary append Dictionary(List(Virtual(vdict2.fid, vdict2.vd.copy(source = vdict1.fid))))
+    validateSelf(dict) ==== InvalidVirtualSource(vdict1.fid, ValidationPath(vdict2.fid)).failureNel
   })
 
   // At some point it might be worth investigating Prism's from Monocle to share this code with the actual logic
