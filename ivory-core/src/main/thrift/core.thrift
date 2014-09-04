@@ -154,9 +154,14 @@ struct ThriftDictionaryWindow {
     2: ThriftDictionaryWindowUnit unit;
 }
 
+struct ThriftDictionaryExpression {
+    1: string expression;
+}
+
 struct ThriftDictionaryVirtual {
     1: ThriftDictionaryFeatureId sourceName;
     2: optional ThriftDictionaryWindow window;
+    3: optional ThriftDictionaryExpression expression;
 }
 
 union ThriftDictionaryDefinition {

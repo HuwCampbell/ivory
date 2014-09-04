@@ -128,6 +128,9 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
       tombs <- Gen.listOf(arbitrary[DictTomb].map(_.s))
     } yield ConcreteDefinition(enc, ty, desc, tombs)
 
+  implicit def ExpressionArbitrary: Arbitrary[Expression] =
+    Arbitrary(Gen.oneOf(Count, Latest))
+
   implicit def WindowArbitrary: Arbitrary[Window] = Arbitrary(for {
     length <- Gen.posNum[Int]
     unit   <- Gen.oneOf(Days, Weeks, Months, Years)
@@ -135,8 +138,9 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
 
   def virtualDefGen(gen: (FeatureId, ConcreteDefinition)): Gen[(FeatureId, VirtualDefinition)] = for {
     fid        <- arbitrary[FeatureId]
+    exp        <- arbitrary[Expression]
     window     <- arbitrary[Option[Window]]
-  } yield (fid, VirtualDefinition(gen._1, window))
+  } yield (fid, VirtualDefinition(gen._1, exp, window))
 
   implicit def FeatureMetaArbitrary: Arbitrary[ConcreteDefinition] =
     Arbitrary(featureMetaGen(arbitrary[Encoding]))
