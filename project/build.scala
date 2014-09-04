@@ -165,7 +165,7 @@ object build extends Build {
       name := "ivory-operation"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.mundane)
   )
-  .dependsOn(core, scoobi, storage, mr, core % "test->test", scoobi % "test->test", storage % "test->test")
+  .dependsOn(core, scoobi, storage, mr % "test->test", core % "test->test", scoobi % "test->test", storage % "test->test")
 
   lazy val mr = Project(
     id = "mr"
