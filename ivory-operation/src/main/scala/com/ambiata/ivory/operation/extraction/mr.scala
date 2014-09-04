@@ -23,7 +23,6 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
-import org.apache.thrift.protocol.TCompactProtocol
 
 /**
  * This is a hand-coded MR job to squeeze the most out of snapshot performance.
