@@ -12,4 +12,7 @@ object NotImplemented {
 
   def unImplementedSyncOperation: Nothing =
     Crash.error(Crash.CodeGeneration, "This is sync operation is not currently implemented")
+
+  def chordSquash(): Unit =
+    println("WARNING: Chord is running without a squash, virtual features will not be generated!")
 }
