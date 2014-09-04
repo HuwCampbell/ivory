@@ -1,4 +1,4 @@
-package com.ambiata.ivory.core.shadow
+package com.ambiata.ivory.core
 
 import com.ambiata.mundane.io._
 

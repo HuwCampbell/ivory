@@ -1,9 +1,8 @@
-package com.ambiata.ivory.storage.store
+package com.ambiata.ivory.core
 
-import com.ambiata.poacher.hdfs.HdfsStore
-import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.store.PosixStore
+import com.ambiata.poacher.hdfs.HdfsStore
 import com.ambiata.saws.s3.S3Store
 import com.nicta.scoobi.Scoobi._
 import org.specs2._

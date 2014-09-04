@@ -1,23 +1,17 @@
 package com.ambiata.ivory.storage.legacy
 
-import com.ambiata.ivory.storage.metadata.FeatureStoreTextStorage
-import com.ambiata.saws.s3.S3
-
-import scalaz.{DList => _, _}, Scalaz._
-import com.nicta.scoobi.Scoobi._
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.io.compress._
-
-import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact._
-import com.ambiata.ivory.storage.repository._
+import com.ambiata.mundane.control._
 import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
-import com.ambiata.mundane.control._
+import com.nicta.scoobi.Scoobi._
+import org.apache.hadoop.io.compress._
+import scalaz.{DList => _, _}, Scalaz._
 
 
 trait IvoryScoobiLoader[A] {

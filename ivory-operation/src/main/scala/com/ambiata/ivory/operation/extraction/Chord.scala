@@ -2,29 +2,26 @@ package com.ambiata.ivory.operation.extraction
 
 import java.util
 
+import com.ambiata.ivory.storage.legacy.FlatFactThriftStorageV1.FlatFactThriftLoader
 import com.nicta.scoobi.Scoobi._
 import org.apache.commons.logging.LogFactory
-import scala.util.matching.Regex
 import scalaz.{DList => _, Store => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
 
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core.IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.poacher.scoobi._
-import com.ambiata.poacher.hdfs._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.metadata._, Metadata._
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.operation.validation._
 import com.ambiata.poacher.hdfs._
 import Entities._
-import IvoryStorage._
 import com.ambiata.ivory.scoobi._
-import FlatFactThriftStorageV1._
 import scala.collection.JavaConversions._
 
 /**

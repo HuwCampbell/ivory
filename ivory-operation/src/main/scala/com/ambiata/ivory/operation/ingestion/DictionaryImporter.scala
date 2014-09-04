@@ -2,16 +2,14 @@ package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.metadata._
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
+
 import scalaz._, Scalaz._
 
-// FIX move to com.ambiata.ivory.ingest.internal
 object DictionaryImporter {
 
-  import DictionaryImportValidate._
+  import com.ambiata.ivory.operation.ingestion.DictionaryImportValidate._
 
   def fromPath(repository: Repository, source: ReferenceIO, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] =
     DictionaryTextStorageV2.fromStore(source).flatMap(fromDictionary(repository, _, importOpts))

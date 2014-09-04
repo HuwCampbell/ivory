@@ -2,9 +2,8 @@ package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core.IvorySyntax._
-import com.ambiata.ivory.core.Name
+import com.ambiata.ivory.core.{Repository, Name}
 import com.ambiata.ivory.storage.ScalaCheckManagedProperties
-import com.ambiata.ivory.storage.repository.Repository
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.nicta.scoobi.impl.ScoobiConfiguration

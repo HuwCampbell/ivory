@@ -10,7 +10,6 @@ import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.storage.repository.Repository
 import com.ambiata.ivory.storage.fact.FactsetGlob
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.scoobi._

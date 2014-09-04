@@ -1,8 +1,8 @@
 package com.ambiata.ivory.storage
 
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.TemporaryReferences._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store.{Reference, ReferenceIO}
 import com.ambiata.mundane.control.ResultTIO
 import com.ambiata.mundane.io.FilePath
 import com.ambiata.mundane.store.{PosixStore, Store}
@@ -11,7 +11,7 @@ import com.ambiata.poacher.hdfs.HdfsStore
 import com.ambiata.saws.s3.S3Store
 import com.nicta.scoobi.impl.ScoobiConfiguration
 import org.specs2.Specification
-import org.specs2.matcher.{MatchResult, ThrownExpectations}
+import org.specs2.matcher.MatchResult
 
 import scalaz.Scalaz._
 

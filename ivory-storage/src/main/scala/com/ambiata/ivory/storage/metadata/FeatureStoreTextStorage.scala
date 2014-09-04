@@ -1,13 +1,10 @@
 package com.ambiata.ivory.storage.metadata
 
-import com.ambiata.mundane.control._
-
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.Factsets
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store._
+import com.ambiata.mundane.control._
 
 import scalaz.{Value => _, _}, Scalaz._, effect._
 

@@ -17,7 +17,7 @@ object IvoryRetire {
      neutral APIs. */
   type ScoobiAction[A] = com.ambiata.poacher.scoobi.ScoobiAction[A]
   val ScoobiAction = com.ambiata.poacher.scoobi.ScoobiAction
-  type HdfsRepository = com.ambiata.ivory.storage.repository.HdfsRepository
+  type HdfsRepository = com.ambiata.ivory.core.HdfsRepository
 
   /**
    * Storage types. These components expose the internal representations of ivory.
@@ -34,7 +34,7 @@ object IvoryRetire {
   val snapshotToHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotToHdfs _
   val compareHdfsSnapshots = CompareSnapshots.compareHdfsSnapshots _
 
-  val createRepository = Repositories.create _
+  val createRepository = com.ambiata.ivory.storage.repository.Repositories.create _
 
   /**
    * Ingest types. These components expose the internal representations of ivory.

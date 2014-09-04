@@ -1,5 +1,6 @@
 package com.ambiata.ivory.storage.repository
 
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.{TemporaryReferences => T}
 import com.ambiata.mundane.control.ResultTIO
 import com.ambiata.mundane.testing.ResultTIOMatcher._

@@ -3,19 +3,16 @@ package com.ambiata.ivory.operation.ingestion
 import com.ambiata.ivory.storage.fact.Namespaces
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.metadata.Metadata._
-import org.apache.hadoop.fs.Path
 import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store._
 import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
-import com.ambiata.poacher._
-import hdfs._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.BytesQuantity
-import org.joda.time.DateTimeZone
+import com.ambiata.poacher.hdfs._
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
+import org.joda.time.DateTimeZone
 
-// FIX move to com.ambiata.ivory.ingest.internal
+import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
 
 /**
  * Import a text file, formatted as an EAVT file, into ivory.

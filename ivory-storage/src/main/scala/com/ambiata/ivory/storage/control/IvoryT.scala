@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.control
 
-import com.ambiata.ivory.storage.repository.Repository
+import com.ambiata.ivory.core.Repository
 import com.ambiata.mundane.control._
 import scalaz._, Scalaz._
 

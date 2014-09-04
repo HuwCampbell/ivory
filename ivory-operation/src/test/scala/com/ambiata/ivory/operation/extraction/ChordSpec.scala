@@ -12,7 +12,6 @@ import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
 import org.specs2.matcher.ThrownExpectations

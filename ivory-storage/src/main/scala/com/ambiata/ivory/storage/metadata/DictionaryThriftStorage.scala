@@ -1,15 +1,17 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.thrift.DictionaryThriftConversion._
 import com.ambiata.ivory.core.thrift._
-import DictionaryThriftConversion._
 import com.ambiata.ivory.data._
-import com.ambiata.ivory.storage._, repository._, store._, version._
+import com.ambiata.ivory.storage.version._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import scalaz.\&/.This
-import scalaz._, Scalaz._, effect._
 import scodec.bits.ByteVector
+
+import scalaz.Scalaz._
+import scalaz.\&/.This
+import scalaz.effect._
 
 case class DictionaryThriftStorage(repository: Repository) {
 

@@ -1,10 +1,8 @@
-package com.ambiata.ivory.storage.repository
+package com.ambiata.ivory.core
 
 import com.ambiata.mundane.io._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
-
-import org.apache.hadoop.fs.Path
 
 class RepositorySpec extends Specification with ScalaCheck { def is = s2"""
 

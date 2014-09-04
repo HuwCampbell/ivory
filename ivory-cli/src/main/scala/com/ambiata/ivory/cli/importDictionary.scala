@@ -1,10 +1,9 @@
 package com.ambiata.ivory.cli
 
+import com.ambiata.ivory.core.{Reference, Repository}
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.operation.ingestion._, DictionaryImporter._
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store._
 import scalaz._, effect._
 
 object importDictionary extends IvoryApp {

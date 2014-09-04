@@ -1,14 +1,14 @@
 package com.ambiata.ivory.cli.admin
 
 import com.ambiata.ivory.cli._
-import com.ambiata.ivory.core.{FeatureId, Name}
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.rename.{Rename, RenameMapping}
 import com.ambiata.ivory.storage.control.IvoryRead
-import com.ambiata.ivory.storage.repository.{RepositoryConfiguration, Repository}
-import com.ambiata.ivory.storage.store._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
-import com.ambiata.mundane.parse.{Delimited, ListParser}, ListParser.string
+import com.ambiata.mundane.parse.ListParser.string
+import com.ambiata.mundane.parse.{Delimited, ListParser}
+
 import scalaz.{Name => _, _}, Scalaz._, effect._
 
 object renameFacts extends IvoryApp {

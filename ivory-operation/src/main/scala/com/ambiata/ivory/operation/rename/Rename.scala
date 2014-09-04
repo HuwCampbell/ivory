@@ -7,7 +7,6 @@ import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.metadata.Metadata
-import com.ambiata.ivory.storage.repository.HdfsRepository
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.BytesQuantity
 import com.nicta.scoobi.impl.ScoobiConfiguration

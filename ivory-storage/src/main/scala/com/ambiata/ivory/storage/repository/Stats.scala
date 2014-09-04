@@ -1,17 +1,17 @@
 package com.ambiata.ivory.storage.repository
 
-import com.ambiata.mundane.io.{MemoryConversions, Bytes, BytesQuantity, FilePath}
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
+import com.ambiata.ivory.core.IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.mundane.io.{BytesQuantity, FilePath}
+import com.ambiata.poacher.hdfs.Hdfs.{numberOfFilesRecursively, totalSize}
 import com.ambiata.poacher.hdfs._
+import org.apache.hadoop.conf.Configuration
 
 import scalaz.Kleisli._
-import scalaz._, Scalaz._
+import scalaz.Scalaz._
+import scalaz._
 import scalaz.effect.IO
-import Hdfs.{totalSize, numberOfFilesRecursively}
 
 /**
  * Computes statistics on ivory repositories.

@@ -1,8 +1,7 @@
 package com.ambiata.ivory.operation.diff
 
-import com.ambiata.ivory.core.{Crash, ParseError, Fact}
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy.SnapshotStorageV1._
-import com.ambiata.ivory.storage.repository.RepositoryConfiguration
 import com.ambiata.mundane.control.ResultTIO
 import com.ambiata.poacher.scoobi.ScoobiAction
 import com.nicta.scoobi.Scoobi._

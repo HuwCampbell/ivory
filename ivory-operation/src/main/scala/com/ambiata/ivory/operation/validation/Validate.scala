@@ -1,5 +1,6 @@
 package com.ambiata.ivory.operation.validation
 
+import com.ambiata.ivory.core._
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, Value => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path
@@ -9,7 +10,6 @@ import com.ambiata.ivory.core._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
-import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.metadata.Metadata._
 
 sealed trait Validate {

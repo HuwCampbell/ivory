@@ -1,15 +1,14 @@
-package com.ambiata.ivory.storage.store
+package com.ambiata.ivory.core
 
-import com.ambiata.ivory.storage.repository.RepositoryConfiguration
-import com.nicta.scoobi.core.ScoobiConfiguration
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
+import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.store._
-import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.poacher.hdfs.HdfsStore
 import com.ambiata.saws.s3.S3Store
+import com.nicta.scoobi.core.ScoobiConfiguration
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
 
 import scalaz.{Store => _, _}, Scalaz._, effect._, \&/._
 

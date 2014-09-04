@@ -2,8 +2,7 @@ package com.ambiata.ivory.storage
 
 import java.util.UUID
 
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store.{Reference, ReferenceIO}
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.store.{PosixStore, Store}

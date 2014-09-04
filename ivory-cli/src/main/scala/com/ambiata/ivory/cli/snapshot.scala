@@ -1,7 +1,6 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.api.IvoryRetire._
 import org.joda.time.LocalDate
 import java.util.Calendar

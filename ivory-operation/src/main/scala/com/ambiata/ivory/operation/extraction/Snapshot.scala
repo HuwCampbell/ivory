@@ -3,19 +3,21 @@ package com.ambiata.ivory.operation.extraction
 import org.apache.commons.logging.LogFactory
 
 import scalaz.{DList => _, _}, Scalaz._, effect._
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.io.compress._
-import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.storage.legacy._
-import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.fact._
-import com.ambiata.ivory.storage.metadata._, Metadata._
-import com.ambiata.ivory.storage.store._
+import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.metadata.Metadata._
+import com.ambiata.ivory.storage.metadata._
+import com.ambiata.mundane.control._
+import com.ambiata.mundane.io.MemoryConversions._
+import com.ambiata.mundane.io._
 import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
-import MemoryConversions._
+import org.apache.hadoop.fs.Path
+import org.apache.hadoop.io.compress._
+
+import scala.math.{Ordering => SOrdering}
+import scalaz.{DList => _, _}, Scalaz._, effect._
 
 /**
  * Snapshots are used to store the latest feature values at a given date.

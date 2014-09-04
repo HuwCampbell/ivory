@@ -2,15 +2,13 @@ package com.ambiata.ivory.operation.extraction
 
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
-import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi._
 import FactFormats._
 import com.ambiata.ivory.storage.legacy._
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.storage.metadata.Metadata._
+import com.ambiata.mundane.control._
 import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import scalaz._, Scalaz._

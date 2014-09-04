@@ -2,8 +2,7 @@ package com.ambiata.ivory.operation.extraction
 
 import java.util.HashMap
 
-import com.ambiata.ivory.core.{Priority, Fact, Date}
-import com.ambiata.ivory.storage.store._
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 
 import scala.collection.JavaConverters._

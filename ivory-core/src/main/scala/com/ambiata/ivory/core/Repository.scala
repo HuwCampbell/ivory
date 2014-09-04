@@ -1,9 +1,13 @@
-package com.ambiata.ivory.core.repository
+package com.ambiata.ivory.core
 
-import com.ambiata.ivory.core._
+import com.amazonaws.services.s3.AmazonS3Client
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.{HdfsLocation => _, LocalLocation => _, Location => _, S3Location => _, _}
 import com.ambiata.mundane.store._
+import com.ambiata.poacher.hdfs.HdfsStore
+import com.ambiata.saws.core.Clients
+import com.ambiata.saws.s3.S3Store
+import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.compress.CompressionCodec
 

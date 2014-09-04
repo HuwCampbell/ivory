@@ -1,14 +1,13 @@
 package com.ambiata.ivory.cli
 
+import com.ambiata.ivory.core.Name._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.ingestion._
-import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io.MemoryConversions._
-import com.ambiata.ivory.core.Name._
 import com.ambiata.mundane.io._
-import com.ambiata.ivory.storage.store._
 import org.joda.time.DateTimeZone
-import MemoryConversions._
+
+import scalaz.{Name => _, DList => _}
 
 object ingest extends IvoryApp {
 
