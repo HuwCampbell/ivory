@@ -95,10 +95,13 @@ object DictionaryThriftConversion {
     def to(cd: VirtualDefinition): ThriftDictionaryVirtual = {
       val virt = new ThriftDictionaryVirtual(featureId.to(cd.source))
       cd.window.map(window.to).foreach(virt.setWindow)
+      virt.setExpression(new ThriftDictionaryExpression(Expression.asString(cd.expression)))
       virt
     }
-    def from(virt: ThriftDictionaryVirtual): String \/ VirtualDefinition =
-      featureId.from(virt.getSourceName).map(VirtualDefinition(_, virt.isSetWindow.option(window.from(virt.getWindow))))
+    def from(virt: ThriftDictionaryVirtual): String \/ VirtualDefinition = for {
+      source <- featureId.from(virt.getSourceName)
+      exp    <- (if (virt.isSetExpression) Expression.parse(virt.getExpression.getExpression) else Some(Latest)).toRightDisjunction("Invalid expression")
+    } yield VirtualDefinition(source, exp, virt.isSetWindow.option(window.from(virt.getWindow)))
   }
 
   val concrete = new {

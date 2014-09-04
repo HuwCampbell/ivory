@@ -21,10 +21,12 @@ class DictionaryTextStorageV2Spec extends Specification with ScalaCheck { def is
     "a:b|encoding=abc",
     "a:b|encoding=string|type=xxx",
     "a:b|source=xy",
+    "a:b|source=x:y",
     "a:b|source=x:y|encoding=string",
     "a:b|source=x:y|window=foo",
     "a:b|source=x:y|window=m days",
-    "a:b|source=x:y|window=4 dayz"
+    "a:b|source=x:y|window=4 dayz",
+    "a:b|source=x:y|expression=bad"
   ).map(fromString).map(_.toEither must beLeft))
 
   def anyDictionary = prop((dict: Dictionary) =>

@@ -29,6 +29,7 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
     )
     case Virtual(_, d) => List(
       Some("source" -> d.source.toString(":")),
+      Some("expression" -> Expression.asString(d.expression)),
       d.window.map(Window.asString).map("window" ->)
     )
   }).flatten.map { case (k, v) => k + "=" + v}.mkString(DELIM)
@@ -84,8 +85,10 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
                s"Invalid duration format $s".left
            }
         }
+        val expression = m.get("expression").toRightDisjunction("Missing expression")
+          .flatMap(e => Expression.parse(e).toRightDisjunction("Invalid expression: " + e))
         DictionaryTextStorageV2(source, DELIMITER).featureId.run().fold(formatError(_).failureNel,
-          fid => (fid |@| window)(Definition.virtual(featureId, _, _)).validation.toValidationNel)
+          fid => (fid |@| expression |@| window)(Definition.virtual(featureId, _, _, _)).validation.toValidationNel)
       case (Some(_), Some(_))  =>
         "Must specify either 'encoding' or 'source' but not both".failureNel
       case (None, None)        =>
