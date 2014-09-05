@@ -74,8 +74,9 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
    */
   def scoobiJob(repo: Repository, dict: Dictionary, store: FeatureStore, chordReference: ReferenceIO, latestDate: Date, incremental: Option[(SnapshotId, FeatureStore, SnapshotMeta)], outputPath: Path, codec: Option[CompressionCodec]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      lazy val factsetMap: Map[Priority, SnapshotId \/ FactsetId] =
-        (incremental.map(i => (Priority.Max, i._1.left)).toList ++ store.factsetIds.map(fs => (fs.priority, fs.value.right))).toMap
+      import collection.JavaConverters._
+      val factsetMap: HashMap[Priority, SnapshotId \/ FactsetId] =
+        new HashMap((incremental.map(i => (Priority.Max, i._1.left)).toList ++ store.factsetIds.map(fs => (fs.priority, fs.value.right))).toMap.asJava)
 
       Chord.readFacts(repo, store, latestDate, incremental).map { input =>
 
@@ -137,7 +138,7 @@ case class Chord(repo: Repository, store: FeatureStoreId, entities: HashMap[Stri
             })
 
         val validated: DList[Fact] = latest.map({ case (p, f) =>
-          Validate.validateFact(f, dict).disjunction.leftMap(e => e + " - " + factsetMap.get(p).map({
+          Validate.validateFact(f, dict).disjunction.leftMap(e => e + " - " + Option(factsetMap.get(p)).map({
             case -\/(snapId)    => s"Snapshot '${snapId.render}'"
             case \/-(factsetId) => s"Factset '${factsetId.render}'"
           }).getOrElse("Unknown, priority " + p))
@@ -184,7 +185,7 @@ object Chord {
         p = repo.snapshot(snapId).toHdfs
         o <- factsFromIvoryStoreBetween(repo, s, sm.date, latestDate) // read facts from already processed store from the last snapshot date to the latest date
         sd = store diff s
-        _  = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
+        _  = println(s"Reading factsets '${sd.factsetIds}' up to '${latestDate}'")
         n <- factsFromIvoryStoreTo(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
         factsetData = (o ++ n).map(_.map({ case (p, fid, f) => (p, fid.right[SnapshotId], f) }))
       } yield factsetData ++ FlatFactThriftStorageV1.FlatFactThriftLoader(p.toString).loadScoobi(c).map(_.map((Priority.Max, snapId.left[FactsetId], _)))
