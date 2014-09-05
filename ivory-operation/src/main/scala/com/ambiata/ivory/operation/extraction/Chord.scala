@@ -164,7 +164,7 @@ object Chord {
 
         for {
           oldFacts      <- factsFromIvoryStoreBetween(repository, snapshot.store, snapshot.date, latestDate).exitOnParseError
-          _             <- ScoobiAction.log(s"Reading factsets '${newFactsets.factsets}' up to '$latestDate'")
+          _             <- ScoobiAction.log(s"Reading factsets up to '$latestDate'\n${newFactsets.factsets}")
           newFacts      <- factsFromIvoryStoreTo(repository, newFactsets, latestDate).exitOnParseError
           factsetFacts  =  (oldFacts ++ newFacts).map { case (p, fid, f) => (p, fid.right[SnapshotId], f) }
           snapshotFacts <- factsFromPath(path).exitOnParseError.map(_.map((Priority.Max, snapshot.snapshotId.left[FactsetId], _)))

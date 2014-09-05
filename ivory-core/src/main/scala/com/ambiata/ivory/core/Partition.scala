@@ -66,6 +66,8 @@ case class Partitions(partitions: List[Partition]) {
 
   def isEmpty: Boolean =
     partitions.isEmpty
+
+  def show = partitions.map(_.path.path)mkString("\n", "\n", "\n")
 }
 
 object Partitions {
