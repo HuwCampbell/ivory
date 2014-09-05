@@ -28,6 +28,7 @@ object Window {
       case "years"  => Some(Years)
       case _        => None
     }
+
 }
 
 sealed trait WindowUnit

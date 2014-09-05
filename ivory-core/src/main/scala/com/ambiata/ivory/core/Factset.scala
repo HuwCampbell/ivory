@@ -12,6 +12,9 @@ case class Factset(id: FactsetId, partitions: Partitions) {
        |Partitions:
        |  ${partitions.show}
      """.stripMargin
+
+  def filter(f: Partition => Boolean): Factset =
+    copy(partitions = partitions.filter(f))
 }
 
 object Factset {

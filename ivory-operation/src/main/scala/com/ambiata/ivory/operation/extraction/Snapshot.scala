@@ -91,19 +91,23 @@ object Snapshot {
       outputStore     <- downcast[Any, HdfsStore](output.store, s"Snapshot output must be on HDFS, got '$output'")
       out             =  (outputStore.base </> output.path).toHdfs
       dictionary      <- dictionaryForSnapshot(repository, newSnapshot)
-      newFactsetGlobs <- calculateGlobs(repository, newSnapshot, previousSnapshot, date)
-      _               <- job(hr, previousSnapshot, newFactsetGlobs, date, out, hr.codec).run(hr.configuration)
+      windows         =  SnapshotWindows.planWindow(dictionary, date)
+      newFactsetGlobs <- calculateGlobs(repository, dictionary, windows, newSnapshot, previousSnapshot, date)
+      _               <- job(hr, previousSnapshot, newFactsetGlobs, date, out, windows, hr.codec).run(hr.configuration)
       _               <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), dictionary)
       _               <- SnapshotMeta.save(newSnapshot, output)
     } yield ()
 
-  def calculateGlobs(repository: Repository, newSnapshot: SnapshotMeta, previousSnapshot: Option[SnapshotMeta], date: Date): ResultTIO[List[Prioritized[FactsetGlob]]] =
+  def calculateGlobs(repository: Repository, dictionary: Dictionary, windows: SnapshotWindows, newSnapshot: SnapshotMeta,
+                     previousSnapshot: Option[SnapshotMeta], date: Date): ResultTIO[List[Prioritized[FactsetGlob]]] =
     for {
       currentFeatureStore <- Metadata.latestFeatureStoreOrFail(repository)
       parts           <- previousSnapshot.cata(sm => for {
         prevStore     <- featureStoreFromIvory(repository, sm.featureStoreId)
+        pw            =  SnapshotWindows.planWindow(dictionary, sm.date)
         sp            =  SnapshotPartition.partitionIncremental(currentFeatureStore, prevStore, date, sm.date)
-      } yield sp,        ResultT.ok[IO, List[SnapshotPartition]](SnapshotPartition.partitionAll(currentFeatureStore, date)))
+        spw           =  SnapshotPartition.partitionIncrementalWindowing(prevStore, sm.date, windows, pw)
+      } yield sp ++ spw, ResultT.ok[IO, List[SnapshotPartition]](SnapshotPartition.partitionAll(currentFeatureStore, date)))
       newFactsetGlobs <- newFactsetGlobs(repository, parts)
     } yield newFactsetGlobs
 
@@ -111,7 +115,8 @@ object Snapshot {
    * create a new snapshot as a Map-Reduce job
    */
   private def job(repository: Repository, previousSnapshot: Option[SnapshotMeta],
-                  factsetsGlobs: List[Prioritized[FactsetGlob]], snapshotDate: Date, outputPath: Path, codec: Option[CompressionCodec]): Hdfs[Unit] =
+                  factsetsGlobs: List[Prioritized[FactsetGlob]], snapshotDate: Date, outputPath: Path,
+                  windows: SnapshotWindows, codec: Option[CompressionCodec]): Hdfs[Unit] =
     for {
       conf            <- Hdfs.configuration
       incrementalPath =  previousSnapshot.map(meta => repository.snapshot(meta.snapshotId).toHdfs)
@@ -120,7 +125,7 @@ object Snapshot {
       _               <- Hdfs.log(s"Total input size: $size")
       reducers        =  size.toBytes.value / 2.gb.toBytes.value + 1 // one reducer per 2GB of input
       _               <- Hdfs.log(s"Number of reducers: $reducers")
-      _               <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshotDate, factsetsGlobs, outputPath, incrementalPath, codec))
+      _               <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshotDate, factsetsGlobs, outputPath, windows, incrementalPath, codec))
     } yield ()
 
   /** This is exposed through the external API */

@@ -2,8 +2,8 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.lookup.{FactsetLookup, FactsetVersionLookup}
-import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable, SnapshotWritable._
+import com.ambiata.ivory.lookup.{FeatureIdLookup, FactsetLookup, FactsetVersionLookup, SnapshotWindowLookup}
+import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.mr._
@@ -12,6 +12,7 @@ import com.ambiata.mundane.io.FilePath
 import java.lang.{Iterable => JIterable}
 import java.util.{Iterator => JIterator}
 
+import scala.collection.JavaConverters._
 import scalaz.{Name => _, Reducer => _, _}, Scalaz._
 
 import org.apache.hadoop.fs.Path
@@ -28,7 +29,8 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
  * This is a hand-coded MR job to squeeze the most out of snapshot performance.
  */
 object SnapshotJob {
-  def run(conf: Configuration, reducers: Int, date: Date, inputs: List[Prioritized[FactsetGlob]], output: Path, incremental: Option[Path], codec: Option[CompressionCodec]): Unit = {
+  def run(conf: Configuration, reducers: Int, date: Date, inputs: List[Prioritized[FactsetGlob]], output: Path,
+          windows: SnapshotWindows, incremental: Option[Path], codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
     val ctx = MrContext.newContext("ivory-snapshot", job)
@@ -80,6 +82,9 @@ object SnapshotJob {
     job.getConfiguration.set(Keys.SnapshotDate, date.int.toString)
     ctx.thriftCache.push(job, Keys.FactsetLookup, priorityTable(inputs))
     ctx.thriftCache.push(job, Keys.FactsetVersionLookup, versionTable(inputs.map(_.value)))
+    val (featureIdLookup, windowLookup) = windowTable(windows)
+    ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup)
+    ctx.thriftCache.push(job, Keys.WindowLookup, windowLookup)
 
     // run job
     if (!job.waitForCompletion(true))
@@ -104,10 +109,25 @@ object SnapshotJob {
     lookup
   }
 
+  def windowTable(windows: SnapshotWindows): (FeatureIdLookup, SnapshotWindowLookup) = {
+    val featureIdLookup = new FeatureIdLookup()
+    // Need to ensure the map is initialized here, otherwise a dictionary with no windows will NPE out later
+    val windowLookup = new SnapshotWindowLookup(new java.util.HashMap[Integer, Integer])
+    windows.windows.zipWithIndex.map {
+      case (SnapshotWindow(fid, w), i) =>
+        featureIdLookup.putToIds(fid.toString, i)
+        // If all the features have no window we still need to ensure we still have values populated
+        windowLookup.putToWindow(i, w.getOrElse(Date.maxValue).int)
+    }
+    (featureIdLookup, windowLookup)
+  }
+
   object Keys {
     val SnapshotDate = "ivory.snapdate"
+    val FeatureIdLookup = ThriftCache.Key("feature-id-lookup")
     val FactsetLookup = ThriftCache.Key("factset-lookup")
     val FactsetVersionLookup = ThriftCache.Key("factset-version-lookup")
+    val WindowLookup = ThriftCache.Key("factset-window-lookup")
   }
 }
 
@@ -175,6 +195,8 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
   /** Class to convert a Thrift fact into a Fact based of the version, created once per mapper */
   var converter: VersionedFactConverter = null
 
+  val featureIdLookup = new FeatureIdLookup
+
   override def setup(context: MapperContext): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
@@ -185,6 +207,7 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     priority = p
     okCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.ok")
     skipCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.skip")
+    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
   }
 
   /**
@@ -198,7 +221,8 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     emitter.context = context
     okCounter.context = context
     skipCounter.context = context
-    SnapshotFactsetMapper.map(tfact, date, converter, value, priority, kout, vout, emitter, okCounter, skipCounter, serializer)
+    SnapshotFactsetMapper.map(tfact, date, converter, value, priority, kout, vout, emitter, okCounter, skipCounter,
+      serializer, featureIdLookup)
   }
 }
 
@@ -206,14 +230,15 @@ object SnapshotFactsetMapper {
 
   def map[A <: ThriftLike](tfact: ThriftFact, date: Date, converter: VersionedFactConverter, input: BytesWritable,
                            priority: Priority, kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable],
-                           okCounter: Counter, skipCounter: Counter, deserializer: ThriftSerialiser) {
+                           okCounter: Counter, skipCounter: Counter, deserializer: ThriftSerialiser,
+                           featureIdLookup: FeatureIdLookup) {
     deserializer.fromBytesViewUnsafe(tfact, input.getBytes, 0, input.getLength)
     val f = converter.convert(tfact)
     if(f.date > date)
       skipCounter.count(1)
     else {
       okCounter.count(1)
-      KeyState.set(f, priority, kout)
+      KeyState.set(f, priority, kout, featureIdLookup.getIds.get(f.featureId.toString))
       val bytes = deserializer.toBytes(f.toNamespacedThrift)
       vout.set(bytes, 0, bytes.length)
       emitter.emit(kout, vout)
@@ -265,10 +290,18 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
   val okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] =
     MrCounter("ivory", "snapshot.incr.ok")
 
+  val featureIdLookup = new FeatureIdLookup
+
+  override def setup(context: MapperContext): Unit = {
+    super.setup(context)
+    val ctx = MrContext.fromConfiguration(context.getConfiguration)
+    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
+  }
+
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
     emitter.context = context
     okCounter.context = context
-    SnapshotIncrementalMapper.map(fact, value, Priority.Max, kout, vout, emitter, okCounter, serializer)
+    SnapshotIncrementalMapper.map(fact, value, Priority.Max, kout, vout, emitter, okCounter, serializer, featureIdLookup)
   }
 }
 
@@ -276,11 +309,11 @@ object SnapshotIncrementalMapper {
 
   def map(fact: NamespacedThriftFact with NamespacedThriftFactDerived, bytes: BytesWritable, priority: Priority,
           kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter,
-          serializer: ThriftSerialiser) {
+          serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup) {
     okCounter.count(1)
     fact.clear()
     serializer.fromBytesViewUnsafe(fact, bytes.getBytes, 0, bytes.getLength)
-    KeyState.set(fact, priority, kout)
+    KeyState.set(fact, priority, kout, featureIdLookup.getIds.get(fact.featureId.toString))
     // Pass through the bytes
     vout.set(bytes.getBytes, 0, bytes.getLength)
     emitter.emit(kout, vout)
@@ -311,14 +344,22 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
   /** Class to emit the key/value bytes, created once per mapper */
   val emitter: MrEmitter[BytesWritable, BytesWritable, NullWritable, BytesWritable] = MrEmitter()
 
-  /** Class to count number of tombstone values, created once per mapper */
-  val counter: MrCounter[BytesWritable, BytesWritable, NullWritable, BytesWritable] =
-    MrCounter("ivory", "snapshot.reducer.tombstone")
+  val mutator = new FactByteMutator
+
+  // Optimised array lookup for features to the window, where we know that features are simply ordered from zero
+  var windowLookup: Array[Int] = null
+
+  override def setup(context: ReducerContext): Unit = {
+    val ctx = MrContext.fromConfiguration(context.getConfiguration)
+    val windowLookupThrift = new SnapshotWindowLookup
+    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.WindowLookup, windowLookupThrift)
+    windowLookup = windowLookupToArray(windowLookupThrift)
+  }
 
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
     emitter.context = context
-    counter.context = context
-    SnapshotReducer.reduce(fact, vout, iter.iterator, emitter, counter, serializer)
+    val windowStart = Date.unsafeFromInt(windowLookup(SnapshotWritable.getFeatureId(key)))
+    SnapshotReducer.reduce(fact, iter.iterator, mutator, emitter, vout, windowStart)
   }
 }
 
@@ -332,23 +373,40 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
 object SnapshotReducer {
   type ReducerContext = Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context
 
-  def reduce(fact: NamespacedThriftFact with NamespacedThriftFactDerived, vout: BytesWritable,
-             iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, BytesWritable], counter: Counter,
-             serializer: ThriftSerialiser) {
+  def reduce[A](fact: MutableFact, iter: JIterator[A], mutator: PipeFactMutator[A, A],
+                emitter: Emitter[NullWritable, A], out: A, windowStart: Date): Unit = {
     var datetime = DateTime.unsafeFromLong(0)
-    var tombstone = true
-    // We are expecting a stream of facts grouped by entity/feature and sorted ascending by datetime and priority
-    while (iter.hasNext) {
+    var found = false
+    val kout = NullWritable.get()
+    while(iter.hasNext) {
       val next = iter.next
-      serializer.fromBytesViewUnsafe(fact, next.getBytes, 0, next.getLength)
-      // Capture the bytes of the highest priority entity of a given datetime, but we only emit the last one
-      if (datetime != fact.datetime) {
-        vout.set(next.getBytes, 0, next.getLength)
+      mutator.from(next, fact)
+      if (datetime.long != fact.datetime.long) {
         datetime = fact.datetime
-        tombstone = fact.isTombstone
+        if (windowStart.int <= fact.datetime.date.int) {
+          // Directly emit the last fact, which had the highest priority of that entity
+          emitter.emit(kout, next)
+          found = true
+        } else {
+          // We need to keep a copy of the highest priority fact before the window, just in case it's the last one
+          mutator.pipe(next, out)
+        }
       }
     }
-    if (!tombstone) emitter.emit(NullWritable.get(), vout)
-    else counter.count(1)
+    if (!found) {
+      emitter.emit(kout, out)
+    }
+  }
+
+  def windowLookupToArray(lookup: SnapshotWindowLookup): Array[Int] =
+    sparseMapToArray(lookup.getWindow.asScala.map { case (i, v) => i.toInt -> v.toInt}.toList, Date.maxValue.int)
+
+  def sparseMapToArray[A : scala.reflect.ClassTag](map: List[(Int, A)], default: A): Array[A] = {
+    val max = map.map(_._1).max
+    val array = Array.fill(max + 1)(default)
+    map.foreach {
+      case (i, a) => array(i) = a
+    }
+    array
   }
 }

@@ -1,18 +1,22 @@
 package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core.thrift._
+import com.ambiata.ivory.lookup.FeatureIdLookup
+import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable.KeyState
+import com.ambiata.ivory.storage.Arbitraries._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.mr._
 
+import org.apache.hadoop.io.BytesWritable
 import org.specs2._
 import org.specs2.matcher.ThrownExpectations
-import com.ambiata.ivory.core.Arbitraries._
-import com.ambiata.ivory.storage.Arbitraries._
-import org.apache.hadoop.io.{NullWritable, BytesWritable}
 
 import scala.collection.JavaConverters._
+import scalaz.NonEmptyList
+import scalaz.scalacheck.ScalazArbitrary._
 
 object SnapshotMapperSpec extends Specification with ScalaCheck with ThrownExpectations { def is = s2"""
 
@@ -35,6 +39,8 @@ SnapshotMapperSpec
 
     // Run mapper
     fs.foreach(f => {
+      val lookup = new FeatureIdLookup
+      lookup.putToIds(f.featureId.toString, f.featureId.hashCode)
       val partition = Partition(f.namespace, f.date)
       val converter = version match {
         case FactsetVersionOne => VersionOneFactConverter(partition)
@@ -42,7 +48,7 @@ SnapshotMapperSpec
       }
       val bytes = serializer.toBytes(f.toThrift)
       SnapshotFactsetMapper.map(tfact, date, converter, new BytesWritable(bytes), priority, kout, vout, emitter,
-        okCounter, skipCounter, serializer)
+        okCounter, skipCounter, serializer, lookup)
     })
 
     val expected = fs.filter(_.date.isBeforeOrEqual(date))
@@ -60,8 +66,11 @@ SnapshotMapperSpec
 
     // Run mapper
     fs.foreach(f => {
+      val lookup = new FeatureIdLookup
+      lookup.putToIds(f.featureId.toString, f.featureId.hashCode)
       val bytes = serializer.toBytes(f.toNamespacedThrift)
-      SnapshotIncrementalMapper.map(empty, new BytesWritable(bytes), Priority.Max, kout, vout, emitter, counter, serializer)
+      SnapshotIncrementalMapper.map(empty, new BytesWritable(bytes), Priority.Max, kout, vout, emitter, counter,
+        serializer, lookup)
     })
 
     assertMapperOutput(emitter, counter, TestCounter(), fs, 0, Priority.Max, serializer)
@@ -78,7 +87,7 @@ SnapshotMapperSpec
 
   def keyBytes(p: Priority)(f: Fact): String = {
     val bw = Writables.bytesWritable(4096)
-    KeyState.set(f, p, bw)
+    KeyState.set(f, p, bw, f.featureId.hashCode)
     new String(bw.copyBytes())
   }
 
@@ -106,36 +115,35 @@ object SnapshotReducerSpec extends Specification with ScalaCheck with ThrownExpe
 SnapshotReducerSpec
 -----------
 
-  crazy mutations work                                              $e1
+  window lookup to array                                            $windowLookupToArray
+  window facts                                                      $window
+  window respects priority                                          $windowPriority
 
 """
 
-  val serializer = ThriftSerialiser()
+  def windowLookupToArray = prop((l: NonEmptyList[(FeatureId, Option[Date])]) => {
+    val lookup = SnapshotJob.windowTable(SnapshotWindows(l.list.map((SnapshotWindow.apply _).tupled)))._2
+    val a = SnapshotReducer.windowLookupToArray(lookup)
+    seqToResult(l.list.zipWithIndex.map {
+      case ((fid, w), i) => a(i) ==== w.getOrElse(Date.maxValue).int
+    })
+  })
 
-  def e1 = prop((fact: Fact, fact2: Fact, facts: List[Fact]) => {
-    val factContainer = new NamespacedThriftFact with NamespacedThriftFactDerived
-    val vout = Writables.bytesWritable(4096)
+  def window = prop((facts: NonEmptyList[Fact], date: Date) => {
+    val mutator = new MockFactMutator
+    val (oldFacts, newFacts) = facts.list.sortBy(_.date).partition(_.date.int < date.int)
+    SnapshotReducer.reduce(createMutableFact, (oldFacts ++ newFacts).asJava.iterator(), mutator, mutator,
+      createMutableFact, date)
+    mutator.facts.toList ==== (if (newFacts.isEmpty) oldFacts.lastOption.toList else newFacts)
+  }).set(maxSize = 10)
 
-    var actual: BytesWritable = null
-    var tombstoneCount = 0
-    val emitter = Emitter[NullWritable, BytesWritable]((kout, vout) => actual = vout)
-    val counter = Counter(n => tombstoneCount = tombstoneCount + n)
-
-    // We are grouped by entity, and sorted ascending by datetime/priority
-    // So we take the most recent fact with the lowest number priority, in this case 'fact'
-    val iter = (facts ++ List(fact, fact2.withDate(fact.date).withTime(fact.time))).map({ f =>
-        val bytes = serializer.toBytes(f.toNamespacedThrift)
-        val bw = Writables.bytesWritable(4096)
-        bw.set(bytes, 0, bytes.length)
-        bw
-      }).toIterator.asJava
-
-    SnapshotReducer.reduce(factContainer, vout, iter, emitter, counter, serializer)
-    if(fact.isTombstone)
-      actual must beNull and tombstoneCount ==== 1
-    else {
-      serializer.fromBytesUnsafe(factContainer, actual.copyBytes())
-      factContainer ==== fact.toNamespacedThrift and tombstoneCount ==== 0
-    }
-  }).set(maxSize = 5)
+  def windowPriority = prop((f: NonEmptyList[Fact], date: Date) => {
+    val mutator = new MockFactMutator
+    val (oldFacts, newFacts) = f.list.sortBy(_.date).partition(_.date.int < date.int)
+    val facts = oldFacts ++ newFacts
+    val dupeFacts = facts.zip(facts).flatMap(fs => List(fs._1, fs._2.withEntity("")))
+    SnapshotReducer.reduce(createMutableFact, dupeFacts.asJava.iterator(), mutator, mutator,
+      createMutableFact, date)
+    mutator.facts.toList ==== (if (newFacts.isEmpty) oldFacts.lastOption.toList else newFacts)
+  }).set(maxSize = 10)
 }

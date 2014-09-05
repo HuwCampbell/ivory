@@ -2,6 +2,8 @@ package com.ambiata.ivory.operation.extraction.snapshot
 
 import com.ambiata.ivory.core._
 
+import scalaz.Scalaz._
+
 /**
  * Represents a slices of the partition data to load from the [[FeatureStore]].
  *
@@ -54,4 +56,26 @@ object SnapshotPartition {
       // read factsets which haven't been seen up until the 'latest' date
       SnapshotPartition(store.diff(prevStore), Date.minValue, snapshotDate)
     )
+
+  /**
+   * For a windowed feature, calculate the extra/missed partitions prior to the snapshot to load.
+   */
+  def partitionIncrementalWindowing(prevStore: FeatureStore, prevSnapshotDate: Date, windows: SnapshotWindows,
+                                    prevWindows: SnapshotWindows): List[SnapshotPartition] = for {
+    (ns, windowStart) <- windows.byNamespace.toList
+    prevNamespaces     = prevWindows.byNamespace
+    ws                <- windowStart
+    (sd, ed)          <- calculateDateRange(prevSnapshotDate, prevNamespaces.get(ns).flatten, ws)
+  } yield SnapshotPartition(filterFeatureStore(prevStore, _.namespace === ns), sd, ed)
+
+  def calculateDateRange(prevSnapshotDate: Date, previousWindow: Option[Date], windowStart: Date): Option[(Date, Date)] = {
+    // Find the minimum date between the previous snapshot and previous window (for a single feature)
+    // We know that if the previous window date exists then, by definition, it was captured in the snapshot
+    val earliest = previousWindow.getOrElse(prevSnapshotDate) min prevSnapshotDate
+    // If the window is prior to the previous snapshot or last window, go back to the dawn of time up until that point
+    (windowStart < earliest).option(Date.minValue -> earliest)
+  }
+
+  def filterFeatureStore(store: FeatureStore, f: Partition => Boolean): FeatureStore =
+    store.copy(factsets = store.factsets.map(pr => pr.copy(value = pr.value.filter(f))))
 }

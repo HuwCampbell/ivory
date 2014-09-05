@@ -13,6 +13,7 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
 
   Grouping                                            $grouping
   Sorting                                             $sorting
+  Feature Id                                          $featureId
 """
 
   def grouping = prop((f1: FactAndPriority, f2: FactAndPriority) => {
@@ -25,6 +26,12 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
     check(f1, f2) { case (f3, b1, b2) =>
       new Comparator().compare(b1, 0, b1.length, b2, 0, b2.length) -> compareAll(f1, f3)
     }
+  })
+
+  def featureId = prop((f1: FactAndPriority, i: Int) => {
+    val bw = Writables.bytesWritable(4096)
+    KeyState.set(f1.f, f1.p, bw, i)
+    getFeatureId(bw) ==== i
   })
 
   case class FactAndPriority(f: Fact, p: Priority)
@@ -41,7 +48,8 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
       "date"     -> f1.copy(f = f1.f.withDate(f2.f.date)),
       "time"     -> f1.copy(f = f1.f.withTime(f2.f.time)),
       "priority" -> f1.copy(p = f2.p),
-      "equals"   -> f1
+      "equals"   -> f1,
+      "diff"     -> f2
     ).map {
       case (message, f3) =>
         def norm(i: Int): Int = if (i == 0) 0 else if (i < 0) -1 else 1
@@ -53,7 +61,7 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
   def set(f1: FactAndPriority, f2: FactAndPriority): (Array[Byte], Array[Byte]) = {
     val bw = Writables.bytesWritable(4096)
     def toBytes(f: FactAndPriority): Array[Byte] = {
-      KeyState.set(f.f, f.p, bw)
+      KeyState.set(f.f, f.p, bw, Math.abs(f.f.featureId.hashCode))
       val b = new ByteArrayOutputStream()
       // This appends the size to the array, which is what Hadoop does, so we do it too
       bw.write(new DataOutputStream(b))
@@ -65,10 +73,7 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
   def compareByGroup(f1: Fact, f2: Fact): Int = {
     var e = f1.entity.compareTo(f2.entity)
     if (e == 0) {
-      e = f1.namespace.name.compareTo(f2.namespace.name)
-      if (e == 0) {
-        e = f1.feature.compareTo(f2.feature)
-      }
+      e = Math.abs(f1.featureId.hashCode).compareTo(Math.abs(f2.featureId.hashCode))
     }
     e
   }

@@ -2,11 +2,11 @@ package com.ambiata.ivory.mr
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
+import org.apache.hadoop.io.NullWritable
 
-class MockFactMutator extends Mutator[MutableFact, MutableFact, Fact, Unit] with PipeMutator[MutableFact, Fact, Unit] with Emitter {
+class MockFactMutator extends MutableStream[MutableFact, Fact] with PipeMutator[Fact, Fact] with Emitter[NullWritable, Fact] {
 
   val facts = collection.mutable.ListBuffer[Fact]()
-  var last: MutableFact = null
 
   def from(in: Fact, fact: MutableFact): Unit = {
     val serialiser = ThriftSerialiser()
@@ -15,15 +15,11 @@ class MockFactMutator extends Mutator[MutableFact, MutableFact, Fact, Unit] with
     ()
   }
 
-  def mutate(fact: MutableFact, out: Unit): Unit =
-    last = new NamespacedThriftFact(fact.toNamespacedThrift) with NamespacedThriftFactDerived
+  def pipe(in: Fact, out: Fact): Unit =
+    from(in, out.toNamespacedThrift)
 
-  // We shouldn't need to take a copy here because they have promised not to mutate!
-  def pipe(in: Fact, out: Unit): Unit =
-    last = in.toNamespacedThrift
-
-  def emit(): Unit = {
-    facts += last
+  def emit(kout: NullWritable, vout: Fact): Unit = {
+    facts += vout
     ()
   }
 }

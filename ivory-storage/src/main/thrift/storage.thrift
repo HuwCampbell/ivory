@@ -28,3 +28,7 @@ struct FeatureMappingValue {
 struct FeatureIdMapping {
     1: map<string, FeatureMappingValue> mapping;
 }
+
+struct SnapshotWindowLookup {
+    1: map<i32, i32> window;
+}
