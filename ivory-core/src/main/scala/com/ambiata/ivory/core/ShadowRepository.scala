@@ -2,9 +2,7 @@ package com.ambiata.ivory.core
 
 import com.ambiata.mundane.io._
 
-sealed trait ShadowRepository
-
-case class ShadowRepositoryHdfs(root: FilePath, repositoryConfiguration: RepositoryConfiguration) extends ShadowRepository{
+case class ShadowRepository(root: FilePath, repositoryConfiguration: IvoryConfiguration) {
   def configuration       = repositoryConfiguration.configuration
   def scoobiConfiguration = repositoryConfiguration.scoobiConfiguration
   def codec               = repositoryConfiguration.codec
@@ -12,6 +10,15 @@ case class ShadowRepositoryHdfs(root: FilePath, repositoryConfiguration: Reposit
 
 
 object ShadowRepository {
-  def fromHdfsPath(path: FilePath, configuration: RepositoryConfiguration): ShadowRepository =
-    ShadowRepositoryHdfs(path, configuration)
+  def fromHdfsPath(path: FilePath, configuration: IvoryConfiguration): ShadowRepository =
+    ShadowRepository(path, configuration)
+
+  def fromRepoisitory(repo: Repository): ShadowRepository = repo match {
+    case HdfsRepository(root, conf) => ShadowRepository(root, conf)
+    case _                          => Crash.error(Crash.CodeGeneration, "Only HDFS ShadowRepositories are currently supported")
+  }
+
+  def fromCluster(cluster: Cluster): ShadowRepository = ShadowRepository(cluster.root, cluster.configuration)
+
+  def toRepository(shadow: ShadowRepository): Repository = HdfsRepository(shadow.root, shadow.repositoryConfiguration)
 }
