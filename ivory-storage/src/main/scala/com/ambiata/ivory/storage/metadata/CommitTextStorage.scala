@@ -7,8 +7,6 @@ import com.ambiata.mundane.control._
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.data._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store._
 
 // 2 lines.
 // The first line is dictionaryId: DictionaryId

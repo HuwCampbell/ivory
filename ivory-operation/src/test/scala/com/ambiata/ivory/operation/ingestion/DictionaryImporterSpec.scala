@@ -72,8 +72,8 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations {def 
 
   def differentStoreDict = prop((ivoryType: T.TemporaryType, dictType: T.TemporaryType, dict: Dictionary) => {
     T.withRepository(ivoryType){ivory => for {
-      _   <- Repositories.create(ivory)
-      _   <- T.withReferenceFile(dictType){ref => for {
+        _ <- Repositories.create(ivory)
+        _ <- T.withReferenceFile(dictType){ref => for {
         _ <- ref.store.utf8.write(ref.path, DictionaryTextStorageV2.delimitedString(dict))
         _ <- fromPath(ivory, ref, opts.copy(ty = Override))
       } yield ()}

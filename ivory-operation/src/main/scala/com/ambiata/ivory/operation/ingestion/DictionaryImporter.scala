@@ -4,17 +4,16 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
-import scalaz._, Scalaz._, effect._
+import scalaz._, Scalaz._
 
 object DictionaryImporter {
 
   import com.ambiata.ivory.operation.ingestion.DictionaryImportValidate._
 
-  def fromPath(repository: Repository, source: ReferenceIO, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] =
+  def fromPath(repository: Repository, source: ReferenceIO, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[DictionaryId])] =
     DictionaryTextStorageV2.fromStore(source).flatMap(fromDictionary(repository, _, importOpts))
 
-  def fromDictionary(repository: Repository, dictionary: Dictionary, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[FilePath])] = {
+  def fromDictionary(repository: Repository, dictionary: Dictionary, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[DictionaryId])] = {
     val storage = DictionaryThriftStorage(repository)
     for {
       oldDictionary <- storage.loadOption.map(_.getOrElse(Dictionary.empty))
@@ -24,16 +23,13 @@ object DictionaryImporter {
       }
       validation = validate(oldDictionary, newDictionary) |+| validateSelf(newDictionary)
       doImport = validation.isSuccess || importOpts.force
-      path <- if (doImport) storage.store(newDictionary).map(_._2).map(some) else None.pure[ResultTIO]
+      dictIdIden <- if (doImport) storage.store(newDictionary).map(_.id).map(some) else None.pure[ResultTIO]
       
       // Update Commit
-      latestFeatureStoreId <- Metadata.latestFeatureStoreId(repository)
-      _ <- path.cata(
-        (x: FilePath) => (for {
-          x <- ResultT.fromOption[IO, Identifier](Identifier.parse(x.basename.path), s"Failed to parse new-ly created dictionary id '$x'")
-          } yield CommitTextStorage.increment(repository, Commit(DictionaryId(x), latestFeatureStoreId)))
+      _ <- dictIdIden.cata(
+          (x: Identifier) => Metadata.incrementCommitDictionary(repository, DictionaryId(x))
         , ().pure[ResultTIO])
-    } yield validation -> path
+    } yield validation -> dictIdIden.map(DictionaryId(_))
   }
 
   sealed trait ImportType

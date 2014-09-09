@@ -2,6 +2,7 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core.Repository
 import com.ambiata.mundane.control._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.metadata._
 import scalaz._, effect._
@@ -28,7 +29,7 @@ object catDictionary extends IvoryApp {
         repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, conf).leftMap(\&/.This(_)))
         store = DictionaryThriftStorage(repo)
         dictionary <- nameOpt.flatMap(Identifier.parse) match {
-          case Some(iid) => store.loadFromId(iid).flatMap(ResultT.fromOption(_, s"Dictionary '$iid' could not be found"))
+          case Some(iid) => store.loadFromId(DictionaryId(iid)).flatMap(ResultT.fromOption(_, s"Dictionary '$iid' could not be found"))
           case None      => store.load
         }
       } yield List(

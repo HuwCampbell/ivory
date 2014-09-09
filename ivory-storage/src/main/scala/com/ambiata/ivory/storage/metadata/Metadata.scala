@@ -58,6 +58,9 @@ object Metadata {
   def dictionaryToIvoryT(dictionary: Dictionary): IvoryTIO[Unit] =
     fromResultT(dictionaryToIvory(_, dictionary))
 
+  def dictionaryLoadMigrate(repo: Repository): ResultTIO[Option[(DictionaryId, Dictionary)]] =
+    DictionaryThriftStorage(repo).loadMigrate
+
   /** Commit */
   def listCommitIds(repo: Repository): ResultTIO[List[CommitId]] =
     CommitTextStorage.listIds(repo)
@@ -70,5 +73,16 @@ object Metadata {
 
   def latestCommitIdT(repo: Repository): IvoryTIO[Option[CommitId]] =
     fromResultT(latestCommitId(_))
+
+  def incrementCommitDictionary(repo: Repository, dictionaryId: DictionaryId): ResultTIO[Unit] = for {
+    latestFeatureStoreId <- Metadata.latestFeatureStoreId(repo)
+    _ <- CommitTextStorage.increment(repo, Commit(dictionaryId, latestFeatureStoreId))
+  } yield ()
+
+  def incrementCommitFeatureStore(repo: Repository, featureStoreId: FeatureStoreId): ResultTIO[Unit] = for {
+    latestDict <- DictionaryThriftStorage(repo).loadMigrate.map(_.map(_._1))
+    latestDictionaryId <- ResultT.fromOption[IO, DictionaryId](latestDict, "Could not load a dictionary")
+    _ <- CommitTextStorage.increment(repo, Commit(latestDictionaryId, Some(featureStoreId)))
+  } yield ()
 
 }

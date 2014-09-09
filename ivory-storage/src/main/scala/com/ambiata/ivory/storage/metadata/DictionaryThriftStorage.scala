@@ -25,15 +25,15 @@ case class DictionaryThriftStorage(repository: Repository) {
   def loadOption: ResultTIO[Option[Dictionary]] =
     loadWithId.map(_.map(_._2))
 
-  def loadMigrate: ResultTIO[Option[(Identifier, Dictionary)]] =
-    loadWithId.flatMap(_.traverse[ResultTIO, (Identifier, Dictionary)] {
-      case (Some(identifier), dict) => ResultT.ok(identifier -> dict)
-      case (_, dict)                => store(dict).map(_._1 -> dict)
+  def loadMigrate: ResultTIO[Option[(DictionaryId, Dictionary)]] =
+    loadWithId.flatMap(_.traverse[ResultTIO, (DictionaryId, Dictionary)] {
+      case (Some(identifier), dict) => ResultT.ok(DictionaryId(identifier) -> dict)
+      case (_, dict)                => store(dict).map(_ -> dict)
     })
 
   private def loadWithId: ResultTIO[Option[(Option[Identifier], Dictionary)]] =
     IdentifierStorage.get(store, dictDir).flatMap {
-      case Some(path) => loadFromId(path._1).map(_.map(some(path._1) ->))
+      case Some(path) => loadFromId(DictionaryId(path._1)).map(_.map(some(path._1) ->))
       case None       => loadDates.map(_.map(none ->))
     }
 
@@ -46,7 +46,7 @@ case class DictionaryThriftStorage(repository: Repository) {
       } yield dicts.foldLeft(Dictionary.empty)(_ append _)
     })
 
-  def loadFromId(identifier: Identifier): ResultTIO[Option[Dictionary]] =
+  def loadFromId(identifier: DictionaryId): ResultTIO[Option[Dictionary]] =
     loadFromPath(dictDir </> identifier.render </> DATA)
 
   def loadFromPath(dictPath: FilePath): ResultTIO[Option[Dictionary]] =
@@ -54,9 +54,9 @@ case class DictionaryThriftStorage(repository: Repository) {
       bytes => ResultT.fromDisjunction(dictionaryFromThrift(ThriftSerialiser().fromBytes1(() => new ThriftDictionary(), bytes.toArray)).leftMap(This.apply))
     }.map(some) ||| ResultT.ok(none)
 
-  def store(dictionary: Dictionary): ResultTIO[(Identifier, FilePath)] = for {
+  def store(dictionary: Dictionary): ResultTIO[DictionaryId] = for {
     bytes <- ResultT.safe[IO, Array[Byte]](ThriftSerialiser().toBytes(dictionaryToThrift(dictionary)))
     i     <- IdentifierStorage.write(DATA, ByteVector(bytes))(store, dictDir)
     _     <- Version.write(Reference(store, i._2), Version(DictionaryVersionOne.toString))
-  } yield i
+  } yield DictionaryId(i._1)
 }
