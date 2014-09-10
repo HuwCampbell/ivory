@@ -76,21 +76,24 @@ object SnapshotMeta {
    * and return it if it is up to date. The latest snapshot is up to date if
    *
    *  latestSnapshot.featureStore == latestFeatureStore
-   *    - and the snapshot.date == date
+   *     and the snapshot.date == date
    *
-   *    - OR the snapshot.date < date
-   *      but there are no partitions between the snapshot date and date for factsets in the latest feature store
+   *     OR the snapshot.date <= date
+   *        but there are no partitions between the snapshot date and date for factsets in the latest feature store
    */
   def latestUpToDateSnapshot(repository: Repository, date: Date): ResultTIO[Option[SnapshotMeta]] = {
     latestSnapshot(repository, date).flatMap(_.traverseU { meta: SnapshotMeta =>
 
       Metadata.latestFeatureStoreOrFail(repository).flatMap { featureStore =>
-        if (meta.featureStoreId == featureStore.id && meta.date == date) ResultT.ok[IO, Option[SnapshotMeta]](Some(meta))
-        else
-          FeatureStoreGlob.between(repository, featureStore, meta.date, date).map { glob =>
-            if (glob.partitions.isEmpty) Some(meta)
-            else                         None
-          }
+        if (meta.featureStoreId == featureStore.id) {
+
+          if (meta.date == date) ResultT.ok[IO, Option[SnapshotMeta]](Some(meta))
+          else
+            FeatureStoreGlob.between(repository, featureStore, meta.date, date).map { glob =>
+              if (glob.partitions.isEmpty) Some(meta)
+              else                         None
+            }
+        } else ResultT.ok[IO, Option[SnapshotMeta]](None)
       }
     }).map(_.flatten)
   }

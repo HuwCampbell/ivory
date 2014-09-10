@@ -66,18 +66,26 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
         _         <- writeFactsetVersion(repository, List(factsetId))
         snapshot  <- SnapshotMeta.latestUpToDateSnapshot(repository, date1)
       } yield snapshot must beUpToDate(repository, date1)
+
     } must beOkResult
   }.set(minTestsOk = 10)
 
   def beUpToDate(repository: Repository, date1: Date): Matcher[Option[SnapshotMeta]] = { snapshot: Option[SnapshotMeta] =>
     snapshot must beSome { meta: SnapshotMeta =>
-      val newFacts =
-        for {
-          store      <- Metadata.latestFeatureStoreOrFail(repository)
-          partitions <- FeatureStoreGlob.strictlyAfterAndBefore(repository, store, meta.date, date1).map(_.partitions)
-        } yield partitions
 
-      newFacts must beOkLike(_ must beEmpty)
+      "the snapshot feature store is the latest feature store if it is up to date" ==> {
+        Metadata.latestFeatureStoreOrFail(repository) map { store => meta.featureStoreId ==== store.id } must beOk
+      }
+
+      "there are no new facts after the snapshot date" ==> {
+        val newFacts =
+          for {
+            store      <- Metadata.latestFeatureStoreOrFail(repository)
+            partitions <- FeatureStoreGlob.strictlyAfterAndBefore(repository, store, meta.date, date1).map(_.partitions)
+          } yield partitions
+
+        newFacts must beOkLike(_ must beEmpty)
+      }
     } or { snapshot must beNone }
   }
 
