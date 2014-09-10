@@ -62,6 +62,7 @@ object RecreateFactsetJob {
     Committer.commit(ctx, {
       case "factset" => target
     }, true).run(conf).run.unsafePerformIO
+    ()
   }
 
   object Keys {

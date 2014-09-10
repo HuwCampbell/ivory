@@ -2,7 +2,6 @@ package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.data.StoreDataUtil
-import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.repository._
 
 import com.ambiata.mundane.control._
@@ -21,11 +20,11 @@ object Factsets {
     listIds(repo).map(_.sorted.lastOption)
 
   // TODO handle locking
-  def allocateId: IvoryTIO[FactsetId] = IvoryT.fromResultT(repo => for {
+  def allocateFactsetId(repo: Repository): ResultTIO[FactsetId] = for {
     nextOpt <- latestId(repo).map(_.map(_.next).getOrElse(Some(FactsetId.initial)))
     next    <- ResultT.fromOption[IO, FactsetId](nextOpt, s"No more Factset Ids left!")
     _       <- repo.toStore.bytes.write(Repository.factsets </> FilePath(next.render) </> ".allocated", scodec.bits.ByteVector.empty)
-  } yield next)
+  } yield next
 
   def factsets(repo: Repository): ResultTIO[List[Factset]] = for {
     ids      <- listIds(repo)

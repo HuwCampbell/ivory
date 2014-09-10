@@ -1,13 +1,17 @@
 package com.ambiata.ivory.operation.extraction
 
-import com.ambiata.ivory.storage.repository.RepositoryBuilder
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.control.ResultTIO
+import org.specs2._
+import org.specs2.matcher._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._, Metadata._
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.store._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
@@ -35,7 +39,7 @@ ChordSpec
         _           <- entitiesRef.run(s => s.linesUtf8.write(_, entities))
         tmpRef      <- Reference.fromUriResultTIO((directory </> "tmp").path, sc)
 
-        _           <- Chord.onStore(repo, entitiesRef, outRef, tmpRef, true)
+        _           <- Chord.createChord(repo, entitiesRef, outRef, tmpRef, takeSnapshot = true)
 
         dictRef     <- Reference.fromUriResultTIO((outPath </> ".dictionary").path, sc)
         dict        <- DictionaryTextStorageV2.fromStore(dictRef)
@@ -53,4 +57,17 @@ ChordSpec
     ))
   }
 
+  def createChord(repository: HdfsRepository, directory: FilePath, output: FilePath, configuration: RepositoryConfiguration): ResultTIO[Unit] =
+    for {
+      outRef      <- Reference.fromUriFilePathResultTIO(output, configuration)
+      entitiesRef <- Reference.fromUriFilePathResultTIO(directory </> "entities", configuration)
+      tmpRef      <- Reference.fromUriFilePathResultTIO(directory </> "tmp", configuration)
+      _           <- Chord.createChord(repository, entitiesRef, outRef, tmpRef, takeSnapshot = true)
+    } yield ()
+
+  def readDictionary(outPath: FilePath, configuration: RepositoryConfiguration): ResultTIO[Dictionary] =
+    for {
+      dictRef <- Reference.fromUriFilePathResultTIO(outPath </> ".dictionary", configuration)
+      dict    <- DictionaryTextStorageV2.fromStore(dictRef)
+    } yield dict
 }

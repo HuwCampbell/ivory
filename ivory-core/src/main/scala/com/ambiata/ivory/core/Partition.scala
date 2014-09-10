@@ -28,7 +28,7 @@ object Partition {
     PartitionOrder.toScalaOrdering
 
   def parseDir(dir: FilePath): Validation[String, Partition] =
-    listParser.flatMap(p => ListParser.consumeRest.map(_ => p)).run(dir.components.reverse)
+    listParser.flatMap(p => ListParser.consumeRest.as(p)).run(dir.components.reverse)
 
   def parseFile(file: FilePath): Validation[String, Partition] = for {
     parent    <- file.parent.toSuccess(s"Expecting parent in path '${file}', but got none")
@@ -66,6 +66,8 @@ case class Partitions(partitions: List[Partition]) {
 
   def isEmpty: Boolean =
     partitions.isEmpty
+
+  def show = partitions.map(_.path.path)mkString("\n", "\n", "\n")
 }
 
 object Partitions {

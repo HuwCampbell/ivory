@@ -65,10 +65,9 @@ trait PartitionFactThriftStorage {
 
   case class PartitionedFactThriftStorer(base: String, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
-      val partitioned = dlist.by(f => partitionPath((f.namespace.name, f.date)))
-                             .mapValues((f: Fact) => f.toThrift)
-                             .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](base, identity, overwrite = true)
-      codec.map(partitioned.compressWith(_)).getOrElse(partitioned)
+      dlist.by(f => partitionPath((f.namespace.name, f.date)))
+           .mapValues((f: Fact) => f.toThrift)
+           .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](base, identity, overwrite = true).persistWithCodec(codec)
     }
   }
 }

@@ -1,6 +1,7 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.storage.repository._
+import scalaz.syntax.bind._
 
 object createRepository extends IvoryApp {
 
@@ -21,14 +22,7 @@ object createRepository extends IvoryApp {
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments(), IvoryRunner { configuration => c =>
       println("Created configuration: " + configuration)
-
-      val actions = for {
-        repo <- Repository.fromUriResultTIO(c.path, configuration)
-        _    <- Repositories.create(repo)
-      } yield ()
-
-      actions.map {
-        case _ => List(s"Repository successfully created under ${c.path}.")
-      }
+      Repository.fromUriResultTIO(c.path, configuration).>>=(Repositories.create)
+        .as(Nil)
   })
 }

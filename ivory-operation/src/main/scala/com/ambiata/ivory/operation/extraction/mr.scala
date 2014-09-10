@@ -89,6 +89,7 @@ object SnapshotJob {
     Committer.commit(ctx, {
       case "snap" => output
     }, true).run(conf).run.unsafePerformIO
+    ()
   }
 
   def priorityTable(globs: List[Prioritized[FactsetGlob]]): FactsetLookup = {

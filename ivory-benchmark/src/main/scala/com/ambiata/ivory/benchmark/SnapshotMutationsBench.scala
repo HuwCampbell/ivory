@@ -171,6 +171,7 @@ case class SnapshotMutationsBench() extends SimpleScalaBenchmark {
         (bytes: Array[Byte], state: PriorityTag) => {
           state.clear()
           serializer.fromBytesUnsafe(state, bytes)
+          ()
         })
     }
 

@@ -5,6 +5,8 @@ import com.ambiata.ivory.storage.control.IvoryT._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
+import scalaz.effect.IO
+import scalaz._, Scalaz._
 
 object Metadata {
 
@@ -29,7 +31,17 @@ object Metadata {
     FeatureStoreTextStorage.latestId(repo)
 
   def latestFeatureStoreIdT: IvoryTIO[Option[FeatureStoreId]] =
-    fromResultT(latestFeatureStoreId)
+    IvoryT.fromResultTIO(latestFeatureStoreId)
+
+  /** @return the latest store or fail if there is none */
+  def latestFeatureStoreOrFail(repository: Repository): ResultTIO[FeatureStore] =
+    latestFeatureStoreIdOrFail(repository).flatMap(id => featureStoreFromIvory(repository, id))
+
+  /** @return the latest store id or fail if there is none */
+  def latestFeatureStoreIdOrFail(repository: Repository): ResultTIO[FeatureStoreId] =
+    latestFeatureStoreId(repository).flatMap { latest =>
+      ResultT.fromOption[IO, FeatureStoreId](latest, s"no store found for this repository ${repository.root}")
+    }
 
   def listFeatureStoreIds(repo: Repository): ResultTIO[List[FeatureStoreId]] =
     FeatureStoreTextStorage.listIds(repo)
@@ -42,9 +54,8 @@ object Metadata {
     fromResultT(dictionaryFromIvory)
 
   def dictionaryToIvory(repo: Repository, dictionary: Dictionary): ResultTIO[Unit] =
-    DictionaryThriftStorage(repo).store(dictionary).map(_ => ())
+    DictionaryThriftStorage(repo).store(dictionary).void
 
   def dictionaryToIvoryT(dictionary: Dictionary): IvoryTIO[Unit] =
     fromResultT(dictionaryToIvory(_, dictionary))
-
 }

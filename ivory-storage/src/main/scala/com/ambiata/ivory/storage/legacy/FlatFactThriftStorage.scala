@@ -18,8 +18,7 @@ object FlatFactThriftStorageV1 {
 
   case class FlatFactThriftStorer(path: String, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[Fact]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[Fact] = {
-      val toPersist = dlist.valueToSequenceFile(path, overwrite = true)
-      codec.map(toPersist.compressWith(_)).getOrElse(toPersist)
+      dlist.valueToSequenceFile(path, overwrite = true).persistWithCodec(codec)
     }
   }
 }

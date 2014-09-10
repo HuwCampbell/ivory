@@ -45,7 +45,7 @@ object Rename {
   } yield inputs.globs
 
   def renameWithFactsets(mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], reducerLookups: ReducerLookups): IvoryTIO[(FactsetId, RenameStats)] = for {
-    factset    <- Factsets.allocateId
+    factset    <- IvoryT.fromResultTIO(repository => Factsets.allocateFactsetId(repository))
     repository <- IvoryT.repository[ResultTIO]
     output      = repository.factset(factset).toHdfs
     hdfs       <- getHdfs

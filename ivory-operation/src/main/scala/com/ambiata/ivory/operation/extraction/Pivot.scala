@@ -1,7 +1,6 @@
 package com.ambiata.ivory.operation.extraction
 
 import com.nicta.scoobi.Scoobi._
-import scalaz.{DList => _, _}, effect._
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
 
@@ -14,6 +13,7 @@ import com.ambiata.ivory.storage.store._
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
+import scalaz._, Scalaz._
 
 /**
  * Takes a snapshot containing EAVTs
@@ -22,41 +22,38 @@ import com.ambiata.poacher.scoobi._
  */
 object Pivot {
 
-  def onStoreFromSnapshot(repo: Repository, output: ReferenceIO, delim: Char, tombstone: String, date: Date): ResultTIO[Unit] = for {
-    snap <- Snapshot.takeSnapshot(repo, date, true)
-    (store, snapId) = snap
-    ref = repo.toReference(Repository.snapshot(snapId))
-    _    <- onStore(repo, ref, output, delim, tombstone)
+  /**
+   * Take a snapshot first then extract a pivot
+   */
+  def createPivotFromSnapshot(repository: Repository, output: ReferenceIO, delim: Char, tombstone: String, date: Date): ResultTIO[Unit] = for {
+    meta <- Snapshot.takeSnapshot(repository, date, incremental = true)
+    ref  =  repository.toReference(Repository.snapshot(meta.snapshotId))
+    _    <- createPivot(repository, ref, output, delim, tombstone)
   } yield ()
 
-  def onStore(repo: Repository, input: ReferenceIO, output: ReferenceIO, delim: Char, tombstone: String): ResultTIO[Unit] = for {
-    d <- dictionaryFromIvory(repo)
-    _ <- withDictionary(repo, input, output, d, delim, tombstone)
+  /**
+   * Extract a pivot from a given snapshot (input) to output
+   */
+  def createPivot(repository: Repository, input: ReferenceIO, output: ReferenceIO, delim: Char, tombstone: String): ResultTIO[Unit] = for {
+    dictionary  <- dictionaryFromIvory(repository)
+    hdfsRepo    <- downcast[Repository, HdfsRepository](repository, s"Pivot only works with Hdfs repositories currently, got '$repository'")
+    inputStore  <- downcast[Any, HdfsStore](input.store, s"Pivot can only read from HDFS currently, got '$input'")
+    in          =  (inputStore.base </> input.path).toHdfs
+    outputStore <- downcast[Any, HdfsStore](output.store, s"Pivot can only read from HDFS currently, got '$output'")
+    out         =  (outputStore.base </> output.path).toHdfs
+    _           <- createPivotWithDictionary(hdfsRepo, in, out, dictionary, delim, tombstone)
   } yield ()
 
-  def withDictionary(repo: Repository, input: ReferenceIO, output: ReferenceIO, dictionary: Dictionary, delim: Char, tombstone: String): ResultTIO[Unit] = {
-    for {
-      r <- repo match {
-             case r: HdfsRepository => ResultT.ok[IO, HdfsRepository](r)
-             case _                 => ResultT.fail[IO, HdfsRepository](s"Pivot only works with Hdfs repositories currently, got '${repo}'")
-           }
-      i <- input match {
-             case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
-             case _                                => ResultT.fail[IO, Path](s"Pivot can only read from HDFS currently, got '${input}'")
-           }
-      o <- output match {
-             case Reference(HdfsStore(_, root), p) => ResultT.ok[IO, Path]((root </> p).toHdfs)
-             case _                                => ResultT.fail[IO, Path](s"Pivot can only output to HDFS currently, got '${output}'")
-           }
-      s = DenseRowTextStorageV1.DenseRowTextStorer(o.toString, dictionary, delim, tombstone)
-      _ <- scoobiJob(i, s).run(r.scoobiConfiguration)
-      _ <- s.storeMeta.run(r.configuration)
-    } yield ()
-  }
-
-  def scoobiJob(input: Path, storer: DenseRowTextStorageV1.DenseRowTextStorer): ScoobiAction[Unit] =
+  /**
+   * Create a pivot on a HdfsRepository
+   */
+  def createPivotWithDictionary(repository: HdfsRepository, input: Path, output: Path, dictionary: Dictionary, delim: Char, tombstone: String): ResultTIO[Unit] = {
+    val storer = DenseRowTextStorageV1.DenseRowTextStorer(output.toString, dictionary, delim, tombstone)
     ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
       val facts = valueFromSequenceFile[Fact](input.toString)
       persist(storer.storeScoobi(facts))
-    }
+      ()
+    }.run(repository.scoobiConfiguration) >>
+    storer.storeMeta.run(repository.configuration)
+  }
 }

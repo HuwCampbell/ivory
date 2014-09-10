@@ -1,6 +1,8 @@
 package com.ambiata.ivory.api
 
 import com.ambiata.ivory.storage.repository.Repositories
+import com.ambiata.ivory.operation.diff.CompareSnapshots
+import com.ambiata.ivory.operation.ingestion.Ingest
 
 /**
  * The ivory "retire" API forms an exported API for "deprecated",
@@ -30,6 +32,7 @@ object IvoryRetire {
 
   val snapshotFromHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotFromHdfs _
   val snapshotToHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotToHdfs _
+  val compareHdfsSnapshots = CompareSnapshots.compareHdfsSnapshots _
 
   val createRepository = Repositories.create _
 
@@ -39,7 +42,7 @@ object IvoryRetire {
    * They will be replaced by a safer, stable API that lets users interact with
    * ivory, without concern for the current implementation.
    */
-  val importWorkflow = com.ambiata.ivory.storage.legacy.fatrepo.ImportWorkflow.onStore _
+  val importWorkflow = Ingest.ingestFacts _
   val importDictionary = com.ambiata.ivory.operation.ingestion.DictionaryImporter.fromPath _
   val dictionaryFromIvory = com.ambiata.ivory.storage.metadata.Metadata.dictionaryFromIvory _
   val dictionaryToString = com.ambiata.ivory.storage.metadata.DictionaryTextStorageV2.delimitedString _
@@ -55,9 +58,9 @@ object IvoryRetire {
    */
   val snapshot = com.ambiata.ivory.operation.extraction.Snapshot.snapshot _
   val takeSnapshot = com.ambiata.ivory.operation.extraction.Snapshot.takeSnapshot _
-  val chord = com.ambiata.ivory.operation.extraction.Chord.onStore _
-  val pivot = com.ambiata.ivory.operation.extraction.Pivot.onStore _
-  val pivotFromSnapshot = com.ambiata.ivory.operation.extraction.Pivot.onStoreFromSnapshot _
+  val chord = com.ambiata.ivory.operation.extraction.Chord.createChord _
+  val pivot = com.ambiata.ivory.operation.extraction.Pivot.createPivot _
+  val pivotFromSnapshot = com.ambiata.ivory.operation.extraction.Pivot.createPivotFromSnapshot _
 
   val Codec = com.ambiata.ivory.storage.repository.Codec
 

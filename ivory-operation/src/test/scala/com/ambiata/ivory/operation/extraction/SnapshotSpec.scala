@@ -16,6 +16,6 @@ class SnapshotSpec extends Specification with SampleFacts { def is = s2"""
   def e1 =
     RepositoryBuilder.using { repo => for {
       _ <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
-      _ <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), false)
+      _ <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), incremental = false)
     } yield ()} must beOk
 }

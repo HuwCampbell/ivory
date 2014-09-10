@@ -39,6 +39,7 @@ object main {
 
   def usage(): IO[Unit] = IO {
     val cmdNames = commands.map(_.cmd.parser.programName).mkString("|")
+    println(s"Ivory ${BuildInfo.version}")
     println(s"Usage: {$cmdNames}")
     sys.exit(1)
   }

@@ -212,6 +212,8 @@ object build extends Build {
     , "-unchecked"
     , "-feature"
     , "-language:_"
+    , "-Ywarn-value-discard"
+    , "-Yno-adapted-args"
     , "-Xlint"
     , "-Xfatal-warnings"
     , "-Yinline-warnings"

@@ -117,6 +117,7 @@ SnapshotMapperSpec
     def emit() {
       emittedKeys += kout.copyBytes
       emittedVals += vout.copyBytes
+      ()
     }
   }
 
