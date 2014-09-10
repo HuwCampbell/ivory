@@ -22,17 +22,17 @@ case class Entities(entities: Mappings) {
   private case class DateRange(earliest: Date, latest: Date)
 
   /** get the earliest date and the latest date across all entities */
-  private lazy val dateRange: DateRange = entities.values.asScala.foldLeft(DateRange(Date.maxValue, Date.minValue)) { case (DateRange(lmin, lmax), ds) =>
+  private val dateRange: DateRange = entities.values.asScala.foldLeft(DateRange(Date.maxValue, Date.minValue)) { case (DateRange(lmin, lmax), ds) =>
     val min = Date.unsafeFromInt(ds.last) // last is the minimum date because the array is sorted
     val max = Date.unsafeFromInt(ds.head) // head is the maximum date because the array is sorted
     DateRange(Date.min(min, lmin), Date.max(max, lmax))
   }
 
-  lazy val earliestDate = dateRange.earliest
-  lazy val latestDate   = dateRange.latest
+  def earliestDate = dateRange.earliest
+  def latestDate   = dateRange.latest
 
   /** @return true if this fact concerns one of the entities and happened before the last required date for that entity */
-  def keep(f: Fact) = {
+  def keep(f: Fact): Boolean = {
     val dates = entities.get(f.entity)
     dates != null && f.date.int <= dates(0)
   }
@@ -109,7 +109,7 @@ object Entities {
 
   private def parseLine(DatePattern: Regex): String => (String, Int) = (line: String) =>
     line.split("\\|").toList match {
-      case h :: DatePattern(y, m, d) :: Nil => (h, Date.ymdToInt(y.toShort, m.toByte, d.toByte))
+      case h :: DatePattern(y, m, d) :: Nil => (h, Date.unsafeYmdToInt(y.toShort, m.toByte, d.toByte))
       case _                                => sys.error("Can't parse the line "+line+". Expected: entity id|yyyy-MM-dd")
     }
 

@@ -58,7 +58,7 @@ object Date {
     macro Macros.literal
 
   def unsafe(year: Short, month: Byte, day: Byte): Date =
-    new Date((year.toInt << 16) | (month.toInt << 8) | day.toInt)
+    new Date(unsafeYmdToInt(year, month, day))
 
   def isValid(year: Short, month: Byte, day: Byte): Boolean = {
     def divisibleBy(n: Int, divisor: Int) =
@@ -96,10 +96,10 @@ object Date {
   def minValue: Date =
     unsafe(1000.toShort, 1.toByte, 1.toByte)
 
-  def min(date1: Date, date2: Date) =
+  def min(date1: Date, date2: Date): Date =
     if (date1 isBefore date2) date1 else date2
 
-  def max(date1: Date, date2: Date) =
+  def max(date1: Date, date2: Date): Date =
     if (date1 isAfter date2) date1 else date2
 
   def unsafeFromInt(i: Int): Date =
@@ -108,7 +108,7 @@ object Date {
   def fromInt(i: Int): Option[Date] =
     create(((i >>> 16) & 0xffff).toShort, ((i >>> 8) & 0xff).toByte, (i & 0xff).toByte)
 
-  @inline def ymdToInt(y: Short, m: Byte, d: Byte): Int  =
+  @inline def unsafeYmdToInt(y: Short, m: Byte, d: Byte): Int  =
     (y.toInt << 16) | (m.toInt << 8) | d.toInt
 
   def fromLocalDate(d: LocalDate): Date =

@@ -1,5 +1,7 @@
 package com.ambiata.ivory.operation.extraction
 
+import java.util
+
 import com.nicta.scoobi.Scoobi._
 import org.apache.commons.logging.LogFactory
 import scala.util.matching.Regex
@@ -23,6 +25,7 @@ import Entities._
 import IvoryStorage._
 import com.ambiata.ivory.scoobi._
 import FlatFactThriftStorageV1._
+import scala.collection.JavaConversions._
 
 /**
  * A Chord is the extraction of feature values for some entities at some dates
@@ -118,26 +121,26 @@ object Chord {
     facts
       .groupBy { case (p, f) => (f.entity, f.featureId.toString) }
       .parallelDo(new DoFn[((String, String), Iterable[PrioritizedFact]), PrioritizedFact] {
-      var entities: Entities = null
-      override def setup() { entities = getEntities }
-      override def process(input: ((String, String), Iterable[PrioritizedFact]), emitter: Emitter[PrioritizedFact]) {
-        input match { case ((entityId, featureId), fs) =>
-          entities.keepBestFacts(entityId, fs).collect { case (date, priority, Some(fact)) if !fact.isTombstone =>
-            emitter.emit((priority, fact.withEntity(fact.entity + ":" + Date.unsafeFromInt(date).hyphenated)))
+        var entities: Entities = null
+        override def setup() { entities = getEntities }
+        override def process(input: ((String, String), Iterable[PrioritizedFact]), emitter: Emitter[PrioritizedFact]) {
+          input match { case ((entityId, featureId), fs) =>
+            entities.keepBestFacts(entityId, fs).collect { case (date, priority, Some(fact)) if !fact.isTombstone =>
+              emitter.emit((priority, fact.withEntity(fact.entity + ":" + Date.unsafeFromInt(date).hyphenated)))
+            }
           }
         }
-      }
-      override def cleanup(emitter: Emitter[PrioritizedFact]) { }
-    })
+        override def cleanup(emitter: Emitter[PrioritizedFact]) { }
+      })
 
   /**
    * Validate that facts are in the dictionary with the right encoding
    */
   def validateFacts(facts: DList[PrioritizedFact], dictionary: Dictionary, store: FeatureStore, incremental: Option[FeatureStoreSnapshot]): DList[PrioritizedFact] = {
     // for each priority we get its snapshot id or factset id
-    lazy val priorities: Map[Priority, String] =
-      (incremental     .map(i =>  (Priority.Max, s"Snapshot '${i.snapshotId.render}'")).toList ++
-       store.factsetIds.map(fs => (fs.priority,  s"Factset  '${fs.value.render}'"))).toMap.withDefault(p => s"Unknown, priority $p")
+    val priorities: util.Map[Priority, String] =
+      mapAsJavaMap((incremental     .map(i =>  (Priority.Max, s"Snapshot '${i.snapshotId.render}'")) ++
+                    store.factsetIds.map(fs => (fs.priority,  s"Factset  '${fs.value.render}'"))).toMap.withDefault(p => s"Unknown, priority $p"))
 
     facts.map { case (priority, fact) =>
       Validate.validateFact(fact, dictionary).disjunction match {
