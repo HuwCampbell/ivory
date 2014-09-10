@@ -124,11 +124,12 @@ object Chord {
         var entities: Entities = null
         override def setup() { entities = getEntities }
         override def process(input: ((String, String), Iterable[PrioritizedFact]), emitter: Emitter[PrioritizedFact]) {
-          input match { case ((entityId, featureId), fs) =>
-            entities.keepBestFacts(entityId, fs).collect { case (date, priority, Some(fact)) if !fact.isTombstone =>
-              emitter.emit((priority, fact.withEntity(fact.entity + ":" + Date.unsafeFromInt(date).hyphenated)))
-            }
-          }
+          input match {
+            case ((entityId, featureId), fs) =>
+              entities.keepBestFacts(entityId, fs).collect { case (date, priority, Some(fact)) if !fact.isTombstone =>
+                emitter.emit((priority, fact.withEntity(fact.entity + ":" + Date.unsafeFromInt(date).hyphenated)))
+              }
+          }; ()
         }
         override def cleanup(emitter: Emitter[PrioritizedFact]) { }
       })
