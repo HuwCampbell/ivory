@@ -75,9 +75,9 @@ object Ivory
   type Name = com.ambiata.ivory.core.Name
   val Name = com.ambiata.ivory.core.Name
 
-  type Reference[F[_]] = com.ambiata.ivory.storage.store.Reference[F]
-  val Reference = com.ambiata.ivory.storage.store.Reference
-  type ReferenceIO = com.ambiata.ivory.storage.store.ReferenceIO
+  type Reference[F[_]] = com.ambiata.ivory.core.Reference[F]
+  val Reference = com.ambiata.ivory.core.Reference
+  type ReferenceIO = com.ambiata.ivory.core.ReferenceIO
 
   /**
    * Debug

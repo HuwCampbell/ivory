@@ -2,7 +2,6 @@ package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._, Arbitraries._
 import com.ambiata.ivory.data.Identifier
-import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultMatcher._

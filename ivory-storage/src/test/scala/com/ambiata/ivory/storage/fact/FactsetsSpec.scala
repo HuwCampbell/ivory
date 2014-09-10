@@ -1,21 +1,18 @@
 package com.ambiata.ivory.storage.fact
 
-import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.storage.control.IvoryRead
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.mundane.control.ResultT
-import com.ambiata.poacher.hdfs._
-
-import org.specs2._
 import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.TestConfigurations._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
-
+import com.ambiata.ivory.storage.control.IvoryRead
+import com.ambiata.mundane.control.ResultT
 import com.ambiata.mundane.io._
-import org.specs2.execute.{Result, AsResult}
+import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.poacher.hdfs._
+import org.specs2._
+import org.specs2.execute.{AsResult, Result}
 
-import scalaz._, Scalaz._
-import scalaz.effect.IO
+import scalaz._, Scalaz._, effect.IO
 
 object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
 

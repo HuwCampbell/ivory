@@ -1,9 +1,8 @@
 package com.ambiata.ivory.storage.fact
 
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core.IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.data.StoreDataUtil
-import com.ambiata.ivory.storage.repository._
-
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FilePath
 

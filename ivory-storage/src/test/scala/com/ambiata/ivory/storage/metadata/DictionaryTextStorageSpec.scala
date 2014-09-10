@@ -6,7 +6,6 @@ import com.ambiata.mundane.io._
 import com.ambiata.mundane.store._
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.store._
 
 class DictionaryTextStorageSpec extends Specification { def is = s2"""
 

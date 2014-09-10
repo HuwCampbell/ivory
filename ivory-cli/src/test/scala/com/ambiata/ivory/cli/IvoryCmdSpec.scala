@@ -1,6 +1,6 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.storage.repository.RepositoryConfiguration
+import com.ambiata.ivory.core.RepositoryConfiguration
 import com.ambiata.mundane.control.ResultT
 import org.specs2.Specification
 import org.specs2.execute.AsResult

@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.control
 
-import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.core.Repository
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.Laws._
 import org.scalacheck._, Arbitrary._

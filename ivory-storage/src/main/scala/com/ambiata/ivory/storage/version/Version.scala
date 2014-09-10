@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.version
 
-import com.ambiata.ivory.storage.store._
+import com.ambiata.ivory.core.Reference
 import com.ambiata.mundane.io._
 
 import scalaz.Scalaz._

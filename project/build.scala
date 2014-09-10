@@ -143,7 +143,8 @@ object build extends Build {
       name := "ivory-core"
     , libraryDependencies ++= (if (scalaVersion.value.contains("2.10")) Seq(compilerPlugin("org.scalamacros" %% "paradise" % "2.0.0" cross CrossVersion.full)) else Nil)
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++
-                                               depend.thrift ++ depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value))
+                                               depend.thrift ++ depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value) ++
+                                               depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.saws)
   )
   .dependsOn(data, data % "test->test")
 

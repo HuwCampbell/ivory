@@ -1,9 +1,9 @@
 package com.ambiata.ivory.cli
 
+import com.ambiata.ivory.core.Repository
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.metadata._
-import com.ambiata.ivory.storage.repository._
 import scalaz._, effect._
 
 object catDictionary extends IvoryApp {

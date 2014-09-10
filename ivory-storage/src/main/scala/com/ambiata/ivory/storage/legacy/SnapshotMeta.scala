@@ -1,17 +1,16 @@
 package com.ambiata.ivory.storage.legacy
 
-import com.ambiata.ivory.storage.fact.{FactsetGlob, FeatureStoreGlob}
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.data.{IdentifierStorage, StoreDataUtil}
+import com.ambiata.ivory.storage.fact.FeatureStoreGlob
 import com.ambiata.ivory.storage.metadata._
 
 import scalaz._, Scalaz._, \&/._, effect.IO
-import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.io._
 import com.ambiata.mundane.parse.ListParser
 
-import com.ambiata.ivory.core._
-import com.ambiata.ivory.data._
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store._
+import scalaz._, Scalaz._, \&/._, effect.IO
 
 case class SnapshotMeta(snapshotId: SnapshotId, date: Date, featureStoreId: FeatureStoreId) {
 

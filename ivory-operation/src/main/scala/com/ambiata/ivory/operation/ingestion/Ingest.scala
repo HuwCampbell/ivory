@@ -7,7 +7,6 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import IvoryStorage._
-import com.ambiata.ivory.storage.store._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.BytesQuantity
 import org.apache.commons.logging.LogFactory

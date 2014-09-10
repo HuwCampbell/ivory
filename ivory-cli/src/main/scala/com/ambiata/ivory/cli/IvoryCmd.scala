@@ -1,6 +1,7 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.storage.repository.{Codec, RepositoryConfiguration}
+import com.ambiata.ivory.core.RepositoryConfiguration
+import com.ambiata.ivory.storage.repository.Codec
 import com.ambiata.mundane.control._
 import com.ambiata.saws.core.Clients
 import com.nicta.scoobi.Scoobi._

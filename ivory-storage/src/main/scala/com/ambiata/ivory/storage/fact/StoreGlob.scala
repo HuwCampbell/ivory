@@ -1,10 +1,9 @@
 package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
 
-import scalaz._, Scalaz._, effect.IO
+import scalaz._, Scalaz._
 
 // TODO This needs to be removed once we create the plan api
 case class FeatureStoreGlob(repository: Repository, store: FeatureStore, globs: List[Prioritized[FactsetGlob]]) {

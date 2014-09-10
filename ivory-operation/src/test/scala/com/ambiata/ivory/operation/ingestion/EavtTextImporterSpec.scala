@@ -4,8 +4,6 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift.ThriftSerialiser
 import com.ambiata.ivory.scoobi.{FactFormats, SequenceUtil, TestConfigurations}
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store._
 import FactFormats._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._

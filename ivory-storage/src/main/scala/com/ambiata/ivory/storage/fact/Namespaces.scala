@@ -1,8 +1,6 @@
 package com.ambiata.ivory.storage.fact
 
-import com.ambiata.ivory.core.FactsetId
-import com.ambiata.ivory.core.Name
-import com.ambiata.ivory.storage.repository.Repository
+import com.ambiata.ivory.core.{Repository, FactsetId, Name}
 import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.mundane.io.BytesQuantity
 import com.ambiata.mundane.io.MemoryConversions._

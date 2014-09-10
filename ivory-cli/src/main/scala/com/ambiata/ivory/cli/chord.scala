@@ -1,22 +1,17 @@
 package com.ambiata.ivory.cli
 
+import com.ambiata.ivory.api.IvoryRetire
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 
-import com.ambiata.ivory.api.IvoryRetire
-import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.store._
-
-import org.apache.hadoop.fs.Path
-import org.apache.commons.logging.LogFactory
-
-import scalaz.{DList => _, _}, effect._
+import scalaz.effect._
 
 object chord extends IvoryApp {
 
   case class CliArguments(repo: String, output: String, tmp: String, entities: String, takeSnapshot: Boolean, pivot: Boolean, delim: Char, tombstone: String)
 
-  import ScoptReaders.charRead
+  import com.ambiata.ivory.cli.ScoptReaders.charRead
 
   val parser = new scopt.OptionParser[CliArguments]("extract-chord") {
     head("""

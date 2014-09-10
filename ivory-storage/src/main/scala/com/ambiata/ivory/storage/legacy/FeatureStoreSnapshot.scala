@@ -1,11 +1,11 @@
 package com.ambiata.ivory.storage.legacy
 
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core.{Prioritized, FeatureStore, Date, SnapshotId}
 import com.ambiata.ivory.storage.fact.{FeatureStoreGlob, FactsetGlob}
 import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.ivory.storage.metadata.Metadata._
-import com.ambiata.ivory.storage.repository.Repository
 import com.ambiata.mundane.control._
 import org.apache.commons.logging.LogFactory
 import scalaz._, Scalaz._

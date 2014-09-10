@@ -1,5 +1,6 @@
 package com.ambiata.ivory.cli
 
+import com.ambiata.ivory.core.Repository
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
 import MemoryConversions._
