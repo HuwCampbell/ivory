@@ -46,7 +46,7 @@ object TemporaryReferences {
     def close(temp: TemporaryRepository) = temp.clean.run.void // Squelch errors
   }
 
-  val conf = RepositoryConfiguration(ScoobiConfiguration())
+  val conf = IvoryConfiguration(ScoobiConfiguration())
 
   def withReferenceFile[A](storeType: TemporaryType)(f: ReferenceIO => ResultTIO[A]): ResultTIO[A] = {
     val reference = storeType match {

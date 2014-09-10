@@ -18,7 +18,7 @@ Reference
   Can parse s3 URIs                               $s3
 
 """
-  lazy val conf = RepositoryConfiguration(ScoobiConfiguration())
+  lazy val conf = IvoryConfiguration(ScoobiConfiguration())
 
   def local =
     Reference.fromUri("file:///some/path", conf).toEither must beRight (new Reference(
@@ -38,7 +38,7 @@ Reference
   def s3 =
     Reference.fromUri("s3://bucket/key", conf).toEither must beRight((s: ReferenceIO) => s must beLike({
       case Reference(S3Store(_, _, client, _), _) =>
-        s must_== Reference(S3Store("bucket", "".toFilePath, client, RepositoryConfiguration.defaultS3TmpDirectory), FilePath("/key"))
+        s must_== Reference(S3Store("bucket", "".toFilePath, client, IvoryConfiguration.defaultS3TmpDirectory), FilePath("/key"))
     }))
 
   def default =

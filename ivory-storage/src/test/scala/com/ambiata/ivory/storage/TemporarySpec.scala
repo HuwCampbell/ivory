@@ -32,7 +32,7 @@ class TemporarySpec extends Specification { def is = s2"""
    store on s3                                $s3Store              ${tag("aws")}
 """
 
-  val conf = RepositoryConfiguration(ScoobiConfiguration())
+  val conf = IvoryConfiguration(ScoobiConfiguration())
 
   def s3Repository =
     withRepository(S3Repository("ambiata-dev-view", s3TempPath, conf))

@@ -1,15 +1,12 @@
 package com.ambiata.ivory.core
 
-import com.amazonaws.services.s3.AmazonS3Client
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.{HdfsLocation => _, LocalLocation => _, Location => _, S3Location => _, _}
 import com.ambiata.mundane.store._
 import com.ambiata.poacher.hdfs.HdfsStore
-import com.ambiata.saws.core.Clients
 import com.ambiata.saws.s3.S3Store
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.io.compress.CompressionCodec
 
 import scalaz.\&/.This
 import scalaz.effect.IO
@@ -37,7 +34,7 @@ sealed trait Repository {
   def version(set: FactsetId): FilePath = factset(set) </> ".version"
 }
 
-case class HdfsRepository(root: FilePath, @transient repositoryConfiguration: RepositoryConfiguration) extends Repository {
+case class HdfsRepository(root: FilePath, repositoryConfiguration: IvoryConfiguration) extends Repository {
   def configuration       = repositoryConfiguration.configuration
   def scoobiConfiguration = repositoryConfiguration.scoobiConfiguration
   def codec               = repositoryConfiguration.codec
@@ -55,7 +52,7 @@ case class LocalRepository(root: FilePath) extends Repository {
  * tmpDirectory is a transient directory (on Hdfl) that is used to import data and
  * convert them to the ivory format before pushing them to S3
  */
-case class S3Repository(bucket: String, root: FilePath, @transient repositoryConfiguration: RepositoryConfiguration) extends Repository {
+case class S3Repository(bucket: String, root: FilePath, repositoryConfiguration: IvoryConfiguration) extends Repository {
   def toStore = S3Store(bucket, root, repositoryConfiguration.s3Client, repositoryConfiguration.s3TmpDirectory)
 }
 
@@ -75,63 +72,30 @@ object Repository {
   def namespace(set: FactsetId, namespace: String): FilePath = factset(set) </> namespace
   def snapshot(id: SnapshotId): FilePath = snapshots </> FilePath(id.render)
 
-  def fromUri(uri: String, repositoryConfiguration: RepositoryConfiguration): String \/ Repository =
+  def fromUri(uri: String, repositoryConfiguration: IvoryConfiguration): String \/ Repository =
     Reference.storeFromUri(uri, repositoryConfiguration).map(fromStore(_,repositoryConfiguration))
 
-  def fromUriResultTIO(uri: String, repositoryConfiguration: RepositoryConfiguration): ResultTIO[Repository] =
+  def fromUriResultTIO(uri: String, repositoryConfiguration: IvoryConfiguration): ResultTIO[Repository] =
     ResultT.fromDisjunction[IO, Repository](fromUri(uri, repositoryConfiguration).leftMap(This.apply))
 
-  def fromHdfsPath(path: FilePath, configuration: RepositoryConfiguration): HdfsRepository =
+  def fromHdfsPath(path: FilePath, configuration: IvoryConfiguration): HdfsRepository =
     HdfsRepository(path, configuration)
 
   def fromHdfsPath(path: FilePath, configuration: Configuration): HdfsRepository =
-    HdfsRepository(path, RepositoryConfiguration(configuration))
+    HdfsRepository(path, IvoryConfiguration(configuration))
 
   def fromHdfsPath(path: FilePath, scoobiConfiguration: ScoobiConfiguration): HdfsRepository =
-    HdfsRepository(path, RepositoryConfiguration(scoobiConfiguration))
+    HdfsRepository(path, IvoryConfiguration(scoobiConfiguration))
 
   def fromLocalPath(path: FilePath): LocalRepository =
     LocalRepository(path)
 
-  def fromS3(bucket: String, path: FilePath, repositoryConfiguration: RepositoryConfiguration): S3Repository =
+  def fromS3(bucket: String, path: FilePath, repositoryConfiguration: IvoryConfiguration): S3Repository =
     S3Repository(bucket, path, repositoryConfiguration)
 
-  def fromStore(store: Store[ResultTIO], repositoryConfiguration: RepositoryConfiguration): Repository = store match {
+  def fromStore(store: Store[ResultTIO], repositoryConfiguration: IvoryConfiguration): Repository = store match {
       case HdfsStore(config, base)              => fromHdfsPath(base, repositoryConfiguration)
       case PosixStore(root)                     => fromLocalPath(root)
       case S3Store(bucket, base, client, cache) => fromS3(bucket, base, repositoryConfiguration)
     }
-}
-
-case class RepositoryConfiguration(
-  arguments: List[String],
-  s3Client: AmazonS3Client,
-  hdfs: () => Configuration,
-  scoobi: () => ScoobiConfiguration,
-  compressionCodec: () => Option[CompressionCodec]) {
-  val s3TmpDirectory: FilePath                 = RepositoryConfiguration.defaultS3TmpDirectory
-
-  lazy val configuration: Configuration             = hdfs()
-  lazy val scoobiConfiguration: ScoobiConfiguration = scoobi()
-  lazy val codec: Option[CompressionCodec]          = compressionCodec()
-  }
-
-object RepositoryConfiguration {
-  def apply(configuration: Configuration): RepositoryConfiguration =
-    new RepositoryConfiguration(
-      arguments = List(),
-      s3Client = Clients.s3,
-      hdfs = () => configuration,
-      scoobi = () => ScoobiConfiguration(configuration),
-      compressionCodec = () => None)
-
-  def apply(sc: ScoobiConfiguration): RepositoryConfiguration =
-    new RepositoryConfiguration(
-      arguments = List(),
-      s3Client = Clients.s3,
-      hdfs = () => sc.configuration,
-      scoobi = () => sc,
-      compressionCodec = () => None)
-
-  val defaultS3TmpDirectory: FilePath = ".s3repository".toFilePath
 }

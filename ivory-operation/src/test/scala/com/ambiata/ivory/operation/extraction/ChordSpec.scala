@@ -1,5 +1,6 @@
 package com.ambiata.ivory.operation.extraction
 
+import com.ambiata.ivory.storage.metadata.DictionaryTextStorageV2
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._

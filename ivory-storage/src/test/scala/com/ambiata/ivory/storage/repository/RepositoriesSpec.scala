@@ -21,7 +21,7 @@ Create repository should always create all folders
 
 """
 
-  lazy val conf = RepositoryConfiguration(ScoobiConfiguration())
+  lazy val conf = IvoryConfiguration(ScoobiConfiguration())
 
   def hdfs =
     exists(T.Hdfs)
