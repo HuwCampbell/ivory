@@ -3,9 +3,10 @@ package com.ambiata.ivory.operation.rename
 import com.ambiata.ivory.core.Prioritized
 import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.SnapshotJob
+import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable
 import com.ambiata.ivory.storage.fact.FactsetGlob
 import com.ambiata.ivory.storage.lookup.ReducerLookups
-import com.ambiata.ivory.storage.task.{BaseFactsPartitioner, FactsetJobKeys}
+import com.ambiata.ivory.storage.task.FactsetJobKeys
 import com.ambiata.poacher.scoobi.ScoobiAction
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodec
@@ -26,15 +27,15 @@ object RenameJob {
       job.setJobName(ctx.id.value)
 
       /* map */
-      job.setMapOutputKeyClass(classOf[LongLongWritable])
+      job.setMapOutputKeyClass(classOf[BytesWritable])
       job.setMapOutputValueClass(classOf[BytesWritable])
 
       /* partition & sort */
-      job.setPartitionerClass(classOf[LongIntFactsPartitioner])
-      // Group by partition (namespace + date) so we can calculate the path String _once_
-      job.setGroupingComparatorClass(classOf[LongWritable.Comparator])
+      job.setPartitionerClass(classOf[RenameWritable.PartitionerFeatureId])
+      // Group by partition featureId + date so we can calculate the path String _once_
+      job.setGroupingComparatorClass(classOf[RenameWritable.GroupingByFeatureIdDate])
       // Sort by everything, which includes the priority
-      job.setSortComparatorClass(classOf[LongLongWritable.Comparator])
+      job.setSortComparatorClass(classOf[RenameWritable.ComparatorFeatureIdDateEntityTimePriority])
 
       /* reducer */
       job.setNumReduceTasks(reducerLookups.reducersNb)
@@ -86,8 +87,4 @@ object RenameJob {
     val MapCounter = "rename-map"
     val ReduceCounter = "rename-reduce"
   }
-}
-
-class LongIntFactsPartitioner extends BaseFactsPartitioner[LongLongWritable] {
-  def get(k: LongLongWritable): Long = k.l1
 }
