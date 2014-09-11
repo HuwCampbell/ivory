@@ -5,7 +5,7 @@ import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.api.Ivory.printFacts
-import scalaz._,Scalaz._
+import scalaz._, Scalaz._
 
 object catFacts extends IvoryApp {
   case class CliArguments(delimiter: String = "|", tombstone: String = "NA", paths: List[String] = Nil, version: FactsetVersion = FactsetVersion.latest)

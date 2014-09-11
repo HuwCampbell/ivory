@@ -3,7 +3,7 @@ package com.ambiata.ivory.cli
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.api.Ivory.printErrors
-import scalaz._,Scalaz._
+import scalaz._, Scalaz._
 
 object catErrors extends IvoryApp {
   case class CliArguments(delimiter: String = "|", paths: List[String] = Nil)

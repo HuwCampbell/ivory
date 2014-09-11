@@ -1,7 +1,7 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.api.IvoryRetire._
-import scalaz._,Scalaz._
+import scalaz._, Scalaz._
 
 object compareSnapshots extends IvoryApp {
 

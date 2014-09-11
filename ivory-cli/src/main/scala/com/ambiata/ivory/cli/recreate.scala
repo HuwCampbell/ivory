@@ -4,7 +4,7 @@ import com.ambiata.ivory.core.Repository
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
 import MemoryConversions._
-import scalaz._,Scalaz._
+import scalaz._, Scalaz._
 
 object recreate extends IvoryApp {
   case class CliArguments(input: String, output: String, clean: Boolean, dry: Boolean, overwrite: Boolean, recreateData: List[RecreateData], maxNumber: Option[Int], reducerSize: Option[Long])
