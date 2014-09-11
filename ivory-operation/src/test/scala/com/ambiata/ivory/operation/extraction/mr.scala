@@ -10,7 +10,7 @@ import org.specs2._
 import org.specs2.matcher.ThrownExpectations
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.storage.Arbitraries._
-import org.apache.hadoop.io.BytesWritable
+import org.apache.hadoop.io.{NullWritable, BytesWritable}
 
 import scala.collection.JavaConverters._
 
@@ -29,7 +29,7 @@ SnapshotMapperSpec
     val kout = Writables.bytesWritable(4096)
     val vout = Writables.bytesWritable(4096)
     val tfact = new ThriftFact
-    val emitter = TestEmitter(kout, vout)
+    val emitter = TestEmitter()
     val okCounter = TestCounter()
     val skipCounter = TestCounter()
 
@@ -55,7 +55,7 @@ SnapshotMapperSpec
     val kout = Writables.bytesWritable(4096)
     val vout = Writables.bytesWritable(4096)
     val empty = new NamespacedThriftFact with NamespacedThriftFactDerived
-    val emitter = TestEmitter(kout, vout)
+    val emitter = TestEmitter()
     val counter = TestCounter()
 
     // Run mapper
@@ -82,11 +82,11 @@ SnapshotMapperSpec
     new String(bw.copyBytes())
   }
 
-  case class TestEmitter(kout: BytesWritable, vout: BytesWritable) extends Emitter {
+  case class TestEmitter() extends Emitter[BytesWritable, BytesWritable] {
     import scala.collection.mutable.ListBuffer
     val emittedKeys: ListBuffer[String] = ListBuffer()
     val emittedVals: ListBuffer[Array[Byte]] = ListBuffer()
-    def emit() {
+    def emit(kout: BytesWritable, vout: BytesWritable) {
       emittedKeys += new String(kout.copyBytes)
       emittedVals += vout.copyBytes
       ()
@@ -118,7 +118,7 @@ SnapshotReducerSpec
 
     var actual: BytesWritable = null
     var tombstoneCount = 0
-    val emitter = Emitter(() => actual = vout)
+    val emitter = Emitter[NullWritable, BytesWritable]((kout, vout) => actual = vout)
     val counter = Counter(n => tombstoneCount = tombstoneCount + n)
 
     // We are grouped by entity, and sorted ascending by datetime/priority

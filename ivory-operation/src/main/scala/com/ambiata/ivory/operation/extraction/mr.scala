@@ -161,7 +161,7 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
   val vout = Writables.bytesWritable(4096)
 
   /** Class to emit the key/value bytes, created once per mapper */
-  var emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
+  val emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = MrEmitter()
 
   /** Class to count number of non skipped facts, created once per mapper */
   var okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
@@ -183,7 +183,6 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
       context.getConfiguration, context.getInputSplit)
     converter = vfc
     priority = p
-    emitter = MrEmitter(kout, vout)
     okCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.ok")
     skipCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.skip")
   }
@@ -206,7 +205,7 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
 object SnapshotFactsetMapper {
 
   def map[A <: ThriftLike](tfact: ThriftFact, date: Date, converter: VersionedFactConverter, input: BytesWritable,
-                           priority: Priority, kout: BytesWritable, vout: BytesWritable, emitter: Emitter,
+                           priority: Priority, kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable],
                            okCounter: Counter, skipCounter: Counter, deserializer: ThriftSerialiser) {
     deserializer.fromBytesViewUnsafe(tfact, input.getBytes, 0, input.getLength)
     val f = converter.convert(tfact)
@@ -217,7 +216,7 @@ object SnapshotFactsetMapper {
       KeyState.set(f, priority, kout)
       val bytes = deserializer.toBytes(f.toNamespacedThrift)
       vout.set(bytes, 0, bytes.length)
-      emitter.emit()
+      emitter.emit(kout, vout)
     }
   }
 
@@ -260,16 +259,11 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
   val fact = new NamespacedThriftFact with NamespacedThriftFactDerived
 
   /** Class to emit the key/value bytes, created once per mapper */
-  var emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
+  val emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = MrEmitter()
 
   /** Class to count number of non skipped facts, created once per mapper */
   val okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] =
     MrCounter("ivory", "snapshot.incr.ok")
-
-  override def setup(context: MapperContext): Unit = {
-    super.setup(context)
-    emitter = MrEmitter(kout, vout)
-  }
 
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
     emitter.context = context
@@ -281,14 +275,15 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
 object SnapshotIncrementalMapper {
 
   def map(fact: NamespacedThriftFact with NamespacedThriftFactDerived, bytes: BytesWritable, priority: Priority,
-          kout: BytesWritable, vout: BytesWritable, emitter: Emitter, okCounter: Counter, serializer: ThriftSerialiser) {
+          kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter,
+          serializer: ThriftSerialiser) {
     okCounter.count(1)
     fact.clear()
     serializer.fromBytesViewUnsafe(fact, bytes.getBytes, 0, bytes.getLength)
     KeyState.set(fact, priority, kout)
     // Pass through the bytes
     vout.set(bytes.getBytes, 0, bytes.getLength)
-    emitter.emit()
+    emitter.emit(kout, vout)
   }
 }
 
@@ -314,7 +309,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
   val vout = Writables.bytesWritable(4096)
 
   /** Class to emit the key/value bytes, created once per mapper */
-  var emitter: MrEmitter[BytesWritable, BytesWritable, NullWritable, BytesWritable] = MrEmitter(NullWritable.get, vout)
+  val emitter: MrEmitter[BytesWritable, BytesWritable, NullWritable, BytesWritable] = MrEmitter()
 
   /** Class to count number of tombstone values, created once per mapper */
   val counter: MrCounter[BytesWritable, BytesWritable, NullWritable, BytesWritable] =
@@ -338,7 +333,8 @@ object SnapshotReducer {
   type ReducerContext = Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context
 
   def reduce(fact: NamespacedThriftFact with NamespacedThriftFactDerived, vout: BytesWritable,
-             iter: JIterator[BytesWritable], emitter: Emitter, counter: Counter, serializer: ThriftSerialiser) {
+             iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, BytesWritable], counter: Counter,
+             serializer: ThriftSerialiser) {
     var datetime = DateTime.unsafeFromLong(0)
     var tombstone = true
     // We are expecting a stream of facts grouped by entity/feature and sorted ascending by datetime and priority
@@ -352,7 +348,7 @@ object SnapshotReducer {
         tombstone = fact.isTombstone
       }
     }
-    if (!tombstone) emitter.emit()
+    if (!tombstone) emitter.emit(NullWritable.get(), vout)
     else counter.count(1)
   }
 }
