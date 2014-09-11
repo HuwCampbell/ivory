@@ -213,8 +213,7 @@ object build extends Build {
     , "-unchecked"
     , "-feature"
     , "-language:_"
-// Enabling this seems to result in strange behaviour on a non-clean build
-//  , "-Ywarn-value-discard"
+    , "-Ywarn-value-discard"
     , "-Yno-adapted-args"
     , "-Xlint"
     , "-Xfatal-warnings"
