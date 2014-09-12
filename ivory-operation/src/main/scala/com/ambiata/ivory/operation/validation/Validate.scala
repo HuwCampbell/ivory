@@ -100,14 +100,14 @@ object Validate {
 
   def validateHdfsStore(repoPath: Path, store: FeatureStoreId, output: Path, includeOverridden: Boolean): ScoobiAction[Long] = for {
     r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
-    d <- ScoobiAction.fromResultTIO(dictionaryFromIvory(r))
+    d <- ScoobiAction.fromResultTIO(latestDictionaryFromIvory(r))
     s <- ScoobiAction.fromResultTIO(featureStoreFromIvory(r, store))
     c <- ValidateStoreHdfs(r, s, d, includeOverridden).exec(output)
   } yield c
 
   def validateHdfsFactSet(repoPath: Path, factset: FactsetId, output: Path): ScoobiAction[Long] = for {
     r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
-    d <- ScoobiAction.fromResultTIO(dictionaryFromIvory(r))
+    d <- ScoobiAction.fromResultTIO(latestDictionaryFromIvory(r))
     c <- ValidateFactSetHdfs(r, factset, d).exec(output)
   } yield c
 

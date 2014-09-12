@@ -42,7 +42,7 @@ ChordSpec
 
         dictRef     <- Reference.fromUriResultTIO((outPath </> ".dictionary").path, sc)
         dict        <- DictionaryTextStorageV2.fromStore(dictRef)
-        repoDict    <- dictionaryFromIvory(repo)
+        repoDict    <- latestDictionaryFromIvory(repo)
         facts       <- ResultT.safe[IO, List[Fact]](valueFromSequenceFile[Fact](outPath.path).run.toList)
       } yield (dict, repoDict, facts)
     }

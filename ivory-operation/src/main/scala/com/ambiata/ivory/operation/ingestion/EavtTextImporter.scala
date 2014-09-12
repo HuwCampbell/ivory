@@ -31,7 +31,7 @@ case class EavtTextImporter(repository: Repository,
 
     for {
       hr         <- downcast[Repository, HdfsRepository](repository, "Repository must be HDFS")
-      dictionary <- dictionaryFromIvory(repository)
+      dictionary <- latestDictionaryFromIvory(repository)
       inputPath  <- Reference.hdfsPath(input)
       errorPath  <- Reference.hdfsPath(errorRef)
       partitions <- namespace.fold(Namespaces.namespaceSizes(inputPath))(ns => Namespaces.namespaceSizesSingle(inputPath, ns).map(List(_))).run(hr.configuration)

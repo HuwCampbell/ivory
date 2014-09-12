@@ -33,7 +33,7 @@ object Pivot {
    * Extract a pivot from a given snapshot (input) to output
    */
   def createPivot(repository: Repository, input: ReferenceIO, output: ReferenceIO, delim: Char, tombstone: String): ResultTIO[Unit] = for {
-    dictionary  <- dictionaryFromIvory(repository)
+    dictionary  <- latestDictionaryFromIvory(repository)
     hdfsRepo    <- downcast[Repository, HdfsRepository](repository, s"Pivot only works with Hdfs repositories currently, got '$repository'")
     inputStore  <- downcast[Any, HdfsStore](input.store, s"Pivot can only read from HDFS currently, got '$input'")
     in          =  (inputStore.base </> input.path).toHdfs

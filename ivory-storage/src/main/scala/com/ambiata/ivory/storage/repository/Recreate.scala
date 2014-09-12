@@ -96,7 +96,7 @@ object Recreate { outer =>
   private def copyDictionary(from: HdfsRepository, to: HdfsRepository, dry: Boolean) = (path: Path) => for {
       dictId <- Hdfs.fromOption(Identifier.parse(path.getName), s"Could not parse '${path.getName}'")
       _      <- Hdfs.log(s"Copy dictionary ${path.getName} from ${from.dictionaryById(DictionaryId(dictId))} to ${to.dictionaryById(DictionaryId(dictId))}")
-      dict   <- Hdfs.fromResultTIO(dictionaryFromIvory(from) >>= { dict: Dictionary =>
+      dict   <- Hdfs.fromResultTIO(latestDictionaryFromIvory(from) >>= { dict: Dictionary =>
         dictionaryToIvory(to, dict)
       }).unless(dry)
     } yield ()
@@ -138,7 +138,7 @@ object Recreate { outer =>
     for {
       ids        <- ScoobiAction.fromHdfs(nonEmptyFactsetIds(from, to))
       _          <- ScoobiAction.log("non empty factset ids "+ids.map(_.render).mkString(","))
-      dictionary <- ScoobiAction.fromResultTIO(Metadata.dictionaryFromIvory(from))
+      dictionary <- ScoobiAction.fromResultTIO(Metadata.latestDictionaryFromIvory(from))
       _          <- ids.toList.take(maxNumber.fold(ids.size)(identity)).traverse(copyFactset(dictionary, from, to, codec, reducerSize, dry)).unless(dry)
     } yield ()
 

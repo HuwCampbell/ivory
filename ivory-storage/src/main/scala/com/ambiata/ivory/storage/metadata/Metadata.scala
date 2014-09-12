@@ -46,11 +46,11 @@ object Metadata {
     FeatureStoreTextStorage.listIds(repo)
 
   /** Dictionary */
-  def dictionaryFromIvory(repo: Repository): ResultTIO[Dictionary] =
+  def latestDictionaryFromIvory(repo: Repository): ResultTIO[Dictionary] =
     DictionaryThriftStorage(repo).load
 
-  def dictionaryFromIvoryT: IvoryTIO[Dictionary] =
-    fromResultT(dictionaryFromIvory)
+  def latestDictionaryFromIvoryT: IvoryTIO[Dictionary] =
+    fromResultT(latestDictionaryFromIvory)
 
   def dictionaryToIvory(repo: Repository, dictionary: Dictionary): ResultTIO[Unit] =
     DictionaryThriftStorage(repo).store(dictionary).void
