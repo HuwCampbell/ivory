@@ -17,7 +17,6 @@ object main {
     factDiff,
     importDictionary,
     ingest,
-    pivotSnapshot,
     recompress,
     recreate,
     snapshot

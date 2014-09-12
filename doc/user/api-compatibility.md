@@ -6,6 +6,13 @@ This document serves as a list of changes to the Ivory API, both in the file for
 ## 1.0.0-*-1fab84d
 
 - Removed `extract-pivot` command
+- Collapsed `extract-pivot-snapshot` command into `extract-snapshot` via the `-f`/`--format` option
+
+      ivory extract-snapshot -f pivot=/path/to/file
+
+- Removed `--pivot` from `extract-chord`, and switch to `-f`/`--format` as well
+
+      ivory extract-chord -f pivot=/path/to/file
 
 ## 1.0.0-*-4010b5f
 

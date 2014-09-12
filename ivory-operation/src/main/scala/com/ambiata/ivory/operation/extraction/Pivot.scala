@@ -24,9 +24,9 @@ object Pivot {
    */
   def createPivotFromSnapshot(repository: Repository, output: ReferenceIO, delim: Char, tombstone: String, date: Date): ResultTIO[Unit] = for {
     meta <- Snapshot.takeSnapshot(repository, date, incremental = true)
-    ref  =  repository.toReference(Repository.snapshot(meta.snapshotId))
     dict <- Snapshot.dictionaryForSnapshot(repository, meta)
-    _    <- createPivotWithDictionary(repository, ref, output, dict, delim, tombstone)
+    ref   = repository.toReference(Repository.snapshot(meta.snapshotId))
+    _    <- createPivot(repository, repository.toReference(Repository.snapshot(meta.snapshotId)), output, delim, tombstone)
   } yield ()
 
   /**

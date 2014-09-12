@@ -1,6 +1,5 @@
 package com.ambiata.ivory.api
 
-import com.ambiata.ivory.storage.repository.Repositories
 import com.ambiata.ivory.operation.diff.CompareSnapshots
 import com.ambiata.ivory.operation.ingestion.Ingest
 
