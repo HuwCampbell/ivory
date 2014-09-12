@@ -91,7 +91,7 @@ object Snapshot {
       hr              <- downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'")
       outputStore     <- downcast[Any, HdfsStore](output.store, s"Snapshot output must be on HDFS, got '$output'")
       out             =  (outputStore.base </> output.path).toHdfs
-      dictionary      <- latestDictionaryFromIvory(repository)
+      dictionary      <- dictionaryForSnapshot(repository, newSnapshot)
       newFactsetGlobs <- FeatureStoreSnapshot.newFactsetGlobs(repository, previousSnapshot, date)
       _               <- job(hr, previousSnapshot, newFactsetGlobs, date, out, hr.codec).run(hr.configuration)
       _               <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), dictionary)
@@ -121,4 +121,12 @@ object Snapshot {
     snap <- ScoobiAction.fromResultTIO(takeSnapshot(repo, date, incremental).map(res => repo.snapshot(res.snapshotId).toHdfs))
   } yield snap
 
+  def dictionaryForSnapshot(repository: Repository, meta: SnapshotMeta): ResultTIO[Dictionary] =
+    meta.commitId.cata(
+      commitId => for {
+        commit <- commitFromIvory(repository, commitId)
+        dict   <- dictionaryFromIvory(repository, commit.dictionaryId)
+      } yield dict,
+      latestDictionaryFromIvory(repository)
+    )
 }
