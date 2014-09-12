@@ -78,6 +78,10 @@ object Metadata {
   def latestCommitIdT(repo: Repository): IvoryTIO[Option[CommitId]] =
     fromResultT(latestCommitId(_))
 
+  def commitFromIvory(repo: Repository, commitId: CommitId): ResultTIO[Commit] =
+    CommitTextStorage.fromId(repo, commitId) >>=
+      (commit => ResultT.fromOption(commit, s"Commit not found in Ivory '$commitId'"))
+
   def incrementCommit(repo: Repository, dictionaryId: DictionaryId, featureStoreId: FeatureStoreId): ResultTIO[CommitId] =
     CommitTextStorage.increment(repo, Commit(dictionaryId, featureStoreId))
 
