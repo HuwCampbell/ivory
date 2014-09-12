@@ -46,6 +46,10 @@ object Metadata {
     FeatureStoreTextStorage.listIds(repo)
 
   /** Dictionary */
+  def dictionaryFromIvory(repo: Repository, dictionaryId: DictionaryId): ResultTIO[Dictionary] =
+    DictionaryThriftStorage(repo).loadFromId(dictionaryId) >>=
+      (dictionary => ResultT.fromOption(dictionary, s"Dictionary not found in Ivory '$dictionaryId'"))
+
   def latestDictionaryFromIvory(repo: Repository): ResultTIO[Dictionary] =
     DictionaryThriftStorage(repo).load
 
