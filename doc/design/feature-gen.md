@@ -56,21 +56,34 @@ by `field`.
 ### `count_days`
 Return the number of days that facts in `facts` are attributed to.
 
-### `average_on_days`
+### `mean_in_days`, `mean_in_weeks`
 Return the number of facts in `facts` attributed to a given day on average.
 
-### `maximum_on_days`
+### `maximum_in_days`, `maximum_in_weeks`
 Return the number of facts in `facts` attributed to a given day that is the maximum.
 
-### `minimum_on_days`
+### `minimum_in_days`, `minimum_in_weeks`
 Return the number of facts in `facts` attributed to a given day that is the minimum.
 
-### `average_on_times`
-Return the number of facts in `facts` attributed to a given time range on average,
-grouped by the time range (00-06, 06-12, 12-18, 18-24).
+### `quantile_in_days(k, q)`, `quantile_in_weeks(k, q)`
+Return the number of facts in `facts` attribute to a given day that is the k-th q-quantile (using
+an approximate algorithm)
 
-### `proportion(field)`
-Proportion of facts in `facts` attributed to a `field` value to all facts.
+### `proportion_by_time(start_hr, end_hr)`
+Return the proportion of facts in `facts` that occur between the hours of the day `start_hr`
+and `end_hr`. That is, a count of the facts occuring between those hours divided by the total
+number of facts. (Timezone?)
+
+### `proportion_weekdays`
+Return the proportion of facts in `facts` that occur on weekdays. That is, a count of the facts
+occuring on weekends divided by the total number of facts. (Timezone?)
+
+### `proportion_weekends`
+Return the proportion of facts in `facts` that occur on weekends. That is, a count of the facts
+occuring on weekends divided by the total number of facts. (Timezone?)
+
+### `proportion(field, value)`
+Proportion of facts in `facts` with a value of `value` for field `field`.
 
 
 ### gradient
