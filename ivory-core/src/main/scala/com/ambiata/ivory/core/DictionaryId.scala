@@ -1,8 +1,8 @@
 package com.ambiata.ivory.core
 
+import com.ambiata.ivory.data.Identifier
 import scalaz._, Scalaz._
 import scala.math.{Ordering => SOrdering}
-import com.ambiata.ivory.data.Identifier
 
 case class DictionaryId(id: Identifier) {
   def render = id.render
@@ -15,7 +15,7 @@ object DictionaryId {
   implicit def DictionaryIdOrder: Order[DictionaryId] =
     Order.order(_ order _)
 
-  implicit def DictionaryIdOrdering =
+  implicit def DictionaryIdOrdering: SOrdering[DictionaryId] =
     DictionaryIdOrder.toScalaOrdering
 
   def initial: DictionaryId =
