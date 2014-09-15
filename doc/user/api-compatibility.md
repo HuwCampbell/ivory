@@ -3,6 +3,10 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-1fab84d
+
+- Removed `extract-pivot` command
+
 ## 1.0.0-*-4010b5f
 
 - `Dictionary` now has `Definition` instead of `FeatureMeta`, which has two constructors `Concrete` and `Virtual` (new)
