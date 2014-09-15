@@ -73,7 +73,7 @@ ${DIR}/tests/${TEST}/input "$@" | while IFS= read -r local_path; do
   timeit "ingest-$(basename ${path})"
   # But only create snapshots every X iterations
   if [ $(( ${COUNT} % ${SNAPSHOT} )) -eq 0 ]; then
-    $IVORY extract-snapshot -r "${REPOSITORY}"
+    $IVORY snapshot -r "${REPOSITORY}"
     timeit "extract-snapshot-$(basename ${path})"
   fi
   COUNT=$((COUNT+1))

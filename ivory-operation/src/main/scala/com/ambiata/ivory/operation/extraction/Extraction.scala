@@ -10,8 +10,8 @@ object Extraction {
   def extract(formats: OutputFormats, input: ReferenceIO): IvoryTIO[Unit] = IvoryT.fromResultTIO(repository =>
     formats.outputs.traverse {
       case (PivotFormat, output) =>
-        println(s"Pivoting extracted file from '$input' to '${output.path}'")
-        Pivot.createPivot(repository, input, output, formats.delim, formats.tombstone)
+        println(s"Pivoting extracted file from '${input.path}' to '${output.path}'")
+        Pivot.createPivot(repository, input, output, formats.delim, formats.missingValue)
     }.void
   )
 }

@@ -12,7 +12,7 @@ object snapshot extends IvoryApp {
 
   case class CliArguments(repo: String, date: LocalDate, incremental: Boolean, formats: ExtractOutput)
 
-  val parser = Extract.options(new scopt.OptionParser[CliArguments]("extract-snapshot") {
+  val parser = Extract.options(new scopt.OptionParser[CliArguments]("snapshot") {
     head("""
          |Take a snapshot of facts from an ivory repo
          |
@@ -46,7 +46,7 @@ object snapshot extends IvoryApp {
         repo <- Repository.fromUriResultTIO(c.repo, configuration)
         of   <- Extract.parse(configuration, c.formats)
         meta <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental)
-        _    <- Extraction.extract(of, repo.toReference(repo.snapshot(meta.snapshotId))).run(IvoryRead.prod(repo))
+        _    <- Extraction.extract(of, repo.toReference(Repository.snapshot(meta.snapshotId))).run(IvoryRead.prod(repo))
       } yield List(banner, s"Output path: ${meta.snapshotId}", "Status -- SUCCESS")
   })
 }

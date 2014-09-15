@@ -18,8 +18,8 @@ object Extract {
       "FORMAT=PATH Path to store pivot data. Supported formats [pivot]."
     parser.opt[Char]("delim")                    action { (x, c) => in(c)(_.copy(delim = x)) } text
       "Delimiter for pivot file, default '|'."
-    parser.opt[String]("tombstone")              action { (x, c) => in(c)(_.copy(tombstone = x)) } text
-      "Tombstone for pivot file, default 'NA'."
+    parser.opt[String]("missing-value")              action { (x, c) => in(c)(_.copy(tombstone = x)) } text
+      "Value to use for missing values in pivot file, default 'NA'."
     parser
   }
 

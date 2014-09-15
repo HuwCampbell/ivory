@@ -10,6 +10,6 @@ $V2 ingest -r "${REPOSITORY}" -i "${INPUT}/facts" -z "Australia/Sydney" -f "thri
 
 ### SNAPSHOT ###
 
-$IVORY extract-snapshot -r "${REPOSITORY}"
+$IVORY snapshot -r "${REPOSITORY}"
 $IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"

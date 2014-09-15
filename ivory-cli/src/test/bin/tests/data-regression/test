@@ -29,7 +29,7 @@ diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
 
 ### SNAPSHOT ###
 
-$IVORY extract-snapshot -r "${REPOSITORY}" -f "pivot=${TARGET}/snap-pivot"
+$IVORY snapshot -r "${REPOSITORY}" -f "pivot=${TARGET}/snap-pivot"
 $IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snap-pivot.psv" "${TARGET}/snap-pivot/out-r-00000"
@@ -38,7 +38,7 @@ COUNT_FACTS_OUT=$($IVORY count-facts "${REPOSITORY}/snapshots/00000000")
 
 ### CHORD ###
 
-$IVORY extract-chord -r "${REPOSITORY}" -o "${TARGET}" -t "/tmp/chord-$(random)" -c "${INPUT}/chord.psv" -f "pivot=${TARGET}/chord-pivot"
+$IVORY chord -r "${REPOSITORY}" -o "${TARGET}" -t "/tmp/chord-$(random)" -c "${INPUT}/chord.psv" -f "pivot=${TARGET}/chord-pivot"
 $IVORY cat-facts "${TARGET}/thrift" | sort > "${TARGET}/chord.psv"
 diff_test "${DIR}/expected/chord.psv" "${TARGET}/chord.psv"
 diff_test "${DIR}/expected/chord-pivot.psv" "${TARGET}/chord-pivot/out-r-00000"

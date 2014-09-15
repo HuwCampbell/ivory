@@ -12,7 +12,7 @@ object chord extends IvoryApp {
   case class CliArguments(repo: String, output: String, tmp: String, entities: String, takeSnapshot: Boolean,
                           formats: ExtractOutput)
 
-  val parser = Extract.options(new scopt.OptionParser[CliArguments]("extract-chord") {
+  val parser = Extract.options(new scopt.OptionParser[CliArguments]("chord") {
     head("""
          |Extract the latest features from a given ivory repo using a list of entity id and date pairs
          |

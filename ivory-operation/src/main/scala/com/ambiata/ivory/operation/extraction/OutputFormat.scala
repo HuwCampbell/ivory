@@ -13,4 +13,4 @@ object OutputFormat {
   }
 }
 
-case class OutputFormats(outputs: List[(OutputFormat, ReferenceIO)], delim: Char, tombstone: String)
+case class OutputFormats(outputs: List[(OutputFormat, ReferenceIO)], delim: Char, missingValue: String)
