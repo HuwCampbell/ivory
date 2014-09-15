@@ -16,7 +16,6 @@ import com.ambiata.poacher.scoobi._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
 
-import scala.math.{Ordering => SOrdering}
 import scalaz.{DList => _, _}, Scalaz._, effect._
 
 /**
