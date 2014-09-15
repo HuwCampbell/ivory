@@ -135,6 +135,10 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
     def toThrift: ThriftFact = fact
 
     def toNamespacedThrift = this
+
+    // Overriding for performance to avoid extra an extra allocation
+    override def isTombstone: Boolean =
+      fact.getValue.isSetT
 }
 
 object FatThriftFact {

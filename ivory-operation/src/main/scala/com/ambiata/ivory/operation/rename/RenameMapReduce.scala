@@ -39,10 +39,10 @@ class RenameMapper extends Mapper[NullWritable, BytesWritable, LongLongWritable,
 
   override def setup(context: MapperContext): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    val (_, vfc, vs) = SnapshotFactsetMapper.setupVersionAndPriority(ctx.thriftCache, context.getConfiguration,
+    val (_, vfc, p) = SnapshotFactsetMapper.setupVersionAndPriority(ctx.thriftCache, context.getConfiguration,
       context.getInputSplit)
     converter = vfc
-    priority = vs.priority
+    priority = p
     ctx.thriftCache.pop(context.getConfiguration, RenameJob.Keys.Mapping, mapping)
     counter = context.getCounter("ivory", RenameJob.Keys.MapCounter)
   }

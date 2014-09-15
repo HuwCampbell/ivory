@@ -7,8 +7,6 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.ivory.operation.extraction._
 import com.ambiata.mundane.control.ResultT
-import org.apache.hadoop.fs.Path
-import org.specs2._
 import org.joda.time.LocalDate
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import scalaz.effect.IO
@@ -26,7 +24,7 @@ class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""
       buffer     = new StringBuffer
       stringBufferLogging = (s: String) => IO { buffer.append(s+"\n"); ()}
       _         <- ResultT.fromIO(PrintFacts.print(
-        List(new Path(repo.snapshots.toHdfs.toString + "/00000000")),
+        List(repo.snapshot(snapshot1.snapshotId).toHdfs),
         repo.configuration,
         delim = "|",
         tombstone = "NA",
