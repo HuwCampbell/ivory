@@ -95,10 +95,10 @@ object Recreate { outer =>
 
   private def copyDictionary(from: HdfsRepository, to: HdfsRepository, dry: Boolean) = (path: Path) => for {
       dictId <- Hdfs.fromOption(Identifier.parse(path.getName), s"Could not parse '${path.getName}'")
-      _ <- Hdfs.log(s"Copy dictionary ${path.getName} from ${from.dictionaryById(DictionaryId(dictId))} to ${to.dictionaryById(DictionaryId(dictId))}")
-      dict <- Hdfs.fromResultTIO(dictionaryFromIvory(from) >>= { dict: Dictionary =>
-          dictionaryToIvory(to, dict)
-        }).unless(dry)
+      _      <- Hdfs.log(s"Copy dictionary ${path.getName} from ${from.dictionaryById(DictionaryId(dictId))} to ${to.dictionaryById(DictionaryId(dictId))}")
+      dict   <- Hdfs.fromResultTIO(dictionaryFromIvory(from) >>= { dict: Dictionary =>
+        dictionaryToIvory(to, dict)
+      }).unless(dry)
     } yield ()
 
   /**

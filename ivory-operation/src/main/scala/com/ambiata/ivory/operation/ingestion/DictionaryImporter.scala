@@ -1,7 +1,6 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control._
 import scalaz._, Scalaz._
@@ -23,13 +22,13 @@ object DictionaryImporter {
       }
       validation = validate(oldDictionary, newDictionary) |+| validateSelf(newDictionary)
       doImport = validation.isSuccess || importOpts.force
-      dictIdIden <- if (doImport) storage.store(newDictionary).map(_.id).map(some) else None.pure[ResultTIO]
-      
-      // Update Commit
-      _ <- dictIdIden.cata(
-          (x: Identifier) => Metadata.incrementCommitDictionary(repository, DictionaryId(x))
-        , ().pure[ResultTIO])
-    } yield validation -> dictIdIden.map(DictionaryId(_))
+      dictIdIden <- if (doImport)
+        for {
+          dictId <- storage.store(newDictionary)
+          _      <- Metadata.incrementCommitDictionary(repository, dictId)
+        } yield dictId.some
+      else None.pure[ResultTIO]
+    } yield validation -> dictIdIden
   }
 
   sealed trait ImportType
