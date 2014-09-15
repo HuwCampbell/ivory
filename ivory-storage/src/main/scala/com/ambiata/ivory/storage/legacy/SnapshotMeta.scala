@@ -12,13 +12,13 @@ import com.ambiata.mundane.parse.ListParser
 
 import scalaz._, Scalaz._, \&/._, effect.IO
 
-case class SnapshotMeta(snapshotId: SnapshotId, date: Date, featureStoreId: FeatureStoreId) {
+case class SnapshotMeta(snapshotId: SnapshotId, date: Date, featureStoreId: FeatureStoreId, commitId: Option[CommitId]) {
 
   def toReference(ref: ReferenceIO): ResultTIO[Unit] =
     ref.run(featureStore => path => featureStore.linesUtf8.write(path, stringLines))
 
   lazy val stringLines: List[String] =
-    List(date.string("-"), featureStoreId.render)
+    List(date.string("-"), featureStoreId.render) ++ commitId.map(_.render)
 
   def order(other: SnapshotMeta): Ordering =
     (snapshotId, date, featureStoreId).?|?((other.snapshotId, other.date, other.featureStoreId))
@@ -36,8 +36,10 @@ object SnapshotMeta {
 
   def fromReference(ref: ReferenceIO): ResultTIO[SnapshotMeta] = for {
     lines      <- ref.run(store => store.linesUtf8.read)
+    // Ensure we have at least 3 lines (to include new commitId)
+    safeLines   = if (lines.length == 2) lines ++ List("") else lines
     snapshotId <- ResultT.fromOption[IO, SnapshotId](SnapshotId.parse(ref.path.dirname.basename.path), s"can't parse ${ref.path.basename.path} as a snapshot id")
-    sm         <- ResultT.fromDisjunction[IO, SnapshotMeta](parser(snapshotId).run(lines).disjunction.leftMap(This.apply))
+    sm         <- ResultT.fromDisjunction[IO, SnapshotMeta](parser(snapshotId).run(safeLines).disjunction.leftMap(This.apply))
   } yield sm
 
   def fromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[SnapshotMeta] =
@@ -49,9 +51,10 @@ object SnapshotMeta {
   def parser(snapshotId: SnapshotId): ListParser[SnapshotMeta] = {
     import ListParser._
     for {
-      date    <- localDate
-      storeId <- FeatureStoreId.listParser
-    } yield SnapshotMeta(snapshotId, Date.fromLocalDate(date), storeId)
+      date     <- localDate
+      storeId  <- FeatureStoreId.listParser
+      commitId <- string.map(CommitId.parse)
+    } yield SnapshotMeta(snapshotId, Date.fromLocalDate(date), storeId, commitId)
   }
 
   /**
@@ -68,7 +71,8 @@ object SnapshotMeta {
   def createSnapshotMeta(repository: Repository, date: Date): ResultTIO[SnapshotMeta] = for {
     storeId     <- Metadata.latestFeatureStoreIdOrFail(repository)
     snapshotId  <- SnapshotMeta.allocateId(repository)
-  } yield SnapshotMeta(snapshotId, date, storeId)
+    commitId    <- Metadata.latestCommitId(repository)
+  } yield SnapshotMeta(snapshotId, date, storeId, commitId)
 
   /**
    * Get the latest snapshot which is just before a given date

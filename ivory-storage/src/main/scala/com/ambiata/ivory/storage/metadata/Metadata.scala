@@ -46,11 +46,15 @@ object Metadata {
     FeatureStoreTextStorage.listIds(repo)
 
   /** Dictionary */
-  def dictionaryFromIvory(repo: Repository): ResultTIO[Dictionary] =
+  def dictionaryFromIvory(repo: Repository, dictionaryId: DictionaryId): ResultTIO[Dictionary] =
+    DictionaryThriftStorage(repo).loadFromId(dictionaryId) >>=
+      (dictionary => ResultT.fromOption(dictionary, s"Dictionary not found in Ivory '$dictionaryId'"))
+
+  def latestDictionaryFromIvory(repo: Repository): ResultTIO[Dictionary] =
     DictionaryThriftStorage(repo).load
 
-  def dictionaryFromIvoryT: IvoryTIO[Dictionary] =
-    fromResultT(dictionaryFromIvory)
+  def latestDictionaryFromIvoryT: IvoryTIO[Dictionary] =
+    fromResultT(latestDictionaryFromIvory)
 
   def dictionaryToIvory(repo: Repository, dictionary: Dictionary): ResultTIO[Unit] =
     DictionaryThriftStorage(repo).store(dictionary).void
@@ -73,6 +77,10 @@ object Metadata {
 
   def latestCommitIdT(repo: Repository): IvoryTIO[Option[CommitId]] =
     fromResultT(latestCommitId(_))
+
+  def commitFromIvory(repo: Repository, commitId: CommitId): ResultTIO[Commit] =
+    CommitTextStorage.fromId(repo, commitId) >>=
+      (commit => ResultT.fromOption(commit, s"Commit not found in Ivory '$commitId'"))
 
   def incrementCommit(repo: Repository, dictionaryId: DictionaryId, featureStoreId: FeatureStoreId): ResultTIO[CommitId] =
     CommitTextStorage.increment(repo, Commit(dictionaryId, featureStoreId))

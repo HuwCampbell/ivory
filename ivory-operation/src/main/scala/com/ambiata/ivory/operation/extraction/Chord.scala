@@ -64,7 +64,7 @@ object Chord {
       outputPath           =  (outputStore.base </> outputRef.path).toHdfs
       _                    <- serialiseEntities(entities, chordRef)
       featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotMeta(repository)(meta))
-      dictionary           <- dictionaryFromIvory(repository)
+      dictionary           <- latestDictionaryFromIvory(repository)
       _                    <- chordScoobiJob(hr, dictionary, store, chordRef, entities.latestDate, featureStoreSnapshot, outputPath, hr.codec).run(hr.scoobiConfiguration)
     } yield ()
   }
@@ -191,7 +191,7 @@ object Chord {
   }
 
   def storeDictionary(repository: Repository, outputRef: ReferenceIO): ResultTIO[Unit] =
-    dictionaryFromIvory(repository).flatMap { dictionary =>
+    latestDictionaryFromIvory(repository).flatMap { dictionary =>
       DictionaryTextStorageV2.toStore(outputRef </> ".dictionary", dictionary)
     }
 

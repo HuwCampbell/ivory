@@ -36,7 +36,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations {def 
       _    <- Streams.write(new java.io.FileOutputStream((dir </> dictionaryPath).toFile), DictionaryTextStorageV2.delimitedString(dict))
       repo = Repository.fromLocalPath(dir)
       _    <- fromPath(repo, Reference(repo.toStore, dictionaryPath), opts.copy(ty = Override))
-      out  <- dictionaryFromIvory(repo)
+      out  <- latestDictionaryFromIvory(repo)
     } yield out) must beOkValue(dict)
   }
 
@@ -48,7 +48,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations {def 
       for {
         _ <- fromDictionary(repo, dict1, opts.copy(ty = Override))
         _ <- fromDictionary(repo, dict2, opts.copy(ty = Update))
-        out <- dictionaryFromIvory(repo)
+        out <- latestDictionaryFromIvory(repo)
       } yield out
     }.map(_.byFeatureId) must beOkValue(dict1.append(dict2).byFeatureId)
   }
@@ -77,7 +77,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations {def 
         _ <- ref.store.utf8.write(ref.path, DictionaryTextStorageV2.delimitedString(dict))
         _ <- fromPath(ivory, ref, opts.copy(ty = Override))
       } yield ()}
-      out <- dictionaryFromIvory(ivory)
+      out <- latestDictionaryFromIvory(ivory)
     } yield out.byFeatureId} must beOkValue(dict.byFeatureId)
   }).set(minTestsOk = 20)
 }

@@ -102,11 +102,12 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
     snapshotId  <- arbitrary[SnapshotId]
     date        <- arbitrary[Date]
     storeId     <- arbitrary[FeatureStoreId]
-  } yield SnapshotMeta(snapshotId, date, storeId))
+    commitId    <- arbitrary[Option[CommitId]]
+  } yield SnapshotMeta(snapshotId, date, storeId, commitId))
 
   case class Snapshots(metas: List[SnapshotMeta])
-  
-  implicit def SnapshotsArbitrary: Arbitrary[Snapshots] = Arbitrary { 
+
+  implicit def SnapshotsArbitrary: Arbitrary[Snapshots] = Arbitrary {
     for {
       ids <- arbitrary[SmallSnapshotIdList]
       sms <- Gen.oneOf(genSnapshotMetas(ids)                // random SnapshotMeta's
@@ -121,23 +122,27 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
       for {
         date  <- arbitrary[Date]
         store <- arbitrary[FeatureStoreId]
-      } yield SnapshotMeta(id, date, store)
+        cid   <- arbitrary[Option[CommitId]]
+      } yield SnapshotMeta(id, date, store, cid)
     }
 
   def genSameDateSnapshotMetas(ids: SmallSnapshotIdList): Gen[List[SnapshotMeta]] = for {
     date  <- arbitrary[Date]
-    snaps <- ids.ids.traverseU(id => arbitrary[FeatureStoreId].map(sid => SnapshotMeta(id, date, sid)))
+    cid   <- arbitrary[Option[CommitId]]
+    snaps <- ids.ids.traverseU(id => arbitrary[FeatureStoreId].map(sid => SnapshotMeta(id, date, sid, cid)))
   } yield snaps
 
   def genSameStoreSnapshotMetas(ids: SmallSnapshotIdList): Gen[List[SnapshotMeta]] = for {
     store <- arbitrary[FeatureStoreId]
-    snaps <- ids.ids.traverseU(id => arbitrary[Date].map(d => SnapshotMeta(id, d, store)))
+    cid   <- arbitrary[Option[CommitId]]
+    snaps <- ids.ids.traverseU(id => arbitrary[Date].map(d => SnapshotMeta(id, d, store, cid)))
   } yield snaps
 
   def genSameSnapshotMetas(ids: SmallSnapshotIdList): Gen[List[SnapshotMeta]] = for {
     date  <- arbitrary[Date]
     store <- arbitrary[FeatureStoreId]
-    snaps <- ids.ids.map(id => SnapshotMeta(id, date, store))
+    cid   <- arbitrary[Option[CommitId]]
+    snaps <- ids.ids.map(id => SnapshotMeta(id, date, store, cid))
   } yield snaps
 
   case class DateOffset(year: Short, month: Byte, day: Byte) {

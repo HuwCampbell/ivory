@@ -25,7 +25,7 @@ object Rename {
   } yield (fsid, sid, stats)
 
   def prepareLookups(mapping: RenameMapping, factsets: List[FactsetId], reducerSize: BytesQuantity): IvoryTIO[ReducerLookups] = for {
-    dictionary <- Metadata.dictionaryFromIvoryT
+    dictionary <- Metadata.latestDictionaryFromIvoryT
     hdfs       <- getHdfs
     subdict     = renameDictionary(mapping, dictionary)
     namespaces  = subdict.byFeatureId.groupBy(_._1.namespace).keys.toList
