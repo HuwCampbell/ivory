@@ -16,12 +16,12 @@ import scalaz._, Scalaz._, effect._
 
 object Rename {
 
-  def rename(mapping: RenameMapping, reducerSize: BytesQuantity): IvoryTIO[(FactsetId, FeatureStore, RenameStats)] = for {
+  def rename(mapping: RenameMapping, reducerSize: BytesQuantity): IvoryTIO[(FactsetId, FeatureStoreId, RenameStats)] = for {
     globs        <- prepareGlobsFromLatestStore(mapping)
     lookups      <- prepareLookups(mapping, globs.map(_.value.factset), reducerSize)
     renameResult <- renameWithFactsets(mapping, globs, lookups)
     (fsid, stats) = renameResult
-    sid          <- Metadata.incrementFeatureStore(fsid)
+    sid          <- Metadata.incrementFeatureStore(List(fsid))
   } yield (fsid, sid, stats)
 
   def prepareLookups(mapping: RenameMapping, factsets: List[FactsetId], reducerSize: BytesQuantity): IvoryTIO[ReducerLookups] = for {

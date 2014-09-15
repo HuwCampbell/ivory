@@ -2,7 +2,6 @@ package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.Factsets
 import com.ambiata.mundane.control._
 
@@ -13,16 +12,16 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
   val name = "feature store"
 
   /** Increment the latest FeatureStore by prepending the given FactsetId and creating a new FeatureStore */
-  def increment(factsetId: FactsetId): IvoryTIO[FeatureStore] = IvoryT.fromResultT(repo => for {
-    factset     <- Factsets.factset(repo, factsetId)
+  def increment(repo: Repository, factsetIds: List[FactsetId]): ResultTIO[FeatureStoreId] = for {
     latest      <- latestId(repo)
-    next        <- ResultT.fromOption[IO, FeatureStoreId](latest.map(_.next).getOrElse(Some(FeatureStoreId.initial)), "Run out of FeatureStore ids!")
-    prev        <- latest.traverse(id => fromId(repo, id))
-    newFactsets = prev.map(fs => factset +: fs.factsets.map(_.value)).getOrElse(List(factset))
-    newStoreO = FeatureStore.fromList(next, newFactsets)
-    newStore    <- ResultT.fromOption[IO, FeatureStore](newStoreO, s"Can not add anymore factsets to feature store '${next}'")
-    _           <- storeIdsToId(repo, newStore.id, newStore.factsetIds)
-  } yield newStore)
+    next        <- ResultT.fromOption[IO, FeatureStoreId](latest.map(_.next).getOrElse(Some(FeatureStoreId.initial)), "Ran out of FeatureStore ids!")
+    prevIds     <- latest.traverse(id => fromId(repo, id))
+    newFactsetIds <- ResultT.fromOption[IO, List[Prioritized[FactsetId]]](
+                      Prioritized.fromList(prevIds.map(fs =>
+                        factsetIds ++ fs.factsets.map(_.value.id)).getOrElse(factsetIds))
+                     , "Could not prioritize the factset ids")
+    _           <- storeIdsToId(repo, next, newFactsetIds)
+  } yield next
 
   /**
    * Current: At the moment this will list all partitions in every factset
@@ -53,8 +52,8 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
   def storeIdsToReference(ref: ReferenceIO, fstore: List[Prioritized[FactsetId]]): ResultTIO[Unit] =
     ref.run(store => path => store.linesUtf8.write(path, toList(fstore).map(toLine)))
 
-  def fromList(factsets: List[Prioritized[FactsetId]]): List[Prioritized[FactsetId]] =
-    factsets
+  def fromList(factsets: List[Prioritized[FactsetId]]): ValidationNel[String, List[Prioritized[FactsetId]]] =
+    Validation.success(factsets)
 
   def toList(store: List[Prioritized[FactsetId]]): List[Prioritized[FactsetId]] =
     store.sorted

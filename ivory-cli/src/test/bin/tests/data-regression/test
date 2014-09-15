@@ -32,10 +32,20 @@ diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
 $IVORY extract-snapshot -r "${REPOSITORY}"
 $IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
-$IVORY count-facts "${REPOSITORY}/snapshots/00000000" | grep -q $(wc -l ${DIR}/expected/snapshot.psv | awk '{print $1}')
+COUNT_FACTS_OUT=$($IVORY count-facts "${REPOSITORY}/snapshots/00000000")
+[ $(wc -l ${DIR}/expected/snapshot.psv | awk '{print $1}') = $COUNT_FACTS_OUT ]
 
 ### CHORD ###
 
 $IVORY extract-chord -r "${REPOSITORY}" -o "${TARGET}" -t "/tmp/chord-$(random)" -c "${INPUT}/chord.psv"
 $IVORY cat-facts "${TARGET}/thrift" | sort > "${TARGET}/chord.psv"
 diff_test "${DIR}/expected/chord.psv" "${TARGET}/chord.psv"
+
+### COMMIT ###
+
+[ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "0" ]
+
+# Force something to bump the commit, doesn't really matter what
+$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary2.psv"
+[ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "1" ]
+diff_test "${DIR}/expected/metadata/commits/00000000" "${REPOSITORY}/metadata/commits/00000000"

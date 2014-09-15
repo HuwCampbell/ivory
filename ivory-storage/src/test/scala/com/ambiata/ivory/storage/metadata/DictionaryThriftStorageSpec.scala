@@ -39,10 +39,10 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
 
   def loadMigrate = prop((dict: PrimitiveDictionary) => run { (loader, dir) =>
     storeDateDicts(dict.dict, dir) >> loader.loadMigrate
-  } must beOkValue(Some(Identifier.initial -> dict.dict)))
+  } must beOkValue(Some(DictionaryId(Identifier.initial) -> dict.dict)))
 
   def loadIdentifier = prop((dict: Dictionary) => run { (loader, dir) =>
-    loader.store(dict) >>= (id => loader.loadFromId(id._1))
+    loader.store(dict) >>= (id => loader.loadFromId(id))
   }.map(_.map(_.byFeatureId)) must beOkValue(Some(dict.byFeatureId)))
 
   private def storeDateDicts(dict: Dictionary, dir: FilePath): ResultTIO[Unit] = {

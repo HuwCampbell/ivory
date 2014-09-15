@@ -62,7 +62,7 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
         _         <- snapshots.metas.traverse(storeSnapshotMeta(repository, _))
         factsetId <- Factsets.allocateFactsetId(repository)
         _         <- repository.toStore.utf8.write(Repository.factset(factsetId) </> "ns" </> FilePath(factsetDate.slashed) </> "part", "content")
-        store     <- Metadata.incrementFeatureStore(factsetId).run(IvoryRead.testing(repository))
+        store     <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.testing(repository))
         _         <- writeFactsetVersion(repository, List(factsetId))
         snapshot  <- SnapshotMeta.latestUpToDateSnapshot(repository, date1)
       } yield snapshot must beUpToDate(repository, date1)

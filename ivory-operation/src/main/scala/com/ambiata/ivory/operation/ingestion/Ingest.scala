@@ -83,9 +83,10 @@ object Ingest {
    *  - increment the feature store
    *  - write the factset version
    */
-  def updateFeatureStore(repository: Repository, factsetId: FactsetId): ResultTIO[FactsetId] = for {
-    _ <- Metadata.incrementFeatureStore(factsetId).run(IvoryRead.prod(repository)).timed("created store")
-    _ <- writeFactsetVersion(repository, List(factsetId))
-  } yield factsetId
+  def updateFeatureStore(repository: Repository, factsetId: FactsetId): ResultTIO[FeatureStoreId] = for {
+    fs <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.prod(repository)).timed("created store")
+    _  <- writeFactsetVersion(repository, List(factsetId))
+    _  <- Metadata.incrementCommitFeatureStore(repository, fs)
+  } yield fs
 
 }

@@ -6,6 +6,7 @@ import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.data._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.poacher.scoobi.ScoobiAction
 import com.ambiata.poacher.scoobi.ScoobiAction.scoobiJob
@@ -92,11 +93,13 @@ object Recreate { outer =>
     _        <- missing.take(maxNumber.fold(missing.size)(identity)).traverse(copyDictionary(from, to, dry))
   } yield ()
 
-  private def copyDictionary(from: HdfsRepository, to: HdfsRepository, dry: Boolean) = (path: Path) =>
-    Hdfs.log(s"Copy dictionary ${path.getName} from ${from.dictionaryById(DictionaryId(path.getName))} to ${to.dictionaryById(DictionaryId(path.getName))}") >>
-    Hdfs.fromResultTIO(dictionaryFromIvory(from) >>= { dict: Dictionary =>
-      dictionaryToIvory(to, dict)
-    }).unless(dry)
+  private def copyDictionary(from: HdfsRepository, to: HdfsRepository, dry: Boolean) = (path: Path) => for {
+      dictId <- Hdfs.fromOption(Identifier.parse(path.getName), s"Could not parse '${path.getName}'")
+      _      <- Hdfs.log(s"Copy dictionary ${path.getName} from ${from.dictionaryById(DictionaryId(dictId))} to ${to.dictionaryById(DictionaryId(dictId))}")
+      dict   <- Hdfs.fromResultTIO(dictionaryFromIvory(from) >>= { dict: Dictionary =>
+        dictionaryToIvory(to, dict)
+      }).unless(dry)
+    } yield ()
 
   /**
    * STORES

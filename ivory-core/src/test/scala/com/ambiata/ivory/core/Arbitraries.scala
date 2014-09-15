@@ -285,10 +285,26 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   implicit def SmallFeatureStoreIdListArbitrary: Arbitrary[SmallFeatureStoreIdList] =
     Arbitrary(arbitrary[SmallOldIdentifierList].map(ids => SmallFeatureStoreIdList(ids.ids.map(FeatureStoreId.apply))))
 
+  case class SmallCommitIdList(ids: List[CommitId])
+  implicit def SmallCommitIdListArbitrary: Arbitrary[SmallCommitIdList] =
+    Arbitrary(arbitrary[SmallIdentifierList].map(ids => SmallCommitIdList(ids.ids.map(CommitId.apply))))
+
   implicit def FeatureStoreArbitrary: Arbitrary[FeatureStore] = Arbitrary(for {
     storeId    <- arbitrary[FeatureStoreId]
     factsets   <- genFactsetList(Gen.choose(1, 3))
   } yield FeatureStore.fromList(storeId, factsets).get)
+
+  implicit def DictionaryIdArbitrary: Arbitrary[DictionaryId] =
+    Arbitrary(arbitrary[Identifier].map(DictionaryId.apply))
+
+  implicit def CommitIdArbitrary: Arbitrary[CommitId] = Arbitrary(for {
+    x <- arbitrary[Identifier]
+  } yield CommitId(x))
+
+  implicit def CommitArbitrary: Arbitrary[Commit] = Arbitrary(for {
+    dictId     <- arbitrary[DictionaryId]
+    fsid       <- arbitrary[FeatureStoreId]
+  } yield Commit(dictId, fsid))
 
   implicit def SnapshotIdArbitrary: Arbitrary[SnapshotId] =
     Arbitrary(arbitrary[Identifier].map(SnapshotId.apply))
