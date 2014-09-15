@@ -53,14 +53,14 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
         fs  <- Metadata.featureStoreFromIvory(repo, fsid)
         _   <- ValidateStoreHdfs(repo, fs, dict, false).exec(outpath.toHdfs).run(sc)
         res <- ResultT.ok[IO, List[String]](fromTextFile(outpath.path).run.toList)
-      } yield res
-    } must beOkLike { res =>
+      } yield (fsid, res)
+    } must beOkLike { case (fsid, res) =>
       res must have size(1)
       res must contain("Not a valid double!")
       res must contain("eid1")
       res must contain("ns1")
       res must contain("fid1")
-      res must contain("00000")
+      res must contain(fsid.render)
     }
   }
 
