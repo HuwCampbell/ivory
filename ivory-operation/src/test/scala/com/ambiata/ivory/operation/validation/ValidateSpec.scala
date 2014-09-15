@@ -2,6 +2,7 @@ package com.ambiata.ivory.operation.validation
 
 import com.ambiata.ivory.core._, Arbitraries._, IvorySyntax._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control.ResultT
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.Scoobi._
@@ -48,7 +49,8 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
 
       implicit val sc = repo.scoobiConfiguration
       for {
-        fs  <- RepositoryBuilder.createFacts(repo, List(facts1, facts2)).map(_.head)
+        fsid <- RepositoryBuilder.createFacts(repo, List(facts1, facts2)).map(_._1)
+        fs  <- Metadata.featureStoreFromIvory(repo, fsid)
         _   <- ValidateStoreHdfs(repo, fs, dict, false).exec(outpath.toHdfs).run(sc)
         res <- ResultT.ok[IO, List[String]](fromTextFile(outpath.path).run.toList)
       } yield res

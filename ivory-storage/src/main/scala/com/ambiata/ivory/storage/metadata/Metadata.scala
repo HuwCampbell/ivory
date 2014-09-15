@@ -23,7 +23,7 @@ object Metadata {
    * This will read the latest FeatureStore, add the given FactsetId to it then persist
    * back to the repository with a new FeatureStoreId
    */
-  def incrementFeatureStore(factset: FactsetId): IvoryTIO[FeatureStore] = IvoryT.fromResultTIO(repo =>
+  def incrementFeatureStore(factset: List[FactsetId]): IvoryTIO[FeatureStoreId] = IvoryT.fromResultTIO(repo =>
     FeatureStoreTextStorage.increment(repo, factset))
 
   def latestFeatureStoreId(repo: Repository): ResultTIO[Option[FeatureStoreId]] =
@@ -74,15 +74,20 @@ object Metadata {
   def latestCommitIdT(repo: Repository): IvoryTIO[Option[CommitId]] =
     fromResultT(latestCommitId(_))
 
+  def incrementCommit(repo: Repository, dictionaryId: DictionaryId, featureStoreId: FeatureStoreId): ResultTIO[Unit] = for {
+    _ <- CommitTextStorage.increment(repo, Commit(dictionaryId, featureStoreId))
+  } yield ()
+
   def incrementCommitDictionary(repo: Repository, dictionaryId: DictionaryId): ResultTIO[Unit] = for {
     latestFeatureStoreId <- Metadata.latestFeatureStoreId(repo)
-    _ <- CommitTextStorage.increment(repo, Commit(dictionaryId, latestFeatureStoreId))
+    latestFeatureStoreIdP <- ResultT.fromOption[IO, FeatureStoreId](latestFeatureStoreId, "Could not load a feature store id")
+    _ <- CommitTextStorage.increment(repo, Commit(dictionaryId, latestFeatureStoreIdP))
   } yield ()
 
   def incrementCommitFeatureStore(repo: Repository, featureStoreId: FeatureStoreId): ResultTIO[Unit] = for {
     latestDict <- DictionaryThriftStorage(repo).loadMigrate.map(_.map(_._1))
     latestDictionaryId <- ResultT.fromOption[IO, DictionaryId](latestDict, "Could not load a dictionary")
-    _ <- CommitTextStorage.increment(repo, Commit(latestDictionaryId, Some(featureStoreId)))
+    _ <- CommitTextStorage.increment(repo, Commit(latestDictionaryId, featureStoreId))
   } yield ()
 
 }

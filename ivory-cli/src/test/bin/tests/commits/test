@@ -4,13 +4,13 @@ DIR=$(dirname $0)
 . "${DIR}/../../setup.sh"
 
 $IVORY create-repository -p "${REPOSITORY}"
-
 diff_test ${REPOSITORY}/metadata/commits/00000000 ${DIR}/expected/00000000
 
 $IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
-
-diff_test ${REPOSITORY}/metadata/commits/00000000 ${DIR}/expected/00000000
+diff_test ${REPOSITORY}/metadata/commits/00000001 ${DIR}/expected/00000001
 
 $IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts"  -n HALIBUT
+diff_test ${REPOSITORY}/metadata/commits/00000002 ${DIR}/expected/00000002
 
-diff_test ${REPOSITORY}/metadata/commits/00000001 ${DIR}/expected/00000001
+$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
+diff_test ${REPOSITORY}/metadata/commits/00000003 ${DIR}/expected/00000003

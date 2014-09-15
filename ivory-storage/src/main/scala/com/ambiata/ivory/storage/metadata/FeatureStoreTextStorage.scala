@@ -12,16 +12,16 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
   val name = "feature store"
 
   /** Increment the latest FeatureStore by prepending the given FactsetId and creating a new FeatureStore */
-  def increment(repo: Repository, factsetId: FactsetId): ResultTIO[FeatureStore] = for {
-    factset     <- Factsets.factset(repo, factsetId)
+  def increment(repo: Repository, factsetIds: List[FactsetId]): ResultTIO[FeatureStoreId] = for {
     latest      <- latestId(repo)
     next        <- ResultT.fromOption[IO, FeatureStoreId](latest.map(_.next).getOrElse(Some(FeatureStoreId.initial)), "Ran out of FeatureStore ids!")
-    prev        <- latest.traverse(id => fromId(repo, id))
-    newFactsets = prev.map(fs => factset +: fs.factsets.map(_.value)).getOrElse(List(factset))
-    newStoreO = FeatureStore.fromList(next, newFactsets)
-    newStore    <- ResultT.fromOption[IO, FeatureStore](newStoreO, s"Can not add anymore factsets to feature store '${next}'")
-    _           <- storeIdsToId(repo, newStore.id, newStore.factsetIds)
-  } yield newStore
+    prevIds     <- latest.traverse(id => fromId(repo, id))
+    newFactsetIds <- ResultT.fromOption[IO, List[Prioritized[FactsetId]]](
+                      Prioritized.fromList(prevIds.map(fs =>
+                        factsetIds ++ fs.factsets.map(_.value.id)).getOrElse(factsetIds))
+                     , "Could not prioritize the factset ids")
+    _           <- storeIdsToId(repo, next, newFactsetIds)
+  } yield next
 
   /**
    * Current: At the moment this will list all partitions in every factset

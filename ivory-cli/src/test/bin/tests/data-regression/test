@@ -32,10 +32,32 @@ diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
 $IVORY extract-snapshot -r "${REPOSITORY}"
 $IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
-$IVORY count-facts "${REPOSITORY}/snapshots/00000000" | grep -q $(wc -l ${DIR}/expected/snapshot.psv | awk '{print $1}')
+COUNT_FACTS_OUT=$($IVORY count-facts "${REPOSITORY}/snapshots/00000000")
+[ $(wc -l ${DIR}/expected/snapshot.psv | awk '{print $1}') = $COUNT_FACTS_OUT ]
 
 ### CHORD ###
 
 $IVORY extract-chord -r "${REPOSITORY}" -o "${TARGET}" -t "/tmp/chord-$(random)" -c "${INPUT}/chord.psv"
 $IVORY cat-facts "${TARGET}/thrift" | sort > "${TARGET}/chord.psv"
 diff_test "${DIR}/expected/chord.psv" "${TARGET}/chord.psv"
+
+### Additional imports to test metadata creation in new versions ###
+
+[ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "0" ]
+
+# The first commit is for the load migrate of the dictionary.
+# The second is the ingest.
+$IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts"
+[ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "2" ]
+
+$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary2.psv"
+[ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "3" ]
+
+diff_test "${DIR}/expected/metadata/commits/00000000" "${TARGET}/metadata/commits/00000000"
+diff_test "${DIR}/expected/metadata/commits/00000001" "${TARGET}/metadata/commits/00000001"
+diff_test "${DIR}/expected/metadata/dictionaries/00000000/data" "${TARGET}/metadata/dictionaries/00000000/data"
+diff_test "${DIR}/expected/metadata/dictionaries/00000001/data" "${TARGET}/metadata/dictionaries/00000001/data"
+diff_test "${DIR}/expected/metadata/dictionaries/00000002/data" "${TARGET}/metadata/dictionaries/00000002/data"
+diff_test "${DIR}/expected/metadata/dictionaries/dict_regression/dictionary.psv" "${TARGET}/metadata/dictionaries/dict_regression/dictionary.psv"
+diff_test "${DIR}/expected/metadata/stores/00000" "${TARGET}/metadata/stores/00000"
+diff_test "${DIR}/expected/metadata/stores/00001" "${TARGET}/metadata/stores/00001"

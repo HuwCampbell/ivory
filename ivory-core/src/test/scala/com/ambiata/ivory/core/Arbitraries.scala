@@ -303,7 +303,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
 
   implicit def CommitArbitrary: Arbitrary[Commit] = Arbitrary(for {
     dictId     <- arbitrary[DictionaryId]
-    fsid       <- arbitrary[Option[FeatureStoreId]]
+    fsid       <- arbitrary[FeatureStoreId]
   } yield Commit(dictId, fsid))
 
   implicit def SnapshotIdArbitrary: Arbitrary[SnapshotId] =

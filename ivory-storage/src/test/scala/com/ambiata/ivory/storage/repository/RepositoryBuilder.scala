@@ -10,7 +10,6 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.Temporary
 import com.nicta.scoobi.Scoobi._
 
-import scalaz.Scalaz._
 import scalaz._
 
 object RepositoryBuilder {
@@ -22,15 +21,15 @@ object RepositoryBuilder {
     f(repo)
   }
 
-  def createRepo(repo: HdfsRepository, dictionary: Dictionary, facts: List[List[Fact]]): ResultTIO[List[FeatureStore]] = for {
+  def createRepo(repo: HdfsRepository, dictionary: Dictionary, facts: List[List[Fact]]): ResultTIO[FeatureStoreId] = for {
     _      <- Metadata.dictionaryToIvory(repo, dictionary)
     stores <- createFacts(repo, facts)
-  } yield stores
+  } yield stores._1
 
   def createFactset(repo: HdfsRepository, facts: List[Fact]): ResultTIO[FactsetId] =
-    createFacts(repo, List(facts)).map(_.head.factsetIds.head.value)
+    createFacts(repo, List(facts)).map(_._2)
 
-  def createFacts(repo: HdfsRepository, facts: List[List[Fact]]): ResultTIO[List[FeatureStore]] = {
+  def createFacts(repo: HdfsRepository, facts: List[List[Fact]]): ResultTIO[(FeatureStoreId, FactsetId)] = {
     val serialiser = ThriftSerialiser()
     val factsets = facts.foldLeft(NonEmptyList(FactsetId.initial)) { case (factsetIds, facts) =>
       // This hack is because we can't pass a non-lazy Fact directly to fromLazySeq, but we want/need them to be props
@@ -42,7 +41,7 @@ object RepositoryBuilder {
     }.tail.reverse
     (for {
       _      <- IvoryStorage.writeFactsetVersionI(factsets)
-      stores <- factsets.traverse(Metadata.incrementFeatureStore)
-    } yield stores).run(IvoryRead.testing(repo))
+      stores <- Metadata.incrementFeatureStore(factsets)
+    } yield (stores, factsets.head)).run(IvoryRead.testing(repo)) // TODO: is this head or last of factsets?
   }
 }

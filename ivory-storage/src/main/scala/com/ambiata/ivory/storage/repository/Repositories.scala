@@ -28,7 +28,8 @@ object Repositories {
 
         // Set the initial commit
         dict <- DictionaryThriftStorage(repo).store(Dictionary.empty)
-        _ <- Metadata.incrementCommitDictionary(repo, dict)
+        store <- FeatureStoreTextStorage.increment(repo, List())
+        _ <- Metadata.incrementCommit(repo, dict, store)
       } yield ()
     } yield r
   }
