@@ -78,9 +78,9 @@ object Metadata {
     CommitTextStorage.increment(repo, Commit(dictionaryId, featureStoreId))
 
   def incrementCommitDictionary(repo: Repository, dictionaryId: DictionaryId): ResultTIO[CommitId] = for {
-    latestFeatureStoreId  <- Metadata.latestFeatureStoreId(repo)
-    latestFeatureStoreIdP <- ResultT.fromOption[IO, FeatureStoreId](latestFeatureStoreId, "Could not load a feature store id")
-    commitId              <- CommitTextStorage.increment(repo, Commit(dictionaryId, latestFeatureStoreIdP))
+    // Don't fail if no feature store exists - create a blank one
+    storeId  <- Metadata.latestFeatureStoreId(repo).flatMap(_.cata(_.point[ResultTIO], FeatureStoreTextStorage.increment(repo, Nil)))
+    commitId <- CommitTextStorage.increment(repo, Commit(dictionaryId, storeId))
   } yield commitId
 
   def incrementCommitFeatureStore(repo: Repository, featureStoreId: FeatureStoreId): ResultTIO[CommitId] = for {

@@ -10,7 +10,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.Temporary
 import com.nicta.scoobi.Scoobi._
 
-import scalaz._
+import scalaz._, Scalaz._
 
 object RepositoryBuilder {
 
@@ -41,7 +41,7 @@ object RepositoryBuilder {
     }.tail.reverse
     (for {
       _      <- IvoryStorage.writeFactsetVersionI(factsets)
-      stores <- Metadata.incrementFeatureStore(factsets)
-    } yield (stores, factsets)).run(IvoryRead.testing(repo))
+      stores <- factsets.map(_ :: Nil).traverse(Metadata.incrementFeatureStore)
+    } yield (stores.last, factsets)).run(IvoryRead.testing(repo))
   }
 }

@@ -1,8 +1,7 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.core.{Reference, Repository}
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.operation.ingestion._, DictionaryImporter._
 import scalaz._, effect._
 
@@ -37,7 +36,7 @@ object importDictionary extends IvoryApp {
             // Always print validation errors regardless of force
           case f @ Failure(errors) => ResultT.safe[IO, Unit](errors.list.foreach(println))
         }
-        newPath <- ResultT.fromOption[IO, Identifier](result._2.map(_.id), "Invalid dictionary")
-      } yield List(s"Successfully imported dictionary ${c.path} into ${c.repo} under $newPath.")
+        dictId  <- ResultT.fromOption[IO, DictionaryId](result._2, "Invalid dictionary")
+      } yield List(s"Successfully imported dictionary ${c.path} into ${c.repo} as ${dictId.render}.")
   })
 }

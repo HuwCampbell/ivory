@@ -28,7 +28,7 @@ object Repositories {
         _     <- initialPaths.traverse(p => store.utf8.write(p </> ".allocated", "")).void
         // Set the initial commit
         dict  <- DictionaryThriftStorage(repo).store(Dictionary.empty)
-        store <- FeatureStoreTextStorage.increment(repo, List())
+        store <- FeatureStoreTextStorage.increment(repo, Nil)
         _     <- Metadata.incrementCommit(repo, dict, store)
       } yield ())
     } yield r

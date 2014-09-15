@@ -27,13 +27,14 @@ case class DictionaryThriftStorage(repository: Repository) {
 
   def loadMigrate: ResultTIO[Option[(DictionaryId, Dictionary)]] =
     loadWithId.flatMap(_.traverse[ResultTIO, (DictionaryId, Dictionary)] {
-      case (Some(identifier), dict) => ResultT.ok(DictionaryId(identifier) -> dict)
+      case (Some(identifier), dict) => ResultT.ok(identifier -> dict)
       case (_, dict)                => store(dict).map(_ -> dict)
     })
 
-  private def loadWithId: ResultTIO[Option[(Option[Identifier], Dictionary)]] =
+  private def loadWithId: ResultTIO[Option[(Option[DictionaryId], Dictionary)]] =
     IdentifierStorage.get(store, dictDir).flatMap {
-      case Some(path) => loadFromId(DictionaryId(path._1)).map(_.map(some(path._1) ->))
+      case Some(path) =>
+        loadFromId(DictionaryId(path._1)).map(_.map(some(DictionaryId(path._1)) ->))
       case None       => loadDates.map(_.map(none ->))
     }
 
