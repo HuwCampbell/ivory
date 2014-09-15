@@ -38,14 +38,13 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   implicit def DateArbitrary: Arbitrary[Date] =
     Arbitrary(genDate(Date(1970, 1, 1), Date(3000, 12, 31)))
 
-  case class TwoDifferentDates(earlier: Date, later: Date)
-  implicit def TwoDifferentDatesArbitrary: Arbitrary[TwoDifferentDates] =
+  case class UniqueDates(earlier: Date, now: Date, later: Date)
+  implicit def TwoDifferentDatesArbitrary: Arbitrary[UniqueDates] =
     Arbitrary(for {
-      d1     <- genDate(Date(1970, 1, 1), Date(2100, 12, 31))
-      offset <- Gen.choose(1, 100)
-      d2 = Date.fromLocalDate(d1.localDate.plusDays(offset))
-      dd = TwoDifferentDates(d1, d2)
-    } yield dd)
+      d1 <- genDate(Date(1970, 1, 1), Date(2100, 12, 31))
+      d2 <- Gen.frequency(5 -> Date.minValue, 95 -> Gen.choose(1, 100).map(o => Date.fromLocalDate(d1.localDate.minusDays(o))))
+      d3 <- Gen.frequency(5 -> Date.maxValue, 95 -> Gen.choose(1, 100).map(o => Date.fromLocalDate(d1.localDate.plusDays(o))))
+    } yield UniqueDates(d2, d1, d3))
 
   /* Generate a distinct list of Dates up to size n */
   def genDates(nDates: Gen[Int]): Gen[List[Date]] =

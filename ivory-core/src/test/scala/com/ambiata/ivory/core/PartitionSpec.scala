@@ -87,7 +87,7 @@ Can filter Partitions:
   def stringPath = prop((p: Partition) =>
     Partition.stringPath(p.namespace.name, p.date) ==== s"${p.namespace.name}/${p.date.slashed}")
 
-  def between = prop((partitions: Partitions, dates: TwoDifferentDates) => {
+  def between = prop((partitions: Partitions, dates: UniqueDates) => {
     val ps = partitions.partitions
     val expected = ps.filter(p => p.date.isAfterOrEqual(dates.earlier) && p.date.isBeforeOrEqual(dates.later))
     Partitions.pathsBetween(ps, dates.earlier, dates.later) must_== expected
