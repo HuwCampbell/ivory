@@ -1,0 +1,27 @@
+#!/bin/sh -eu
+
+INSTALL_DIR=${1:?"Directory to install Ivory commmand-line tools"}
+
+# Tmp dir to download artefacts to
+TMPDIR=$(mktemp -d /tmp/ivory-install.XXXXXX)
+
+# Determine latest version
+IVORY_URL_BASE="https://ambiata-oss.s3.amazonaws.com/com.ambiata/ivory-cli_2.11"
+wget -q -O $TMPDIR/latest "$IVORY_URL_BASE/latest"
+LATEST_VER=$(head -n 1 $TMPDIR/latest | tr -d '\n')
+
+
+# Dowload tarball for latest version
+latest_tarball="$IVORY_URL_BASE/1.0.0-cdh5-$LATEST_VER/dists/ivory_2.11.tgz"
+echo "Downloading latest install package: $latest_tarball"
+wget --progress=dot -q -O $TMPDIR/tarball "$latest_tarball"
+
+
+# Untar and copy contents to install directory
+echo "Installing ..."
+tar -xzv -C $TMPDIR -f $TMPDIR/tarball
+cp -R "$TMPDIR/ivory-cli-1.0.0-cdh5-$LATEST_VER" "$INSTALL_DIR"
+
+
+# Blow away tmp dir
+rm -rf $TMPDIR
