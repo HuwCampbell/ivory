@@ -10,7 +10,7 @@ This document serves as a list of changes to the Ivory API, both in the file for
 
       ivory snapshot -f pivot=/path/to/file
 
-- Removed `--pivot` from `extract-chord`, and switch to `-f`/`--format` as well
+- Removed `-t`/`--tmp` and `--pivot` from `extract-chord`, and switch to `-f`/`--format` as well
 
       ivory chord -f pivot=/path/to/file
 - Renamed `extract-snapshot` and `extract-chord` to `snapshot` and `chord`

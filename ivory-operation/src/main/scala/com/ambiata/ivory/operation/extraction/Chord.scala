@@ -19,7 +19,6 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.ivory.operation.validation._
-import com.ambiata.poacher.hdfs._
 import Entities._
 import com.ambiata.ivory.scoobi._
 import scala.collection.JavaConversions._
@@ -38,35 +37,36 @@ object Chord {
    * Create a chord from a list of entities
    * If takeSnapshot = true, take a snapshot first, otherwise use the latest available snapshot
    *
-   * Finally store the dictionary alongside the Chord
+   * Returns a newly created [[FilePath]] to the chord in thrift format, which can be fed into other jobs.
+   * Consumers of this method should delete the returned path when finished with the result.
    */
-  def createChord(repository: Repository, entitiesRef: ReferenceIO, outputRef: ReferenceIO, tmp: ReferenceIO, takeSnapshot: Boolean): ResultTIO[Unit] = for {
+  def createChord(repository: Repository, entitiesRef: ReferenceIO, takeSnapshot: Boolean): ResultTIO[FilePath] = for {
     _                   <- checkThat(repository, repository.isInstanceOf[HdfsRepository], "Chord only works on HDFS repositories at this stage.")
-    _                   <- checkThat(outputRef, outputRef.store.isInstanceOf[HdfsStore], s"Currently output path must be on HDFS. Given value is $outputRef")
     entities            <- Entities.readEntitiesFrom(entitiesRef)
     _                   <- logInfo(s"Earliest date in chord file is '${entities.earliestDate}'")
     _                   <- logInfo(s"Latest date in chord file is '${entities.latestDate}'")
     store               <- Metadata.latestFeatureStoreOrFail(repository)
     snapshot            <- if (takeSnapshot) Snapshot.takeSnapshot(repository, entities.earliestDate, incremental = true).map(Option.apply)
                            else              SnapshotMeta.latestSnapshot(repository, entities.earliestDate)
-    _                   <- runChordOnHdfs(repository, store, entities, outputRef, tmp, snapshot)
-    _                   <- storeDictionary(repository, outputRef)
-  } yield ()
+    out                 <- runChordOnHdfs(repository, store, entities, snapshot)
+  } yield out
 
   /**
-   * Run the chord extraction on Hdfs
+   * Run the chord extraction on Hdfs, returning the [[FilePath]] where the chord was written to.
    */
-  def runChordOnHdfs(repository: Repository, store: FeatureStore, entities: Entities, outputRef: ReferenceIO, tmp: ReferenceIO, incremental: Option[SnapshotMeta]): ResultTIO[Unit] = {
-    val chordRef = tmp </> FilePath(java.util.UUID.randomUUID.toString)
+  def runChordOnHdfs(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotMeta]): ResultTIO[FilePath] = {
+    val chordRef = repository.toReference("tmp" </> java.util.UUID.randomUUID.toString)
+    val outputPath = FilePath("tmp") </> java.util.UUID.randomUUID.toString
     for {
       hr                   <- downcast[Repository, HdfsRepository](repository, "Chord only works on HDFS repositories at this stage.")
-      outputStore          <- downcast[Any, HdfsStore](outputRef.store, s"Currently output path must be on HDFS. Given value is $outputRef")
-      outputPath           =  (outputStore.base </> outputRef.path).toHdfs
       _                    <- serialiseEntities(entities, chordRef)
       featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotMeta(repository)(meta))
       dictionary           <- latestDictionaryFromIvory(repository)
-      _                    <- chordScoobiJob(hr, dictionary, store, chordRef, entities.latestDate, featureStoreSnapshot, outputPath, hr.codec).run(hr.scoobiConfiguration)
-    } yield ()
+      _                    <- chordScoobiJob(hr, dictionary, store, chordRef, entities.latestDate, featureStoreSnapshot,
+        (repository.root </> outputPath).toHdfs, hr.codec).run(hr.scoobiConfiguration)
+      // Delete the temporary chordRef - no longer needed
+      _                    <- chordRef.run(_.deleteAll)
+    } yield outputPath
   }
 
   /**
@@ -189,11 +189,6 @@ object Chord {
         }
       }
   }
-
-  def storeDictionary(repository: Repository, outputRef: ReferenceIO): ResultTIO[Unit] =
-    latestDictionaryFromIvory(repository).flatMap { dictionary =>
-      DictionaryTextStorageV2.toStore(outputRef </> ".dictionary", dictionary)
-    }
 
   def getEntities(chordReference: ReferenceIO): Entities =
     deserialiseEntities(chordReference).run.unsafePerformIO match {

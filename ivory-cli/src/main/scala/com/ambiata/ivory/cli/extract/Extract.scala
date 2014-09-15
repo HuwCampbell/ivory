@@ -14,7 +14,7 @@ object Extract {
 
   // This is pretty horrible just for simple re-use - will be _much_ nicer with Pirate
   def options[A](parser: OptionParser[A])(in: A => (ExtractOutput => ExtractOutput) => A): OptionParser[A] = {
-    parser.opt[(String, String)]('f', "format")  action { (x, c) => in(c)(f => f.copy(formats = x :: f.formats)) }  unbounded() text
+    parser.opt[(String, String)]('o', "output")  action { (x, c) => in(c)(f => f.copy(formats = x :: f.formats)) }  unbounded() text
       "FORMAT=PATH Path to store pivot data. Supported formats [pivot]."
     parser.opt[Char]("delim")                    action { (x, c) => in(c)(_.copy(delim = x)) } text
       "Delimiter for pivot file, default '|'."
