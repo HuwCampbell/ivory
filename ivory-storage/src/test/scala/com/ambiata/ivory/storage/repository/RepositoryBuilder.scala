@@ -27,9 +27,9 @@ object RepositoryBuilder {
   } yield stores._1
 
   def createFactset(repo: HdfsRepository, facts: List[Fact]): ResultTIO[FactsetId] =
-    createFacts(repo, List(facts)).map(_._2)
+    createFacts(repo, List(facts)).map(_._2.head)
 
-  def createFacts(repo: HdfsRepository, facts: List[List[Fact]]): ResultTIO[(FeatureStoreId, FactsetId)] = {
+  def createFacts(repo: HdfsRepository, facts: List[List[Fact]]): ResultTIO[(FeatureStoreId, List[FactsetId])] = {
     val serialiser = ThriftSerialiser()
     val factsets = facts.foldLeft(NonEmptyList(FactsetId.initial)) { case (factsetIds, facts) =>
       // This hack is because we can't pass a non-lazy Fact directly to fromLazySeq, but we want/need them to be props
@@ -42,6 +42,6 @@ object RepositoryBuilder {
     (for {
       _      <- IvoryStorage.writeFactsetVersionI(factsets)
       stores <- Metadata.incrementFeatureStore(factsets)
-    } yield (stores, factsets.head)).run(IvoryRead.testing(repo)) // TODO: is this head or last of factsets?
+    } yield (stores, factsets)).run(IvoryRead.testing(repo))
   }
 }
