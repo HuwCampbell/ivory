@@ -147,9 +147,13 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   implicit def DictionaryArbitrary: Arbitrary[Dictionary] =
     Arbitrary(for {
       n <- Gen.choose(10, 20)
-      c <- Gen.listOfN(n, arbitrary[(FeatureId, ConcreteDefinition)])
+      i <- Gen.listOfN(n, arbitrary[FeatureId]).map(_.distinct)
+      c <- Gen.listOfN(i.length, arbitrary[ConcreteDefinition]).map(cds => i.zip(cds))
       // For every concrete definition there is a chance we may have a virtual feature
-      v <- c.traverse(x => Gen.frequency(70 -> Gen.const(None), 30 -> virtualDefGen(x).map(some))).map(_.flatten)
+      v <- c.traverse(x => Gen.frequency(
+        70 -> Gen.const(None),
+        30 -> virtualDefGen(x).map(some).map(_.filterNot(vd => i.contains(vd._1))))
+      ).map(_.flatten)
     } yield Dictionary(c.map({ case (f, d) => d.toDefinition(f) }) ++ v.map({ case (f, d) => d.toDefinition(f) })))
 
   implicit def EncodingArbitrary: Arbitrary[Encoding] =
