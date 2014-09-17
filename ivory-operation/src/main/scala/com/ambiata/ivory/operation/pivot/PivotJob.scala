@@ -86,10 +86,20 @@ object PivotJob {
 
   def featuresToString(dictionary: Dictionary, tombstone: String, delim: Char): List[String] = {
     import com.ambiata.ivory.storage.metadata.DictionaryTextStorage
+    val byId = dictionary.definitions.groupBy(_.featureId).mapValues(_.head)
     dictionary.definitions.zipWithIndex.map {
       case (d, i) => i.toString + delim + DictionaryTextStorage.delimitedLineWithDelim(d.featureId -> (d match {
         case Concrete(_, m) => m.copy(tombstoneValue = List(tombstone))
-        case Virtual(_, _)  => NotImplemented.virtualDictionaryFeature
+        case Virtual(_, vd) =>
+          val source = byId.get(vd.source).flatMap {
+            case Concrete(_, cd) => Some(cd)
+            case Virtual(_, _)   => None
+          }.getOrElse(ConcreteDefinition(StringEncoding, None, "", List(tombstone)))
+          vd.expression match {
+            // A short term hack for supporting feature gen based on known functions
+            case Count  => ConcreteDefinition(LongEncoding, None, "", List(tombstone))
+            case Latest => ConcreteDefinition(source.encoding, None, "", List(tombstone))
+          }
       }), delim.toString)
     }
   }
@@ -100,7 +110,7 @@ object PivotJob {
       case Concrete(_, fm) =>
         Encoding.isPrimitive(fm.encoding)
       case Virtual(_, _) =>
-        false
+        true
     }).sortBy(_.featureId.toString)
   )
   

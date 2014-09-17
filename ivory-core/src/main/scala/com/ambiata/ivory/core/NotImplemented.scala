@@ -7,9 +7,6 @@ package com.ambiata.ivory.core
  */
 object NotImplemented {
 
-  def virtualDictionaryFeature: Nothing =
-    Crash.error(Crash.CodeGeneration, "Virtual features are not currently supported")
-
   def unImplementedSyncOperation: Nothing =
     Crash.error(Crash.CodeGeneration, "This is sync operation is not currently implemented")
 
