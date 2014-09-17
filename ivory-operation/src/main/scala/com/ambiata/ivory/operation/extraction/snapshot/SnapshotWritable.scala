@@ -54,7 +54,7 @@ object SnapshotWritable {
   class SPartitioner extends Partitioner[BytesWritable, BytesWritable] {
     override def getPartition(k: BytesWritable, v: BytesWritable, partitions: Int): Int = {
       // Just partition based on entity+featureId
-      WritableComparator.hashBytes(k.getBytes, 0, k.getLength - Offsets.date) % partitions
+      (WritableComparator.hashBytes(k.getBytes, 0, k.getLength - Offsets.date) & Int.MaxValue) % partitions
     }
   }
 }
