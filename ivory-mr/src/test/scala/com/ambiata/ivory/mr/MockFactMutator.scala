@@ -4,7 +4,8 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import org.apache.hadoop.io.NullWritable
 
-class MockFactMutator extends MutableStream[MutableFact, Fact] with PipeMutator[Fact, Fact] with Emitter[NullWritable, Fact] {
+class MockFactMutator extends MutableStream[MutableFact, Fact] with PipeMutator[Fact, Fact] with Mutator[MutableFact, Fact]
+  with Emitter[NullWritable, Fact] {
 
   val facts = collection.mutable.ListBuffer[Fact]()
 
@@ -15,11 +16,14 @@ class MockFactMutator extends MutableStream[MutableFact, Fact] with PipeMutator[
     ()
   }
 
+  def mutate(in: MutableFact, out: Fact): Unit =
+    pipe(in, out)
+
   def pipe(in: Fact, out: Fact): Unit =
     from(in, out.toNamespacedThrift)
 
   def emit(kout: NullWritable, vout: Fact): Unit = {
-    facts += vout
+    facts += new NamespacedThriftFact(vout.toNamespacedThrift) with NamespacedThriftFactDerived
     ()
   }
 }
