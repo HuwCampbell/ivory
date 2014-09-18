@@ -29,7 +29,7 @@ diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
 
 ### SNAPSHOT ###
 
-$IVORY snapshot -r "${REPOSITORY}" -o "pivot=${TARGET}/snap-pivot"
+$IVORY snapshot -r "${REPOSITORY}" -o "dense:psv=${TARGET}/snap-pivot"
 $IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snap-pivot.psv" "${TARGET}/snap-pivot/out-r-00000"
@@ -38,7 +38,7 @@ COUNT_FACTS_OUT=$($IVORY count-facts "${REPOSITORY}/snapshots/00000000")
 
 ### CHORD ###
 
-$IVORY chord -r "${REPOSITORY}" -c "${INPUT}/chord.psv" -o "pivot=${TARGET}/chord-pivot"
+$IVORY chord -r "${REPOSITORY}" -c "${INPUT}/chord.psv" -o "dense:psv=${TARGET}/chord-pivot"
 diff_test "${DIR}/expected/chord-pivot.psv" "${TARGET}/chord-pivot/out-r-00000"
 
 ### COMMIT ###

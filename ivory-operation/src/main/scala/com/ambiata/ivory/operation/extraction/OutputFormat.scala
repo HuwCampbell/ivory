@@ -8,8 +8,8 @@ case object PivotFormat extends OutputFormat
 object OutputFormat {
 
   def fromString(s: String): Option[OutputFormat] = s.toLowerCase match {
-    case "pivot" => Some(PivotFormat)
-    case _       => None
+    case "dense:psv" => Some(PivotFormat)
+    case _           => None
   }
 }
 
