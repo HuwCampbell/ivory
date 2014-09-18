@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.ingestion
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, Arbitraries._
 import com.ambiata.ivory.core.thrift.ThriftSerialiser
 import com.ambiata.ivory.scoobi.{FactFormats, SequenceUtil, TestConfigurations}
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
@@ -16,8 +16,7 @@ import org.specs2._
 import org.specs2.execute.{AsResult, Result}
 import org.specs2.matcher.{MustThrownMatchers, FileMatchers, ThrownExpectations}
 import org.specs2.specification._
-import scalaz.\/-
-import scalaz.effect.IO
+import scalaz.{Name => _, _}, scalaz.effect._
 
 class EavtTextImporterSpec extends Specification with ThrownExpectations with FileMatchers with FixtureExample[Setup] { def is = s2"""
  
@@ -120,4 +119,20 @@ class Setup(val directory: FilePath) extends MustThrownMatchers {
 
   def thereMustBeErrors =
     valueFromSequenceFile[ParseError]((directory </> "errors").path).run(sc) must not(beEmpty)
+}
+
+class EavtTextImporterPureSpec extends Specification with ScalaCheck { def is = s2"""
+
+  Validate namespaces success                        $validateNamespacesSuccess
+  Validate namespaces fail                           $validateNamespacesFail
+"""
+
+  def validateNamespacesSuccess = prop((dict: Dictionary) => {
+    EavtTextImporter.validateNamespaces(dict, dict.byFeatureId.keys.toList.map(_.namespace)).toEither must beRight
+  })
+
+  def validateNamespacesFail = prop((dict: Dictionary, name: Name, names: List[Name]) => {
+    val allNames = (name :: names).filter(dict.forNamespace(_).definitions.isEmpty)
+    EavtTextImporter.validateNamespaces(dict, allNames).toEither must beLeft
+  })
 }
