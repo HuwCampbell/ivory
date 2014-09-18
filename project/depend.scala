@@ -54,8 +54,7 @@ object depend {
     Seq("org.scala-lang" % "scala-compiler" % version, "org.scala-lang" % "scala-reflect" % version) ++
       (if (version.contains("2.10")) Seq("org.scalamacros" %% "quasiquotes" % "2.0.0") else Seq())
 
-  val hadoopVersion = "2.2.0"
-  def hadoop(version: String) =
+  def hadoop(version: String, hadoopVersion: String = "2.2.0") =
     if (version.contains("cdh4")) Seq("org.apache.hadoop" % "hadoop-client" % "2.0.0-mr1-cdh4.6.0" % "provided" exclude("asm", "asm"),
                                       "org.apache.hadoop" % "hadoop-core"   % "2.0.0-mr1-cdh4.6.0" % "provided",
                                       "org.apache.avro"   % "avro-mapred"   % "1.7.4" % "provided" classifier "hadoop2")
@@ -64,10 +63,6 @@ object depend {
                                            "org.apache.avro"   % "avro-mapred"   % "1.7.5-cdh5.0.0-beta-2" % "provided")
 
     else sys.error(s"unsupported hadoop version, can not build for $version")
-
-  // A desperate attempt to fix frequent SBT compiler errors by ensure we _always_ depend on these in the same order
-  def hadoopPack(version: String) =
-    hadoop(version) ++ scoobi(version) ++ poacher(version)
 
   val resolvers = Seq(
       Resolver.sonatypeRepo("releases"),

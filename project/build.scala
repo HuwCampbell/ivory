@@ -65,7 +65,7 @@ object build extends Build {
   , settings = standardSettings ++ lib("api") ++ mimaDefaultSettings ++ Seq[Settings](
       name := "ivory-api"
     , previousArtifact := Some("com.ambiata" %% "ivory-api" % "1.0.0-cdh5-20140703185823-2efc9c3")
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoopPack(version.value) ++ depend.slf4j)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.slf4j)
   )
   .dependsOn(operation)
 
@@ -77,7 +77,7 @@ object build extends Build {
     , fork in run := true
     , run in Compile <<= Defaults.runTask(fullClasspath in Compile, mainClass in (Compile, run), runner in (Compile, run))
     , javaOptions in run <++= (fullClasspath in Runtime).map(cp => Seq("-cp", sbt.Attributed.data(cp).mkString(":")))
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoopPack(version.value) ++ depend.caliper)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.caliper)
   )
   .dependsOn(api)
 
@@ -130,7 +130,7 @@ object build extends Build {
       -keepclassmembers class * { ** serialVersionUID; }
     """
     , javaOptions in (Proguard, ProguardKeys.proguard) := Seq("-Xmx2G")
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.hadoopPack(version.value) ++ depend.specs2 ++ depend.slf4j)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.hadoop(version.value)  ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.slf4j)
       ++ addArtifact(Artifact("ivory", "dist", "tgz"), packageZipTarball in Universal)
       ++ addArtifact(Artifact("ivory", "dist", "zip"), packageBin in Universal)
   )
@@ -143,8 +143,8 @@ object build extends Build {
       name := "ivory-core"
     , libraryDependencies ++= (if (scalaVersion.value.contains("2.10")) Seq(compilerPlugin("org.scalamacros" %% "paradise" % "2.0.0" cross CrossVersion.full)) else Nil)
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++
-                                               depend.thrift ++ depend.hadoopPack(version.value) ++ depend.reflect(scalaVersion.value) ++
-                                               depend.saws)
+                                               depend.thrift ++ depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value) ++
+                                               depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.saws)
   )
   .dependsOn(data, data % "test->test")
 
@@ -155,7 +155,7 @@ object build extends Build {
       name := "ivory-data"
     , libraryDependencies ++= (if (scalaVersion.value.contains("2.10")) Seq(compilerPlugin("org.scalamacros" %% "paradise" % "2.0.0" cross CrossVersion.full)) else Nil)
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.specs2 ++
-                                               depend.hadoopPack(version.value) ++ depend.reflect(scalaVersion.value))
+                                               depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value))
   )
 
   lazy val operation = Project(
@@ -163,7 +163,7 @@ object build extends Build {
   , base = file("ivory-operation")
   , settings = standardSettings ++ lib("operation") ++ Seq[Settings](
       name := "ivory-operation"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoopPack(version.value)++ depend.specs2 ++ depend.mundane)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.mundane)
   )
   .dependsOn(core, scoobi, storage, mr % "test->test", core % "test->test", scoobi % "test->test", storage % "test->test")
 
@@ -172,7 +172,7 @@ object build extends Build {
   , base = file("ivory-mr")
   , settings = standardSettings ++ lib("mr") ++ Seq[Settings](
       name := "ivory-mr"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.thrift ++ depend.mundane ++ depend.scalaz ++ depend.specs2 ++ depend.hadoopPack(version.value))
+    ) ++ Seq[Settings](libraryDependencies ++= depend.thrift ++ depend.mundane ++ depend.scalaz ++ depend.specs2 ++ depend.poacher(version.value) ++ depend.hadoop(version.value))
   )
   .dependsOn(core, core % "test->test")
 
@@ -190,7 +190,7 @@ object build extends Build {
   , base = file("ivory-scoobi")
   , settings = standardSettings ++ lib("scoobi") ++ Seq[Settings](
       name := "ivory-scoobi"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoopPack(version.value) ++ depend.saws ++ depend.specs2 ++ depend.mundane)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.poacher(version.value) ++ depend.scoobi(version.value) ++ depend.saws ++ depend.specs2 ++ depend.mundane)
   )
 .dependsOn(core, core % "test->test")
 
@@ -199,7 +199,7 @@ object build extends Build {
   , base = file("ivory-storage")
   , settings = standardSettings ++ lib("storage") ++ Seq[Settings](
       name := "ivory-storage"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz  ++ depend.hadoopPack(version.value) ++ depend.specs2 ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz  ++ depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.saws)
   )
   .dependsOn(core, data, scoobi, mr, core % "test->test",  scoobi % "test->test", data % "test->test")
 
