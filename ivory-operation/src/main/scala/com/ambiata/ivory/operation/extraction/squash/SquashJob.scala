@@ -139,7 +139,6 @@ object SquashJob {
       case Latest => Date.minValue
       // If no window is specified the only functions we should be applying will deal with a single value,
       // and should _always_ apply; hence the min date
-      // TODO We need to be accurate by month/year here
       case _      => window.cata(window => SnapshotWindows.startingDate(window, date), Date.minValue)
     }).int)
     fr
