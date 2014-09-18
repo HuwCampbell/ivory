@@ -10,257 +10,281 @@ ivory: (the ivories) the keys of a piano
 Overview
 --------
 
-*ivory* defines a specification for how to store feature data and provides a set of tools for
-querying it. It does not provide any tooling for producing feature data in the first place.
-All ivory commands run as MapReduce jobs so it assumed that feature data is maintained on HDFS.
+Ivory is a scalable and extensible data store for storing __facts__ and extracting __features__. It can
+be used within a large machine learning pipeline for normalising data and providing feeds to model
+training and scoring pipelines.
+
+Some interesting properties of Ivory are it:
+
+* Has no moving parts - just files on disk;
+* Is optimised for _scans_ not random access;
+* Is extensible along the dimension of features;
+* Is scalable by using HDFS or S3 as a backing store;
+* Is an immutable data store allowing version "roll backs".
 
 
-Repository
-----------
-
-The tooling provided operates on an *ivory repository*. An ivory repository is a convention for
-storing *fact sets*, feature *dictionaries* and *feature stores*. The directory structure is
-as follows:
-
-```
-ivory_repository/
-├── metadata
-│   ├── dictionaries
-│   │   ├── dictionary1
-│   │   └── dictionary2
-│   └── stores
-│       ├── feature_store1
-│       └── feature_store2
-└── factsets
-    ├── fact_set1
-    └── fact_set2
-```
-
-
-Fact Sets
----------
-
-A *fact set* is a single directory containing multiple *facts*, where a *fact* defines:
-
-1. The *entity* the feature value is associated with;
-2. An *attribute* specifying which feature;
-4. The *value* itself;
-3. The *time* from which the feature value is valid.
-
-That is, a fact is simply an *EAVT* record. Multiple facts form a fact set, which is described within
-*EAVT* files that are partitioned by *namespace* and *date*. For example:
-
-```
-my_fact_set/
-├── widgets
-│   └── 2014
-│       └── 01
-│           ├── 09
-│           │   ├── eavt-00000
-│           │   ├── eavt-00001
-│           │   └── eavt-00002
-│           ├── 10
-│           │   ├── eavt-00000
-│           │   ├── eavt-00001
-│           │   └── eavt-00002
-│           └── 11
-│               ├── eavt-00000
-│               ├── eavt-00001
-│               └── eavt-00002
-└── demo
-    └── 2013
-        └── 01
-            └── 09
-                ├── eavt-00000
-                └── eavt-00001
-
-```
-
-In this fact set, facts are partitioned across two namespaces: `widgets` and `demo`. The *widget* facts
-are spread across three dates, while *demographic* facts are constrained to one. Note also that
-a given namespace-partition can contain multiple EAVT files.
-
-EAVT files are simply pipe-delimited text files with one EAVT record per line. For example, a line in
-the file `my_fact_set/widgets/2013/01/10/eavt-00001` might look like:
-
-```
-928340|inbound.count.1W|35|43200
-```
-
-That is, the fact: "feature attribute `inbound.count.1W` has value `35` for entity 928340 as of
-10/01/2014 12:00". The time component of the record is the number of seconds into the day specified by
-the partition the record belongs to. Note that Ivory does not enforce or specify a time zone for the time component
-of a fact. A time zone should be chosen that is reflective of the domain, however, for a given Ivory
-feature store, the time zone for all facts should be the same.
-
-
-Feature store
--------------
-
-A feature store is comprised of one or more *fact sets*, which is represented by a text file containing
-an ordered list of references to fact sets. For example:
-
-```
-00005
-00004
-00003
-widget_fixed
-00002
-00001
-00000
-```
-
-The ordering is important as it allows facts to be overriden. When a feature store is queried, if multiple facts
-with the same entity, attribute and time are identified, the value from the fact contained in the most recent fact
-set will be used, where most recent means listed higher in the feature store file.
-
-Because a feature store can be specified by just referencing fact sets, Ivory can support poor-man versioning giving
-rise to use cases such as:
-
-* overriding buggy values with corrected ones;
-* combining *production* features with *ad-hoc* features.
-
-
-Dictionary
-----------
-
-All features are identified by their name and namespace. In the example fact above, the feature is `widgets:inbound.count.1W`
-where `widgets` is the namespace and `inbound.count.1W` is the name. With Ivory we must also associate with any namespace-name
-feature identifier the following metadata:
-
-* An *encoding* specifying the type encoding of a feature value:
-    * `boolean`
-    * `int`
-    * `double`
-    * `string`
-
-* A *classification* type specifying how a feature value can be semantically interpreted and used:
-    * `numerical`
-    * `categorical`
-
-* A human-readable *description*.
-
-In Ivory, feature metadata is separated from the features store (facts) in its own set of text files known
-as *feature dictionaries*. Dictionary text files are also pipe-delimited and of the following form:
-
-```
-namespace|name|encoding|type|description
-```
-
-So for the fact above, we could specify a dictionary entry such as:
-
-```
-widgets|inbound.count.1W|int|numerical|Count in the last week
-```
-
-Other dictionary entries might look like the following:
-
-```
-demo|gender|string|categorical|Gender
-demo|postcode|string|categorical|Postcode
-```
-
-Given a dictionary, we can use Ivory to validate facts in a feature store. The `validate` command will
-check that the encoding types specified for features in the dictionary are consistent with facts:
-
-```
-> ivory validate --feature-store feature_store.txt --dictionary feature_dictionary.txt
-```
-
-We can also use Ivory to generate statistics for the values of specific features across a feature store using the
-`inspect` command. This will compute statistics such as density, ranges (for numerical features), factors (for
-categorical features), historgrams, means, etc. Inspections can filter both the features of interest as well which
-facts to considered by time:
-
-```
-> ivory inspect --feature-store feature_store.txt --dictionary feature_dictionary.txt --features features.txt --start-time '2013-01-01' --end-time '2014-01-01'
-```
-
-
-Querying
+Concepts
 --------
 
-Ivory supports two types of queries: *snapshots* and *chords*.
+An Ivory __repository__ stores __facts__. A fact is comprised of 4 components: __entity__,
+__attribute__, __value__, and __time__. That is, a *fact* represents the *value* of an
+*attribute* associated with an *entity*, which is known to be valid at some point in *time*.
+Examples of facts are:
+
+ Entity     | Attribute   | Value     | Time
+ -----------|-------------|-----------|---------------
+ cust_00678 | gender      | M         | 2011-03-17
+ acnt_1234  | balance     | 342.17    | 2014-06-01
+ car_98732  | make        | Toyota    | 2012-09-25
 
 
-A `snapshot` query is used to extract the feature values for entities at a certain point in time. Snapshotting can filter
-the set of features and/or entities considered. By default the output is in *EAVT* format, but can be output in
-row-oriented form (i.e. column per feature) using the `--pivot` option. When a  `snapshot` query is performed, the most
-recent feature value for a given entity-attribute, with respect to the snapshot time, will be returned in the output:
+Whilst there is no technical limitation, a given Ivory repository should only store facts
+for a single class of entity. For example, you wouldn't store both "customer" and "account"
+facts in the same Ivory repository.
 
-```
-# get a snapshot of values for specific features and entities as of 1 Nov 2013
-> ivory snapshot --feature-store feature_store.txt --dictionary feature_dictionary.txt --features features.txt --entities entities.txt --time '2013-11-01' --output nov2013snapshot
+The facts stored in an Ivory repository are *sparse*. That is, for each entity, there is no
+requirement or expectation that a fact exists for all attributes or any fixed time intervals.
+For example, a given attribute may only be present in a single fact associated with one entity
+whilst other attributes may be present in facts associated with the majority or all entities.
+Therefore, an Ivory repository is *extensible* along 3 dimensions: entity, attribute and time.
 
-# Pivot the table to be row oriented
-> ivory snapshot --pivot --feature-store feature_store.txt --dictionary feature_dictionary.txt --features features.txt --entities entities.txt --time '2013-11-01' --output nov2013snapshot
-```
+Facts are ingested into an Ivory repository in sets called __factsets__. A factset can include
+facts for multiple entities, across multiple attributes, spanning any set of times. For example,
+a factset for a *customer* Ivory repository might look like the following:
 
-A `chord` query is used to extract the feature values for entities at different points in time - *instances*. That is, for each entity, a
-different time is specified. In fact, multiple times can be specified per entity. To invoke a chord query, a file of *instance
-descriptors* must be specified that are entity-time pairs, for example:
-
-```
-928340|2013-11-01
-928340|2013-11-08
-928316|2013-11-08
-928316|2013-11-15
-```
-
-Like `snapshot`, `chord` by default will output in *EAVT* format, but can be output in row-oriented form using the `--pivot` option:
-
-```
-> ivory chord --feature-store feature_store.txt --dictionary feature_dictionary.txt --instances instances.txt --output nov2013snapshot
-
-> ivory chord --pivot --feature-store feature_store.txt --dictionary feature_dictionary.txt --instances instances.txt --output nov2013snapshot
-```
+ Entity     | Attribute   | Value     | Time
+ -----------|-------------|-----------|---------------
+ cust_00678 | gender      | M         | 2011-03-17
+ cust_00678 | zipcode     | 12345     | 2011-03-17
+ cust_00435 | mthly_spend | 432.00    | 2014-05-01
+ cust_00123 | gender      | F         | 2009-02-26
+ cust_00123 | mthly_spend | 220.50    | 2014-05-01
 
 
-Data Generation
----------------
+For a factset to be ingested successfully, all referenced attributes must be declared in the
+repository's __dictionary__. The dictionary is a declaration list of all known attributes
+and metadata associated with them. For example:
 
-Ivory supports generating random dictionaries and fact sets which can be used for testing.
+ Namespace   | Name        | Encoding  | Description
+ ------------|-------------|-----------|--------------------------------------
+ demographic | gender      | string    | The customer's gender
+ demographic | zipcode     | string    | The customer's zipcode
+ account     | mthly_spend | double    | The customer's account spend in the last month
 
-To generate a random dictionary, you need to specify the number of features, and an output location:
+Note that an attribute is identified by a *name* and *namespace*. Namespaces are used as
+a data partitioning mechanism internally. As a general rule of thumb, attributes that are
+related should be contained in the same namespace. Similarly, unrelated attributes should
+be contained in separate namespaces.
 
-```
-> ivory generate-dictionary --features 10000 --output random_dictionary
-```
+Also note that the source-of-truth for a dictionary is not the Ivory repository itself. The
+dictionary is typically maintained in a text file (under version control) or a database, and
+is periodically *imported* into an Ivory repository.
 
-This outputs two files:
+Facts in Ivory are intended to be queried in very particular ways. Specifically, the intention
+is to extract per-entity __feature vectors__. Two types of extractions can be performed:
 
-1. the dictionary itself.
-2. a feature flag file specifying the sparcity and frequency of each feature, where sparcity is a double between 0.0 and 1.0, and frequency is one of `daily`, `weekly`, or `monthly`.
+1. __Snapshots__: extract the latest values for attributes across entities with respect to
+a given point in time;
+2. __Chords__: extract the latest values for attributes across entities with respect to given
+points in time for each entity.
 
-The format of the feature flag file is:
+At a high-level, chord extractions are typically performed when preparing feature vectors for
+model training. Snapshot extractions are typically performed when preparing feature vectors for
+model scoring.
 
-```
-namespace|name|sparcity|frequency
-```
-
-An example is:
-```
-widgets|inbound.count.1W|0.4|weekly
-demo|postcode|0.7|monthly
-```
-
-To generate random facts, you need to specify a dictionary, feature flag file, number of entities, time range, number of fact sets, and output location:
-
-```
-> ivory generate-facts --dictionary feature_dictionary.txt --flags feature_flags.txt --entities 10000000 --time-range 2012-01-01_to_2012-12-31 --factsets 3 --output random_factsets
-```
-
-This outputs a fact set partitioned by *namespace* and *date* so it can be used as part of a feature store.
-
+Finally, an Ivory repository is a versioned immutable data store. Any time a repository is altered
+(i.e. ingesting a factset or importing a dictionary), a new __version__ of the repository
+is created. This allows extractions to be repeatedly performed against specific versions of a
+repository without being affected by further repository updates.
 
 
-Versioning
+Installing
 ----------
 
-The format of fact sets are versioned. This allows the format of fact sets to be modified in the future but still maintain feature stores that
-reference fact sets persisted in an older format.
+### Ivory
 
-A fact set format version is specified by a `.version` file that is stored at the root directory of a given fact set.
+Ivory can be installed by running the following commands:
+
+```
+> curl -OfsSL https://raw.githubusercontent.com/ambiata/ivory/master/bin/install
+> chmod a+x install
+> ./install /ivory/install/path
+```
+
+Once installed, add `/ivory/install/path/bin` to the `$PATH` environment variable. You can then
+run:
+
+```
+> ivory --help
+```
+
+### Dependencies
+
+The `ivory` command requires the `hadoop` launch script to be on the path. If you don't already
+have Hadoop installed, you can download a distribution such as
+[CDH5](http://archive.cloudera.com/cdh5/cdh/5/hadoop-2.2.0-cdh5.0.0-beta-2.tar.gz).
+
+
+### Settings
+
+Internally Ivory uses Snappy compression. Because it can be sometimes difficult to get the Snappy
+native libraries install on OS X. By setting `export IVORY_NO_CODEC=true`, the use of Snappy
+compression can be disabled. Note, this should not be set when running Ivory in production.
+
+
+An example
+----------
+
+In this example we will be creating an Ivory repository for the customers of a fictious
+online payment provider called __HipPay__. Using the `ivory` command line tool, we will
+create and interact with an Ivory repository. First we can create a new Ivory repository:
+
+```
+> ivory create-repository --path hippay
+```
+
+Before we can begin ingesting factsets, we first need to create a dictionary and
+import it into the repository:
+
+```
+> cat dictionary.psv
+demographic:gender|encoding=string|description=The customers's gender
+demographic:age|encoding=int|description=The customer's age in years
+demographic:state_of_residence|encoding=string|description=The state of the customer's residential address
+account:type|encoding=string|description=The type of the cutomer's account
+account:balance|encoding=double|description=The customer's account balance
+payment:total_outgoing_1m|encoding=int|description=Number of outgoing payments in the past 1 month
+payment:total_incoming_1m|encoding=int|description=Number of incoming payments in the past 1 month
+
+> ivory import-dictionary --repo hippay --path hippay_dict.psv
+```
+
+We can view the repository's dictionary at any point in time using the `cat-dictionary`
+command:
+
+```
+> ivory cat-dictionary --repo ./hippay
+payment:total_incoming_1m|encoding=int|description=Number of incoming payments in the past 1 month
+payment:total_outgoing_1m|encoding=int|description=Number of outgoing payments in the past 1 month
+account:balance|encoding=double|description=The customer's account balance
+account:type|encoding=string|description=The type of the cutomer's account
+demographic:state_of_residence|encoding=string|description=The state of the customer's residential address
+demographic:age|encoding=int|description=The customer's age in years
+demographic:gender|encoding=string|description=The customers's gender
+```
+
+When signing up, HipPay customers have the option of specifying their gender and age. These
+can be used as facts and ingested into the Ivory repository:
+
+```
+> cat factset1.psv
+mike|gender|M|2013-04-26
+jill|gender|F|2012-07-19
+jill|age|25|2012-07-19
+fred|gender|M|2014-02-11
+fred|age|37|2014-02-11
+mary|age|42|2013-11-24
+
+> ivory ingest --repo ./hippay --input factset1.psv --namespace demographic -z "Australia/Sydney"
+```
+
+Note that the facts do not specify attribute namespaces. In this factset, because all facts
+are for attributes in the `demographic` namespace, we simply specify that as a command line
+argument.
+
+Having ingested a factset into the repository, we can run our first snapshot extract
+for the arbitrary date, 2014-06-01:
+
+```
+> ivory snapshot --repo ./hippay --missing-value 'NULL' --delim ',' --date 2014-06-01 --output dense:psv=snapshot_20140601
+
+> cat snapshot_20140601/out*
+fred,NULL,NULL,37,M,NULL,NULL,NULL
+jill,NULL,NULL,25,F,NULL,NULL,NULL
+mary,NULL,NULL,42,NULL,NULL,NULL,NULL
+mike,NULL,NULL,NULL,M,NULL,NULL,NULL
+
+> cat snapshot_20140601/.dictionary
+0,account|balance|double||The customer's account balance|NULL
+1,account|type|string||The type of the cutomer's account|NULL
+2,demographic|age|int||The customer's age in years|NULL
+3,demographic|gender|string||The customers's gender|NULL
+4,demographic|state_of_residence|string||The state of the customer's residential address|NULL
+5,payment|total_incoming_1m|int||Number of incoming payments in the past 1 month|NULL
+6,payment|total_outgoing_1m|int||Number of outgoing payments in the past 1 month|NULL
+```
+
+A snapshot will produce feature vectors for each of the entities in the repository. It is accompanied
+by a "dictionary" file that specifies the feature vector column ordering.
+
+We can of course extract a snapshot at a different date as well, for example, 2014-01-01:
+
+```
+> ivory snapshot --repo ./hippay --missing-value 'NULL' --delim ',' --date 2014-01-01 --output dense:psv=snapshot_20140101
+
+> cat snapshot_20140101/out*
+jill,NULL,NULL,25,F,NULL,NULL,NULL
+mary,NULL,NULL,42,NULL,NULL,NULL,NULL
+mike,NULL,NULL,NULL,M,NULL,NULL,NULL
+```
+
+Note that in this case, becasue `fred` has no facts prior to 2014-01-01, there is no feature vector
+for him in the extract.
+
+At any point in time we can ingest additional factsets:
+
+```
+> cat factset2.psv
+mike|type|BASIC|2013-04-26
+jill|type|BASIC|2012-07-19
+fred|type|XTREME|2014-02-11
+mary|type|STANDARD|2013-11-24
+
+> ivory ingest --repo ./hippay --input factset2.psv -z "Australia/Sydney" --namespace account
+```
+
+Now if we extract a snapshot at 2014-06-01 again, we can see that the `type` column is now populated:
+
+```
+> ivory snapshot --repo ./hippay --missing-value 'NULL' --delim ',' --date 2014-06-01 --output dense:psv=snapshot_20140601.2
+
+> cat snapshot_20140601.2/out*
+fred,NULL,XTREME,37,M,NULL,NULL,NULL
+jill,NULL,BASIC,25,F,NULL,NULL,NULL
+mary,NULL,STANDARD,42,NULL,NULL,NULL,NULL
+mike,NULL,BASIC,NULL,M,NULL,NULL,NULL
+```
+
+In the above factset you will notice a `type` value of `XTREME`. It turns out that this is
+a data generation bug and should actually be `EXTREME`. We can fix this fact by ingesting
+a new factset with a corrected fact. If we then extract the snapshot again, we will see that
+the value has been corrected:
+
+```
+> cat factset3.psv
+fred|type|EXTREME|2014-02-11
+
+> ivory ingest --repo ./hippay --input factset3.psv -z "Australia/Sydney" --namespace account
+
+> ivory snapshot --repo ./hippay --missing-value 'NULL' --delim ',' --date 2014-06-01 --output dense:psv=snapshot_20140601.3
+
+> cat snapshot_20140601.3/out*
+fred,NULL,EXTREME,37,M,NULL,NULL,NULL
+jill,NULL,BASIC,25,F,NULL,NULL,NULL
+mary,NULL,STANDARD,42,NULL,NULL,NULL,NULL
+mike,NULL,BASIC,NULL,M,NULL,NULL,NULL
+```
+
+
+Coming soon
+-----------
+
+* Transparent interoperability between different filesystems (HDFS, S3, local)
+* Improved dictionary import formats
+* Virtual features
+* Repository forking
+* Feature selection
+* Improved fact validation on ingest
 
 
 Further Documentation
@@ -280,9 +304,9 @@ Further Documentation
 Contributing and Issues
 -----------------------
 
-All bugs and feature requests can be raised as [github issues](https://github.com/ambiata/ivory/issues).
+All bugs and feature requests can be raised as [GitHub issues](https://github.com/ambiata/ivory/issues).
 
-All contributions are via [github pull requests](https://help.github.com/articles/using-pull-requests). In general:
+All contributions are via [GitHub pull requests](https://help.github.com/articles/using-pull-requests). In general:
  - Try to provide enough detail as to what you are adding / fixing.
  - Add tests for any new features / bug fixes.
  - Make sure you are up-to-date with the latest commit on master.
@@ -317,3 +341,5 @@ Ivory is developed by the engineering team at [Ambiata](http://ambiata.com/), fe
 > Charles O'Farrell
 > <charles.ofarrell@ambiata.com>
 > [@charlesofarrell](https://twitter.com/charlesofarrell)
+
+You can also follow the project on Twitter [@ivoryproject](https://twitter.com/ivoryproject).
