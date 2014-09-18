@@ -18,7 +18,7 @@ Reference
   Can parse s3 URIs                               $s3
 
 """
-  lazy val conf = IvoryConfiguration(ScoobiConfiguration())
+  lazy val conf = IvoryConfiguration.fromScoobiConfiguration(ScoobiConfiguration())
 
   def local =
     Reference.fromUri("file:///some/path", conf).toEither must beRight (new Reference(

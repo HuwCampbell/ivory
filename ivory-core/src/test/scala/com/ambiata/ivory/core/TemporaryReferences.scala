@@ -34,7 +34,7 @@ case class TemporaryLocationDir(location: Location, s3client: AmazonS3Client, co
   def clean: ResultTIO[Unit] = location match {
     case HdfsLocation(path)      => PoacherHdfs.deleteAll(new Path(path)).run(conf)
     case LocalLocation(path)     => Directories.delete(FilePath(path))
-    case S3Location(bucket, key) => SawsS3.deleteAll(bucket,key).executeT(s3client)
+    case S3Location(bucket, key) => SawsS3.deleteAll(bucket, key).executeT(s3client)
   }
 }
 
@@ -42,7 +42,7 @@ case class TemporaryLocationFile(location: Location, s3client: AmazonS3Client, c
   def clean: ResultTIO[Unit] = location match {
     case HdfsLocation(path)      => PoacherHdfs.delete(new Path(path)).run(conf)
     case LocalLocation(path)     => Files.delete(FilePath(path))
-    case S3Location(bucket, key) => SawsS3.deleteAll(bucket,key).executeT(s3client)
+    case S3Location(bucket, key) => SawsS3.deleteAll(bucket, key).executeT(s3client)
   }
 }
 
@@ -57,31 +57,31 @@ object TemporaryReferences {
   case object S3    extends TemporaryType
   case object Hdfs  extends TemporaryType
 
-  implicit val TemporaryReferenceResource = new Resource[TemporaryReference] {
+  implicit val TemporaryReferenceResource: Resource[TemporaryReference] = new Resource[TemporaryReference] {
     def close(temp: TemporaryReference) = temp.clean.run.void // Squelch errors
   }
 
-  implicit val TemporaryStoreResource = new Resource[TemporaryStore] {
+  implicit val TemporaryStoreResource: Resource[TemporaryStore] = new Resource[TemporaryStore] {
     def close(temp: TemporaryStore) = temp.clean.run.void // Squelch errors
   }
 
-  implicit val TemporaryRepositoryResource = new Resource[TemporaryRepository] {
+  implicit val TemporaryRepositoryResource: Resource[TemporaryRepository] = new Resource[TemporaryRepository] {
     def close(temp: TemporaryRepository) = temp.clean.run.void // Squelch errors
   }
 
-  implicit val TemporaryLocationDirResource = new Resource[TemporaryLocationDir] {
+  implicit val TemporaryLocationDirResource: Resource[TemporaryLocationDir] = new Resource[TemporaryLocationDir] {
     def close(temp: TemporaryLocationDir) = temp.clean.run.void // Squelch errors
   }
 
-  implicit val TemporaryLocationFileResource = new Resource[TemporaryLocationFile] {
+  implicit val TemporaryLocationFileResource: Resource[TemporaryLocationFile] = new Resource[TemporaryLocationFile] {
     def close(temp: TemporaryLocationFile) = temp.clean.run.void // Squelch errors
   }
 
-  implicit val TemporaryClusterResource = new Resource[TemporaryCluster] {
+  implicit val TemporaryClusterResource: Resource[TemporaryCluster] = new Resource[TemporaryCluster] {
     def close(temp: TemporaryCluster) = temp.clean.run.void // Squelch errors
   }
 
-  val conf = IvoryConfiguration(ScoobiConfiguration())
+  val conf = IvoryConfiguration.fromScoobiConfiguration(ScoobiConfiguration())
 
   def withReferenceFile[A](storeType: TemporaryType)(f: ReferenceIO => ResultTIO[A]): ResultTIO[A] = {
     val reference = storeType match {

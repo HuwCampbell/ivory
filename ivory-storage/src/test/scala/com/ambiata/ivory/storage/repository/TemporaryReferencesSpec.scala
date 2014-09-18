@@ -39,7 +39,7 @@ class TemporaryReferencesSpec extends Specification { def is = s2"""
 
 """
 
-  val conf = IvoryConfiguration(ScoobiConfiguration())
+  val conf = IvoryConfiguration.fromScoobiConfiguration(ScoobiConfiguration())
 
   def s3Repository =
     withRepository(S3Repository("ambiata-dev-view", s3TempPath, conf))
@@ -86,7 +86,7 @@ class TemporaryReferencesSpec extends Specification { def is = s2"""
   def s3DirLocation =
     withLocationDir(S3Location("ambiata-dev-view", s3TempPath.path))
 
-  def withRepository(repository: Repository): MatchResult[ResultTIO[(Boolean, Boolean)]] = {
+  def withRepository(repository: Repository): MatchResult[ResultTIO[(Boolean, Boolean)]] =
     (for {
       x <- TemporaryReferences.runWithRepository(repository)(repo => for {
         _ <- Repositories.create(repo)
@@ -94,41 +94,38 @@ class TemporaryReferencesSpec extends Specification { def is = s2"""
       } yield x)
       y <- repository.toStore.exists(Repository.root </> ".allocated")
     } yield (x,y)) must beOkValue(true -> false)
-  }
 
-  def withStore(store: Store[ResultTIO]): MatchResult[ResultTIO[(Boolean, Boolean)]] = {
+  def withStore(store: Store[ResultTIO]): MatchResult[ResultTIO[(Boolean, Boolean)]] =
     (for {
       x <- TemporaryReferences.runWithStore(store)(tmpStore => for {
-        _ <- tmpStore.utf8.write(Repository.root </> "test", "")
-        x <- tmpStore.exists(Repository.root </> "test")
-      } yield x)
+        _   <- tmpStore.utf8.write(Repository.root </> "test", "")
+        dir <- tmpStore.exists(Repository.root </> "test")
+      } yield dir)
       y <- store.exists(Repository.root </> "test")
     } yield (x,y)) must beOkValue((true,false))
-  }
 
-  def withReferenceFile(reference: ReferenceIO): MatchResult[ResultTIO[(Boolean, Boolean)]] = {
+  def withReferenceFile(reference: ReferenceIO): MatchResult[ResultTIO[(Boolean, Boolean)]] =
     (for {
       x <-TemporaryReferences.runWithReference(reference)(ref => for {
-        _ <- ref.store.utf8.write(ref.path, "")
-        x <- ref.store.exists(ref.path)
-      } yield x)
+        _   <- ref.store.utf8.write(ref.path, "")
+        dir <- ref.store.exists(ref.path)
+      } yield dir)
       y <- reference.store.exists(reference.path)
     } yield (x, y)) must beOkValue((true,false))
-  }
 
-  def withLocationFile(location: Location): MatchResult[ResultTIO[(Boolean, Boolean)]] = {
+  def withLocationFile(location: Location): MatchResult[ResultTIO[(Boolean, Boolean)]] =
     (for {
       x <- TemporaryReferences.runWithLocationFile(location)(loc => for {
-        _ <- loc match {
+        _   <- loc match {
           case LocalLocation(s) => Files.write(FilePath(s), "")
           case S3Location(b, k) => S3.storeObject(S3Path.filePath(b, k), S3Path.filePath(b, k).toFile).executeT(conf.s3Client)
-          case HdfsLocation(s) => Hdfs.writeWith(FilePath(s).toHdfs, out => Streams.write(out, "")).run(conf.configuration)
+          case HdfsLocation(s)  => Hdfs.writeWith(FilePath(s).toHdfs, out => Streams.write(out, "")).run(conf.configuration)
         }
-        x <- checkFileLocation(loc)
-      } yield x)
+        dir <- checkFileLocation(loc)
+      } yield dir)
       y <- checkFileLocation(location)
     } yield (x, y)) must beOkValue((true,false))
-  }
+
 
   def checkFileLocation(location: Location): ResultTIO[Boolean] = location match {
     case LocalLocation(s) => Files.exists(FilePath(s))
@@ -136,19 +133,18 @@ class TemporaryReferencesSpec extends Specification { def is = s2"""
     case HdfsLocation(s)  => Hdfs.exists(FilePath(s).toHdfs).run(conf.configuration)
   }
 
-  def withLocationDir(location: Location): MatchResult[ResultTIO[(Boolean, Boolean)]] = {
+  def withLocationDir(location: Location): MatchResult[ResultTIO[(Boolean, Boolean)]] =
     (for {
       x <- TemporaryReferences.runWithLocationDir(location)(loc => for {
-        _ <- loc match {
+        _   <- loc match {
           case LocalLocation(s) => Directories.mkdirs(FilePath(s))
           case S3Location(b, k) => S3.storeObject(S3Path.filePath(b, k), S3Path.filePath(b, k).toFile).executeT(conf.s3Client)
           case HdfsLocation(s)  => Hdfs.mkdir(FilePath(s).toHdfs).run(conf.configuration)
         }
-        x <- checkDirLocation(loc)
-      } yield x)
+        dir <- checkDirLocation(loc)
+      } yield dir)
       y <- checkDirLocation(location)
     } yield (x, y)) must beOkValue((true,false))
-  }
 
   def checkDirLocation(location: Location): ResultTIO[Boolean] = location match {
     case LocalLocation(s) => Directories.exists(FilePath(s))

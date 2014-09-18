@@ -34,10 +34,10 @@ sealed trait Repository {
   def version(set: FactsetId): FilePath = factset(set) </> ".version"
 }
 
-case class HdfsRepository(root: FilePath, repositoryConfiguration: IvoryConfiguration) extends Repository {
-  def configuration       = repositoryConfiguration.configuration
-  def scoobiConfiguration = repositoryConfiguration.scoobiConfiguration
-  def codec               = repositoryConfiguration.codec
+case class HdfsRepository(root: FilePath, @transient ivory: IvoryConfiguration) extends Repository {
+  def configuration       = ivory.configuration
+  def scoobiConfiguration = ivory.scoobiConfiguration
+  def codec               = ivory.codec
 
   def toStore = HdfsStore(configuration, root)
 }
@@ -52,8 +52,8 @@ case class LocalRepository(root: FilePath) extends Repository {
  * tmpDirectory is a transient directory (on Hdfl) that is used to import data and
  * convert them to the ivory format before pushing them to S3
  */
-case class S3Repository(bucket: String, root: FilePath, repositoryConfiguration: IvoryConfiguration) extends Repository {
-  def toStore = S3Store(bucket, root, repositoryConfiguration.s3Client, repositoryConfiguration.s3TmpDirectory)
+case class S3Repository(bucket: String, root: FilePath, @transient ivory: IvoryConfiguration) extends Repository {
+  def toStore = S3Store(bucket, root, ivory.s3Client, ivory.s3TmpDirectory)
 }
 
 object Repository {
@@ -82,10 +82,10 @@ object Repository {
     HdfsRepository(path, configuration)
 
   def fromHdfsPath(path: FilePath, configuration: Configuration): HdfsRepository =
-    HdfsRepository(path, IvoryConfiguration(configuration))
+    HdfsRepository(path, IvoryConfiguration.fromConfiguration(configuration))
 
   def fromHdfsPath(path: FilePath, scoobiConfiguration: ScoobiConfiguration): HdfsRepository =
-    HdfsRepository(path, IvoryConfiguration(scoobiConfiguration))
+    HdfsRepository(path, IvoryConfiguration.fromScoobiConfiguration(scoobiConfiguration))
 
   def fromLocalPath(path: FilePath): LocalRepository =
     LocalRepository(path)

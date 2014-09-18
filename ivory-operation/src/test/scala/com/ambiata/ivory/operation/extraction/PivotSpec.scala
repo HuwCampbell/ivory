@@ -70,7 +70,7 @@ class PivotSpec extends Specification with SampleFacts with ThrownExpectations {
 
   def extractPivot(repository: HdfsRepository, outPath: FilePath): ResultTIO[List[String]] =
     for {
-      pivot <- Reference.fromUriFilePathResultTIO(outPath, repository.repositoryConfiguration)
+      pivot <- Reference.fromUriFilePathResultTIO(outPath, repository.ivory)
       meta  <- Snapshot.takeSnapshot(repository, Date.fromLocalDate(LocalDate.now), incremental = false)
       input =  repository.toReference(Repository.snapshot(meta.snapshotId))
       _     <- Pivot.createPivot(repository, input, pivot, '|', "NA")

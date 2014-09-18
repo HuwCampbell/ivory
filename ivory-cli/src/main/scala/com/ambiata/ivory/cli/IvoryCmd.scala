@@ -56,7 +56,7 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
 
   private def parseAndRun(args: Seq[String], result: A => ResultTIO[List[String]]): IO[Option[Unit]] = {
     parser.parse(args, initial)
-    .traverse(result andThen {
+      .traverse(result andThen {
       _.run.map(_.fold(_.foreach(println), e => { println(s"Failed! - ${Result.asString(e)}"); sys.exit(1) }))
     })
   }

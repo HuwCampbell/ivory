@@ -7,19 +7,6 @@ import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.compress.CompressionCodec
 
-/**
- * # Configuration
- * The current implementation of using lazy functions should change to along the lines of the follow
- *
- * - Parse CLI args
- * - Construct data structures (No parsing beyond this point)
- * - Run operations with those data structures so that only the configuration that is needed for a particular
- *   operation is passed to that operation
- *
- */
-
-
-
 case class IvoryConfiguration(
     arguments: List[String],
     s3Client: AmazonS3Client,
@@ -34,7 +21,7 @@ case class IvoryConfiguration(
 }
 
 object IvoryConfiguration {
-  def apply(configuration: Configuration): IvoryConfiguration =
+  def fromConfiguration(configuration: Configuration): IvoryConfiguration =
     new IvoryConfiguration(
       arguments = List(),
       s3Client = Clients.s3,
@@ -42,7 +29,7 @@ object IvoryConfiguration {
       scoobi = () => ScoobiConfiguration(configuration),
       compressionCodec = () => None)
 
-  def apply(sc: ScoobiConfiguration): IvoryConfiguration =
+  def fromScoobiConfiguration(sc: ScoobiConfiguration): IvoryConfiguration =
     new IvoryConfiguration(
       arguments = List(),
       s3Client = Clients.s3,

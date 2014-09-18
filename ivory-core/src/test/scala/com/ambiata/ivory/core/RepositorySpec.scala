@@ -17,7 +17,7 @@ Repository Known Answer Tests
   Can parse default relative local URIs           $fragment
 
 """
-  lazy val conf = IvoryConfiguration(ScoobiConfiguration())
+  lazy val conf = IvoryConfiguration.fromScoobiConfiguration(ScoobiConfiguration())
 
   def hdfs =
     Repository.fromUri("hdfs:///some/path", conf).toEither must beRight((r: Repository) => r must beLike({

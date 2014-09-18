@@ -35,10 +35,10 @@ object Reference {
   }
 
   def fromUriResultTIO(uri: String, configuration: Configuration): ResultTIO[ReferenceIO] =
-    fromUriResultTIO(uri, IvoryConfiguration(configuration))
+    fromUriResultTIO(uri, IvoryConfiguration.fromConfiguration(configuration))
 
   def fromUriResultTIO(uri: String, scoobiConfiguration: ScoobiConfiguration): ResultTIO[ReferenceIO] =
-    fromUriResultTIO(uri, IvoryConfiguration(scoobiConfiguration))
+    fromUriResultTIO(uri, IvoryConfiguration.fromScoobiConfiguration(scoobiConfiguration))
 
   def fromUriFilePathResultTIO(uri: FilePath, repositoryConfiguration: IvoryConfiguration): ResultTIO[ReferenceIO] =
     fromUriResultTIO(uri.path, repositoryConfiguration)

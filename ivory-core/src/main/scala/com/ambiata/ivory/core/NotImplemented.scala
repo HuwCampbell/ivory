@@ -9,4 +9,7 @@ object NotImplemented {
 
   def virtualDictionaryFeature: Nothing =
     sys.error("Virtual features are not currently supported")
+
+  def unImplementedSyncOperation: Nothing =
+    sys.error("This is sync operation is not currently implemented")
 }
