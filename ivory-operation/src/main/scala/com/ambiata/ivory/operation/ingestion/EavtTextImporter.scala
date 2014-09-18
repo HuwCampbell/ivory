@@ -21,12 +21,11 @@ import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
  * This data + the "optimal" size is passed to the IngestJob to optimise the import
  */
 case class EavtTextImporter(repository: Repository,
-                            input: ReferenceIO,
                             namespace: Option[Name],
                             optimal: BytesQuantity,
                             format: Format) {
 
-  val  importFacts = { (factsetId: FactsetId, input: ReferenceIO, namespace: Option[Name], timezone: DateTimeZone) =>
+  val  importFacts = { (factsetId: FactsetId, input: ReferenceIO, timezone: DateTimeZone) =>
     val errorRef = repository.toReference(repository.errors </> factsetId.render)
 
     for {

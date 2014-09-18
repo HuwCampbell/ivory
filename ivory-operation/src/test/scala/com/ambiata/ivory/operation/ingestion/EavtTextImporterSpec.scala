@@ -107,7 +107,7 @@ class Setup(val directory: FilePath) extends MustThrownMatchers {
       for {
         inputPath  <- Reference.hdfsPath(input)
         errorsPath <- Reference.hdfsPath(errors)
-        _          <- EavtTextImporter(repository, input, namespace = None, optimal = 128.mb, format).
+        _          <- EavtTextImporter(repository, namespace = None, optimal = 128.mb, format).
                         runJob(repository, dictionary, FactsetId.initial, inputPath, errorsPath, List(ns1 -> 1.mb), DateTimeZone.getDefault)
         _ <- writeFactsetVersion(repository, List(FactsetId.initial))
       } yield ()
