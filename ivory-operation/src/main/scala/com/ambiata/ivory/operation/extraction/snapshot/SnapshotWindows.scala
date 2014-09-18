@@ -21,14 +21,15 @@ object SnapshotWindows {
   /**
    * Convert a Window to the largest possible number of days, regardless of the date in which the period ends.
    * This is used to calculate whether a fact should be captured in the snapshot.
+   * WARNING: Uses Joda - do not use from Hadoop
    */
-  def toDaysMax(window: Window): Int =
-    window.length * (window.unit match {
+  def startingDate(window: Window, date: Date): Date =
+    Date.fromLocalDate(date.localDate.minusDays(window.length * (window.unit match {
       case Days   => 1
       case Weeks  => 7
       case Months => 31
       case Years  => 366
-    })
+    })))
 
   /** WARNING: Uses Joda - do not use from Hadoop */
   def startingDate(window: Window, date: Date): Date =

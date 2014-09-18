@@ -31,7 +31,7 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
     ).map(_.withFeatureId(vdict.vdict.vd.source))
 
     val oldfacts = List(
-      fact.withDate(Date.fromLocalDate(fact.date.localDate.minusDays(SnapshotWindows.toDaysMax(vdict.window) + 1)))
+      fact.withDate(Date.fromLocalDate(SnapshotWindows.startingDate(vdict.window, fact.date).localDate.minusDays(1)))
     ).map(_.withFeatureId(vdict.vdict.vd.source))
 
     RepositoryBuilder.using { repo => for {
