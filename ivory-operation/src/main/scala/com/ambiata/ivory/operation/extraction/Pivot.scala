@@ -26,7 +26,7 @@ object Pivot {
     meta <- Snapshot.takeSnapshot(repository, date, incremental = true)
     dict <- Snapshot.dictionaryForSnapshot(repository, meta)
     ref   = repository.toReference(Repository.snapshot(meta.snapshotId))
-    _    <- createPivot(repository, repository.toReference(Repository.snapshot(meta.snapshotId)), output, delim, tombstone)
+    _    <- createPivotWithDictionary(repository, ref, output, dict, delim, tombstone)
   } yield ()
 
   /**
