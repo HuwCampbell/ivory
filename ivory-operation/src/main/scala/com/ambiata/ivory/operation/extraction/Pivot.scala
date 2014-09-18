@@ -2,6 +2,7 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.operation.pivot.PivotJob
+import com.ambiata.ivory.storage.legacy.SnapshotMeta
 import com.ambiata.ivory.storage.lookup.ReducerSize
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.mundane.control._
@@ -18,8 +19,7 @@ object Pivot {
   /**
    * Take a snapshot first then extract a pivot
    */
-  def createPivotFromSnapshot(repository: Repository, output: ReferenceIO, delim: Char, tombstone: String, date: Date): ResultTIO[Unit] = for {
-    meta <- Snapshot.takeSnapshot(repository, date, incremental = true)
+  def createPivotFromSnapshot(repository: Repository, output: ReferenceIO, delim: Char, tombstone: String, meta: SnapshotMeta): ResultTIO[Unit] = for {
     dict <- Snapshot.dictionaryForSnapshot(repository, meta)
     ref   = repository.toReference(Repository.snapshot(meta.snapshotId))
     _    <- createPivotWithDictionary(repository, ref, output, dict, delim, tombstone)

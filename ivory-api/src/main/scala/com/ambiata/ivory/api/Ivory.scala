@@ -80,6 +80,8 @@ object Ivory
   type ReferenceIO = com.ambiata.ivory.core.ReferenceIO
 
   val Extraction = com.ambiata.ivory.operation.extraction.Extraction
+  val SnapshotExtract = com.ambiata.ivory.operation.extraction.SnapshotExtract
+  val ChordExtract = com.ambiata.ivory.operation.extraction.ChordExtract
 
   type OutputFormat = com.ambiata.ivory.operation.extraction.OutputFormat
   val OutputFormat = com.ambiata.ivory.operation.extraction.OutputFormat

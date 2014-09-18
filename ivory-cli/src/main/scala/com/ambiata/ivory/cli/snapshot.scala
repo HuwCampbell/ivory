@@ -44,7 +44,7 @@ object snapshot extends IvoryApp {
       for {
         of   <- Extract.parse(configuration, c.formats)
         meta <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental)
-        _    <- Extraction.extract(of, repo.toReference(Repository.snapshot(meta.snapshotId))).run(IvoryRead.prod(repo))
+        _    <- Extraction.extract(of, SnapshotExtract(meta)).run(IvoryRead.prod(repo))
       } yield List(banner, s"Output path: ${meta.snapshotId}", "Status -- SUCCESS")
   })
 }
