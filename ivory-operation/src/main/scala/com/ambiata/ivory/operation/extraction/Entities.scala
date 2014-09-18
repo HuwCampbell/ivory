@@ -109,7 +109,7 @@ object Entities {
   private def parseLine(DatePattern: Regex): String => (String, Int) = (line: String) =>
     line.split("\\|").toList match {
       case h :: DatePattern(y, m, d) :: Nil => (h, Date.unsafeYmdToInt(y.toShort, m.toByte, d.toByte))
-      case _                                => sys.error("Can't parse the line "+line+". Expected: entity id|yyyy-MM-dd")
+      case _                                => Crash.error(Crash.DataIntegrity, "Can't parse the line "+line+". Expected: entity id|yyyy-MM-dd")
     }
 
 }

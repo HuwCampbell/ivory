@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.rename
 
-import com.ambiata.ivory.core.Prioritized
+import com.ambiata.ivory.core.{Crash, Prioritized}
 import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.SnapshotJob
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable
@@ -72,7 +72,7 @@ object RenameJob {
 
       /* run job */
       if (!job.waitForCompletion(true))
-        sys.error("ivory rename failed.")
+        Crash.error(Crash.ResultTIO, "ivory rename failed.")
 
       val group = job.getCounters.getGroup("ivory")
       RenameStats(group.findCounter(RenameJob.Keys.ReduceCounter).getValue)
