@@ -341,3 +341,5 @@ Ivory is developed by the engineering team at [Ambiata](http://ambiata.com/), fe
 > Charles O'Farrell
 > <charles.ofarrell@ambiata.com>
 > [@charlesofarrell](https://twitter.com/charlesofarrell)
+
+You can also follow the project on Twitter [@ivoryproject](https://twitter.com/ivoryproject).
