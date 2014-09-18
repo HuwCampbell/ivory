@@ -1,9 +1,5 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.storage.repository.Codec
-import com.ambiata.saws.core.Clients
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.util.GenericOptionsParser
 import scalaz._, Scalaz._
 import scalaz.effect._
 
@@ -21,8 +17,6 @@ object main {
     factDiff,
     importDictionary,
     ingest,
-    pivot,
-    pivotSnapshot,
     recompress,
     recreate,
     snapshot

@@ -8,7 +8,7 @@ $IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
 $IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts"
 
 snapshot() {
-  $IVORY extract-snapshot -r "${REPOSITORY}" -d ${1}
+  $IVORY snapshot -r "${REPOSITORY}" -d ${1}
   $IVORY cat-facts "${REPOSITORY}/snapshots/0000000${2}" | sort > "${TARGET}/snapshot.psv"
   diff_test "${DIR}/expected/snapshot${2}.psv" "${TARGET}/snapshot.psv"
 }

@@ -79,6 +79,13 @@ object Ivory
   val Reference = com.ambiata.ivory.core.Reference
   type ReferenceIO = com.ambiata.ivory.core.ReferenceIO
 
+  val Extraction = com.ambiata.ivory.operation.extraction.Extraction
+
+  type OutputFormat = com.ambiata.ivory.operation.extraction.OutputFormat
+  val OutputFormat = com.ambiata.ivory.operation.extraction.OutputFormat
+  type OutputFormats = com.ambiata.ivory.operation.extraction.OutputFormats
+  val OutputFormats = com.ambiata.ivory.operation.extraction.OutputFormats
+
   /**
    * Debug
    */
