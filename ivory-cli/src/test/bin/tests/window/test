@@ -4,11 +4,11 @@ DIR=$(dirname $0)
 . "${DIR}/../../setup.sh"
 
 $IVORY create-repository -p "${REPOSITORY}"
-$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
-$IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts"
+$IVORY import-dictionary -p "${INPUT}/dictionary.psv"
+$IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts"
 
 snapshot() {
-  $IVORY snapshot -r "${REPOSITORY}" -d ${1}
+  $IVORY snapshot -d ${1}
   $IVORY cat-facts "${REPOSITORY}/snapshots/0000000${2}" | sort > "${TARGET}/snapshot.psv"
   diff_test "${DIR}/expected/snapshot${2}.psv" "${TARGET}/snapshot.psv"
 }

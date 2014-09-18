@@ -11,7 +11,7 @@ import scalaz.{Name => _, DList => _}
 
 object ingest extends IvoryApp {
 
-  case class CliArguments(repo: String, input: String, namespace: Option[Name], timezone: DateTimeZone,
+  case class CliArguments(input: String, namespace: Option[Name], timezone: DateTimeZone,
                           optimal: BytesQuantity, format: Format)
 
   val parser = new scopt.OptionParser[CliArguments]("ingest") {
@@ -24,7 +24,6 @@ object ingest extends IvoryApp {
 
     help("help") text "shows this usage text"
 
-    opt[String]('r', "repo")                 action { (x, c) => c.copy(repo = x) }             required() text "Path to an ivory repository."
     opt[String]('i', "input")                action { (x, c) => c.copy(input = x) }            required() text "Path to data to import."
     opt[String]('n', "namespace")            action { (x, c) => c.copy(namespace = nameFromString(x)) }  optional() text
       "Namespace to import. If set the input path is expected to contain partitioned factsets"
@@ -38,11 +37,10 @@ object ingest extends IvoryApp {
 
   type Namespace = String
 
-  def cmd = IvoryCmd[CliArguments](parser,
-      CliArguments("", "", None, DateTimeZone.getDefault, 256.mb, TextFormat),
-      IvoryRunner(configuration => c => for {
-        repo     <- Repository.fromUriResultTIO(c.repo, configuration)
+  def cmd = IvoryCmd.withRepo[CliArguments](parser,
+      CliArguments("", None, DateTimeZone.getDefault, 256.mb, TextFormat),
+      repo => configuration => c => for {
         inputRef <- Reference.fromUriResultTIO(c.input, configuration)
         factset  <- Ingest.ingestFacts(repo, inputRef, c.namespace, c.timezone, c.optimal, c.format)
-      } yield List(s"Successfully imported '${c.input}' as $factset into '${c.repo}'")))
+      } yield List(s"Successfully imported '${c.input}' as $factset into '${repo.root.path}'"))
 }

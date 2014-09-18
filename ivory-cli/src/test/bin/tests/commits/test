@@ -10,11 +10,11 @@ commit_test(){
 $IVORY create-repository -p "${REPOSITORY}"
 commit_test 00000000
 
-$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
+$IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 commit_test 00000001
 
-$IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts"  -n HALIBUT
+$IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts"  -n HALIBUT
 commit_test 00000002
 
-$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
+$IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 commit_test 00000003

@@ -4,11 +4,11 @@ DIR=$(dirname $0)
 . "${DIR}/../../setup.sh"
 
 $IVORY create-repository -p "${REPOSITORY}"
-$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
-$IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts"
+$IVORY import-dictionary -p "${INPUT}/dictionary.psv"
+$IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts"
 # Make sure we test priority
-$IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts2"
-$IVORY rename -r "${REPOSITORY}" -m "halibut:preheat=halibut2:warmup" -m "halibut:cooldown=halibut2:exercise" -b "${INPUT}/mapping.psv"
+$IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts2"
+$IVORY rename -m "halibut:preheat=halibut2:warmup" -m "halibut:cooldown=halibut2:exercise" -b "${INPUT}/mapping.psv"
 
 ### check factsets ###
 $IVORY cat-facts "${REPOSITORY}/factsets/00002/*/*/*/*/*" | sort > "${TARGET}/facts.psv"

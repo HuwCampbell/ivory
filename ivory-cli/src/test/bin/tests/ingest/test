@@ -4,15 +4,15 @@ DIR=$(dirname $0)
 . "${DIR}/../../setup.sh"
 
 $IVORY create-repository -p "${REPOSITORY}"
-$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
+$IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 
 ### Ingest a factset directory with several namespaces
-$IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts-1" 
+$IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts-1"
 $IVORY cat-facts "${REPOSITORY}/factsets/00000/*/*/*/*/*" | sort > "${TARGET}/all-facts.psv"
 diff_test "${DIR}/expected/all-facts.psv" "${TARGET}/all-facts.psv"
 
 ### Ingest a factset directory with a single namespace
-$IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts-2" -n HALIBUT
+$IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts-2" -n HALIBUT
 $IVORY cat-facts "${REPOSITORY}/factsets/00001/*/*/*/*/*" | sort > "${TARGET}/halibut-facts.psv"
 diff_test "${DIR}/expected/halibut-facts.psv" "${TARGET}/halibut-facts.psv"
 

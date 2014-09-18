@@ -13,7 +13,7 @@ import scalaz.{Name => _, _}, Scalaz._, effect._
 
 object renameFacts extends IvoryApp {
 
-  case class CliArguments(repo: String, mapping: List[(String, String)], batch: Option[String], reducerSize: Option[Long])
+  case class CliArguments(mapping: List[(String, String)], batch: Option[String], reducerSize: Option[Long])
 
   val parser = new scopt.OptionParser[CliArguments]("rename"){
     head("""
@@ -24,8 +24,6 @@ object renameFacts extends IvoryApp {
            |""".stripMargin)
 
     help("help") text "shows this usage text"
-    opt[String]('r', "repo")                 action { (x, c) => c.copy(repo = x) }                       required() text
-      s"Path to an ivory repository."
     opt[(String, String)]('m', "mapping")    action { (x, c) => c.copy(mapping = x :: c.mapping) }       optional() text
       s"<FROM-NAMESPACE>:<FROM-FEATURE>=<TARGET-NAMESPACE>:<TO-FEATURE>"                                 unbounded()
     opt[String]('b', "batch")                action { (x, c) => c.copy(batch = Some(x)) }                required() text
@@ -34,8 +32,7 @@ object renameFacts extends IvoryApp {
       "Max size (in bytes) of a reducer used to copy Factsets"
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", List(), None, None), IvoryRunner { conf => c => for {
-    repo    <- Repository.fromUriResultTIO(c.repo, conf)
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(List(), None, None), { repo => conf => c => for {
     batch   <- c.batch.cata(parseBatchFile(_, conf), ResultT.ok[IO, RenameMapping](RenameMapping(Nil)))
     mapping <- ResultT.fromDisjunction[IO, RenameMapping](createMapping(c.mapping).leftMap(\&/.This.apply))
     stats   <- Rename.rename(RenameMapping(batch.mapping ++ mapping.mapping), c.reducerSize.map(_.bytes).getOrElse(1.gb)).run(IvoryRead.prod(repo))
