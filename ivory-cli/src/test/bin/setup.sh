@@ -27,7 +27,9 @@ diff_test() {
 . "${COMMON}/versions.sh"
 
 export TARGET="${PROJECT}/target/regression/"
-export REPOSITORY="/tmp/ivory-$(random)"
+export IVORY_REPOSITORY="/tmp/ivory-$(random)"
+# Deprecated
+export REPOSITORY="$IVORY_REPOSITORY"
 export INPUT="${TEST}/input"
 rm -rf "${TARGET}"
 mkdir -p "${TARGET}"

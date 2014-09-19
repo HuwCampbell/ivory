@@ -1,6 +1,6 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.core.RepositoryConfiguration
+import com.ambiata.ivory.core.{Repository, RepositoryConfiguration}
 import com.ambiata.ivory.storage.repository.Codec
 import com.ambiata.mundane.control._
 import com.ambiata.saws.core.Clients
@@ -62,6 +62,26 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
   }
 }
 
+object IvoryCmd {
+
+  def withRepo[A](parser: scopt.OptionParser[A], initial: A,
+                  runner: Repository => RepositoryConfiguration => A => ResultTIO[List[String]]): IvoryCmd[A] = {
+    // Oh god this is an ugly/evil hack - the world will be a better place when we upgrade to Pirate
+    // Composition, it's a thing scopt, look it up
+    var repoArg: Option[String] = None
+    parser.opt[String]('r', "repository") action { (x, c) => repoArg = Some(x); c} text
+      "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"
+    new IvoryCmd(parser, initial, IvoryRunner(config => c =>
+      for {
+        repoPath <- ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
+          "-r|--repository was missing or environment variable IVORY_REPOSITORY not set")
+        repo     <- Repository.fromUriResultTIO(repoPath, config)
+        result   <- runner(repo)(config)(c)
+      } yield result
+    ))
+  }
+}
+
 /**
  * Represents the run of an Ivory program, with all the necessary configuration
  */
@@ -70,4 +90,3 @@ case class IvoryRunner[A](run: RepositoryConfiguration => A => ResultTIO[List[St
 trait IvoryApp {
   def cmd: IvoryCmd[_]
 }
-

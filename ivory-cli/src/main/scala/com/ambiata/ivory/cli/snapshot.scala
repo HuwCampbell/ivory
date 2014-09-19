@@ -10,7 +10,7 @@ import java.util.{Calendar, UUID}
 
 object snapshot extends IvoryApp {
 
-  case class CliArguments(repo: String, date: LocalDate, incremental: Boolean, formats: ExtractOutput)
+  case class CliArguments(date: LocalDate, incremental: Boolean, formats: ExtractOutput)
 
   val parser = Extract.options(new scopt.OptionParser[CliArguments]("snapshot") {
     head("""
@@ -21,21 +21,20 @@ object snapshot extends IvoryApp {
          |""".stripMargin)
 
     help("help") text "shows this usage text"
-    opt[String]('r', "repo")    action { (x, c) => c.copy(repo = x) }   required() text "Path to an ivory repository."
     opt[Unit]("no-incremental") action { (x, c) => c.copy(incremental = false) }   text "Flag to turn off incremental mode"
     opt[Calendar]('d', "date")  action { (x, c) => c.copy(date = LocalDate.fromCalendarFields(x)) } text
       s"Optional date to take snapshot from, default is now."
   })(c => f => c.copy(formats = f(c.formats)))
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", LocalDate.now(), true, ExtractOutput()), IvoryRunner {
-    configuration => c =>
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(LocalDate.now(), true, ExtractOutput()), {
+    repo => configuration => c =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
                       |
                       |Arguments --
                       |
                       |  Run ID                  : ${runId}
-                      |  Ivory Repository        : ${c.repo}
+                      |  Ivory Repository        : ${repo.root.path}
                       |  Extract At Date         : ${c.date.toString("yyyy/MM/dd")}
                       |  Incremental             : ${c.incremental}
                       |  Outputs                 : ${c.formats.formats.mkString(", ")}
@@ -43,7 +42,6 @@ object snapshot extends IvoryApp {
                       |""".stripMargin
       println(banner)
       for {
-        repo <- Repository.fromUriResultTIO(c.repo, configuration)
         of   <- Extract.parse(configuration, c.formats)
         meta <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental)
         _    <- Extraction.extract(of, repo.toReference(Repository.snapshot(meta.snapshotId))).run(IvoryRead.prod(repo))
