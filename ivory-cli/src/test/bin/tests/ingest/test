@@ -16,3 +16,5 @@ $IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts-2" -n 
 $IVORY cat-facts "${REPOSITORY}/factsets/00001/*/*/*/*/*" | sort > "${TARGET}/halibut-facts.psv"
 diff_test "${DIR}/expected/halibut-facts.psv" "${TARGET}/halibut-facts.psv"
 
+### Ingest with an invalid namespace - should fail
+$IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts-2" -n invalid | grep "Unknown namespaces"

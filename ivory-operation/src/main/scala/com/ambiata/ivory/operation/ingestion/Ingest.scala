@@ -63,8 +63,8 @@ object Ingest {
                   timezone: DateTimeZone, optimal: BytesQuantity, format: Format): ResultTIO[FactsetId] =
     for {
       factsetId <- createNewFactsetId(repository)
-      importer  =  EavtTextImporter(repository, input, namespace, optimal, format)
-      _         <- importer.importFacts(factsetId, input, namespace, timezone)
+      importer  =  EavtTextImporter(repository, namespace, optimal, format)
+      _         <- importer.importFacts(factsetId, input, timezone)
       _         <- updateFeatureStore(repository, factsetId)
     } yield factsetId
 

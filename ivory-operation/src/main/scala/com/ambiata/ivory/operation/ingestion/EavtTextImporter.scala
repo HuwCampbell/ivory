@@ -21,12 +21,13 @@ import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
  * This data + the "optimal" size is passed to the IngestJob to optimise the import
  */
 case class EavtTextImporter(repository: Repository,
-                            input: ReferenceIO,
                             namespace: Option[Name],
                             optimal: BytesQuantity,
                             format: Format) {
 
-  val  importFacts = { (factsetId: FactsetId, input: ReferenceIO, namespace: Option[Name], timezone: DateTimeZone) =>
+  import EavtTextImporter._
+
+  val  importFacts = { (factsetId: FactsetId, input: ReferenceIO, timezone: DateTimeZone) =>
     val errorRef = repository.toReference(repository.errors </> factsetId.render)
 
     for {
@@ -35,6 +36,7 @@ case class EavtTextImporter(repository: Repository,
       inputPath  <- Reference.hdfsPath(input)
       errorPath  <- Reference.hdfsPath(errorRef)
       partitions <- namespace.fold(Namespaces.namespaceSizes(inputPath))(ns => Namespaces.namespaceSizesSingle(inputPath, ns).map(List(_))).run(hr.configuration)
+      _          <- ResultT.fromDisjunction[IO, Unit](validateNamespaces(dictionary, partitions.map(_._1)).leftMap(\&/.This(_)))
       _          <- runJob(hr, dictionary, factsetId, inputPath, errorPath, partitions, timezone)
     } yield ()
   }
@@ -63,4 +65,13 @@ case class EavtTextImporter(repository: Repository,
     if (namespace.isDefined) Hdfs.globFilesRecursively(path).filterHidden.run(conf)
     else                     namespaceNames.map(ns => Hdfs.globFilesRecursively(new Path(path, ns.name)).filterHidden).sequence.map(_.flatten).run(conf)
 
+}
+
+object EavtTextImporter {
+
+  def validateNamespaces(dictionary: Dictionary, namespaces: List[Name]): String \/ Unit = {
+    val unknown = namespaces.toSet diff dictionary.byFeatureId.keySet.map(_.namespace)
+    if (unknown.isEmpty) ().right
+    else                 ("Unknown namespaces: " + unknown.map(_.name).mkString(", ")).left
+  }
 }
