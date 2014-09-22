@@ -37,10 +37,10 @@ object ReducerLookups {
   }
 
   def factsetPartitionFor(lookup: NamespaceLookup, key: LongWritable): String =
-    factsetPartitionForLong(lookup, key.get)
+    factsetPartitionForInt(lookup, (key.get >>> 32).toInt, Date.unsafeFromInt((key.get & 0xffffffff).toInt))
 
-  def factsetPartitionForLong(lookup: NamespaceLookup, key: Long): String =
-    "factset" + "/" + lookup.namespaces.get((key >>> 32).toInt) + "/" + Date.unsafeFromInt((key & 0xffffffff).toInt).slashed + "/part"
+  def factsetPartitionForInt(lookup: NamespaceLookup, featureId: Int, date: Date): String =
+    "factset" + "/" + lookup.namespaces.get(featureId) + "/" + date.slashed + "/part"
 
   /**
    * create a dictionary index, i.e. 2 lookup tables:

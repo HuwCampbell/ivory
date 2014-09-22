@@ -15,7 +15,8 @@ import org.apache.hadoop.mapreduce.Partitioner
  * the input size is used to reduce skew on input data.
  */
 class FactsPartitioner extends BaseFactsPartitioner[LongWritable] {
-  def get(k: LongWritable): Long = k.get
+  def getFeatureId(k: LongWritable): Int =
+    (k.get >>> 32).toInt
 }
 
 trait BaseFactsPartitioner[A] extends Partitioner[A, BytesWritable] with Configurable {
@@ -33,7 +34,7 @@ trait BaseFactsPartitioner[A] extends Partitioner[A, BytesWritable] with Configu
     _conf
 
   def getPartition(k: A, v: BytesWritable, partitions: Int): Int =
-    lookup.reducers.get((get(k) >>> 32).toInt) % partitions
+    lookup.reducers.get(getFeatureId(k)) % partitions
 
-  def get(k: A): Long
+  def getFeatureId(k: A): Int
 }

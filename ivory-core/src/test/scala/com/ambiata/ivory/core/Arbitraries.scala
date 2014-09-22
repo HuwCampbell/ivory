@@ -370,4 +370,11 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   /* Partitions with size up to 3 x 5 */
   implicit def PartitionsArbitrary: Arbitrary[Partitions] =
     Arbitrary(genPartitions(Gen.choose(1, 3), Gen.choose(1, 5)))
+
+  case class FactAndPriority(f: Fact, p: Priority)
+
+  implicit def ArbitraryFactAndPriority: Arbitrary[FactAndPriority] = Arbitrary(for {
+    f <- Arbitrary.arbitrary[Fact]
+    p <- Arbitrary.arbitrary[Priority]
+  } yield new FactAndPriority(f, p))
 }

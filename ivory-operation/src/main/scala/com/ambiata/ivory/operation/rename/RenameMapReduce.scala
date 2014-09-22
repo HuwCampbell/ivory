@@ -13,15 +13,15 @@ import org.apache.hadoop.io._
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs
 import org.apache.hadoop.mapreduce.{Counter, Mapper, Reducer}
 
-class RenameMapper extends Mapper[NullWritable, BytesWritable, LongLongWritable, BytesWritable] {
+class RenameMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
 
-  type MapperContext = Mapper[NullWritable, BytesWritable, LongLongWritable, BytesWritable]#Context
+  type MapperContext = Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context
 
   /* Value state management, create once per mapper */
   var priority = Priority(0)
 
   /* The output key, only create once per mapper. */
-  val kout = new LongLongWritable()
+  val kout = Writables.bytesWritable(4096)
 
   /* The output value, only create once per mapper. */
   val vout = Writables.bytesWritable(4096)
@@ -58,9 +58,7 @@ class RenameMapper extends Mapper[NullWritable, BytesWritable, LongLongWritable,
        ***************************************************************/
       f.toThrift.setAttribute(to.newName)
 
-      // Write out the featureId + date + time + priority
-      // We partition by the featureId, we sort by everything but group by featureId + date + time
-      kout.set((to.featureId.toLong << 32) | f.date.int.toLong, (f.time.seconds.toLong << 32) | priority.underlying.toLong)
+      RenameWritable.KeyState.set(f, priority, kout, to.getFeatureId)
 
       val bytes = serializer.toBytes(f.toThrift)
       vout.set(bytes, 0, bytes.length)
@@ -71,9 +69,9 @@ class RenameMapper extends Mapper[NullWritable, BytesWritable, LongLongWritable,
   }
 }
 
-class RenameReducer extends Reducer[LongLongWritable, BytesWritable, NullWritable, BytesWritable] {
+class RenameReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable] {
 
-  type ReducerContext = Reducer[LongLongWritable, BytesWritable, NullWritable, BytesWritable]#Context
+  type ReducerContext = Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context
 
   var out: MultipleOutputs[NullWritable, BytesWritable] = null
 
@@ -95,22 +93,23 @@ class RenameReducer extends Reducer[LongLongWritable, BytesWritable, NullWritabl
   override def cleanup(context: ReducerContext): Unit =
     out.close()
 
-  override def reduce(key: LongLongWritable, iterable: JIterable[BytesWritable], context: ReducerContext): Unit = {
+  override def reduce(key: BytesWritable, iterable: JIterable[BytesWritable], context: ReducerContext): Unit = {
     // This is the most expensive part of this reducer, we need to calculate it as _little_ as possible
-    val path = ReducerLookups.factsetPartitionForLong(lookup, key.l1)
+    val path = ReducerLookups.factsetPartitionForInt(lookup,
+      RenameWritable.GroupingByFeatureIdDate.getFeatureId(key),
+      RenameWritable.GroupingByFeatureIdDate.getDate(key))
     var previousTime = -1
+    var previousEntity: String = null
     val iter = iterable.iterator()
     while (iter.hasNext) {
       val next = iter.next
-      val time = (key.l2 >>> 32).toInt
-      val previousEntity = tfact.getEntity
       // Make sure we don't clobber different entities with the same date + time
-      // The alternative is we change the key to include the entity, which may (or may not) be better
       serializer.fromBytesViewUnsafe(tfact, next.getBytes, 0, next.getLength)
-      // Because we are sorting by priority we can ignore anything after the first unique time value
-      if (previousTime != time || previousEntity != tfact.getEntity) {
+      // Because we are sorting by priority (ascending) we can ignore anything after the first unique time value
+      if (previousTime != tfact.getSeconds || previousEntity != tfact.getEntity) {
         out.write(FactsetJobKeys.Out, NullWritable.get, next, path)
-        previousTime = time
+        previousTime = tfact.getSeconds
+        previousEntity = tfact.getEntity
         counter.increment(1)
       }
     }

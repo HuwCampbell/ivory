@@ -1,36 +1,44 @@
-package com.ambiata.ivory.operation.extraction.snapshot
+package com.ambiata.ivory.operation.rename
 
 import java.io.{ByteArrayOutputStream, DataOutputStream}
 
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.mr.Writables
-import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable._
+import com.ambiata.ivory.operation.rename.RenameWritable._
 import org.specs2.execute.Result
 import org.specs2.{ScalaCheck, Specification}
 
-class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2"""
+class RenameWritableSpec extends Specification with ScalaCheck { def is = s2"""
 
-  Grouping                                            $grouping
-  Sorting                                             $sorting
-  Feature Id                                          $featureId
+  Group by featureId and date                                     $groupFeatureDate
+  Sorting by featureId and date, then entity, time and priority   $sortingFeatureDate
+  Get featureId from group                                        $featureId
+  Get date from group                                             $getDate
 """
 
-  def grouping = prop((f1: FactAndPriority, f2: FactAndPriority) => {
+  def groupFeatureDate = prop((f1: FactAndPriority, f2: FactAndPriority) => {
     check(f1, f2) { case (f3, b1, b2) =>
-      new Grouping().compare(b1, 0, b1.length, b2, 0, b2.length) -> compareByGroup(f1.f, f3.f)
+      new GroupingByFeatureIdDate().compare(b1, 0, b1.length, b2, 0, b2.length) -> compareByFeatureDate(f1.f, f3.f)
     }
   })
 
-  def sorting = prop((f1: FactAndPriority, f2: FactAndPriority) => {
+  def sortingFeatureDate = prop((f1: FactAndPriority, f2: FactAndPriority) => {
     check(f1, f2) { case (f3, b1, b2) =>
-      new Comparator().compare(b1, 0, b1.length, b2, 0, b2.length) -> compareAll(f1, f3)
+      new ComparatorFeatureIdDateEntityTimePriority().compare(b1, 0, b1.length, b2, 0, b2.length) -> compareByFeatureDateEntityTimePriority(f1, f3)
     }
   })
 
   def featureId = prop((f1: FactAndPriority, i: Int) => {
     val bw = Writables.bytesWritable(4096)
     KeyState.set(f1.f, f1.p, bw, i)
-    getFeatureId(bw) ==== i
+    GroupingByFeatureIdDate.getFeatureId(bw) ==== i
+  })
+
+  def getDate = prop((f1: FactAndPriority, i: Int) => {
+    val bw = Writables.bytesWritable(4096)
+    KeyState.set(f1.f, f1.p, bw, i)
+    GroupingByFeatureIdDate.getDate(bw) ==== f1.f.date
   })
 
   def check(f1: FactAndPriority, f2: FactAndPriority)(f: (FactAndPriority, Array[Byte], Array[Byte]) => (Int, Int)): Result =
@@ -62,22 +70,20 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
     (toBytes(f1), toBytes(f2))
   }
 
-  def compareByGroup(f1: Fact, f2: Fact): Int = {
-    var e = f1.entity.compareTo(f2.entity)
-    if (e == 0) {
-      e = Math.abs(f1.featureId.hashCode).compareTo(Math.abs(f2.featureId.hashCode))
-    }
-    e
+  def compareByFeatureDate(f1: Fact, f2: Fact): Int = {
+    val e = Math.abs(f1.featureId.hashCode).compareTo(Math.abs(f2.featureId.hashCode))
+    if (e == 0) f1.date.int.compareTo(f2.date.int)
+    else e
   }
 
-  def compareAll(f1: FactAndPriority, f2: FactAndPriority): Int = {
-    var e = compareByGroup(f1.f, f2.f)
+  def compareByFeatureDateEntityTimePriority(f1: FactAndPriority, f2: FactAndPriority): Int = {
+    var e = compareByFeatureDate(f1.f, f2.f)
     if (e == 0) {
-      e = f1.f.date.int.compare(f2.f.date.int)
+      e = f1.f.entity.compare(f2.f.entity)
       if (e == 0) {
         e = f1.f.time.seconds.compare(f2.f.time.seconds)
         if (e == 0) {
-          e = f1.p.toShort.compare(f2.p.toShort)
+          e =f1.p.toShort.compare(f2.p.toShort)
         }
       }
     }
