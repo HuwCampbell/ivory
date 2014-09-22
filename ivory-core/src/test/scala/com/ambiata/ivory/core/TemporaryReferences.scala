@@ -83,12 +83,14 @@ object TemporaryReferences {
 
   val conf = IvoryConfiguration.fromScoobiConfiguration(ScoobiConfiguration())
 
+  def testBucket: String = Option(System.getenv("AWS_TEST_BUCKET")).getOrElse("ambiata-dev-view")
+
   def withReferenceFile[A](storeType: TemporaryType)(f: ReferenceIO => ResultTIO[A]): ResultTIO[A] = {
     val reference = storeType match {
       case Posix =>
         Reference(PosixStore(createUniquePath), FilePath("temp-file"))
       case S3    =>
-        Reference(S3Store("ambiata-dev-view", s3TempPath, conf.s3Client, conf.s3TmpDirectory), FilePath("temp-file"))
+        Reference(S3Store(testBucket, s3TempPath, conf.s3Client, conf.s3TmpDirectory), FilePath("temp-file"))
       case Hdfs  =>
         Reference(HdfsStore(conf.configuration, createUniquePath), FilePath("temp-file"))
     }
@@ -100,7 +102,7 @@ object TemporaryReferences {
       case Posix =>
         PosixStore(createUniquePath)
       case S3    =>
-        S3Store("ambiata-dev-view", s3TempPath, conf.s3Client, conf.s3TmpDirectory)
+        S3Store(testBucket, s3TempPath, conf.s3Client, conf.s3TmpDirectory)
       case Hdfs  =>
         HdfsStore(conf.configuration, createUniquePath)
     }
@@ -112,7 +114,7 @@ object TemporaryReferences {
       case Posix =>
         LocalRepository(createUniquePath)
       case S3 =>
-        S3Repository("ambiata-dev-view", s3TempPath, conf)
+        S3Repository(testBucket, s3TempPath, conf)
       case Hdfs =>
         HdfsRepository(createUniquePath, conf)
     }
@@ -124,7 +126,7 @@ object TemporaryReferences {
       case Posix =>
         LocalLocation(createUniquePath.path)
       case S3    =>
-        S3Location("ambiata-dev-view", s3TempPath.path)
+        S3Location(testBucket, s3TempPath.path)
       case Hdfs  =>
         HdfsLocation(createUniquePath.path)
     }
@@ -136,7 +138,7 @@ object TemporaryReferences {
       case Posix =>
         LocalLocation(createUniquePath.path)
       case S3    =>
-        S3Location("ambiata-dev-view", s3TempPath.path)
+        S3Location(testBucket, s3TempPath.path)
       case Hdfs  =>
         HdfsLocation(createUniquePath.path)
     }

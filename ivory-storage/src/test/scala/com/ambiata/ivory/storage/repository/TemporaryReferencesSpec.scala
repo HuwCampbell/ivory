@@ -42,7 +42,7 @@ class TemporaryReferencesSpec extends Specification { def is = s2"""
   val conf = IvoryConfiguration.fromScoobiConfiguration(ScoobiConfiguration())
 
   def s3Repository =
-    withRepository(S3Repository("ambiata-dev-view", s3TempPath, conf))
+    withRepository(S3Repository(testBucket, s3TempPath, conf))
 
   def localRepository =
     withRepository(LocalRepository(createUniquePath))
@@ -51,7 +51,7 @@ class TemporaryReferencesSpec extends Specification { def is = s2"""
     withRepository(HdfsRepository(createUniquePath, conf))
 
   def s3Store =
-    withStore(S3Store("ambiata-dev-view", s3TempPath, conf.s3Client, conf.s3TmpDirectory))
+    withStore(S3Store(testBucket, s3TempPath, conf.s3Client, conf.s3TmpDirectory))
 
   def hdfsStore =
     withStore(HdfsStore(conf.configuration, createUniquePath))
@@ -60,7 +60,7 @@ class TemporaryReferencesSpec extends Specification { def is = s2"""
     withStore(PosixStore(createUniquePath))
 
   def s3Reference =
-    withReferenceFile(Reference(S3Store("ambiata-dev-view", s3TempPath, conf.s3Client, conf.s3TmpDirectory), FilePath("data")))
+    withReferenceFile(Reference(S3Store(testBucket, s3TempPath, conf.s3Client, conf.s3TmpDirectory), FilePath("data")))
 
   def hdfsReference =
     withReferenceFile(Reference(HdfsStore(conf.configuration, createUniquePath), FilePath("data")))
@@ -72,7 +72,7 @@ class TemporaryReferencesSpec extends Specification { def is = s2"""
     withLocationFile(LocalLocation(createUniquePath.path))
 
   def s3Location =
-    withLocationFile(S3Location("ambiata-dev-view", s3TempPath.path))
+    withLocationFile(S3Location(testBucket, s3TempPath.path))
 
   def hdfsLocation =
     withLocationFile(HdfsLocation(createUniquePath.path))
@@ -84,7 +84,7 @@ class TemporaryReferencesSpec extends Specification { def is = s2"""
     withLocationDir(HdfsLocation(createUniquePath.path))
 
   def s3DirLocation =
-    withLocationDir(S3Location("ambiata-dev-view", s3TempPath.path))
+    withLocationDir(S3Location(testBucket, s3TempPath.path))
 
   def withRepository(repository: Repository): MatchResult[ResultTIO[(Boolean, Boolean)]] =
     (for {

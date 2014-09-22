@@ -1,5 +1,6 @@
 : ${HADOOP_VERSION:=cdh5}
 : ${JVM_OPTS:="-Dfile.encoding=UTF8 -XX:MaxPermSize=512m -Xms512m -Xmx2g -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"}
 : ${FORCE_AWS:=true}
+: ${AWS_TEST_BUCKET:="ambiata-dev-view"}
 
-export HADOOP_VERSION JVM_OPTS FORCE_AWS
+export HADOOP_VERSION JVM_OPTS FORCE_AWS AWS_TEST_BUCKET
