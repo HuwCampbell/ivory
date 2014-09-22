@@ -2,8 +2,10 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.operation.pivot.PivotJob
+import com.ambiata.ivory.storage.lookup.ReducerSize
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.poacher.hdfs._
 
 /**
@@ -40,5 +42,6 @@ object Pivot {
     in          =  (inputStore.base </> input.path).toHdfs
     outputStore <- downcast[Any, HdfsStore](output.store, s"Pivot can only read from HDFS currently, got '$output'")
     out         =  (outputStore.base </> output.path).toHdfs
-    } yield PivotJob.run(hdfsRepo.configuration, dictionary, in, out, tombstone, delim, 50, hdfsRepo.codec)
+    reducers    <- ReducerSize.calculate(in, 1.gb).run(hdfsRepo.configuration)
+    } yield PivotJob.run(hdfsRepo.configuration, dictionary, in, out, tombstone, delim, reducers, hdfsRepo.codec)
 }
