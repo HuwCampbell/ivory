@@ -29,7 +29,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
  * This is a hand-coded MR job to squeeze the most out of snapshot performance.
  */
 object SnapshotJob {
-  def run(conf: Configuration, reducers: Int, date: Date, inputs: List[Prioritized[FactsetGlob]], output: Path,
+  def run(repository: Repository, conf: Configuration, reducers: Int, date: Date, inputs: List[Prioritized[FactsetGlob]], output: Path,
           windows: SnapshotWindows, incremental: Option[Path], codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
@@ -56,9 +56,9 @@ object SnapshotJob {
     // input
     val mappers = inputs.map(p => (classOf[SnapshotFactsetMapper], p.value))
     mappers.foreach({ case (clazz, factsetGlob) =>
-      factsetGlob.paths.foreach(path => {
-        println(s"Input path: ${path.path}")
-        MultipleInputs.addInputPath(job, path.toHdfs, classOf[SequenceFileInputFormat[_, _]], clazz)
+      factsetGlob.keys.foreach(key => {
+        println(s"Input path: ${key}")
+        MultipleInputs.addInputPath(job, repository.toFilePath(key).toHdfs, classOf[SequenceFileInputFormat[_, _]], clazz)
       })
     })
 

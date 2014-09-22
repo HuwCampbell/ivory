@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
 
 import scalaz._, Scalaz._, effect.IO, \&/._
 
@@ -13,14 +13,14 @@ case class FactsetGlob(repo: Repository, factset: FactsetId, version: FactsetVer
     if(filtered.isEmpty) None else Some(copy(partitions = filtered))
   }
 
-  def paths: List[DirPath] =
-    partitions.map(p => (repo.factset(factset) </> p.path).fullDirPath)
+  def keys: List[Key] =
+    partitions.map(p => Repository.factset(factset) / p.key)
 }
 
 object FactsetGlob {
   def select(repository: Repository, factset: FactsetId): ResultT[IO, Option[FactsetGlob]] = for {
-    paths   <- ReferenceStore.list(repository.factset(factset) </> "*" </> "*" </> "*" </> "*")
-    parts   <- paths.traverseU(path => ResultT.fromDisjunction[IO, Partition](Partition.parseFile((repository.root </> path).filePath).disjunction.leftMap(This.apply)))
+    keys   <- repository.store.listHeads(Repository.factset(factset))
+    parts  <- keys.traverseU(key => ResultT.fromDisjunction[IO, Partition](Partition.parseKey(key).disjunction.leftMap(This.apply)))
     version <- if(parts.isEmpty) ResultT.ok[IO, Option[FactsetVersion]](None) else Versions.read(repository, factset).map(Some.apply)
   } yield version.map(v => FactsetGlob(repository, factset, v, parts.distinct))
 

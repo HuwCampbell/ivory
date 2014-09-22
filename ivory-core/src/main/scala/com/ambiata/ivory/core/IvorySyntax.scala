@@ -8,6 +8,7 @@ import org.apache.hadoop.fs.Path
 import scalaz.effect.IO
 
 trait IvorySyntax {
+
   implicit class IvoryFilePathSyntax(file: FilePath) {
     def toHdfs: Path = new Path(file.path)
   }
@@ -17,7 +18,7 @@ trait IvorySyntax {
   }
 
   implicit class IvoryReferenceIOSyntax[F[_]](ref: Reference[F]) {
-    def toHdfs: Path = ref.fullFilePath.toHdfs
+    def toHdfs: Path = ref.filePath.toHdfs
   }
 
   implicit class PathToIvoryDirPathSyntax(path: Path) {

@@ -27,7 +27,6 @@ object importDictionary extends IvoryApp {
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments("", update = false, force = false), { repository => configuration => c =>
       for {
-        repository <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(c.repo, configuration).leftMap(\&/.This(_)))
         source <- Reference.fromUriAsDir(c.path, configuration)
         opts     = ImportOpts(if (c.update) Update else Override, c.force)
         result  <- DictionaryImporter.importFromPath(repository, source, opts)
@@ -37,6 +36,6 @@ object importDictionary extends IvoryApp {
           case f @ Failure(errors) => ResultT.safe[IO, Unit](errors.list.foreach(println))
         }
         _       <- ResultT.fromOption[IO, DictionaryId](result._2, "Invalid dictionary")
-      } yield List(s"Successfully imported dictionary ${c.path} into ${c.repo}")
+      } yield List(s"Successfully imported dictionary ${c.path} into ${repository.rootPath.path}")
   })
 }

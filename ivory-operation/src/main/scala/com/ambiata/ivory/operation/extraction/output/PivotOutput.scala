@@ -41,7 +41,7 @@ object PivotOutput {
   def createPivotWithDictionary(repository: Repository, input: ReferenceIO, output: ReferenceIO, dictionary: Dictionary, delim: Char, missing: String): ResultTIO[Unit] = for {
     hdfsRepo    <- downcast[Repository, HdfsRepository](repository, s"Pivot only works with Hdfs repositories currently, got '$repository'")
     inputStore  <- downcast[Any, HdfsStore](input.store, s"Pivot can only read from HDFS currently, got '$input'")
-    in          =  input.toHdfs
+    in          =  (inputStore.base </> input.path).toHdfs
     outputStore <- downcast[Any, HdfsStore](output.store, s"Pivot can only read from HDFS currently, got '$output'")
     out         =  (outputStore.base </> output.path).toHdfs
     reducers    <- ReducerSize.calculate(in, 256.mb).run(hdfsRepo.configuration)

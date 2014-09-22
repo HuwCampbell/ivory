@@ -13,8 +13,8 @@ object FactDiff {
 
   def partitionFacts(input1: ReferenceIO, input2: ReferenceIO, outputPath: ReferenceIO): ScoobiAction[Unit] = {
     for {
-      dlist1 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(input1.fullDirPath </> "*" </> "*" </> "*" </> "*")).flatMap(parseError)
-      dlist2 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(input2.fullDirPath </> "*" </> "*" </> "*" </> "*")).flatMap(parseError)
+      dlist1 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(input1.dirPath </> "*" </> "*" </> "*" </> "*").map(_.path)).flatMap(parseError)
+      dlist2 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(input2.dirPath </> "*" </> "*" </> "*" </> "*").map(_.path)).flatMap(parseError)
       _      <- scoobiJob(dlist1, dlist2, outputPath)
     } yield ()
   }
@@ -29,8 +29,8 @@ object FactDiff {
 
   def flatFacts(input1: ReferenceIO, input2: ReferenceIO, outputPath: ReferenceIO): ScoobiAction[Unit] = for {
     res <- ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-             val dlist1 = valueFromSequenceFile[Fact](input1.fullDirPath.path)
-             val dlist2 = valueFromSequenceFile[Fact](input2.fullDirPath.path)
+             val dlist1 = valueFromSequenceFile[Fact](input1.dirPath.path)
+             val dlist2 = valueFromSequenceFile[Fact](input2.dirPath.path)
              (dlist1, dlist2)
            })
     (dlist1, dlist2) = res
@@ -58,7 +58,7 @@ object FactDiff {
         case g                    => s"Found duplicates - '${g}'"
       })
 
-      persist(out.toTextFile(outputPath.fullDirPath.path, overwrite = true))
+      persist(out.toTextFile(outputPath.dirPath.path, overwrite = true))
       ()
     }
   }

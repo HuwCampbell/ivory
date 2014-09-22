@@ -31,23 +31,23 @@ Reference
     ))
 
   def hdfs =
-    Reference.fromUri("hdfs:///some/path", conf).toEither must beRight(new DirReference(
-      HdfsStore(conf.configuration, DirPath("some")), DirPath("path")
+    Reference.parseUri("hdfs:///some/path", conf).toEither must beRight(new Reference(
+      HdfsStore(conf.configuration, DirPath.Root </> "some" </> "path"), DirPath.Empty
     ))
 
   def s3 =
-    Reference.fromUri("s3://bucket/key", conf).toEither must beRight((s: ReferenceIO) => s must beLike({
+    Reference.parseUri("s3://bucket/key", conf).toEither must beRight((s: ReferenceIO) => s must beLike({
       case Reference(S3Store(_, _, client, _), _) =>
-        s must_== Reference(S3Store("bucket", DirPath(""), client, IvoryConfiguration.defaultS3TmpDirectory), DirPath("/key"))
+        s must_== Reference(S3Store("bucket", DirPath("key"), client, IvoryConfiguration.defaultS3TmpDirectory), DirPath.Empty)
     }))
 
   def default =
-    Reference.fromUri("/some/path", conf).toEither must beRight (DirReference(
+    Reference.parseUri("/some/path", conf).toEither must beRight (Reference(
       HdfsStore(conf.configuration, DirPath("some")), DirPath("path")
     ))
 
   def fragment =
-    Reference.fromUri("some/path", conf).toEither must beRight (DirReference(
+    Reference.parseUri("some/path", conf).toEither must beRight (Reference(
       HdfsStore(conf.configuration, DirPath("some")), DirPath("path")
     ))
 }

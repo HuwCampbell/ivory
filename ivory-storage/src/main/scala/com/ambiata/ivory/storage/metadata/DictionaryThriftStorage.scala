@@ -5,7 +5,7 @@ import com.ambiata.ivory.core.thrift.DictionaryThriftConversion._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.storage.version._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
 import scodec.bits.ByteVector
 
 import scalaz.Scalaz._
@@ -14,8 +14,8 @@ import scalaz.effect._
 
 case class DictionaryThriftStorage(repository: Repository) {
 
-  val DATA: FileName = "data"
-  val dictionaries = repository.dictionaries
+  val DATA = KeyName.unsafe("data")
+  val dictionaries = Repository.dictionaries
 
   def load: ResultTIO[Dictionary] =
     loadOption.flatMap(ResultT.fromOption(_, s"No dictionaries found"))
@@ -30,34 +30,34 @@ case class DictionaryThriftStorage(repository: Repository) {
     })
 
   private def loadWithId: ResultTIO[Option[(Option[DictionaryId], Dictionary)]] =
-    IdentifierStorage.get(dictionaries).flatMap {
+    IdentifierStorage.get(repository, dictionaries).flatMap {
       case Some(id) => loadFromId(DictionaryId(id)).map(_.map(some(DictionaryId(id)) ->))
       case None     => loadDates.map(_.map(none ->))
     }
 
   private def loadDates: ResultTIO[Option[Dictionary]] =
     for {
-      allDictionaries            <- ReferenceStore.listFiles(dictionaries)
-      lastDateDictionaryDirectory = allDictionaries.filter(_.basename.name.matches("""\d{4}-\d{2}-\d{2}"""))
-                                                   .sortBy(_.basename.name).reverse.headOption
+      allDictionaries    <- repository.store.listHeads(dictionaries)
+      lastDateDictionary = allDictionaries.filter(_.name.matches("""\d{4}-\d{2}-\d{2}"""))
+                                          .sortBy(_.name).reverse.headOption
       result                     <-
-        lastDateDictionaryDirectory match {
+        lastDateDictionary match {
           case None       => ResultT.ok[IO, Option[Dictionary]](None)
-          case Some(last) => DictionaryTextStorage.fromFile(dictionaries </> last.basename)
+          case Some(last) => DictionaryTextStorage.fromKeyStore(repository, dictionaries / last).map(Some.apply)
         }
     } yield result
 
   def loadFromId(id: DictionaryId): ResultTIO[Option[Dictionary]] =
-    loadFromPath(dictionaries </> id.asFileName </> DATA)
+    loadFromPath(dictionaries / id.asKeyName / DATA)
 
-  def loadFromPath(reference: Reference[ResultTIO]): ResultTIO[Option[Dictionary]] =
-    ReferenceStore.readBytes(reference).flatMap { bytes =>
+  def loadFromPath(key: Key): ResultTIO[Option[Dictionary]] =
+    repository.store.bytes.read(key).flatMap { bytes =>
       ResultT.fromDisjunction(dictionaryFromThrift(ThriftSerialiser().fromBytes1(() => new ThriftDictionary(), bytes.toArray)).leftMap(This.apply))
     }.map(some) ||| ResultT.ok(none)
 
   def store(dictionary: Dictionary): ResultTIO[DictionaryId] = for {
     bytes <- ResultT.safe[IO, Array[Byte]](ThriftSerialiser().toBytes(dictionaryToThrift(dictionary)))
-    id    <- IdentifierStorage.write(dictionaries, DATA, ByteVector(bytes))
-    _     <- Version.write(dictionaries </> id, Version(DictionaryVersionOne.toString))
+    id    <- IdentifierStorage.write(repository, dictionaries, DATA, ByteVector(bytes))
+    _     <- Version.write(repository, dictionaries / id.asKeyName, Version(DictionaryVersionOne.toString))
   } yield DictionaryId(id)
 }

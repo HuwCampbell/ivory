@@ -5,7 +5,7 @@ import com.ambiata.ivory.storage.fact.{FactsetVersionTwo, FactsetVersion, Factse
 import scalaz.{Name => _, DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.compress.CompressionCodec
-import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
@@ -33,13 +33,13 @@ trait PartitionFactThriftStorage {
                case (None, Some(t))    => FactsetGlob.before(repo, factset, t)
                case (None, None)       => FactsetGlob.select(repo, factset)
              })
-    dlist <- loadScoobiFromPaths(glob.map(_.paths).getOrElse(Nil))
+    dlist <- loadScoobiFromPaths(glob.map(_.keys.map(_.name)).getOrElse(Nil))
   } yield dlist
 
-  def loadScoobiFromPaths(paths: List[DirPath]): ScoobiAction[DList[ParseError \/ Fact]] =
+  def loadScoobiFromPaths(paths: List[String]): ScoobiAction[DList[ParseError \/ Fact]] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       if(paths.nonEmpty)
-        valueFromSequenceFileWithPaths[ThriftFact](paths.map(_.path).toSeq).map({ case (path, tfact) => parseFact(path, tfact) })
+        valueFromSequenceFileWithPaths[ThriftFact](paths.toSeq).map({ case (path, tfact) => parseFact(path, tfact) })
       else
         DList[ParseError \/ Fact]()
     })
@@ -60,11 +60,11 @@ trait PartitionFactThriftStorage {
     Partition.stringPath(nsd._1, nsd._2)
   }
 
-  case class PartitionedFactThriftStorer(ref: ReferenceIO, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
+  case class PartitionedFactThriftStorer(repository: Repository, key: Key, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
       dlist.by(f => partitionPath((f.namespace.name, f.date)))
            .mapValues((f: Fact) => f.toThrift)
-           .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](ref.toHdfs.toString, identity, overwrite = true).persistWithCodec(codec)
+           .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](repository.toFilePath(key).toHdfs.toString, identity, overwrite = true).persistWithCodec(codec)
     }
   }
 }

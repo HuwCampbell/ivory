@@ -7,6 +7,7 @@ import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.store._
 import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import com.nicta.scoobi.Scoobi._
@@ -29,8 +30,8 @@ object IvoryStorage {
   val factsetVersion =
     FactsetVersionTwo
 
-  def factsetStorer(ref: ReferenceIO, codec: Option[CompressionCodec]): IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] =
-    PartitionFactThriftStorageV2.PartitionedFactThriftStorer(ref, codec)
+  def factsetStorer(repository: Repository, key: Key, codec: Option[CompressionCodec]): IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] =
+    PartitionFactThriftStorageV2.PartitionedFactThriftStorer(repository, key, codec)
 
   /**
    * Get the loader for a given version
@@ -53,7 +54,7 @@ object IvoryStorage {
 
   implicit class IvoryFactStorage(dlist: DList[Fact]) {
     def toIvoryFactset(repo: HdfsRepository, factset: FactsetId, codec: Option[CompressionCodec])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] =
-      IvoryStorage.factsetStorer(repo.factset(factset), codec).storeScoobi(dlist)
+      IvoryStorage.factsetStorer(repo, Repository.factset(factset), codec).storeScoobi(dlist)
   }
 
   /** Facts */
@@ -75,7 +76,7 @@ object IvoryStorage {
    */
   def factsFromIvoryStoreFor(repo: Repository, store: FeatureStore, from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ (Priority, FactsetId, Fact)]] = for {
     factsets <- ScoobiAction.fromHdfs(store.factsets.filterM(factset =>
-                  Hdfs.exists(repo.version(factset.value.id).toHdfs).map(_ && !factset.value.partitions.isEmpty)))
+                  Hdfs.exists(repo.toFilePath(Repository.version(factset.value.id)).toHdfs).map(_ && !factset.value.partitions.isEmpty)))
     versions <- ScoobiAction.fromResultTIO(Versions.readPrioritized(repo, factsets.map(_.map(_.id))))
     byVersion: List[(FactsetVersion, List[Prioritized[FactsetId]])] = versions.groupBy(_._2).toList.map({ case (v, ids) => (v, ids.map(_._1)) })
     loaded   <- byVersion.traverseU({ case (v, ids) => IvoryStorage.multiFactsetLoader(repo, v, ids, from, to) })

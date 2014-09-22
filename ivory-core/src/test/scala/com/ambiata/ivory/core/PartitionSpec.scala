@@ -4,7 +4,7 @@ import org.specs2._
 import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.mundane.io._
-
+import com.ambiata.mundane.store._
 import scalaz._, Scalaz._
 
 class PartitionSpec extends Specification with ScalaCheck { def is = s2"""
@@ -26,7 +26,7 @@ Parsing a Partition from a dir:
   Fails when the namespace is missing                 $dirMissingNamespace
 
 Can create a Partition path as a:
-  DirPath                 $dirPath
+  DirPath                 $key
   String                  $stringPath
 
 Can filter Partitions:
@@ -46,7 +46,7 @@ Can filter Partitions:
     } yield MalformedDateString(str))
 
   def file = prop((partition: Partition) => {
-    val fp = "a" </> "b" </> "c" </> partition.path <|> "file"
+    val fp = "a" </> "b" </> "c" </> toDirPath(partition.key) <|> "file"
     Partition.parseFile(fp) ==== partition.success[String]
   })
 
@@ -60,12 +60,12 @@ Can filter Partitions:
     Partition.parseFile("2014" </> "08" </> "11" <|> "file").toOption ==== None
 
   def dir = prop((partition: Partition) => {
-    val dp = "d" </> "e" </> partition.path
+    val dp = "d" </> "e" </> toDirPath(partition.key)
     Partition.parseDir(dp) ==== partition.success[String]
   })
 
   def dirIsFile = prop((partition: Partition) => {
-    val dp = "d" </> "e" </> partition.path </> "file"
+    val dp = "d" </> "e" </> toDirPath(partition.key) </> "file"
     Partition.parseDir(dp).toOption ==== None
   })
 
@@ -78,11 +78,11 @@ Can filter Partitions:
   def dirMissingNamespace =
     Partition.parseDir("2014" </> "08" </> "11").toOption ==== None
 
-  def dirPath = prop((p: Partition) =>
-    Partition.dirPath(p.namespace, p.date) ==== p.path)
+  def key = prop((p: Partition) =>
+    Partition.key(p.namespace, p.date) ==== p.key)
 
   def stringPath = prop((p: Partition) =>
-    Partition.stringPath(p.namespace.name, p.date) ==== p.path.path)
+    Partition.stringPath(p.namespace.name, p.date) ==== p.key.name)
 
   def between = prop((partitions: Partitions, dates: UniqueDates) => {
     val ps = partitions.partitions
@@ -99,4 +99,7 @@ Can filter Partitions:
     val ps = partitions.partitions
     Partitions.pathsAfterOrEqual(ps, date) must_== ps.filter(_.date.isAfterOrEqual(date))
   })
+
+  def toDirPath(key: Key) =
+    DirPath.unsafe(key.name)
 }

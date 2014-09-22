@@ -3,15 +3,17 @@ package com.ambiata.ivory.operation.ingestion
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.ingestion.DictionaryImporter._
 import com.ambiata.ivory.core.Arbitraries.DictionaryArbitrary
+import com.ambiata.ivory.storage.Arbitraries.StoreTypeArbitrary
 import com.ambiata.ivory.storage.fact.FactsetsSpec._
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.store.PosixStore
+import com.ambiata.mundane.store.{Key, PosixStore}
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.specs2.Specification
 import org.specs2.matcher.ThrownExpectations
+
 
 class DictionaryImporterSpec extends Specification with ThrownExpectations { def is = s2"""
 
@@ -46,7 +48,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations { def
     val dict2 = Dictionary(List(Definition.concrete(FeatureId(Name("c"), "d"), StringEncoding, Some(CategoricalType), "", Nil)))
     Temporary.using { dir =>
       for {
-        repo <- Repository.fromUriResultTIO(dir.path, RepositoryConfiguration.Empty)
+        repo <- Repository.fromUriResultTIO(dir.path, IvoryConfiguration.Empty)
         _    <- fromDictionary(repo, dict1, opts.copy(ty = Override))
         _    <- fromDictionary(repo, dict2, opts.copy(ty = Update))
         out  <- latestDictionaryFromIvory(repo)
@@ -75,8 +77,8 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations { def
     TemporaryReferences.withRepository(ivoryType){ivory => for {
       _   <- Repositories.create(ivory)
       _   <- TemporaryReferences.withReferenceFile(dictType){ref => for {
-        _ <- ref.store.utf8.write(ref.path, DictionaryTextStorageV2.delimitedString(dict))
-        _ <- fromPath(ivory, ref, opts.copy(ty = Override))
+        _ <- ref.store.utf8.write(Key.unsafe(ref.path.path), DictionaryTextStorageV2.delimitedString(dict))
+        _ <- importFromPath(ivory, ref, opts.copy(ty = Override))
       } yield ()}
       out <- latestDictionaryFromIvory(ivory)
     } yield out.byFeatureId} must beOkValue(dict.byFeatureId)

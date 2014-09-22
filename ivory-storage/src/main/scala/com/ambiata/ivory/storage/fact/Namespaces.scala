@@ -21,7 +21,7 @@ object Namespaces {
   /* Return the size of specific namespaces/factsets */
   def allNamespaceSizes(repository: Repository, namespaces: List[Name], factsets: List[FactsetId]): Hdfs[List[(Name, BytesQuantity)]] = {
     namespaces.flatMap(ns => factsets.map(ns ->)).traverse {
-      case (ns, fsid) => namespaceSizesSingle(repository.namespace(fsid, ns).toHdfs, ns)
+      case (ns, fsid) => namespaceSizesSingle(repository.toFilePath(Repository.namespace(fsid, ns)).toHdfs, ns)
     }.map(_.foldLeft(Map[Name, BytesQuantity]()) {
       case (k, v) => k + (v._1 -> implicitly[Numeric[BytesQuantity]].mkNumericOps(k.getOrElse(v._1, 0.mb)).+(v._2))
     }.toList)

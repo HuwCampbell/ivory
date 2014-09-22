@@ -3,6 +3,7 @@ package com.ambiata.ivory.cli
 import com.ambiata.ivory.api.Ivory._
 import com.ambiata.ivory.api.IvoryRetire
 import com.ambiata.ivory.cli.extract._
+import com.ambiata.ivory.core.Repository
 import com.ambiata.ivory.storage.control.IvoryRead
 import com.ambiata.mundane.control.ResultT
 import scalaz.effect.IO
@@ -25,14 +26,13 @@ object chord extends IvoryApp {
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments("", true, ExtractOutput()), { repo => conf => c =>
     for {
-      repo <- Repository.fromUriResultTIO(c.repo, conf)
       ent  <- Reference.fromUriAsDir(c.entities, conf)
       of   <- Extract.parse(conf, c.formats)
       _    <- ResultT.when(of.outputs.isEmpty, ResultT.fail[IO, Unit]("No output/format specified"))
       out  <- IvoryRetire.chord(repo, ent, c.takeSnapshot)
-      _    <- Extraction.extract(of, ChordExtract(repo.toReference(out))).run(IvoryRead.prod(repo))
+      _    <- Extraction.extract(of, ChordExtract(Reference(repo.store, repo.toFilePath(out).toDirPath))).run(IvoryRead.prod(repo))
       // Delete the output file only if successful - could be useful for debugging otherwise
-      _    <- repo.toStore.deleteAll(out)
-    } yield List(s"Successfully extracted chord from '${repo.root.path}'")
+      _    <- repo.store.deleteAll(out)
+    } yield List(s"Successfully extracted chord from '${repo.rootPath.path}'")
   })
 }

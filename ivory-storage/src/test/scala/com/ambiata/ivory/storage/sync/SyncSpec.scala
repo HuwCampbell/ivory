@@ -8,6 +8,7 @@ import com.ambiata.ivory.storage.Arbitraries._
 import com.ambiata.ivory.storage.plan.{Datasets, FactsetDataset}
 import com.ambiata.mundane.control.ResultTIO
 import com.ambiata.mundane.io._
+import com.ambiata.mundane.store.KeyName
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.poacher.hdfs.Hdfs
 import com.nicta.scoobi.impl.ScoobiConfiguration
@@ -35,7 +36,6 @@ Sync operations from cluster to local file system
 Helper functions
 ================
  checkPaths                                       $checkPaths
- normalisePaths                                   $normalisePaths
 
 """
 
@@ -46,7 +46,7 @@ Helper functions
       T.withLocationFile(T.Posix)(location => {
         val dataset = InputDataset(location)
         for {
-          _      <- T.createLocationFile(dataset.location)
+          _      <- T.createLocationDir(dataset.location)
           shadow <- SyncIngest.inputDataSet(dataset, cluster)
           exists <- Hdfs.exists(shadow.toHdfsPath).run(shadow.configuration)
         } yield exists})
@@ -55,10 +55,10 @@ Helper functions
 
   def relativeFileToCluster = {
     T.withCluster(cluster => {
-      T.runWithLocationFile(LocalLocation("../foo"))(location => {
+      T.runWithLocationFile(LocalLocation(cluster.root </> "foo"))(location => {
         val dataset = InputDataset(location)
         for {
-          _      <- T.createLocationFile(location)
+          _      <- T.createLocationDir(location)
           shadow <- SyncIngest.inputDataSet(dataset, cluster)
           exists <- Hdfs.exists(shadow.toHdfsPath).run(shadow.configuration)
         } yield exists})
@@ -81,9 +81,9 @@ Helper functions
   }
 
   def createFile(location: Location, file: String): ResultTIO[Unit] = location match {
-    case LocalLocation(s) => T.createLocationFile(LocalLocation(s + "/" + file))
-    case S3Location(b, k) => T.createLocationFile(S3Location(b, k + "/" + file))
-    case HdfsLocation(s)  => T.createLocationFile(HdfsLocation(s + "/" + file))
+    case LocalLocation(s) => T.createLocationFile(LocalLocation(s </> DirPath.unsafe(file)))
+    case S3Location(s)    => T.createLocationFile(S3Location   (s </> DirPath.unsafe(file)))
+    case HdfsLocation(s)  => T.createLocationFile(HdfsLocation (s </> DirPath.unsafe(file)))
   }
 
   def repositoryToCluster = prop((one: FactsetDataset, two: FactsetDataset) => {
@@ -91,11 +91,11 @@ Helper functions
       T.withCluster(cluster => {
         val datasets = Datasets(List(Prioritized(Priority.Min, one), Prioritized(Priority.Min, two)))
         for {
-          _ <- one.partitions.map(repo.factset(one.factset) </> _.path </> "file").traverseU(Files.write(_, ""))
-          _ <- two.partitions.map(repo.factset(two.factset) </> _.path </> "file").traverseU(Files.write(_, ""))
+          _ <- one.partitions.map(Repository.factset(one.factset) / _.key / "file").traverseU(key => Files.write(repo.toFilePath(key), ""))
+          _ <- two.partitions.map(Repository.factset(two.factset) / _.key / "file").traverseU(key => Files.write(repo.toFilePath(key), ""))
           s <- SyncIngest.toCluster(datasets, repo, cluster)
-          o <- one.partitions.traverseU(p => Hdfs.exists((repo.factset(one.factset) </> p.path </> "file").toHdfs).run(s.configuration))
-          t <- two.partitions.traverseU(p => Hdfs.exists((repo.factset(two.factset) </> p.path </> "file").toHdfs).run(s.configuration))
+          o <- one.partitions.traverseU(p => Hdfs.exists(repo.toFilePath(Repository.factset(one.factset) / p.key / "file").toHdfs).run(s.configuration))
+          t <- two.partitions.traverseU(p => Hdfs.exists(repo.toFilePath(Repository.factset(two.factset) / p.key / "file").toHdfs).run(s.configuration))
         } yield o ++ t })
     }) must beOkLike(_ must contain(true).forall)
   }).set(minTestsOk = 10)
@@ -106,10 +106,9 @@ Helper functions
         val datasets = Datasets(List(Prioritized(Priority.Min, dataset)))
         val shadowRepository = ShadowRepository.fromCluster(cluster)
         for {
-          _ <- dataset.partitions.map(shadowRepository.root </> "factsets" </> dataset.factset.render </> _.path
-            </> "file").traverseU(p => Hdfs.writeWith(p.toHdfs, Streams.write(_, "")).run(cluster.hdfsConfiguration))
+          _ <- dataset.partitions.map(Repository.factset(dataset.factset) / _.key / "file").traverseU(p => Hdfs.writeWith(shadowRepository.toFilePath(p).toHdfs, Streams.write(_, "")).run(cluster.hdfsConfiguration))
           s <- SyncExtract.toRepository(datasets, cluster, repo)
-          o <- dataset.partitions.traverseU(p => Files.exists(repo.factset(dataset.factset) </> p.path </> "file"))
+          o <- dataset.partitions.traverseU(p => Files.exists(repo.toFilePath(Repository.factset(dataset.factset) / p.key / "file")))
         } yield o })
     }) must beOkLike(_ must contain(true).forall)
   }).set(minTestsOk = 10)
@@ -118,11 +117,11 @@ Helper functions
     T.withLocationFile(T.Posix)( location => {
       T.withCluster(cluster => {
         val shadowRepository = ShadowRepository.fromCluster(cluster)
-        val relativePath = s"shadowOutputDataset/${UUID.randomUUID()}" </> "file"
-        val path = shadowRepository.root </> relativePath
+        val relativePath: FilePath = DirPath("shadowOutputDataset") </> DirPath(UUID.randomUUID) <|> "file"
+        val path: FilePath = shadowRepository.root </> relativePath
         for {
           _ <- Hdfs.writeWith(path.toHdfs, Streams.write(_, "")).run(cluster.hdfsConfiguration)
-          _ <- SyncExtract.outputDataSet(ShadowOutputDataset(path, shadowRepository.configuration), cluster, OutputDataset(location))
+          _ <- SyncExtract.outputDataSet(ShadowOutputDataset(shadowRepository.root, shadowRepository.configuration), cluster, OutputDataset(location))
           o <- Files.exists(location.path </> relativePath)
         } yield o })
     }) must beOkValue(true)
@@ -132,14 +131,14 @@ Helper functions
     T.withCluster(cluster => {
       T.withLocationDir(T.Posix)(location => {
         val shadowRepository = ShadowRepository.fromCluster(cluster)
-        val relativePath = s"shadowOutputDataset/${UUID.randomUUID()}" </> "file"
+        val relativePath: DirPath = DirPath("shadowOutputDataset") </> DirPath(UUID.randomUUID)
         val path = shadowRepository.root </> relativePath
         for {
-          _   <- Hdfs.writeWith((path </> "foo").toHdfs, Streams.write(_, "")).run(cluster.hdfsConfiguration)
-          _   <- Hdfs.writeWith((path </> "foos" </> "bar").toHdfs, Streams.write(_, "")).run(cluster.hdfsConfiguration)
-          _   <- SyncExtract.outputDataSet(ShadowOutputDataset(path, shadowRepository.configuration), cluster, OutputDataset(location))
-          foo <- Files.exists(location.path </> relativePath </> "foo")
-          bar <- Files.exists(location.path </> relativePath </> "foos" </> "bar")
+          _   <- Hdfs.writeWith((path <|> "foo").toHdfs, Streams.write(_, "")).run(cluster.hdfsConfiguration)
+          _   <- Hdfs.writeWith((path </> "foos" <|> "bar").toHdfs, Streams.write(_, "")).run(cluster.hdfsConfiguration)
+          _   <- SyncExtract.outputDataSet(ShadowOutputDataset(shadowRepository.root, shadowRepository.configuration), cluster, OutputDataset(location))
+          foo <- Files.exists(location.path </> relativePath <|> "foo")
+          bar <- Files.exists(location.path </> relativePath </> "foos" <|> "bar")
         } yield foo -> bar
       })
     }) must beOkValue(true -> true)
@@ -147,13 +146,7 @@ Helper functions
 
   def checkPaths = prop((dataset: FactsetDataset) => {
     val datasets = Datasets(List(Prioritized(Priority.Min, dataset)))
-    Sync.getPaths(datasets).length must be_==(dataset.partitions.length)
+    Sync.getKeys(datasets).length must be_==(dataset.partitions.length)
   })
-
-  def normalisePaths = {
-    val tmp = T.createUniquePath
-    Sync.normalise(tmp </> "foo", tmp) must be_===("foo")
-    Sync.normalise(tmp </> "foo", tmp </> "foo") must be_===("foo")
-  }
 
 }

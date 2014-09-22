@@ -14,15 +14,15 @@ import scalaz._, Scalaz._, effect.IO, effect.Effect._
 
 object SyncHdfs {
 
-   def toLocal(absoluteBasePath: FilePath, cluster: Cluster, destination: FilePath): ResultTIO[Unit] = {
+   def toLocal(absoluteBasePath: DirPath, cluster: Cluster, destination: DirPath): ResultTIO[Unit] = {
      val fs: FileSystem = FileSystem.get(cluster.hdfsConfiguration)
      for {
 
        files <- Hdfs.globFilesRecursively(absoluteBasePath.toHdfs).map(_.map(fs.makeQualified)).run(cluster.hdfsConfiguration)
        _     <- files.traverseU( path =>
          Hdfs.readWith(path, input => {
-           val p = destination </> normalise(FilePath(path.toUri.getPath), cluster.root)
-           Directories.mkdirs(p.dirname) >> ResultT.using(p.absolute.toOutputStream) { output =>
+           val p = destination </> FilePath.unsafe(path.toUri.getPath).relativeTo(cluster.root)
+           Directories.mkdirs(p.dirname) >> ResultT.using(p.asAbsolute.toOutputStream) { output =>
              Streams.pipe(input, output, ChunkSize)
            }}
          ).run(cluster.hdfsConfiguration)

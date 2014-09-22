@@ -1,14 +1,15 @@
 package com.ambiata.ivory.core
 
 import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
 import com.ambiata.mundane.parse.ListParser
 
 import scalaz.Scalaz._
 import scalaz._
 
 case class Partition(namespace: Name, date: Date) {
-  def path: DirPath =
-    Partition.dirPath(namespace, date)
+  def key: Key =
+    Partition.key(namespace, date)
 
   def order(other: Partition): Ordering =
     namespace ?|? other.namespace match {
@@ -29,6 +30,9 @@ object Partition {
 
   def parseFile(file: String): Validation[String, Partition] =
     parseFile(FilePath.unsafe(file))
+
+  def parseKey(key: Key): Validation[String, Partition] =
+    parseFile(FilePath.unsafe(key.name))
 
   def parseFile(file: FilePath): Validation[String, Partition] = for {
     parent    <- file.dirname.success[String]
@@ -52,8 +56,8 @@ object Partition {
   def stringPath(namespace: String, date: Date): String =
     namespace + "/" + "%4d/%02d/%02d".format(date.year, date.month, date.day)
 
-  def dirPath(namespace: Name, date: Date): DirPath =
-    namespace.asDirPath </> DirPath.unsafe("%4d/%02d/%02d".format(date.year, date.month, date.day))
+  def key(namespace: Name, date: Date): Key =
+    namespace.asKeyName / Key.unsafe("%4d/%02d/%02d".format(date.year, date.month, date.day))
 }
 
 case class Partitions(partitions: List[Partition]) {
@@ -63,7 +67,7 @@ case class Partitions(partitions: List[Partition]) {
   def isEmpty: Boolean =
     partitions.isEmpty
 
-  def show = partitions.map(_.path.path).mkString("\n", "\n", "\n")
+  def show = partitions.map(_.key.name).mkString("\n", "\n", "\n")
 
   def filter(f: Partition => Boolean): Partitions =
     Partitions(partitions.filter(f))

@@ -6,43 +6,43 @@ import com.ambiata.ivory.core.IvorySyntax._
 import com.amazonaws.services.s3.AmazonS3Client
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.store.{PosixStore, Store}
+import com.ambiata.mundane.store._
 import com.ambiata.poacher.hdfs.{Hdfs => PoacherHdfs, HdfsStore}
 import com.ambiata.saws.s3.{S3 => SawsS3, S3Path, S3Store}
 import com.nicta.scoobi.impl.ScoobiConfiguration
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 
-import scalaz._, Scalaz._, effect._
+import scalaz.{Store =>_,_}, Scalaz._, effect._
 
 case class TemporaryReference(ref: ReferenceIO) {
   def clean: ResultT[IO, Unit] =
-    ref.store.deleteAll(FilePath.root)
+    ref.store.deleteAll(Key.Root)
 }
 
 case class TemporaryStore(store: Store[ResultTIO]) {
   def clean: ResultT[IO, Unit] =
-    store.deleteAll(FilePath.root)
+    store.deleteAll(Key.Root)
 }
 
 case class TemporaryRepository(repo: Repository) {
   def clean: ResultT[IO, Unit] =
-    repo.toStore.deleteAll(Repository.root)
+    repo.store.deleteAll(Key.Root)
 }
 
 case class TemporaryLocationDir(location: Location, s3client: AmazonS3Client, conf: Configuration) {
   def clean: ResultTIO[Unit] = location match {
-    case HdfsLocation(path)      => PoacherHdfs.deleteAll(new Path(path)).run(conf)
-    case LocalLocation(path)     => Directories.delete(FilePath(path))
-    case S3Location(bucket, key) => SawsS3.deleteAll(bucket, key).executeT(s3client)
+    case HdfsLocation(path)      => PoacherHdfs.deleteAll(path.toHdfs).run(conf)
+    case LocalLocation(path)     => Directories.delete(path).void
+    case S3Location(path)        => SawsS3.deleteAll(path).executeT(s3client)
   }
 }
 
 case class TemporaryLocationFile(location: Location, s3client: AmazonS3Client, conf: Configuration) {
   def clean: ResultTIO[Unit] = location match {
-    case HdfsLocation(path)      => PoacherHdfs.delete(new Path(path)).run(conf)
-    case LocalLocation(path)     => Files.delete(FilePath(path))
-    case S3Location(bucket, key) => SawsS3.deleteAll(bucket, key).executeT(s3client)
+    case HdfsLocation(path)      => PoacherHdfs.delete(path.toHdfs).run(conf)
+    case LocalLocation(path)     => Files.delete(path.toFilePath).void
+    case S3Location(path)        => SawsS3.deleteAll(path).executeT(s3client)
   }
 }
 
@@ -84,6 +84,7 @@ object TemporaryReferences {
   val conf = IvoryConfiguration.fromScoobiConfiguration(ScoobiConfiguration())
 
   def testBucket: String = Option(System.getenv("AWS_TEST_BUCKET")).getOrElse("ambiata-dev-view")
+  def testBucketDir: DirPath = DirPath.unsafe(testBucket)
 
   def withReferenceFile[A](storeType: TemporaryType)(f: ReferenceIO => ResultTIO[A]): ResultTIO[A] = {
     val reference = storeType match {
@@ -124,11 +125,11 @@ object TemporaryReferences {
   def withLocationFile[A](storeType: TemporaryType)(f: Location => ResultTIO[A]): ResultTIO[A] = {
     val location = storeType match {
       case Posix =>
-        LocalLocation(createUniquePath.path)
+        LocalLocation(createUniquePath)
       case S3    =>
-        S3Location(testBucket, s3TempPath.path)
+        S3Location(testBucketDir </> s3TempPath)
       case Hdfs  =>
-        HdfsLocation(createUniquePath.path)
+        HdfsLocation(createUniquePath)
     }
     runWithLocationFile(location)(f)
   }
@@ -136,11 +137,11 @@ object TemporaryReferences {
   def withLocationDir[A](storeType: TemporaryType)(f: Location => ResultTIO[A]): ResultTIO[A] = {
     val location = storeType match {
       case Posix =>
-        LocalLocation(createUniquePath.path)
+        LocalLocation(createUniquePath)
       case S3    =>
-        S3Location(testBucket, s3TempPath.path)
+        S3Location(testBucketDir </> s3TempPath)
       case Hdfs  =>
-        HdfsLocation(createUniquePath.path)
+        HdfsLocation(createUniquePath)
     }
     runWithLocationDir(location)(f)
   }
@@ -166,18 +167,24 @@ object TemporaryReferences {
   def runWithCluster[A](cluster: Cluster)(f: Cluster => ResultTIO[A]): ResultTIO[A] =
     ResultT.using(TemporaryCluster(cluster).pure[ResultTIO])(tmp => f(tmp.cluster))
 
-  def createUniquePath: FilePath =
-    FilePath(System.getProperty("java.io.tmpdir", "/tmp")) </> tempUniquePath
+  def createUniquePath: DirPath =
+    DirPath.unsafe(System.getProperty("java.io.tmpdir", "/tmp")) </> tempUniquePath
 
   def createLocationFile(location: Location): ResultTIO[Unit] = location match {
-    case LocalLocation(s) => Files.write(FilePath(s), "")
-    case S3Location(b, k) => SawsS3.storeObject(S3Path.filePath(b, k), S3Path.filePath(b, k).toFile).executeT(conf.s3Client).void
-    case HdfsLocation(s)  => PoacherHdfs.writeWith(FilePath(s).toHdfs, out => Streams.write(out, "")).run(conf.configuration)
+    case LocalLocation(s) => Files.write(s.toFilePath, "")
+    case S3Location(s)    => SawsS3.storeObject(s.toFilePath, s.toFile).executeT(conf.s3Client).void
+    case HdfsLocation(s)  => PoacherHdfs.writeWith(s.toHdfs, out => Streams.write(out, "")).run(conf.configuration)
   }
 
-  def s3TempPath: FilePath =
-    FilePath("tests") </> tempUniquePath
+  def createLocationDir(location: Location): ResultTIO[Unit] = location match {
+    case LocalLocation(s) => Directories.mkdirs(s)
+    case S3Location(s)    => SawsS3.storeObject(s <|> "file", (s <|> "file").toFile).executeT(conf.s3Client).void
+    case HdfsLocation(s)  => PoacherHdfs.mkdir(s.toHdfs).void.run(conf.configuration)
+  }
 
-  def tempUniquePath: String =
-    s"temporary-${UUID.randomUUID()}"
+  def s3TempPath: DirPath =
+    DirPath("tests") </> tempUniquePath
+
+  def tempUniquePath: DirPath =
+    DirPath.unsafe(s"temporary-${UUID.randomUUID()}")
 }

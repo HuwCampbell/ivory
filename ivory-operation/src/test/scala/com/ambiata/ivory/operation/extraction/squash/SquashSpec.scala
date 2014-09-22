@@ -10,6 +10,7 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.mundane.control._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
+import IvorySyntax._
 
 import scalaz.{Value => _, _}, Scalaz._
 

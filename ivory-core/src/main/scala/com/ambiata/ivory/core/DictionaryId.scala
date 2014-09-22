@@ -7,7 +7,7 @@ import scala.math.{Ordering => SOrdering}
 
 case class DictionaryId(id: Identifier) {
   def render = id.render
-  def asFileName = id.asFileName
+  def asKeyName = id.asKeyName
   def next = id.next.map(DictionaryId.apply)
   def order(other: DictionaryId): Ordering =
     id ?|? other.id

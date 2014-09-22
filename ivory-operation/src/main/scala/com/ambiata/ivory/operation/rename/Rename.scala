@@ -46,9 +46,9 @@ object Rename {
   def renameWithFactsets(mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], reducerLookups: ReducerLookups): IvoryTIO[(FactsetId, RenameStats)] = for {
     factset    <- IvoryT.fromResultTIO(repository => Factsets.allocateFactsetId(repository))
     repository <- IvoryT.repository[ResultTIO]
-    output      = repository.factset(factset).toHdfs
+    output      = repository.toFilePath(Repository.factset(factset)).toHdfs
     hdfs       <- getHdfs
-    stats      <- fromResultT(_ => RenameJob.run(mapping, inputs, output, reducerLookups, hdfs.codec).run(ScoobiConfiguration(hdfs.configuration)))
+    stats      <- fromResultT(_ => RenameJob.run(repository, mapping, inputs, output, reducerLookups, hdfs.codec).run(ScoobiConfiguration(hdfs.configuration)))
     _          <- IvoryStorage.writeFactsetVersionI(List(factset))
   } yield factset -> stats
 

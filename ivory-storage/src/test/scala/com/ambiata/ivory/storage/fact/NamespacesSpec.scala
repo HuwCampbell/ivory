@@ -5,6 +5,7 @@ import com.ambiata.ivory.core._
 import IvorySyntax._
 import com.ambiata.ivory.storage.ScalaCheckManagedProperties
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.store._
 import com.ambiata.mundane.io._
 import com.ambiata.poacher.hdfs._
 import com.nicta.scoobi.impl.ScoobiConfiguration
@@ -38,14 +39,14 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
   def e3 = managed { temp: Temporary => (nsInc: Set[FeatureNamespace], nsExc: Set[FeatureNamespace], fsInc: FactsetIdList, fsExc: FactsetIdList) =>
     !nsInc.exists(nsExc.contains) ==> {
       val sc = ScoobiConfiguration()
-      val repo = HdfsRepository(temp.dir, RepositoryConfiguration(sc))
+      val repo = HdfsRepository(temp.dir, IvoryConfiguration.fromScoobiConfiguration(sc))
       val namespaces = (nsInc ++ nsExc).toList.flatMap(ns => (fsInc.ids ++ fsExc.ids).map(fs => fs -> ns.namespace)).map {
-        case (fs, ns) => repo.namespace(fs, ns)
+        case (fs, ns) => Repository.namespace(fs, ns)
       }
       val computNamespaces =
         (for {
-          _ <- namespaces.traverse(f => Hdfs.mkdir(f.toHdfs).run(sc.configuration))
-          _ <- namespaces.map(_ </> "f1").traverse(createFile)
+          _ <- namespaces.traverse(k => Hdfs.mkdir(repo.toFilePath(k).toHdfs).run(sc.configuration))
+          _ <- namespaces.map(_ / "f1").traverse(createFile(repo))
           sizes <- allNamespaceSizes(repo, nsInc.toList.map(_.namespace), fsInc.ids).run(sc.configuration)
         } yield sizes).map(_.toSet) must
           beOkValue(nsInc.map(ns => ns.namespace -> (fsInc.ids.length * 4).bytes))
@@ -53,15 +54,15 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
   }.set(maxSize = 5, minTestsOk = 5)
 
   def prepare[A](f: Path => ResultTIO[A]): ResultTIO[A] = Temporary.using { dir =>
-    val ns1: FileName = "ns1"
-    val ns2: FileName = "ns2"
+    val ns1 = KeyName.unsafe("ns1")
+    val ns2 = KeyName.unsafe("ns2")
     for {
-      repository <- Repository.fromUriResultTIO(dir.path, RepositoryConfiguration.Empty)
-      _          <- List(ns1 <|> "f1", ns2 <|> "f2").traverse(p => createFile(repository.toReference(p)))
+      repository <- Repository.fromUriResultTIO(dir.path, IvoryConfiguration.Empty)
+      _          <- List(ns1 / "f1", ns2 / "f2").traverse(createFile(repository))
       result     <- f(dir.toHdfs)
     } yield result
   }
 
-  def createFile(ref: ReferenceIO): ResultTIO[Unit] =
-    ReferenceStore.writeUtf8(ref, "test")
+  def createFile(repository: Repository)(key: Key): ResultTIO[Unit] =
+    repository.store.utf8.write(key, "test")
 }

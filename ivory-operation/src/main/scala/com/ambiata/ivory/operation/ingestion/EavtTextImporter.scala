@@ -10,6 +10,7 @@ import com.ambiata.poacher.hdfs._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.joda.time.DateTimeZone
+import EavtTextImporter._
 
 import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
 
@@ -24,19 +25,14 @@ case class EavtTextImporter(repository: Repository,
                             optimal: BytesQuantity,
                             format: Format) {
 
-<<<<<<< HEAD
   val  importFacts = { (factsetId: FactsetId, input: ReferenceIO, timezone: DateTimeZone) =>
-    val errorRef = repository.toReference(repository.errors <|> factsetId.asFileName)
-=======
-  val  importFacts = { (factsetId: FactsetId, input: ReferenceIO, namespace: Option[Name], timezone: DateTimeZone) =>
-    val errorRef = repository.errors </> factsetId.asFileName
->>>>>>> removed some unsafe calls
+    val errorKey = Repository.errors / factsetId.asKeyName
 
     for {
       hr         <- downcast[Repository, HdfsRepository](repository, "Repository must be HDFS")
       dictionary <- latestDictionaryFromIvory(repository)
       inputPath  <- Reference.hdfsPath(input)
-      errorPath  <- Reference.hdfsPath(errorRef)
+      errorPath  =  repository.toFilePath(errorKey).toHdfs
       partitions <- namespace.fold(Namespaces.namespaceSizes(inputPath))(ns => Namespaces.namespaceSizesSingle(inputPath, ns).map(List(_))).run(hr.configuration)
       _          <- ResultT.fromDisjunction[IO, Unit](validateNamespaces(dictionary, partitions.map(_._1)).leftMap(\&/.This(_)))
       _          <- runJob(hr, dictionary, factsetId, inputPath, errorPath, partitions, timezone)
@@ -55,7 +51,7 @@ case class EavtTextImporter(repository: Repository,
         inputPath,
         namespace,
         paths,
-        repository.factset(factsetId).toHdfs,
+        repository.toFilePath(Repository.factset(factsetId)).toHdfs,
         errorPath,
         format,
         hr.codec

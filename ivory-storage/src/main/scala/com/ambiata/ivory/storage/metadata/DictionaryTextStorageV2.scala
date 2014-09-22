@@ -22,18 +22,6 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
   def fromFile[F[+_] : Monad](ref: Reference[F]): F[Option[Dictionary]] =
     fromFileStore(ref).map(_.fold(ds => Some(ds), _ => None))
 
-  def fromFilesOrFail[F[+_] : Monad](ref: Reference[F]): ResultT[F, Dictionary] =
-    ResultT(fromFiles(ref).flatMap { option => failIfMissing[F](option).run })
-
-  /**
-   * specialisation of the fromFilesMethod to avoid getting a ResultT[ResultTIO, Dictionary] result
-   * when ref is a Reference[ResultTIO]
-   *
-   * This should get better with Scalaz 7.1 and the introduction of MonadError
-   */
-  def fromFilesIO(ref: Reference[ResultTIO]): ResultTIO[Dictionary] =
-    fromFiles(ref).flatMap { option => failIfMissing[IO](option) }
-
   def fromFileIO(ref: Reference[ResultTIO]): ResultTIO[Dictionary] =
     fromFile(ref).flatMap { option => failIfMissing[IO](option) }
 

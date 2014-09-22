@@ -2,6 +2,7 @@ package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.store._
 import com.ambiata.mundane.data.Lists
 
 import scalaz.{Value => _, _}, Scalaz._, effect.IO
@@ -31,6 +32,17 @@ trait TextStorage[L, T] {
 
   def toFileStoreIO(ref: ReferenceIO, t: T): ResultTIO[Unit] =
     ReferenceStore.writeUtf8(ref, delimitedString(t))
+
+  def toKeyStore(repository: Repository, key: Key, t: T): ResultTIO[Unit] =
+    repository.store.utf8.write(key, delimitedString(t))
+
+  def fromKeyStore(repository: Repository, key: Key): ResultTIO[T] =
+    repository.store.linesUtf8.read(key).flatMap(lines => ResultT.fromDisjunctionString[IO, T](fromLines(lines)))
+
+  def fromKeysStore(repository: Repository, key: Key): ResultTIO[List[T]] = for {
+    keys <- repository.store.list(key)
+    ts   <- keys.traverseU(k => fromKeyStore(repository, key / k))
+  } yield ts
 
   def fromString(s: String): ValidationNel[String, T] =
     fromLinesAll(s.lines.toList)

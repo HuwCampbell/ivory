@@ -8,7 +8,7 @@ import org.apache.commons.logging.LogFactory
 import scalaz.{DList => _, Store => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
-import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
 import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core.IvorySyntax._
@@ -40,7 +40,7 @@ object Chord {
    * Returns a newly created [[FilePath]] to the chord in thrift format, which can be fed into other jobs.
    * Consumers of this method should delete the returned path when finished with the result.
    */
-  def createChord(repository: Repository, entitiesRef: ReferenceIO, takeSnapshot: Boolean): ResultTIO[DirPath] = for {
+  def createChord(repository: Repository, entitiesRef: ReferenceIO, takeSnapshot: Boolean): ResultTIO[Key] = for {
     _                   <- checkThat(repository, repository.isInstanceOf[HdfsRepository], "Chord only works on HDFS repositories at this stage.")
     entities            <- Entities.readEntitiesFrom(entitiesRef)
     _                   <- logInfo(s"Earliest date in chord file is '${entities.earliestDate}'")
@@ -54,30 +54,30 @@ object Chord {
   /**
    * Run the chord extraction on Hdfs, returning the [[FilePath]] where the chord was written to.
    */
-  def runChordOnHdfs(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotMeta]): ResultTIO[DirPath] = {
-    val chordRef = repository.toReference("tmp" <|> FileName(java.util.UUID.randomUUID))
-    val outputPath = DirPath("tmp") </> FileName(java.util.UUID.randomUUID)
+  def runChordOnHdfs(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotMeta]): ResultTIO[Key] = {
+    val chordKey = Repository.root / "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID)
+    val outputKey = Repository.root / "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID)
     for {
       hr                   <- downcast[Repository, HdfsRepository](repository, "Chord only works on HDFS repositories at this stage.")
-      _                    <- serialiseEntities(entities, chordRef)
+      _                    <- serialiseEntities(repository, entities, chordKey)
       featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotMeta(repository)(meta))
       dictionary           <- latestDictionaryFromIvory(repository)
-      _                    <- chordScoobiJob(hr, dictionary, store, chordRef, entities.latestDate, featureStoreSnapshot,
-                                             (repository.root </> outputPath).toHdfs, hr.codec).run(hr.scoobiConfiguration)
+      _                    <- chordScoobiJob(hr, dictionary, store, chordKey, entities.latestDate, featureStoreSnapshot,
+                                             repository.toFilePath(outputKey).toHdfs, hr.codec).run(hr.scoobiConfiguration)
       // Delete the temporary chordRef - no longer needed
-      _                    <- ReferenceStore.deleteAll(chordRef)
-    } yield outputPath
+      _                    <- repository.store.delete(chordKey)
+    } yield outputKey
   }
 
   /**
    * Persist facts which are the latest corresponding to a set of dates given for each entity.
    * Use the latest feature store snapshot if available
    */
-  def chordScoobiJob(repository: Repository, dictionary: Dictionary, store: FeatureStore, chordReference: ReferenceIO,
+  def chordScoobiJob(repository: Repository, dictionary: Dictionary, store: FeatureStore, chordKey: Key,
                      latestDate: Date, snapshot: Option[FeatureStoreSnapshot],
                      outputPath: Path, codec: Option[CompressionCodec]): ScoobiAction[Unit] = ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
 
-    lazy val entities = getEntities(chordReference)
+    lazy val entities = getEntities(repository, chordKey)
 
     Chord.readFacts(repository, store, latestDate, snapshot).map { facts =>
 
@@ -160,8 +160,8 @@ object Chord {
           .map(_.map { case (p, fid, f) => (p, fid.right[SnapshotId], f) })
 
       case Some(snapshot) =>
-        val path          =  repository.snapshot(snapshot.snapshotId).toHdfs
-        val newFactsets   =  featureStore diff snapshot.store
+        val path          = repository.toFilePath(Repository.snapshot(snapshot.snapshotId)).toHdfs
+        val newFactsets   = featureStore diff snapshot.store
 
         for {
           oldFacts      <- factsFromIvoryStoreBetween(repository, snapshot.store, snapshot.date, latestDate).exitOnParseError
@@ -190,8 +190,8 @@ object Chord {
       }
   }
 
-  def getEntities(chordReference: ReferenceIO): Entities =
-    deserialiseEntities(chordReference).run.unsafePerformIO match {
+  def getEntities(repository: Repository, chordKey: Key): Entities =
+    deserialiseEntities(repository, chordKey).run.unsafePerformIO match {
       case Ok(m)    => m
       case Error(e) => Crash.error(Crash.Serialization, "Can not deserialise chord map - " + Result.asString(e))
     }

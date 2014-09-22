@@ -2,6 +2,7 @@ package com.ambiata.ivory
 package storage
 package repository
 
+import com.ambiata.mundane.store.Key
 import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.core.IvorySyntax._
@@ -46,38 +47,38 @@ object Recreate { outer =>
     log("****** Recreating feature stores") >> featureStores
 
   def dictionaries: RecreateAction[Unit] =
-    recreate(DICTIONARY, (_:Repository).dictionaries) { conf =>
+    recreate(DICTIONARY, Repository.dictionaries) { conf =>
       fromHdfs(copyDictionaries(conf.hdfsFrom, conf.hdfsTo, conf.dryFor(RecreateData.DICTIONARY), conf.maxNumber))
     }
 
   def featureStores: RecreateAction[Unit] =
-    recreate(STORE, (_:Repository).featureStores) { conf =>
+    recreate(STORE, Repository.featureStores) { conf =>
       fromHdfs(copyFeatureStores(conf.hdfsFrom, conf.hdfsTo, conf.clean, conf.dryFor(RecreateData.STORE), conf.maxNumber))
     }
 
   def factsets: RecreateAction[Unit] =
-    recreate(FACTSET, (_:Repository).factsets) { conf =>
+    recreate(FACTSET, Repository.factsets) { conf =>
       fromScoobi(copyFactsets(conf.hdfsFrom, conf.hdfsTo, conf.codec, conf.reducerSize, conf.dryFor(RecreateData.FACTSET), conf.maxNumber))
     }
 
   def snapshots: RecreateAction[Unit] =
-    recreate(SNAPSHOT, (_:Repository).snapshots) { conf =>
+    recreate(SNAPSHOT, Repository.snapshots) { conf =>
       fromScoobi(copySnapshots(conf.hdfsFrom, conf.hdfsTo, conf.codec, conf.dryFor(RecreateData.SNAPSHOT), conf.maxNumber))
     }
 
   /**
    * recreate a given set of data and log before/after count and size
    */
-  private def recreate[A, V](data: RecreateData, f: Repository => ReferenceIO)(action: RecreateConfig => RecreateAction[A]): RecreateAction[Unit] =
+  private def recreate[A, V](data: RecreateData, key: Key)(action: RecreateConfig => RecreateAction[A]): RecreateAction[Unit] =
     configuration.flatMap { conf =>
       val name = data.plural
       val todo =
         log("Dry run!").when(conf.dryFor(data)) >>
-        logStat("Number of "+name, conf.from, Stats.numberOf(f)) >>
-        logStat("Size of "+name,   conf.from, Stats.showSizeOfInBytes(f)) >>
+        logStat("Number of "+name, conf.from, Stats.numberOf(key)) >>
+        logStat("Size of "+name,   conf.from, Stats.showSizeOfInBytes(key)) >>
         action(conf) >>
-        logStat("Number of "+name, conf.to, Stats.numberOf(f)) >>
-        logStat("Size of "+name,   conf.to, Stats.showSizeOfInBytes(f))
+        logStat("Number of "+name, conf.to, Stats.numberOf(key)) >>
+        logStat("Size of "+name,   conf.to, Stats.showSizeOfInBytes(key))
 
       todo.unless(conf.recreateData.nonEmpty && conf.dryFor(data))
     }
@@ -86,16 +87,16 @@ object Recreate { outer =>
    * DICTIONARIES
    */
   private def copyDictionaries(from: HdfsRepository, to: HdfsRepository, dry: Boolean, maxNumber: Option[Int]): Hdfs[Unit] = for {
-    _        <- Hdfs.mkdir(to.dictionaries.toHdfs).unless(dry)
-    paths    <- Hdfs.globPaths(from.dictionaries.toHdfs)
-    existing <- Hdfs.globPaths(to.dictionaries.toHdfs).map(_.map(_.getName))
+    _        <- Hdfs.mkdir(to.toFilePath(Repository.dictionaries).toHdfs).unless(dry)
+    paths    <- Hdfs.globPaths(from.toFilePath(Repository.dictionaries).toHdfs)
+    existing <- Hdfs.globPaths(to.toFilePath(Repository.dictionaries).toHdfs).map(_.map(_.getName))
     missing  =  paths.filterNot(p => existing.contains(p.getName))
     _        <- missing.take(maxNumber.fold(missing.size)(identity)).traverse(copyDictionary(from, to, dry))
   } yield ()
 
   private def copyDictionary(from: HdfsRepository, to: HdfsRepository, dry: Boolean) = (path: Path) => for {
       dictId <- Hdfs.fromOption(Identifier.parse(path.getName), s"Could not parse '${path.getName}'")
-      _      <- Hdfs.log(s"Copy dictionary ${path.getName} from ${from.dictionaryById(DictionaryId(dictId))} to ${to.dictionaryById(DictionaryId(dictId))}")
+      _      <- Hdfs.log(s"Copy dictionary ${path.getName} from ${from.toFilePath(Repository.dictionaryById(DictionaryId(dictId)))} to ${to.toFilePath(Repository.dictionaryById(DictionaryId(dictId)))}")
       dict   <- Hdfs.fromResultTIO(latestDictionaryFromIvory(from) >>= { dict: Dictionary =>
         dictionaryToIvory(to, dict)
       }).unless(dry)
@@ -105,7 +106,7 @@ object Recreate { outer =>
    * STORES
    */
   private def copyFeatureStores(from: HdfsRepository, to: HdfsRepository, clean: Boolean, dry: Boolean, maxNumber: Option[Int]): Hdfs[Unit] =
-    Hdfs.mkdir(to.featureStores.toHdfs).unless(dry) >>
+    Hdfs.mkdir(to.toFilePath(Repository.featureStores).toHdfs).unless(dry) >>
       (nonEmptyFactsetIds(from, to) tuple featureStoresPaths(from, to)).flatMap { case (factsets, featureStores) =>
         featureStores.take(maxNumber.fold(featureStores.size)(identity)).traverse(copyFeatureStore(from, to, clean, dry, factsets)).void
       }
@@ -113,7 +114,7 @@ object Recreate { outer =>
   private def copyFeatureStore(from: HdfsRepository, to: HdfsRepository, clean: Boolean, dry: Boolean, filtered: List[FactsetId]) = (path: Path) =>
     for {
       featureStoreId <- Hdfs.fromOption(FeatureStoreId.parse(path.getName), s"Could not parse '${path.getName}'")
-      _       <- Hdfs.log(s"Copy feature store ${featureStoreId} from ${from.featureStoreById(featureStoreId)} to ${to.featureStoreById(featureStoreId)}")
+      _       <- Hdfs.log(s"Copy feature store ${featureStoreId} from ${from.toFilePath(Repository.featureStoreById(featureStoreId))} to ${to.toFilePath(Repository.featureStoreById(featureStoreId))}")
       store   <- Hdfs.fromResultTIO(featureStoreFromIvory(from, featureStoreId))
       cleaned <- cleanupFeatureStore(featureStoreId, store, filtered, clean)
       _       <- Hdfs.fromResultTIO(featureStoreToIvory(to, cleaned)).unless(dry)
@@ -127,8 +128,8 @@ object Recreate { outer =>
   }
 
   private def featureStoresPaths(from: Repository, to: Repository): Hdfs[List[Path]] = for {
-    paths         <- Hdfs.globFiles(from.featureStores.toHdfs)
-    existingNames <- Hdfs.globFiles(to.featureStores.toHdfs).map(_.map(_.getName))
+    paths         <- Hdfs.globFiles(from.toFilePath(Repository.featureStores).toHdfs)
+    existingNames <- Hdfs.globFiles(to.toFilePath(Repository.featureStores).toHdfs).map(_.map(_.getName))
   } yield paths.filterNot(p => existingNames.contains(p.getName))
 
   /**
@@ -146,13 +147,13 @@ object Recreate { outer =>
                   from: HdfsRepository, to: HdfsRepository,
                   codec: Option[CompressionCodec], reducerSize: BytesQuantity, dry: Boolean): FactsetId => ScoobiAction[Unit] = (id: FactsetId) =>
     for {
-      _             <- ScoobiAction.log(s"Copy factset '${id.render}' from ${from.factset(id)} to ${to.factset(id)}")
+      _             <- ScoobiAction.log(s"Copy factset '${id.render}' from ${from.toFilePath(Repository.factset(id))} to ${to.toFilePath(Repository.factset(id))}")
       configuration <- ScoobiAction.scoobiConfiguration
-      namespaces    <- ScoobiAction.fromHdfs(namespaceSizes(from.factset(id).toHdfs))
-      partitions    <- ScoobiAction.fromHdfs(Hdfs.globFiles(from.factset(id).toHdfs, "*/*/*/*/*").filterHidden)
+      namespaces    <- ScoobiAction.fromHdfs(namespaceSizes(from.toFilePath(Repository.factset(id)).toHdfs))
+      partitions    <- ScoobiAction.fromHdfs(Hdfs.globFiles(from.toFilePath(Repository.factset(id)).toHdfs, "*/*/*/*/*").filterHidden)
       version       <- ScoobiAction.fromResultTIO(Versions.read(from, id))
       _             <- {
-        ScoobiAction.safe(RecreateFactsetJob.run(configuration, version, dictionary, namespaces, partitions, to.factset(id).toHdfs, reducerSize, codec)) >>
+        ScoobiAction.safe(RecreateFactsetJob.run(configuration, version, dictionary, namespaces, partitions, to.toFilePath(Repository.factset(id)).toHdfs, reducerSize, codec)) >>
         ScoobiAction.fromResultTIO(writeFactsetVersion(to, List(id)))
       }.unless(dry)
     } yield ()
@@ -164,8 +165,8 @@ object Recreate { outer =>
    */
   private def copySnapshots(from: HdfsRepository, to: HdfsRepository, codec: Option[CompressionCodec], dry: Boolean, maxNumber: Option[Int]): ScoobiAction[Unit] = {
     for {
-      paths    <- ScoobiAction.fromHdfs(Hdfs.globPaths(from.snapshots.toHdfs))
-      existing <- ScoobiAction.fromHdfs(Hdfs.globPaths(to.snapshots.toHdfs)).map(_.map(_.getParent.getName))
+      paths    <- ScoobiAction.fromHdfs(Hdfs.globPaths(from.toFilePath(Repository.snapshots).toHdfs))
+      existing <- ScoobiAction.fromHdfs(Hdfs.globPaths(to.toFilePath(Repository.snapshots).toHdfs)).map(_.map(_.getParent.getName))
       missing  = paths.filterNot(p => existing.contains(p.getParent.getName))
       dlists   <- missing.take(maxNumber.fold(missing.size)(identity)).traverse(copySnapshot(from, to, codec))
       _        <- scoobiJob(dlists.reduce(_++_).persist(_)).unless(dry)
@@ -174,22 +175,22 @@ object Recreate { outer =>
 
   import com.ambiata.ivory.storage.legacy.FlatFactThriftStorageV1._
   private def copySnapshot(from: HdfsRepository, to: HdfsRepository, codec: Option[CompressionCodec]) = (path: Path) =>
-    ScoobiAction.log(s"Copy snapshot ${path.getName} from $path to ${to.snapshots+"/"+path.getName}") >>
+    ScoobiAction.log(s"Copy snapshot ${path.getName} from $path to ${to.toFilePath(Repository.snapshots).path+"/"+path.getName}") >>
     loadFacts(path).flatMap(storeFacts(path, to, codec))
 
   private def loadFacts(path: Path): ScoobiAction[DList[Fact]] =
     scoobiJob(FlatFactThriftLoader(path.toString).loadScoobi(_)).map(_.map(throwAwayErrors("Could not load facts")))
 
   private def storeFacts(path: Path,to: HdfsRepository, codec: Option[CompressionCodec]) = (facts: DList[Fact]) =>
-    scoobiJob(FlatFactThriftStorer(new Path(to.snapshots.toHdfs, path.getName).toString, codec).storeScoobi(facts)(_))
+    scoobiJob(FlatFactThriftStorer(new Path(to.toFilePath(Repository.snapshots).toHdfs, path.getName).toString, codec).storeScoobi(facts)(_))
 
   private def nonEmptyFactsetIds(from: Repository, to: Repository): Hdfs[List[FactsetId]] = {
     def getChildren(paths: List[Path]): Hdfs[Set[String]] =
       paths.traverse(p => Hdfs.globFiles(p, "*/*/*/*/*").filterHidden.map(ps => (p, ps.isEmpty)) ||| Hdfs.value((p, true))).map(_.filterNot(_._2).map(_._1.getName).toSet)
 
     for {
-      paths            <- Hdfs.globPaths(from.factsets.toHdfs)
-      existing         <- Hdfs.globPaths(to.factsets.toHdfs)
+      paths            <- Hdfs.globPaths(from.toFilePath(Repository.factsets).toHdfs)
+      existing         <- Hdfs.globPaths(to.toFilePath(Repository.factsets).toHdfs)
       children         <- getChildren(paths)
       existingChildren <- getChildren(existing)
       ids              <- children.diff(existingChildren).toList.sorted.traverseU(c => Hdfs.fromOption(FactsetId.parse(c), s"Can not parse Factset id '${c}'"))
@@ -203,7 +204,7 @@ object Recreate { outer =>
 
   /** Execute a stat action and log the result */
   private def logStat[A](name: String, repository: Repository, stat: StatAction[A]): RecreateAction[Unit] =
-    fromStat(repository, stat).log(value => s"$name in ${repository.root}: $value")
+    fromStat(repository, stat).log(value => s"$name in ${repository}: $value")
 
   /**
    * RECREATE ACTION methods

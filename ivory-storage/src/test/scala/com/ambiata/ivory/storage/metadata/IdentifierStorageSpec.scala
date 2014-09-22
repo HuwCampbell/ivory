@@ -1,11 +1,9 @@
 package com.ambiata.ivory.storage.metadata
 
-import com.ambiata.ivory.core._
 import com.ambiata.ivory.data.Identifier
-import com.ambiata.ivory.data.TemporaryStoreRun._
-import com.ambiata.mundane.io._
-import com.ambiata.mundane.store.Store
-import com.ambiata.mundane.testing.ResultMatcher._
+import com.ambiata.ivory.core.TemporaryReferences._
+import com.ambiata.mundane.store._
+import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.specs2._
 import scodec.bits.ByteVector
 
@@ -23,30 +21,29 @@ Identifier Storage Spec
   Write multiple times and then get          $writeMultiple
 
 """
-  val base = DirPath.Empty </> "base"
-  def ref[F[_]](store: Store[F]) = Reference(store, base)
-  val fileName: FileName = "fileName"
 
-  def getEmpty = run { store =>
-    IdentifierStorage.get(ref(store))
+  val keyName = KeyName.unsafe("keyname")
+
+  def getEmpty = withRepository(Posix) { repository =>
+    IdentifierStorage.get(repository, Key.Root)
   } must beOkValue(Scalaz.none)
 
-  def getEmptyFail = run { store =>
-    IdentifierStorage.getOrFail(ref(store))
-  }.toOption ==== Scalaz.none
+  def getEmptyFail = withRepository(Posix) { repository =>
+    IdentifierStorage.getOrFail(repository, Key.Root)
+  } must beOk.not
 
-  def writeAndGet = run { store =>
-    IdentifierStorage.write(ref(store), fileName, ByteVector.empty) >> IdentifierStorage.getOrFail(ref(store))
+  def writeAndGet = withRepository(Posix) { repository =>
+    IdentifierStorage.write(repository, Key.Root, keyName, ByteVector.empty) >> IdentifierStorage.getOrFail(repository, Key.Root)
   } must beOkValue(Identifier.initial)
 
-  def writeMultiple = run { store =>
+  def writeMultiple = withRepository(Posix) { repository =>
     for {
-      _  <- IdentifierStorage.write(ref(store) </> "a", fileName, ByteVector.empty)
-      i1 <- IdentifierStorage.getOrFail(ref(store) </> "a")
-      _  <- IdentifierStorage.write(ref(store) </> "a", fileName, ByteVector.empty)
-      i2 <- IdentifierStorage.getOrFail(ref(store) </> "a")
-      _  <- IdentifierStorage.write(ref(store) </> "b", fileName, ByteVector.empty)
-      i3 <- IdentifierStorage.getOrFail(ref(store) </> "a")
+      _  <- IdentifierStorage.write(repository, Key("a"), keyName, ByteVector.empty)
+      i1 <- IdentifierStorage.getOrFail(repository, Key("a"))
+      _  <- IdentifierStorage.write(repository, Key("a"), keyName, ByteVector.empty)
+      i2 <- IdentifierStorage.getOrFail(repository, Key("a"))
+      _  <- IdentifierStorage.write(repository, Key("b"), keyName, ByteVector.empty)
+      i3 <- IdentifierStorage.getOrFail(repository, Key("a"))
     } yield (i1, i2, i3)
   } must beOkValue((Identifier("00000000"), Identifier("00000001"), Identifier("00000001")))
 

@@ -27,7 +27,7 @@ class RecreateSpec extends Specification with SampleFacts { def is = s2"""
           _   <- Recreate.copyFactset(sampleDictionary, from, to, codec, 30.mb, false)(factset).run(to.scoobiConfiguration)
           // check that it has been properly created
           _   <- Versions.read(to, factset)
-          out <- Hdfs.globFiles(to.factset(factset).toHdfs, "*/*/*/*/*").run(to.configuration)
+          out <- Hdfs.globFiles(to.toFilePath(Repository.factset(factset)).toHdfs, "*/*/*/*/*").run(to.configuration)
         } yield out
       }
     } must beOkLike((_: List[_]) must not(beEmpty))

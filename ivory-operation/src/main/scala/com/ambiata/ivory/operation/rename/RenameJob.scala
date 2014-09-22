@@ -1,9 +1,8 @@
 package com.ambiata.ivory.operation.rename
 
-import com.ambiata.ivory.core.{Crash, Prioritized}
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.SnapshotJob
-import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable
 import com.ambiata.ivory.storage.fact.FactsetGlob
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.task.FactsetJobKeys
@@ -14,9 +13,10 @@ import org.apache.hadoop.io._
 import org.apache.hadoop.mapreduce.Job
 import org.apache.hadoop.mapreduce.lib.input.{MultipleInputs, SequenceFileInputFormat}
 import org.apache.hadoop.mapreduce.lib.output._
+import com.ambiata.ivory.core.IvorySyntax._
 
 object RenameJob {
-  def run(mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], target: Path, reducerLookups: ReducerLookups,
+  def run(repository: Repository, mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], target: Path, reducerLookups: ReducerLookups,
           codec: Option[CompressionCodec]): ScoobiAction[RenameStats] = for {
     conf  <- ScoobiAction.scoobiConfiguration
     job = Job.getInstance(conf.configuration)
@@ -46,9 +46,9 @@ object RenameJob {
       /* input */
       val mappers = inputs.map(p => (classOf[RenameMapper], p.value))
       mappers.foreach({ case (clazz, factsetGlob) =>
-        factsetGlob.paths.foreach { p =>
-          println(s"Input path: ${p.path}")
-          MultipleInputs.addInputPath(job, new Path(p.path), classOf[SequenceFileInputFormat[_, _]], clazz)
+        factsetGlob.keys.foreach { key =>
+          println(s"Input path: ${key.name}")
+          MultipleInputs.addInputPath(job, repository.toFilePath(key).toHdfs, classOf[SequenceFileInputFormat[_, _]], clazz)
         }
       })
 

@@ -2,6 +2,10 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core.{Reference, Repository}
 import com.ambiata.ivory.api.IvoryRetire
+import com.ambiata.mundane.control.ResultT
+import com.ambiata.mundane.store._
+
+import scalaz.effect.IO
 
 object pivot extends IvoryApp {
 
@@ -19,7 +23,7 @@ object pivot extends IvoryApp {
          |""".stripMargin)
 
     help("help") text "shows this usage text"
-    opt[String]('i', "input")      action { (x, c) => c.copy(input = x) }      required() text "Path to ivory factset."
+    opt[String]('i', "input")      action { (x, c) => c.copy(input = x) }      required() text "Key to ivory factset."
     opt[String]('o', "output")     action { (x, c) => c.copy(output = x) }     required() text "Path to store pivot data."
     opt[String]('r', "repo")       action { (x, c) => c.copy(repo = x) }       required() text "Path to repository."
     opt[String]("tombstone")       action { (x, c) => c.copy(tombstone = x) }             text "Output value to use for missing data, default is 'NA'"
@@ -31,7 +35,7 @@ object pivot extends IvoryApp {
                       |
                       |Arguments --
                       |
-                      |  Input Path              : ${c.input}
+                      |  Input Key               : ${c.input}
                       |  Output Path             : ${c.output}
                       |  Repository              : ${c.repo}
                       |  Delim                   : ${c.delim}
@@ -41,9 +45,9 @@ object pivot extends IvoryApp {
       println(banner)
       for {
         repo   <- Repository.fromUriResultTIO(c.repo, conf)
-        input  <- Reference.fromUriAsDir(c.input, conf)
+        input  <- ResultT.fromOption[IO, Key](Key.fromString(c.input), s"${c.input} is not a valid key to a factset in the Ivory repository")
         output <- Reference.fromUriAsDir(c.output, conf)
-        _      <- IvoryRetire.pivot(repo, input, output, c.delim, c.tombstone)
+        _      <- IvoryRetire.pivot(repo, Reference.fromKey(repo, input), output, c.delim, c.tombstone)
       } yield List(banner, "Status -- SUCCESS")
     }))
 }

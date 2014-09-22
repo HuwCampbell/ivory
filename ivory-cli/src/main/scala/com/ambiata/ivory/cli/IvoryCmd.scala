@@ -17,11 +17,11 @@ import scalaz._, Scalaz._
 case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryRunner[A]) {
 
   def run(args: Array[String]): IO[Option[Unit]] = {
-    val repositoryConfiguration = createRepositoryConfiguration(args)
+    val repositoryConfiguration = createIvoryConfiguration(args)
     parseAndRun(repositoryConfiguration.arguments, runner.run(repositoryConfiguration))
   }
 
-  private def createRepositoryConfiguration(args: Array[String]): IvoryConfiguration =
+  private def createIvoryConfiguration(args: Array[String]): IvoryConfiguration =
     IvoryConfiguration(
       arguments        = parseHadoopArguments(args)._2.toList,
       s3Client         = Clients.s3,

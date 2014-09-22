@@ -1,44 +1,45 @@
-package com.ambiata.ivory.storage.metadata
+package com.ambiata.ivory.storage
+package metadata
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.data.Identifier
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
 import scodec.bits.ByteVector
 import java.util.UUID._
 
 import scalaz.effect._
 import scalaz.{Store => _, _}, Scalaz._
 
-object IdentifierStorage {
+object IdentifierStorage { outer =>
 
-  def get(ref: Reference[ResultTIO]): ResultTIO[Option[Identifier]] = {
-    ReferenceStore.listDirs(ref)
-      .map(_.filterHidden)
-      .map(_.flatMap(x => Identifier.parse(x.basename.name)).sorted.lastOption)
+  def get(repository: Repository, key: Key): ResultTIO[Option[Identifier]] = {
+    repository.store.listHeads(key)
+      .map(_.flatMap(x => Identifier.parse(x.name)).sorted.lastOption)
   }
 
-  def getOrFail(ref: Reference[ResultTIO]): ResultTIO[Identifier] =
-    get(ref)
-      .flatMap(_.fold(ResultT.fail[IO, Identifier](s"No identifiers found in $ref"))(ResultT.ok))
+  def getOrFail(repository: Repository, key: Key): ResultTIO[Identifier] =
+    get(repository, key)
+      .flatMap(_.fold(ResultT.fail[IO, Identifier](s"No identifiers found in $key"))(ResultT.ok))
 
   /**
-   * Write the identifier value to a temporary file under the path:
+   * Write the identifier value to a temporary file
    * Then move it to its final location
    *
-   *  ref.path </> new identifier </> fileName
+   *  key / new identifier / keyName
    */
-  def write(ref: Reference[ResultTIO], fileName: FileName, value: ByteVector): ResultTIO[Identifier] = {
-    val temporary = "tmp" <|> FileName.unsafe(randomUUID.toString)
+  def write(repository: Repository, key: Key, keyName: KeyName, value: ByteVector): ResultTIO[Identifier] = {
+    val temporary = "tmp" / KeyName.unsafe(randomUUID.toString)
     // TODO This is currently not threadsafe - need to deal with concurrent moves!
     def writeToNextIdentifierFile: ResultTIO[Identifier] = for {
-      current <- get(ref)
+      current <- get(repository, key)
       next    =  current.flatMap(_.next).getOrElse(Identifier.initial)
-      newPath =  ref.path </> next.asFileName
-      _       <- ref.store.move(temporary, newPath <|> fileName)
+      newKey  =  key / next.asKeyName
+      _       <- repository.store.move(temporary, newKey / keyName)
     } yield next
 
-    ref.store.bytes.write(temporary, value) >>
+    repository.store.bytes.write(temporary, value) >>
     writeToNextIdentifierFile
   }
+
 }

@@ -1,20 +1,18 @@
 package com.ambiata.ivory.storage.version
 
-import com.ambiata.ivory.core.{ReferenceStore, Reference}
-import com.ambiata.mundane.io._
-
-import scalaz.Scalaz._
-import scalaz._
+import com.ambiata.ivory.core._
+import com.ambiata.mundane.control.ResultTIO
+import com.ambiata.mundane.store._
 
 case class Version(override val toString: String)
 
 object Version {
 
-  private val VERSION: FileName = ".version"
+  private val VERSION = KeyName.unsafe(".version")
 
-  def read[F[_] : Functor](path: Reference[F]): F[Version] =
-    ReferenceStore.readUtf8[F](path </> VERSION).map(v => new Version(v.trim))
+  def read(repository: Repository, key: Key): ResultTIO[Version] =
+    repository.store.utf8.read(key / VERSION).map(v => new Version(v.trim))
 
-  def write[F[_]: Monad](path: Reference[F], version: Version): F[Unit] =
-    ReferenceStore.writeUtf8[F](path </> VERSION, version.toString)
+  def write(repository: Repository, key: Key, version: Version): ResultTIO[Unit] =
+    repository.store.utf8.write(key / VERSION, version.toString)
 }

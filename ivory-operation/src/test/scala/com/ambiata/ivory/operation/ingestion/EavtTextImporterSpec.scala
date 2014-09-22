@@ -60,7 +60,7 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
   lazy val base = Reference(HdfsStore(sc, directory), DirPath.Root)
   lazy val input = base </> "input"
   lazy val namespaced = input </> "ns1"
-  lazy val repository = HdfsRepository(directory </> "repo", RepositoryConfiguration(sc))
+  lazy val repository = HdfsRepository(directory </> "repo", IvoryConfiguration.fromScoobiConfiguration(sc))
   lazy val errors = base </> "errors"
   lazy val ns1 = Name("ns1")
 

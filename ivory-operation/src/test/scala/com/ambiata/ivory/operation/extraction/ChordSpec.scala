@@ -1,6 +1,5 @@
 package com.ambiata.ivory.operation.extraction
 
-import com.ambiata.ivory.storage.metadata.DictionaryTextStorageV2
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
@@ -11,6 +10,7 @@ import com.ambiata.ivory.storage.repository._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
 import scalaz.effect.IO
+import IvorySyntax._
 
 class ChordSpec extends Specification with SampleFacts { def is = s2"""
 
@@ -27,10 +27,10 @@ ChordSpec
       implicit val sc = repo.scoobiConfiguration
       for {
         _           <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
-        entitiesRef <- Reference.fromDirPath(directory </> "entities", repo.repositoryConfiguration)
+        entitiesRef <- Reference.fromUriAsDir((directory </> "entities").path, IvoryConfiguration.fromScoobiConfiguration(sc))
         _           <- ReferenceStore.writeLines(entitiesRef, entities)
         outPath     <- Chord.createChord(repo, entitiesRef, takeSnapshot = true)
-        facts       <- ResultT.safe[IO, List[Fact]](valueFromSequenceFile[Fact]((repo.root </> outPath).path.path).run.toList)
+        facts       <- ResultT.safe[IO, List[Fact]](valueFromSequenceFile[Fact](repo.toFilePath(outPath).toHdfs.toString).run.toList)
       } yield facts
     }
   } must beOkLike {

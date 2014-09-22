@@ -54,7 +54,7 @@ object SquashJob {
         _    <- run(hdfs.configuration, rs, dictionary.byConcrete, date, inPath, (repository.root </> path).toHdfs, hdfs.codec)
       } yield (path, true)
     } else
-      // No virtual features, let's skip the entire squash MR
+    // No virtual features, let's skip the entire squash MR
       (input, false).point[ResultTIO]
   }
 

@@ -2,7 +2,8 @@ package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.ScalaCheckManagedProperties
-import com.ambiata.mundane.io._
+import com.ambiata.mundane.io.Temporary
+import com.ambiata.mundane.store._
 import com.ambiata.mundane.control._
 
 import org.specs2._
@@ -36,7 +37,7 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
   def writeFeatureStore = managed { temp: Temporary => fstore: FeatureStore =>
     val repo = LocalRepository(temp.dir)
     toId(repo, fstore) >>
-    ReferenceStore.readUtf8(repo.featureStoreById(fstore.id)) must
+      repo.store.utf8.read(Repository.featureStoreById(fstore.id)) must
       beOkLike(_ must_== delimitedString(fstore.factsetIds))
   }
 
@@ -53,17 +54,17 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
   }
 
   def writeFeatureStoreIds(repo: Repository, ids: List[FeatureStoreId]): ResultTIO[Unit] =
-    ids.traverse(id => writeFile(repo.featureStores </> id.asFileName, List(""))).void
+    ids.traverse(id => writeLines(repo, Repository.featureStores / id.asKeyName, List(""))).void
 
   /* Write out the feature store and factsets within it */
   def writeFeatureStore(repo: Repository, fstore: FeatureStore): ResultTIO[Unit] = for {
-    _ <- writeFile(repo.featureStoreById(fstore.id), fstore.factsetIds.map(_.value.render))
+    _ <- writeLines(repo, Repository.featureStoreById(fstore.id), fstore.factsetIds.map(_.value.render))
     _ <- fstore.factsets.map(_.value).traverseU(factset => factset.partitions.partitions.traverseU(partition =>
-           writeFile(repo.factset(factset.id) </> partition.path </> "data", List(""))
+           writeLines(repo, Repository.factset(factset.id) / partition.key / "data", List(""))
          )).map(_.flatten)
   } yield ()
 
-  def writeFile(ref: ReferenceIO, lines: List[String]): ResultTIO[Unit] =
-    ReferenceStore.writeLines(ref, lines)
+  def writeLines(repository: Repository, key: Key, lines: List[String]): ResultTIO[Unit] =
+    repository.store.linesUtf8.write(key, lines)
 }
 

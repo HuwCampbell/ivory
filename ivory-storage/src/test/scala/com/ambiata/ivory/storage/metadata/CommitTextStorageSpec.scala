@@ -37,7 +37,7 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
     Temporary.using { dir =>
       val repo = LocalRepository(dir)
       storeCommitToId(repo, commitId, commit) >>
-      ReferenceStore.readUtf8(repo.commitById(commitId))
+      repo.store.utf8.read(Repository.commitById(commitId))
     } must beOkLike(_ must_== delimitedString(commit))
   }
 
@@ -58,5 +58,5 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
   }
 
   def writeCommitIds(repo: Repository, ids: List[CommitId]): ResultTIO[Unit] =
-    ids.traverse(id => ReferenceStore.writeLines(repo.commits </> id.asFileName, List(""))).void
+    ids.traverse(id => repo.store.linesUtf8.write(Repository.commits / id.asKeyName, List(""))).void
 }

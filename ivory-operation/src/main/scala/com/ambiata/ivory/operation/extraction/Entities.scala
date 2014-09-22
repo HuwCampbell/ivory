@@ -4,7 +4,7 @@ import java.util.HashMap
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-
+import com.ambiata.mundane.store._
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
 import scalaz.Order
@@ -73,9 +73,9 @@ object Entities {
    */
   type Mappings = HashMap[String, Array[Int]]
 
-  def serialiseEntities(entities: Entities, ref: ReferenceIO): ResultTIO[Unit] = {
+  def serialiseEntities(repository: Repository, entities: Entities, key: Key): ResultTIO[Unit] = {
     import java.io.ObjectOutputStream
-    ref.store.unsafe.withOutputStream(ref.filePath)(os => ResultT.safe({
+    repository.store.unsafe.withOutputStream(key)(os => ResultT.safe({
       val bOut = new ObjectOutputStream(os)
       bOut.writeObject(entities.entities)
       bOut.close()
@@ -83,9 +83,9 @@ object Entities {
   }
 
   // TODO Change to thrift serialization, see #131
-  def deserialiseEntities(ref: ReferenceIO): ResultTIO[Entities] = {
+  def deserialiseEntities(repository: Repository, chordKey: Key): ResultTIO[Entities] = {
     import java.io.{ByteArrayInputStream, ObjectInputStream}
-    ReferenceStore.readBytes(ref).flatMap(bytes =>
+    repository.store.bytes.read(chordKey).flatMap(bytes =>
       ResultT.safe(Entities(new ObjectInputStream(new ByteArrayInputStream(bytes.toArray)).readObject.asInstanceOf[Mappings])))
   }
 

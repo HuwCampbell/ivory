@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._, Arbitraries._
 import com.ambiata.ivory.data.Identifier
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.store.PosixStore
+import com.ambiata.mundane.store._
 import com.ambiata.mundane.testing.ResultMatcher._
 import org.scalacheck.Arbitrary, Arbitrary._
 import org.specs2.{ScalaCheck, Specification}
@@ -48,7 +48,7 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
 
   private def storeDateDicts(dict: Dictionary, dir: DirPath): ResultTIO[Unit] = {
     import DictionaryTextStorage._
-    PosixStore(dir).utf8.write(Repository.dictionaries <|> "2004-03-12", delimitedString(dict))
+    PosixStore(dir).utf8.write(Repository.dictionaries / "2004-03-12", delimitedString(dict))
   }
 
   private def run[A](f: (DictionaryThriftStorage, DirPath) => ResultTIO[A]): Result[A] =

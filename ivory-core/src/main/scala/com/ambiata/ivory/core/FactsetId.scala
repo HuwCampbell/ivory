@@ -8,7 +8,7 @@ import scalaz._, Scalaz._
 
 case class FactsetId(id: OldIdentifier) {
   def render = id.render
-  def asFileName = id.asFileName
+  def asKeyName = id.asKeyName
   def next = id.next.map(FactsetId.apply)
   def order(other: FactsetId): Ordering =
     id ?|? other.id

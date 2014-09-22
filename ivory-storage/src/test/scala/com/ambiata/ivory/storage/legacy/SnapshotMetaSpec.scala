@@ -14,6 +14,7 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 
 import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
 import com.ambiata.mundane.control._
 import org.specs2.execute.AsResult
 import org.specs2.matcher.{Matcher, ThrownExpectations}
@@ -61,7 +62,7 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
       for {
         _         <- snapshots.metas.traverse(storeSnapshotMeta(repository, _))
         factsetId <- Factsets.allocateFactsetId(repository)
-        _         <- ReferenceStore.writeUtf8(repository.factset(factsetId) </> "ns" </> DirPath.unsafe(factsetDate.slashed) </> "part", "content")
+        _         <- repository.store.utf8.write(Repository.factset(factsetId) / "ns" / Key.unsafe(factsetDate.slashed) / "part", "content")
         store     <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.testing(repository))
         _         <- writeFactsetVersion(repository, List(factsetId))
         snapshot  <- SnapshotMeta.latestUpToDateSnapshot(repository, date1)
@@ -185,14 +186,14 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
   def createRepository[R : AsResult](f: Repository => R): org.specs2.execute.Result = {
     val sc: ScoobiConfiguration = scoobiConfiguration
     Temporary.using { dir =>
-      val repo = HdfsRepository(dir </> FileName.unsafe("repo"), RepositoryConfiguration(sc))
+      val repo = HdfsRepository(dir </> FileName.unsafe("repo"), IvoryConfiguration.fromScoobiConfiguration(sc))
       ResultT.ok[IO, org.specs2.execute.Result](AsResult(f(repo)))
     } must beOkLike(_.isSuccess)
   }
 
   def storeSnapshotMeta(repo: Repository, meta: SnapshotMeta): ResultTIO[Unit] = {
-    val ref = repo.snapshots </> meta.snapshotId.asFileName </> SnapshotMeta.fname
-    ReferenceStore.writeLines(ref, meta.stringLines)
+    val key = Repository.snapshots / meta.snapshotId.asKeyName / SnapshotMeta.metaKeyName
+    repo.store.linesUtf8.write(key, meta.stringLines)
   }
 
 }
