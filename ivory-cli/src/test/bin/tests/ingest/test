@@ -10,6 +10,9 @@ $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 $IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts-1"
 $IVORY cat-facts "${REPOSITORY}/factsets/00000/*/*/*/*/*" | sort > "${TARGET}/all-facts.psv"
 diff_test "${DIR}/expected/all-facts.psv" "${TARGET}/all-facts.psv"
+# Check that errors are captured (in the right place)
+$IVORY cat-errors "${REPOSITORY}/errors/*/*" > "${TARGET}/error-facts.psv"
+diff_test "${DIR}/expected/error-facts.psv" "${TARGET}/error-facts.psv"
 
 ### Ingest a factset directory with a single namespace
 $IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts-2" -n HALIBUT

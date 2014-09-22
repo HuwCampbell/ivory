@@ -4,7 +4,6 @@ import com.ambiata.ivory.storage.fact.Namespaces
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.core._, IvorySyntax._
-import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.BytesQuantity
 import com.ambiata.poacher.hdfs._
@@ -28,7 +27,7 @@ case class EavtTextImporter(repository: Repository,
   import EavtTextImporter._
 
   val  importFacts = { (factsetId: FactsetId, input: ReferenceIO, timezone: DateTimeZone) =>
-    val errorRef = repository.toReference(repository.errors </> factsetId.render)
+    val errorRef = repository.toReference(Repository.errors </> factsetId.render)
 
     for {
       hr         <- downcast[Repository, HdfsRepository](repository, "Repository must be HDFS")

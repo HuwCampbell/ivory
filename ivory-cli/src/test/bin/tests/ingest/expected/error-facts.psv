@@ -1,0 +1,3 @@
+ID00000001|preheat|bad|2014-06-03|ID00000001, preheat, bad, 2014-06-03
+                      ^
+        Value 'bad' is not a boolean (position: 3)
