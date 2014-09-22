@@ -24,6 +24,8 @@ import scalaz.scalacheck.ScalaCheckBinding._
 
 object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpectations { def is = s2"""
 
+ SnapshotMeta.fromIndentifier will not fail on missing .snapmeta $missing
+
  SnapshotMeta objects are sorted based on:
    snapshotId, date and storeId $sorting
 
@@ -39,6 +41,10 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
 
    then the snapshot is up to date $uptodate
 """
+
+  def missing = prop ((snapshotId: SnapshotId) =>
+    RepositoryBuilder.using { repository => SnapshotMeta.fromIdentifier(repository, snapshotId)} must beOkValue(None)
+  ).set(minTestsOk = 1)
 
   def sorting = prop { snaps: List[SnapshotMeta] =>
     snaps.sorted must_== snaps.sortBy(sm => (sm.snapshotId, sm.date, sm.featureStoreId))
