@@ -48,7 +48,7 @@ object ReducerLookups {
    * NamespaceLookup assigns an int for each namespace
    * FeatureIdLookup assigns an int for each feature id
    */
-  private def index(dict: Dictionary): (NamespaceLookup, FeatureIdLookup) = {
+  def index(dict: Dictionary): (NamespaceLookup, FeatureIdLookup) = {
     val namespaces = new NamespaceLookup
     val features = new FeatureIdLookup
 
