@@ -5,7 +5,6 @@ import java.io.{ByteArrayOutputStream, DataOutputStream}
 import com.ambiata.ivory.core._, Arbitraries._
 import com.ambiata.ivory.mr.Writables
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable._
-import org.scalacheck.Arbitrary
 import org.specs2.execute.Result
 import org.specs2.{ScalaCheck, Specification}
 
@@ -33,13 +32,6 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
     KeyState.set(f1.f, f1.p, bw, i)
     getFeatureId(bw) ==== i
   })
-
-  case class FactAndPriority(f: Fact, p: Priority)
-
-  implicit def ArbitraryFactAndPriority: Arbitrary[FactAndPriority] = Arbitrary(for {
-    f <- Arbitrary.arbitrary[Fact]
-    p <- Arbitrary.arbitrary[Priority]
-  } yield new FactAndPriority(f, p))
 
   def check(f1: FactAndPriority, f2: FactAndPriority)(f: (FactAndPriority, Array[Byte], Array[Byte]) => (Int, Int)): Result =
     seqToResult(List(
