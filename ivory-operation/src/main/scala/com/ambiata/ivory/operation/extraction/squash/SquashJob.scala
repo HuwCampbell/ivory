@@ -40,8 +40,7 @@ object SquashJob {
    *    This is _not_ implemented yet.
    */
   def squash(repository: Repository, dictionary: Dictionary, input: FilePath, date: Date): ResultTIO[(FilePath, Boolean)] = {
-    val gen = dictionary.byConcrete
-    if (gen.sources.nonEmpty) {
+    if (dictionary.hasVirtual) {
       val path = FilePath.root </> "tmp" </> java.util.UUID.randomUUID().toString
       val inPath = (repository.root </> input).toHdfs
       for {
@@ -49,7 +48,7 @@ object SquashJob {
         ns    = dictionary.byFeatureId.groupBy(_._1.namespace).keys.toList
         // This is about the best we can do at the moment, until we have more size information about each feature
         rs   <- ReducerSize.calculate(inPath, 1.gb).run(hdfs.configuration)
-        _    <- run(hdfs.configuration, rs, gen, date, inPath, (repository.root </> path).toHdfs, hdfs.codec)
+        _    <- run(hdfs.configuration, rs, dictionary.byConcrete, date, inPath, (repository.root </> path).toHdfs, hdfs.codec)
       } yield (path, true)
     } else
       // No virtual features, let's skip the entire squash MR

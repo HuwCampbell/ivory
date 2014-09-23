@@ -30,6 +30,8 @@ Size:
 Append:
   Appending dictionaries is just appending there definitions     $append
 
+Exists:
+  Checking the existence of virtual features                     $hasVirtual
 """
   import Arbitraries._
 
@@ -84,4 +86,8 @@ Append:
 
   def append = prop((d1: Dictionary, d2: Dictionary) =>
     d1.append(d2) must_== Dictionary(d1.definitions ++ d2.definitions))
+
+  def hasVirtual = prop((d1: Dictionary) =>
+    d1.hasVirtual ==== d1.byConcrete.sources.values.exists(_.virtual.nonEmpty)
+  )
 }

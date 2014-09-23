@@ -49,6 +49,10 @@ case class Dictionary(definitions: List[Definition]) {
     }
   )
 
+  /** Return `true` if any of the definitions are virtual */
+  def hasVirtual: Boolean =
+    definitions.exists(_.fold((_, _) => false, (_, _) => true))
+
   /** append the mappings coming from another dictionary */
   def append(other: Dictionary) =
     Dictionary(definitions ++ other.definitions)
