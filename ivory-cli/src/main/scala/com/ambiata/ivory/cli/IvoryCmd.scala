@@ -88,5 +88,6 @@ object IvoryCmd {
 case class IvoryRunner[A](run: IvoryConfiguration => A => ResultTIO[List[String]])
 
 trait IvoryApp {
-  def cmd: IvoryCmd[_]
+  // It's important this is a val, not a def, to ensure we don't mutate scopt twice accidentally
+  val cmd: IvoryCmd[_]
 }
