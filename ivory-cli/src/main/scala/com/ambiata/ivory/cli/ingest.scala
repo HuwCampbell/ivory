@@ -37,7 +37,7 @@ object ingest extends IvoryApp {
 
   type Namespace = String
 
-  def cmd = IvoryCmd.withRepo[CliArguments](parser,
+  val cmd = IvoryCmd.withRepo[CliArguments](parser,
       CliArguments("", None, DateTimeZone.getDefault, 256.mb, TextFormat),
       repo => configuration => c => for {
         inputRef <- Reference.fromUriResultTIO(c.input, configuration)
