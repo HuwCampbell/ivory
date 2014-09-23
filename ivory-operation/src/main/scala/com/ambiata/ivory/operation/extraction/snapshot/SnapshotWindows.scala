@@ -19,20 +19,19 @@ object SnapshotWindows {
     SnapshotWindows(Nil)
 
   /**
-   * Convert a Window to the largest possible number of days, regardless of the date in which the period ends.
-   * This is used to calculate whether a fact should be captured in the snapshot.
+   * Convert a Window to the relative calendar date (eg. 2 months from 2014-12-21 is 2014-10-21).
+   * This is used to calculate the exact date used in the squash.
+   * WARNING: Uses Joda - do not use from Hadoop
    */
-  def toDaysMax(window: Window): Int =
-    window.length * (window.unit match {
-      case Days   => 1
-      case Weeks  => 7
-      case Months => 31
-      case Years  => 366
-    })
-
-  /** WARNING: Uses Joda - do not use from Hadoop */
-  def startingDate(window: Window, date: Date): Date =
-    Date.fromLocalDate(date.localDate.minusDays(toDaysMax(window)))
+  def startingDate(window: Window, date: Date): Date = {
+    val local = date.localDate
+    Date.fromLocalDate((window.unit match {
+      case Days   => local.minusDays _
+      case Weeks  => local.minusWeeks _
+      case Months => local.minusMonths _
+      case Years  => local.minusYears _
+    })(window.length))
+  }
 
   def planWindow(dictionary: Dictionary, date: Date): SnapshotWindows =
     SnapshotWindows(dictionary.byConcrete.sources.map {

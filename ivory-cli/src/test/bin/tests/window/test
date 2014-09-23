@@ -13,5 +13,9 @@ snapshot() {
   diff_test "${DIR}/expected/snapshot${2}.psv" "${TARGET}/snapshot.psv"
 }
 
-snapshot 2014-05-03 0
-snapshot 2014-07-03 1
+snapshot 2014-05-02 0
+snapshot 2014-07-02 1
+
+$IVORY snapshot -o "dense:psv=${TARGET}/pivot" --date 2014-07-02
+diff_test "${DIR}/expected/pivot.psv" "${TARGET}/pivot/part-r-00000"
+diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/pivot/.dictionary"

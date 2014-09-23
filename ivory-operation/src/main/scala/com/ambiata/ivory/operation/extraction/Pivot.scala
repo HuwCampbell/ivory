@@ -2,7 +2,9 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.operation.pivot.PivotJob
+import com.ambiata.ivory.storage.legacy.SnapshotMeta
 import com.ambiata.ivory.storage.lookup.ReducerSize
+import com.ambiata.ivory.operation.extraction.squash.SquashJob
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
@@ -18,11 +20,12 @@ object Pivot {
   /**
    * Take a snapshot first then extract a pivot
    */
-  def createPivotFromSnapshot(repository: Repository, output: ReferenceIO, delim: Char, tombstone: String, date: Date): ResultTIO[Unit] = for {
-    meta <- Snapshot.takeSnapshot(repository, date, incremental = true)
+  def createPivotFromSnapshot(repository: Repository, output: ReferenceIO, delim: Char, tombstone: String, meta: SnapshotMeta): ResultTIO[Unit] = for {
     dict <- Snapshot.dictionaryForSnapshot(repository, meta)
-    ref   = repository.toReference(Repository.snapshot(meta.snapshotId))
-    _    <- createPivotWithDictionary(repository, ref, output, dict, delim, tombstone)
+    path <- SquashJob.squashFromSnapshot(repository, dict, meta)
+    _    <- createPivotWithDictionary(repository, repository.toReference(path._1), output, dict, delim, tombstone)
+    // Delete the temporary squashed output - no longer required
+    _    <- ResultT.when(path._2, repository.toStore.deleteAll(path._1))
   } yield ()
 
   /**
@@ -30,7 +33,8 @@ object Pivot {
    */
   def createPivot(repository: Repository, input: ReferenceIO, output: ReferenceIO, delim: Char, tombstone: String): ResultTIO[Unit] = for {
     dictionary  <- latestDictionaryFromIvory(repository)
-    _           <- createPivotWithDictionary(repository, input, output, dictionary, delim, tombstone)
+    _            = NotImplemented.chordSquash()
+    _           <- createPivotWithDictionary(repository, input, output, removeVirtualFeatures(dictionary), delim, tombstone)
   } yield ()
 
   /**
@@ -44,4 +48,12 @@ object Pivot {
     out         =  (outputStore.base </> output.path).toHdfs
     reducers    <- ReducerSize.calculate(in, 1.gb).run(hdfsRepo.configuration)
     } yield PivotJob.run(hdfsRepo.configuration, dictionary, in, out, tombstone, delim, reducers, hdfsRepo.codec)
+
+  /** Only required until chord supports windows as well */
+  def removeVirtualFeatures(dictionary: Dictionary): Dictionary = Dictionary(
+    dictionary.definitions.filter {
+      case Concrete(_, _) => true
+      case Virtual(_, _)  => false
+    }
+  )
 }

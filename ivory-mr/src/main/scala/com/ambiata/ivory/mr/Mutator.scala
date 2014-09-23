@@ -19,17 +19,28 @@ trait PipeMutator[I, O] {
   def pipe(in: I, out: O): Unit
 }
 
+trait Mutator[T, O] {
+
+  def mutate(in: T, out: O): Unit
+}
+
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 
 class ThriftByteMutator[T](implicit ev: T <:< ThriftLike)
-  extends MutableStream[T, BytesWritable] with PipeMutator[BytesWritable, BytesWritable] {
+  extends MutableStream[T, BytesWritable] with PipeMutator[BytesWritable, BytesWritable] with Mutator[T, BytesWritable] {
 
   val serializer = ThriftSerialiser()
 
   def from(in: BytesWritable, thrift: T): Unit = {
     serializer.fromBytesViewUnsafe(thrift, in.getBytes, 0, in.getLength)
     ()
+  }
+
+  def mutate(in: T, vout: BytesWritable): Unit = {
+    // It's unfortunate we can't re-use the byte array here too :(
+    val bytes = serializer.toBytes(in)
+    vout.set(bytes, 0, bytes.length)
   }
 
   def pipe(in: BytesWritable, vout: BytesWritable): Unit =
