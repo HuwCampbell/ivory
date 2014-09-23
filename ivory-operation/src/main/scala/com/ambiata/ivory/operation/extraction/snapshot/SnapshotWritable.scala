@@ -39,17 +39,19 @@ object SnapshotWritable {
     }
   }
 
-  def getFeatureId(bw: BytesWritable): Int =
-    WritableComparator.readInt(bw.getBytes, bw.getLength - Offsets.featureId)
-
-  class Grouping extends RawBytesComparator {
+  class GroupingEntityFeatureId extends RawBytesComparator {
     def compareRaw(b1: Array[Byte], s1: Int, l1: Int, b2: Array[Byte], s2: Int, l2: Int): Int =
       compareBytes(b1, s1, l1 - Offsets.date, b2, s2, l2 - Offsets.date)
   }
 
+  object GroupingEntityFeatureId {
+    def getFeatureId(bw: BytesWritable): Int =
+      WritableComparator.readInt(bw.getBytes, bw.getLength - Offsets.featureId)
+  }
+
   class Comparator extends BytesWritable.Comparator
 
-  class SPartitioner extends Partitioner[BytesWritable, BytesWritable] {
+  class PartitionerEntityFeatureId extends Partitioner[BytesWritable, BytesWritable] {
     override def getPartition(k: BytesWritable, v: BytesWritable, partitions: Int): Int = {
       // Just partition based on entity+featureId
       (WritableComparator.hashBytes(k.getBytes, 0, k.getLength - Offsets.date) & Int.MaxValue) % partitions
