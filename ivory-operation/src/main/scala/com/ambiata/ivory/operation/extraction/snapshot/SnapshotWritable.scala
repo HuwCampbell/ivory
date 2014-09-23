@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.extraction.snapshot
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.mr.ByteWriter
+import com.ambiata.ivory.mr.{RawBytesComparator, ByteWriter}
 import org.apache.hadoop.io.{BytesWritable, WritableComparator}
 import org.apache.hadoop.mapreduce.Partitioner
 
@@ -39,19 +39,19 @@ object SnapshotWritable {
     }
   }
 
-  def getFeatureId(bw: BytesWritable): Int =
-    WritableComparator.readInt(bw.getBytes, bw.getLength - Offsets.featureId)
+  class GroupingEntityFeatureId extends RawBytesComparator {
+    def compareRaw(b1: Array[Byte], s1: Int, l1: Int, b2: Array[Byte], s2: Int, l2: Int): Int =
+      compareBytes(b1, s1, l1 - Offsets.date, b2, s2, l2 - Offsets.date)
+  }
 
-  class Grouping extends WritableComparator(classOf[BytesWritable], false) {
-    override def compare(b1: Array[Byte], s1: Int, l1: Int, b2: Array[Byte], s2: Int, l2: Int): Int = {
-      // We need to ignore the extra size at the start of the byte array because we are dealing with direct bytes
-      WritableComparator.compareBytes(b1, s1 + 4, l1 - Offsets.date - 4, b2, s2 + 4, l2 - Offsets.date - 4)
-    }
+  object GroupingEntityFeatureId {
+    def getFeatureId(bw: BytesWritable): Int =
+      WritableComparator.readInt(bw.getBytes, bw.getLength - Offsets.featureId)
   }
 
   class Comparator extends BytesWritable.Comparator
 
-  class SPartitioner extends Partitioner[BytesWritable, BytesWritable] {
+  class PartitionerEntityFeatureId extends Partitioner[BytesWritable, BytesWritable] {
     override def getPartition(k: BytesWritable, v: BytesWritable, partitions: Int): Int = {
       // Just partition based on entity+featureId
       (WritableComparator.hashBytes(k.getBytes, 0, k.getLength - Offsets.date) & Int.MaxValue) % partitions

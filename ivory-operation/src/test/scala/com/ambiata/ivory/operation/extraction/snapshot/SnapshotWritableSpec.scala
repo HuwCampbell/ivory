@@ -17,7 +17,7 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
 
   def grouping = prop((f1: FactAndPriority, f2: FactAndPriority) => {
     check(f1, f2) { case (f3, b1, b2) =>
-      new Grouping().compare(b1, 0, b1.length, b2, 0, b2.length) -> compareByGroup(f1.f, f3.f)
+      new GroupingEntityFeatureId().compare(b1, 0, b1.length, b2, 0, b2.length) -> compareByGroup(f1.f, f3.f)
     }
   })
 
@@ -30,7 +30,7 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
   def featureId = prop((f1: FactAndPriority, i: Int) => {
     val bw = Writables.bytesWritable(4096)
     KeyState.set(f1.f, f1.p, bw, i)
-    getFeatureId(bw) ==== i
+    GroupingEntityFeatureId.getFeatureId(bw) ==== i
   })
 
   def check(f1: FactAndPriority, f2: FactAndPriority)(f: (FactAndPriority, Array[Byte], Array[Byte]) => (Int, Int)): Result =

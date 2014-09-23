@@ -1,10 +1,9 @@
 package com.ambiata.ivory.operation.rename
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.mr.ByteWriter
+import com.ambiata.ivory.mr.{RawBytesComparator, ByteWriter}
 import com.ambiata.ivory.storage.task.BaseFactsPartitioner
-import org.apache.hadoop.io.{BytesWritable, RawComparator, WritableComparator}
-import org.apache.hadoop.mapreduce.Partitioner
+import org.apache.hadoop.io.{BytesWritable, WritableComparator}
 
 /**
  * Utility classes for dealing with the key bytes in a rename.
@@ -57,16 +56,9 @@ object RenameWritable {
 
   class ComparatorFeatureIdDateEntityTimePriority extends BytesWritable.Comparator
 
-  class GroupingByFeatureIdDate extends RawComparator[BytesWritable] {
-    override def compare(b1: Array[Byte], s1: Int, l1: Int, b2: Array[Byte], s2: Int, l2: Int): Int =
-      // We need to ignore the extra size at the start of the byte array because we are dealing with direct bytes
-      WritableComparator.compareBytes(
-        b1, s1 + 4, Offsets.Before.entity,
-        b2, s2 + 4, Offsets.Before.entity
-      )
-
-    def compare(w1: BytesWritable, w2: BytesWritable): Int =
-      sys.error("Not implemented")
+  class GroupingByFeatureIdDate extends RawBytesComparator {
+    def compareRaw(b1: Array[Byte], s1: Int, l1: Int, b2: Array[Byte], s2: Int, l2: Int): Int =
+      compareBytes(b1, s1, Offsets.Before.entity, b2, s2, Offsets.Before.entity)
   }
 
   /** We only partition by featureId to avoid skew */

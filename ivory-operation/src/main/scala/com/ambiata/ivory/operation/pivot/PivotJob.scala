@@ -245,13 +245,9 @@ class PivotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, T
 }
 
 /** Group by just the entity and ignore featureId */
-class PivotGrouping extends RawComparator[BytesWritable] {
-  override def compare(writable1: BytesWritable, writable2: BytesWritable): Int =
-    compare(writable1.getBytes, -4, writable1.getLength + 4, writable2.getBytes, -4, writable2.getLength + 4)
-
-  override def compare(bytes1: Array[Byte], offset1: Int, length1: Int, bytes2: Array[Byte], offset2: Int, length2: Int): Int =
-    // We need to offset by 4 because we're using RawComparator and the first 4 bytes are the size
-    WritableComparator.compareBytes(bytes1, offset1 + 4, length1 - 8, bytes2, offset2 + 4, length2 - 8)
+class PivotGrouping extends RawBytesComparator {
+  def compareRaw(bytes1: Array[Byte], offset1: Int, length1: Int, bytes2: Array[Byte], offset2: Int, length2: Int): Int =
+    compareBytes(bytes1, offset1, length1 - 4, bytes2, offset2, length2 - 4)
 }
 
 /** Partition by just the entity and ignore featureId */

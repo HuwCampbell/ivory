@@ -43,8 +43,8 @@ object SnapshotJob {
     job.setMapOutputValueClass(classOf[BytesWritable])
 
     // partition & sort
-    job.setPartitionerClass(classOf[SnapshotWritable.SPartitioner])
-    job.setGroupingComparatorClass(classOf[SnapshotWritable.Grouping])
+    job.setPartitionerClass(classOf[SnapshotWritable.PartitionerEntityFeatureId])
+    job.setGroupingComparatorClass(classOf[SnapshotWritable.GroupingEntityFeatureId])
     job.setSortComparatorClass(classOf[SnapshotWritable.Comparator])
 
     // reducer
@@ -358,7 +358,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
 
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
     emitter.context = context
-    val windowStart = Date.unsafeFromInt(windowLookup(SnapshotWritable.getFeatureId(key)))
+    val windowStart = Date.unsafeFromInt(windowLookup(SnapshotWritable.GroupingEntityFeatureId.getFeatureId(key)))
     SnapshotReducer.reduce(fact, iter.iterator, mutator, emitter, vout, windowStart)
   }
 }

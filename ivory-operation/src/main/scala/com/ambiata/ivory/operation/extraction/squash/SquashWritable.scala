@@ -1,8 +1,8 @@
 package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.mr.ByteWriter
-import org.apache.hadoop.io.{BytesWritable, RawComparator, WritableComparator}
+import com.ambiata.ivory.mr.{RawBytesComparator, ByteWriter}
+import org.apache.hadoop.io.{BytesWritable, WritableComparator}
 import org.apache.hadoop.mapreduce.Partitioner
 
 /**
@@ -43,13 +43,9 @@ object SquashWritable {
     }
   }
 
-  class GroupingByFeatureId extends RawComparator[BytesWritable] {
-    override def compare(b1: Array[Byte], s1: Int, l1: Int, b2: Array[Byte], s2: Int, l2: Int): Int =
-    // We need to ignore the extra size at the start of the byte array because we are dealing with direct bytes
-      WritableComparator.compareBytes(b1, s1 + 4, 4, b2, s2 + 4, 4)
-
-    def compare(w1: BytesWritable, w2: BytesWritable): Int =
-      compare(w1.getBytes, -4, w2.getLength + 4, w2.getBytes, -4, w2.getLength + 4)
+  class GroupingByFeatureId extends RawBytesComparator {
+    def compareRaw(b1: Array[Byte], s1: Int, l1: Int, b2: Array[Byte], s2: Int, l2: Int): Int =
+      compareBytes(b1, s1, 4, b2, s2, 4)
   }
 
   object GroupingByFeatureId {
