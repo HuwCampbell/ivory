@@ -35,18 +35,18 @@ object Reference {
   }
 
   def fromUriResultTIO(uri: String, configuration: Configuration): ResultTIO[ReferenceIO] =
-    fromUriResultTIO(uri, RepositoryConfiguration(configuration))
+    fromUriResultTIO(uri, IvoryConfiguration.fromConfiguration(configuration))
 
   def fromUriResultTIO(uri: String, scoobiConfiguration: ScoobiConfiguration): ResultTIO[ReferenceIO] =
-    fromUriResultTIO(uri, RepositoryConfiguration(scoobiConfiguration))
+    fromUriResultTIO(uri, IvoryConfiguration.fromScoobiConfiguration(scoobiConfiguration))
 
-  def fromUriFilePathResultTIO(uri: FilePath, repositoryConfiguration: RepositoryConfiguration): ResultTIO[ReferenceIO] =
+  def fromUriFilePathResultTIO(uri: FilePath, repositoryConfiguration: IvoryConfiguration): ResultTIO[ReferenceIO] =
     fromUriResultTIO(uri.path, repositoryConfiguration)
 
-  def fromUriResultTIO(uri: String, repositoryConfiguration: RepositoryConfiguration): ResultTIO[ReferenceIO] =
+  def fromUriResultTIO(uri: String, repositoryConfiguration: IvoryConfiguration): ResultTIO[ReferenceIO] =
     ResultT.fromDisjunction[IO, ReferenceIO](fromUri(uri, repositoryConfiguration).leftMap(This.apply))
 
-  def fromUri(uri: String, repositoryConfiguration: RepositoryConfiguration): String \/ ReferenceIO = {
+  def fromUri(uri: String, repositoryConfiguration: IvoryConfiguration): String \/ ReferenceIO = {
     val (root, file) = uri.lastIndexOf('/') match {
       case -1 => (uri, "/")
       case i  => (uri.substring(0, i), uri.substring(i))
@@ -54,7 +54,7 @@ object Reference {
     storeFromUri(root, repositoryConfiguration).map(s => Reference(s, file.toFilePath))
   }
 
-  def storeFromUri(uri: String, repositoryConfiguration: RepositoryConfiguration): String \/ Store[ResultTIO] =
+  def storeFromUri(uri: String, repositoryConfiguration: IvoryConfiguration): String \/ Store[ResultTIO] =
     location(uri).map(_ match {
       case HdfsLocation(path)       => HdfsStore(repositoryConfiguration.configuration, path.toFilePath)
       case LocalLocation(path)      => PosixStore(path.toFilePath)

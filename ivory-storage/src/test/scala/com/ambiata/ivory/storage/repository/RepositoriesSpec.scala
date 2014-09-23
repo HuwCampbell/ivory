@@ -1,7 +1,6 @@
 package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.{TemporaryReferences => T}
 import com.ambiata.mundane.control.ResultTIO
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.impl.ScoobiConfiguration
@@ -21,19 +20,19 @@ Create repository should always create all folders
 
 """
 
-  lazy val conf = RepositoryConfiguration(ScoobiConfiguration())
+  lazy val conf = IvoryConfiguration.fromScoobiConfiguration(ScoobiConfiguration())
 
   def hdfs =
-    exists(T.Hdfs)
+    exists(TemporaryReferences.Hdfs)
 
   def s3 =
-    exists(T.S3)
+    exists(TemporaryReferences.S3)
 
   def local =
-    exists(T.Posix)
+    exists(TemporaryReferences.Posix)
 
-  def exists(repository: T.TemporaryType) = {
-    T.withRepository(repository) { repo =>
+  def exists(repository: TemporaryReferences.TemporaryType) = {
+    TemporaryReferences.withRepository(repository) { repo =>
       createRepository(repo) >> checkRepository(repo)
     } must beOkLike(_ must contain(true).forall)
   }

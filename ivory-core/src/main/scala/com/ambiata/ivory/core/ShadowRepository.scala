@@ -2,16 +2,18 @@ package com.ambiata.ivory.core
 
 import com.ambiata.mundane.io._
 
-sealed trait ShadowRepository
-
-case class ShadowRepositoryHdfs(root: FilePath, repositoryConfiguration: RepositoryConfiguration) extends ShadowRepository{
-  def configuration       = repositoryConfiguration.configuration
-  def scoobiConfiguration = repositoryConfiguration.scoobiConfiguration
-  def codec               = repositoryConfiguration.codec
+case class ShadowRepository(root: FilePath, ivory: IvoryConfiguration) {
+  def configuration       = ivory.configuration
+  def scoobiConfiguration = ivory.scoobiConfiguration
+  def codec               = ivory.codec
 }
 
 
 object ShadowRepository {
-  def fromHdfsPath(path: FilePath, configuration: RepositoryConfiguration): ShadowRepository =
-    ShadowRepositoryHdfs(path, configuration)
+  def fromHdfsPath(path: FilePath, configuration: IvoryConfiguration): ShadowRepository =
+    ShadowRepository(path, configuration)
+
+  def fromCluster(cluster: Cluster): ShadowRepository = ShadowRepository(cluster.root, cluster.ivory)
+
+  def toRepository(shadow: ShadowRepository): Repository = HdfsRepository(shadow.root, shadow.ivory)
 }

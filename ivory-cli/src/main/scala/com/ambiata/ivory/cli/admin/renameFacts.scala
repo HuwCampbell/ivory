@@ -41,7 +41,7 @@ object renameFacts extends IvoryApp {
   def createMapping(mapping: List[(String, String)]): String \/ RenameMapping =
     mapping.traverseU { case (f, t) => parseFeatureId(f) tuple parseFeatureId(t) }.map(RenameMapping.apply)
 
-  def parseBatchFile(path: String, conf: RepositoryConfiguration): ResultTIO[RenameMapping] = for {
+  def parseBatchFile(path: String, conf: IvoryConfiguration): ResultTIO[RenameMapping] = for {
     ref     <- Reference.fromUriResultTIO(path, conf)
     exists  <- ref.run(_.exists)
     _       <- if (!exists) ResultT.fail[IO, Unit](s"Path ${ref.path} does not exist in ${ref.store}!") else ResultT.unit[IO]

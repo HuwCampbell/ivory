@@ -8,13 +8,12 @@ import com.ambiata.ivory.storage.fact.FactsetsSpec._
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.storage.{TemporaryReferences => T}
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.specs2.Specification
 import org.specs2.matcher.ThrownExpectations
 
-class DictionaryImporterSpec extends Specification with ThrownExpectations {def is = s2"""
+class DictionaryImporterSpec extends Specification with ThrownExpectations { def is = s2"""
 
  A dictionary can be imported in a ivory repository
    with a dictionary saved as a Path locally               $local
@@ -70,10 +69,10 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations {def 
   def invalidDictForced =
     invalidUpgrade(true) must beOkLike(r => r._1.isFailure && r._2.isDefined)
 
-  def differentStoreDict = prop((ivoryType: T.TemporaryType, dictType: T.TemporaryType, dict: Dictionary) => {
-    T.withRepository(ivoryType){ivory => for {
-        _ <- Repositories.create(ivory)
-        _ <- T.withReferenceFile(dictType){ref => for {
+  def differentStoreDict = prop((ivoryType: TemporaryReferences.TemporaryType, dictType: TemporaryReferences.TemporaryType, dict: Dictionary) => {
+    TemporaryReferences.withRepository(ivoryType){ivory => for {
+      _   <- Repositories.create(ivory)
+      _   <- TemporaryReferences.withReferenceFile(dictType){ref => for {
         _ <- ref.store.utf8.write(ref.path, DictionaryTextStorageV2.delimitedString(dict))
         _ <- fromPath(ivory, ref, opts.copy(ty = Override))
       } yield ()}

@@ -1,3 +1,6 @@
 package com.ambiata.ivory.core
 
-case class ShadowOutputDataset(location: ShadowLocation)
+import com.ambiata.mundane.io.FilePath
+import org.apache.hadoop.conf.Configuration
+
+case class ShadowOutputDataset(path: FilePath, conf: Configuration)

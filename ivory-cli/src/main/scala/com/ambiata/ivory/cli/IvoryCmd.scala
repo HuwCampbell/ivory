@@ -1,6 +1,6 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.core.{Repository, RepositoryConfiguration}
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository.Codec
 import com.ambiata.mundane.control._
 import com.ambiata.saws.core.Clients
@@ -21,8 +21,8 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
     parseAndRun(repositoryConfiguration.arguments, runner.run(repositoryConfiguration))
   }
 
-  private def createRepositoryConfiguration(args: Array[String]): RepositoryConfiguration =
-    RepositoryConfiguration(
+  private def createRepositoryConfiguration(args: Array[String]): IvoryConfiguration =
+    IvoryConfiguration(
       arguments        = parseHadoopArguments(args)._2.toList,
       s3Client         = Clients.s3,
       hdfs             = () => parseHadoopArguments(args)._1,
@@ -65,7 +65,7 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
 object IvoryCmd {
 
   def withRepo[A](parser: scopt.OptionParser[A], initial: A,
-                  runner: Repository => RepositoryConfiguration => A => ResultTIO[List[String]]): IvoryCmd[A] = {
+                  runner: Repository => IvoryConfiguration => A => ResultTIO[List[String]]): IvoryCmd[A] = {
     // Oh god this is an ugly/evil hack - the world will be a better place when we upgrade to Pirate
     // Composition, it's a thing scopt, look it up
     var repoArg: Option[String] = None
@@ -85,7 +85,7 @@ object IvoryCmd {
 /**
  * Represents the run of an Ivory program, with all the necessary configuration
  */
-case class IvoryRunner[A](run: RepositoryConfiguration => A => ResultTIO[List[String]])
+case class IvoryRunner[A](run: IvoryConfiguration => A => ResultTIO[List[String]])
 
 trait IvoryApp {
   def cmd: IvoryCmd[_]

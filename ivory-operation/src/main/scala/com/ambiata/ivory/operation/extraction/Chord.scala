@@ -142,7 +142,7 @@ object Chord {
 
     facts.map { case (priority, fact) =>
       Validate.validateFact(fact, dictionary).disjunction match {
-        case -\/(e) => sys.error(s"A critical error has occurred, a value in ivory no longer matches the dictionary: $e ${priorities.get(priority)}")
+        case -\/(e) => Crash.error(Crash.DataIntegrity, s"A critical error has occurred, a value in ivory no longer matches the dictionary: $e ${priorities.get(priority)}")
         case \/-(v) => (priority, v)
       }
     }
@@ -184,7 +184,7 @@ object Chord {
     def failError(message: String): ScoobiAction[DList[A]] =
       action.map { list =>
         list.map {
-          case -\/(e) => sys.error(message)
+          case -\/(e) => Crash.error(Crash.ResultTIO, message)
           case \/-(a) => a
         }
       }

@@ -1,6 +1,6 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.core.RepositoryConfiguration
+import com.ambiata.ivory.core.IvoryConfiguration
 import com.ambiata.mundane.control.ResultT
 import org.specs2.Specification
 import org.specs2.execute.AsResult
@@ -18,7 +18,7 @@ class IvoryCmdSpec extends Specification with ThrownExpectations { def is = sequ
   val arguments = "-Dmapreduce.map.memory.mb=1546 --number 1 scoobi local.verbose.all"
 
   def userArguments =
-    run(arguments) { (rc: RepositoryConfiguration, number: Int) =>
+    run(arguments) { (rc: IvoryConfiguration, number: Int) =>
       "the user arguments are correctly parsed" ==> {
         number must_== 1
       }
@@ -26,21 +26,21 @@ class IvoryCmdSpec extends Specification with ThrownExpectations { def is = sequ
 
 
   def hadoopArguments =
-    run(arguments) { (rc: RepositoryConfiguration, number: Int) =>
+    run(arguments) { (rc: IvoryConfiguration, number: Int) =>
       "the hadoop arguments are correctly parsed" ==> {
         rc.configuration.getInt("mapreduce.map.memory.mb", 0) must_== 1546
       }
     }
 
   def scoobiArguments =
-    run(arguments) { (rc: RepositoryConfiguration, number: Int) =>
+    run(arguments) { (rc: IvoryConfiguration, number: Int) =>
       "the scoobi arguments are correctly parsed" ==> {
         rc.scoobiConfiguration.isLocal
       }
     }
 
 
-  def run[R : AsResult](arguments: String)(f: (RepositoryConfiguration, Int) => R) = {
+  def run[R : AsResult](arguments: String)(f: (IvoryConfiguration, Int) => R) = {
     val args = arguments.split(" ")
     val optionsParser = new scopt.OptionParser[Int]("parser") {
       opt[Int]("number").action((i, n) => i)
