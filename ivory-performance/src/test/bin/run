@@ -23,7 +23,7 @@ put() {
 }
 
 # Setup Hadoop first so we can import files incrementally
-REPOSITORY="${PROJECT}/target/ivory-$$"
+export IVORY_REPOSITORY="${PROJECT}/target/ivory-$$"
 if [ ! -z "${EMR_CLUSTER_ID-}" ]; then
   # Use a cluster-aware hadoop command instead
   export HADOOP=${DIR}/hadoop-cluster
@@ -36,7 +36,7 @@ if [ ! -z "${EMR_CLUSTER_ID-}" ]; then
     rm -r $1
     echo "/input-perf-$$/$(basename $1)"
   }
-  REPOSITORY="/ivory-perf-$$"
+  export IVORY_REPOSITORY="/ivory-perf-$$"
 fi
 
 # Build ivory so we can use it
@@ -56,10 +56,10 @@ timeit() {
 
 timeit "start"
 
-$IVORY create-repository -p "${REPOSITORY}"
+$IVORY create-repository -p "${IVORY_REPOSITORY}"
 timeit "create-repository"
 
-$IVORY import-dictionary -r "${REPOSITORY}" -p "file://${PWD}/${DICTIONARY}"
+$IVORY import-dictionary -p "file://${PWD}/${DICTIONARY}"
 timeit "import-dictionary"
 
 COUNT=0
@@ -68,12 +68,12 @@ SNAPSHOT=5
 ${DIR}/tests/${TEST}/input "$@" | while IFS= read -r local_path; do
   path=$(put ${local_path})
   # Ingest every subfolder
-  $IVORY ingest -Ddfs.block.size=16777216 -Dmapreduce.job.reduce.slowstart.completedmaps=0.95 -o 2000000000 -r "${REPOSITORY}" -z "Australia/Sydney" -i "${path}"
+  $IVORY ingest -Ddfs.block.size=16777216 -Dmapreduce.job.reduce.slowstart.completedmaps=0.95 -o 2000000000 -z "Australia/Sydney" -i "${path}"
   $HADOOP fs -rm -r "${path}"
   timeit "ingest-$(basename ${path})"
   # But only create snapshots every X iterations
   if [ $(( ${COUNT} % ${SNAPSHOT} )) -eq 0 ]; then
-    $IVORY snapshot -r "${REPOSITORY}"
+    $IVORY snapshot
     timeit "extract-snapshot-$(basename ${path})"
   fi
   COUNT=$((COUNT+1))
