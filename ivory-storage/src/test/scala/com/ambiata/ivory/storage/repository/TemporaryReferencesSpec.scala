@@ -118,7 +118,7 @@ class TemporaryReferencesSpec extends Specification { def is = s2"""
       x <- TemporaryReferences.runWithLocationFile(location)(loc => for {
         _   <- loc match {
           case LocalLocation(s) => Files.write(FilePath(s), "")
-          case S3Location(b, k) => S3.storeObject(S3Path.filePath(b, k), S3Path.filePath(b, k).toFile).executeT(conf.s3Client)
+          case S3Location(b, k) => S3.putString(b, k, "").executeT(conf.s3Client)
           case HdfsLocation(s)  => Hdfs.writeWith(FilePath(s).toHdfs, out => Streams.write(out, "")).run(conf.configuration)
         }
         dir <- checkFileLocation(loc)
@@ -138,7 +138,7 @@ class TemporaryReferencesSpec extends Specification { def is = s2"""
       x <- TemporaryReferences.runWithLocationDir(location)(loc => for {
         _   <- loc match {
           case LocalLocation(s) => Directories.mkdirs(FilePath(s))
-          case S3Location(b, k) => S3.storeObject(S3Path.filePath(b, k), S3Path.filePath(b, k).toFile).executeT(conf.s3Client)
+          case S3Location(b, k) => S3.putString(b, k, "").executeT(conf.s3Client)
           case HdfsLocation(s)  => Hdfs.mkdir(FilePath(s).toHdfs).run(conf.configuration)
         }
         dir <- checkDirLocation(loc)
