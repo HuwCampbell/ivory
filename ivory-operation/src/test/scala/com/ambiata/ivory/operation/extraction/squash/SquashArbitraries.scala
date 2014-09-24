@@ -46,7 +46,11 @@ object SquashArbitraries {
     Arbitrary(Arbitrary.arbitrary[Date].flatMap(squashFactsArbitraryFromDate))
 
   def squashFactsArbitraryFromDate(date: Date): Gen[SquashFacts] = for {
-    w <- Arbitrary.arbitrary[ConcreteGroupFeature]
+    w <- Arbitrary.arbitrary[ConcreteGroupFeature].flatMap { w =>
+      // Make sure we have _at least_ one virtual feature
+      if (w.dictionary.hasVirtual) Gen.const(w)
+      else virtualDefGen(w.fid -> w.cg.definition).map(virt => w.copy(cg = w.cg.copy(virtual = virt :: w.cg.virtual)))
+    }
     // We should only ever see 1 fact when no window is defined
     i <- startingDate(w, date).cata(_ => Gen.choose(2, 10), Gen.const(1))
     f <- Gen.listOfN(i, Arbitrary.arbitrary[Fact].flatMap {
