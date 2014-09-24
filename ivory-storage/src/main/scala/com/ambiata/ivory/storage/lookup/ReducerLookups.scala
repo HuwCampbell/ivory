@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.lookup
 
-import com.ambiata.ivory.core.{Name, Date, FeatureId, Skew, Dictionary}
+import com.ambiata.ivory.core.{Name, Date, FeatureId, Skew, Dictionary, Definition}
 import com.ambiata.ivory.lookup.{ReducerLookup, FeatureIdLookup, NamespaceLookup}
 import com.ambiata.ivory.mr.ThriftCache
 import com.ambiata.mundane.io.BytesQuantity
@@ -48,11 +48,14 @@ object ReducerLookups {
    * NamespaceLookup assigns an int for each namespace
    * FeatureIdLookup assigns an int for each feature id
    */
-  def index(dict: Dictionary): (NamespaceLookup, FeatureIdLookup) = {
+  def index(dictionary: Dictionary): (NamespaceLookup, FeatureIdLookup) =
+    indexDefinitions(dictionary.definitions)
+
+  def indexDefinitions(definitions: List[Definition]): (NamespaceLookup, FeatureIdLookup) = {
     val namespaces = new NamespaceLookup
     val features = new FeatureIdLookup
 
-    dict.definitions.zipWithIndex.foreach { case (d, idx) =>
+    definitions.zipWithIndex.foreach { case (d, idx) =>
       namespaces.putToNamespaces(idx, d.featureId.namespace.name)
       features.putToIds(d.featureId.toString, idx)
     }

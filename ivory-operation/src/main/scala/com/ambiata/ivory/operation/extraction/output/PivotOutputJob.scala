@@ -1,13 +1,10 @@
-
-package com.ambiata.ivory.operation.pivot
+package com.ambiata.ivory.operation.extraction.output
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.mr._
-import com.ambiata.mundane.io._
-import com.ambiata.poacher.hdfs.Hdfs
 
 import java.lang.{Iterable => JIterable}
 
@@ -24,10 +21,9 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat
 /**
  * This is a hand-coded MR job to squeeze the most out of pivot performance.
  */
-object PivotJob {
-  def run(conf: Configuration, unsortedDictionary: Dictionary, input: Path, output: Path, tombstone: String,
+object PivotOutputJob {
+  def run(conf: Configuration, dictionary: Dictionary, input: Path, output: Path, missing: String,
           delimiter: Char, reducers: Int, codec: Option[CompressionCodec]): Unit = {
-    val dictionary = sortDictionary(unsortedDictionary)
 
     val job = Job.getInstance(conf)
     val ctx = MrContext.newContext("ivory-pivot", job)
@@ -65,10 +61,10 @@ object PivotJob {
     })
 
     // cache / config initializtion
-    job.getConfiguration.set(Keys.Tombstone, tombstone)
+    job.getConfiguration.set(Keys.Missing, missing)
     job.getConfiguration.set(Keys.Delimiter, delimiter.toString)
     ctx.thriftCache.push(job, Keys.Dictionary, DictionaryThriftConversion.dictionaryToThrift(dictionary))
-    val (_, lookup) = ReducerLookups.index(dictionary)
+    val (_, lookup) = ReducerLookups.indexDefinitions(dictionary.sortedByFeatureId)
     ctx.thriftCache.push(job, Keys.FeatureIds, lookup)
 
     // run job
@@ -79,43 +75,12 @@ object PivotJob {
       case "pivot" => output
     }, true).run(conf).run.unsafePerformIO()
 
-    Hdfs.writeWith(new Path(output, ".dictionary"), os =>
-      Streams.write(os, featuresToString(dictionary, tombstone, delimiter).mkString("\n"))).run(conf).run.unsafePerformIO()
+    DictionaryOutput.writeToHdfs(output, dictionary.removeStructs, missing, delimiter).run(conf).run.unsafePerformIO()
     ()
   }
 
-  def featuresToString(dictionary: Dictionary, tombstone: String, delim: Char): List[String] = {
-    import com.ambiata.ivory.storage.metadata.DictionaryTextStorage
-    val byId = dictionary.definitions.groupBy(_.featureId).mapValues(_.head)
-    dictionary.definitions.zipWithIndex.map {
-      case (d, i) => i.toString + delim + DictionaryTextStorage.delimitedLineWithDelim(d.featureId -> (d match {
-        case Concrete(_, m) => m.copy(tombstoneValue = List(tombstone))
-        case Virtual(_, vd) =>
-          val source = byId.get(vd.source).flatMap {
-            case Concrete(_, cd) => Some(cd)
-            case Virtual(_, _)   => None
-          }.getOrElse(ConcreteDefinition(StringEncoding, None, "", List(tombstone)))
-          vd.expression match {
-            // A short term hack for supporting feature gen based on known functions
-            case Count  => ConcreteDefinition(LongEncoding, None, "", List(tombstone))
-            case Latest => ConcreteDefinition(source.encoding, None, "", List(tombstone))
-          }
-      }), delim.toString)
-    }
-  }
-
-  /** Make sure the dictionary is filtered/sorted consistently between the facts and .dictionary file */
-  def sortDictionary(dict: Dictionary): Dictionary = Dictionary(
-    dict.definitions.filter({
-      case Concrete(_, fm) =>
-        Encoding.isPrimitive(fm.encoding)
-      case Virtual(_, _) =>
-        true
-    }).sortBy(_.featureId.toString)
-  )
-  
   object Keys {
-    val Tombstone = "ivory.pivot.tombstone"
+    val Missing = "ivory.pivot.missing"
     val Delimiter = "ivory.pivot.delimiter"
     val Dictionary = ThriftCache.Key("ivory.pivot.lookup.dictionary")
     val FeatureIds = ThriftCache.Key("ivory.pivot.lookup.featureid")
@@ -146,7 +111,7 @@ class PivotMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, Byt
 
   override def setup(context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    ctx.thriftCache.pop(context.getConfiguration, PivotJob.Keys.FeatureIds, features)
+    ctx.thriftCache.pop(context.getConfiguration, PivotOutputJob.Keys.FeatureIds, features)
   }
 
   /** Read and pass through, extracting entity and feature id for sort phase. */
@@ -186,8 +151,8 @@ class PivotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, T
   /** Output value, only create once per reducer */
   val vout = new Text
 
-  /** tombstone value to use in place of empty values. */
-  var tombstone: String = null
+  /** missing value to use in place of empty values. */
+  var missing: String = null
 
   /** delimiter value to use in output. */
   var delimiter = '?'
@@ -201,10 +166,10 @@ class PivotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, T
     import scala.collection.JavaConverters._
     val lookup = new FeatureIdLookup
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    ctx.thriftCache.pop(context.getConfiguration, PivotJob.Keys.FeatureIds, lookup)
+    ctx.thriftCache.pop(context.getConfiguration, PivotOutputJob.Keys.FeatureIds, lookup)
     features = lookup.getIds.asScala.toList.sortBy(_._2).map(_._1).toArray
-    tombstone = context.getConfiguration.get(PivotJob.Keys.Tombstone)
-    delimiter = context.getConfiguration.get(PivotJob.Keys.Delimiter).charAt(0)
+    missing = context.getConfiguration.get(PivotOutputJob.Keys.Missing)
+    delimiter = context.getConfiguration.get(PivotOutputJob.Keys.Delimiter).charAt(0)
   }
 
   override def reduce(key: BytesWritable, iterable: JIterable[BytesWritable], context: Reducer[BytesWritable, BytesWritable, NullWritable, Text]#Context): Unit = {
@@ -221,13 +186,13 @@ class PivotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, T
 
       while (i < features.length && features(i) != fact.featureId.toString) {
         buffer.append(delimiter)
-        buffer.append(tombstone)
+        buffer.append(missing)
         i += 1
       }
 
       buffer.append(delimiter)
       if (i <= features.length) {
-        val s = Value.toStringOr(fact.value, tombstone).getOrElse(sys.error(s"Could not render fact ${fact.toString}"))
+        val s = Value.toStringOr(fact.value, missing).getOrElse(sys.error(s"Could not render fact ${fact.toString}"))
         buffer.append(s)
       }
       first = false
@@ -235,7 +200,7 @@ class PivotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, T
     }
     while (i < features.length) {
       buffer.append(delimiter)
-      buffer.append(tombstone)
+      buffer.append(missing)
       i += 1
     }
 

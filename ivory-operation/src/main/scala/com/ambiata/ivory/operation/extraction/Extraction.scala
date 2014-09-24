@@ -3,6 +3,7 @@ package com.ambiata.ivory.operation.extraction
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.legacy.SnapshotMeta
+import com.ambiata.ivory.operation.extraction.output._
 
 import scalaz.Scalaz._
 
@@ -22,13 +23,21 @@ object Extraction {
 
   def extract(formats: OutputFormats, input: ExtractionInput): IvoryTIO[Unit] = IvoryT.fromResultTIO(repository =>
     formats.outputs.traverse {
-      case (PivotFormat(delim), output) =>
+      case (DenseFormat(delim), output) =>
         println(s"Pivoting extracted file from '$input' to '${output.path}'")
         input match {
           case SnapshotExtract(meta)    =>
-            Pivot.createPivotFromSnapshot(repository, output, delim, formats.missingValue, meta)
+            PivotOutput.createPivotFromSnapshot(repository, output, delim, formats.missingValue, meta)
           case ChordExtract(chordInput) =>
-            Pivot.createPivot(repository, chordInput, output, delim, formats.missingValue)
+            PivotOutput.createPivot(repository, chordInput, output, delim, formats.missingValue)
+        }
+      case (SparseFormat(delim), output) =>
+        println(s"Storing extracted data '$input' to '${output.path}'")
+        input match {
+          case SnapshotExtract(meta)    =>
+            EavOutput.extractFromSnapshot(repository, output, delim, formats.missingValue, meta)
+          case ChordExtract(chordInput) =>
+            EavOutput.extractFromChord(repository, chordInput, output, delim, formats.missingValue)
         }
     }.void
   )

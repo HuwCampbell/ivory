@@ -1,4 +1,4 @@
-package com.ambiata.ivory.operation.extraction
+package com.ambiata.ivory.operation.extraction.output
 
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
@@ -6,12 +6,13 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.operation.extraction.Snapshot
 import com.nicta.scoobi.core.ScoobiConfiguration
 import org.joda.time.LocalDate
 import org.specs2.matcher.ThrownExpectations
 import org.specs2._
 
-class PivotSpec extends Specification with SampleFacts with ThrownExpectations { def is = s2"""
+class PivotOutputSpec extends Specification with SampleFacts with ThrownExpectations { def is = s2"""
 
  A Sequence file containing feature values can be
    pivoted as a row-oriented file                        $pivot       ${tag("mr")}
@@ -51,19 +52,17 @@ class PivotSpec extends Specification with SampleFacts with ThrownExpectations {
     "2|ns2|fid3|boolean|categorical|desc|NA"
   )
 
-  def createPivot(facts: List[List[Fact]])(repo: HdfsRepository): ResultTIO[(String, List[String])] = {
-    implicit val sc: ScoobiConfiguration = repo.scoobiConfiguration
+  def createPivot(facts: List[List[Fact]])(repo: HdfsRepository): ResultTIO[(String, List[String])] =
     Temporary.using { dir =>
       for {
         _     <- RepositoryBuilder.createRepo(repo, sampleDictionary, facts)
         pivot <- Reference.fromUriResultTIO((dir </> "pivot").path, repo.configuration)
         meta  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), incremental = false)
         input     = repo.toReference(Repository.snapshot(meta.snapshotId))
-        _                <- Pivot.createPivot(repo, input, pivot, '|', "NA")
+        _                <- PivotOutput.createPivot(repo, input, pivot, '|', "NA")
         dictRef          <- Reference.fromUriResultTIO((dir </> "pivot" </> ".dictionary").path, repo.configuration)
         dictionaryLines  <- dictRef.run(_.linesUtf8.read)
         pivotLines       <- pivot.readLines
       } yield (pivotLines.mkString("\n").trim, dictionaryLines)
     }
-  }
 }

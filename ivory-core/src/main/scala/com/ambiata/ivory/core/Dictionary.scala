@@ -9,6 +9,9 @@ case class Dictionary(definitions: List[Definition]) {
   def size: Int =
     definitions.size
 
+  val sortedByFeatureId: List[Definition] =
+    definitions.sortBy(_.featureId)
+
   /** Index this dictionaries definitions by FeatureId. */
   val byFeatureId: Map[FeatureId, Definition] =
     definitions.map(d => d.featureId -> d).toMap
@@ -19,13 +22,13 @@ case class Dictionary(definitions: List[Definition]) {
       a definition. This is important for portability across repositories
       and even factsets in a repository over time. */
   val byFeatureIndex: Map[Int, Definition] =
-    definitions.zipWithIndex.map(_.swap).toMap
+    sortedByFeatureId.zipWithIndex.map(_.swap).toMap
 
   /** Reverse index this dictionary by an integer feature index,
       this is the inverse of byFeatureIndex and the same warnings
       apply. */
   val byFeatureIndexReverse: Map[Definition, Int] =
-    definitions.zipWithIndex.toMap
+    sortedByFeatureId.zipWithIndex.toMap
 
   /** Create a `Dictionary` from `this` only containing features in the specified namespace. */
   def forNamespace(namespace: Name): Dictionary =
@@ -56,6 +59,20 @@ case class Dictionary(definitions: List[Definition]) {
   /** append the mappings coming from another dictionary */
   def append(other: Dictionary) =
     Dictionary(definitions ++ other.definitions)
+
+  /** Only required until chord supports windows as well */
+  def removeVirtualFeatures: Dictionary =
+    Dictionary(definitions.filter({
+      case Concrete(_, _) => true
+      case Virtual(_, _)  => false
+    }))
+
+  /** Remove struct definitions */
+  def removeStructs: Dictionary =
+    Dictionary(definitions.filter({
+      case Concrete(_, fm) => Encoding.isPrimitive(fm.encoding)
+      case Virtual(_, _)   => true
+    }))
 }
 
 object Dictionary {
