@@ -31,5 +31,5 @@ object Extract {
     out2 <- out1.traverseU {
       case (format, path) => Reference.fromUriResultTIO(path, conf).map(format ->)
     }
-  } yield OutputFormats(out2, output.delim, output.tombstone)
+  } yield OutputFormats(out2, output.tombstone)
 }

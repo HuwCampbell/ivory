@@ -22,13 +22,13 @@ object Extraction {
 
   def extract(formats: OutputFormats, input: ExtractionInput): IvoryTIO[Unit] = IvoryT.fromResultTIO(repository =>
     formats.outputs.traverse {
-      case (PivotFormat, output) =>
+      case (PivotFormat(delim), output) =>
         println(s"Pivoting extracted file from '$input' to '${output.path}'")
         input match {
           case SnapshotExtract(meta)    =>
-            Pivot.createPivotFromSnapshot(repository, output, formats.delim, formats.missingValue, meta)
+            Pivot.createPivotFromSnapshot(repository, output, delim, formats.missingValue, meta)
           case ChordExtract(chordInput) =>
-            Pivot.createPivot(repository, chordInput, output, formats.delim, formats.missingValue)
+            Pivot.createPivot(repository, chordInput, output, delim, formats.missingValue)
         }
     }.void
   )
