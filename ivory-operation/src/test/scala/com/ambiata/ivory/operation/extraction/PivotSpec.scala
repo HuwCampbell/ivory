@@ -9,7 +9,6 @@ import com.ambiata.ivory.storage.repository._
 import com.nicta.scoobi.core.ScoobiConfiguration
 import org.joda.time.LocalDate
 import org.specs2.matcher.ThrownExpectations
-import scalaz.{Store => _, Name => _, _}, Scalaz._
 import org.specs2._
 
 class PivotSpec extends Specification with SampleFacts with ThrownExpectations { def is = s2"""
@@ -63,32 +62,8 @@ class PivotSpec extends Specification with SampleFacts with ThrownExpectations {
         _                <- Pivot.createPivot(repo, input, pivot, '|', "NA")
         dictRef          <- Reference.fromUriResultTIO((dir </> "pivot" </> ".dictionary").path, repo.configuration)
         dictionaryLines  <- dictRef.run(_.linesUtf8.read)
-        pivotLines       <- readLines(pivot)
+        pivotLines       <- pivot.readLines
       } yield (pivotLines.mkString("\n").trim, dictionaryLines)
     }
   }
-
-  def extractPivot(repository: HdfsRepository, outPath: FilePath): ResultTIO[List[String]] =
-    for {
-      pivot <- Reference.fromUriFilePathResultTIO(outPath, repository.ivory)
-      meta  <- Snapshot.takeSnapshot(repository, Date.fromLocalDate(LocalDate.now), incremental = false)
-      input =  repository.toReference(Repository.snapshot(meta.snapshotId))
-      _     <- Pivot.createPivot(repository, input, pivot, '|', "NA")
-      lines <- readLines(pivot)
-    } yield lines
-
-  def readLines(ref: ReferenceIO): ResultTIO[List[String]] =
-    ref.run(store => path => {
-      for {
-        paths <- store.filter(path, p => { val sp = (FilePath.root </> p).relativeTo(path); !sp.path.startsWith("_") && !sp.path.startsWith(".") })
-        all   <- paths.traverseU(store.linesUtf8.read).map(_.flatten)
-      } yield all
-    })
-
-  def readDictionary(outPath: FilePath, configuration: IvoryConfiguration): ResultTIO[List[String]] =
-    for {
-      dictRef <- Reference.fromUriResultTIO((outPath </> ".dictionary").path, configuration)
-      lines   <- dictRef.run(_.linesUtf8.read)
-    } yield lines
-
 }
