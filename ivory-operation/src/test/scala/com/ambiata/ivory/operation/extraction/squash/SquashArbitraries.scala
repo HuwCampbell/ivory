@@ -50,6 +50,12 @@ object SquashArbitraries {
       // Make sure we have _at least_ one virtual feature
       if (w.dictionary.hasVirtual) Gen.const(w)
       else virtualDefGen(w.fid -> w.cg.definition).map(virt => w.copy(cg = w.cg.copy(virtual = virt :: w.cg.virtual)))
+    }.map {
+      // My kingdom for a lens :(
+      // Disable filtering in squash tests, handled in FilterReductionSpec and window cli test
+      cgf => cgf.copy(cg = cgf.cg.copy(virtual = cgf.cg.virtual.map {
+        case (fid, vd) => fid -> vd.copy(filter = None)
+      }))
     }
     // We should only ever see 1 fact when no window is defined
     i <- startingDate(w, date).cata(_ => Gen.choose(2, 10), Gen.const(1))

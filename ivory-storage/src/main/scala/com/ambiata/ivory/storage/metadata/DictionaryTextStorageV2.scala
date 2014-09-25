@@ -30,6 +30,7 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
     case Virtual(_, d) => List(
       Some("source" -> d.source.toString(":")),
       Some("expression" -> Expression.asString(d.expression)),
+      d.filter.map(_.render).map("filter" ->),
       d.window.map(Window.asString).map("window" ->)
     )
   }).flatten.map { case (k, v) => k + "=" + v}.mkString(DELIM)
@@ -90,8 +91,9 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
         }
         val expression = m.get("expression").toRightDisjunction("Missing expression")
           .flatMap(e => Expression.parse(e).toRightDisjunction("Invalid expression: " + e))
+        val filter = m.get("filter").map(Filter.apply).right
         DictionaryTextStorageV2(source, DELIMITER).featureId.run().fold(formatError(_).failureNel,
-          fid => (fid |@| expression |@| window)(Definition.virtual(featureId, _, _, _)).validation.toValidationNel)
+          fid => (fid |@| expression |@| filter |@| window)(Definition.virtual(featureId, _, _, _, _)).validation.toValidationNel)
       case (Some(_), Some(_))  =>
         "Must specify either 'encoding' or 'source' but not both".failureNel
       case (None, None)        =>

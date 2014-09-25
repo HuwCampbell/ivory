@@ -154,10 +154,15 @@ struct ThriftDictionaryExpression {
     1: string expression;
 }
 
+struct ThriftDictionaryFilter {
+    1: string expression;
+}
+
 struct ThriftDictionaryVirtual {
     1: ThriftDictionaryFeatureId sourceName;
     2: optional ThriftDictionaryWindow window;
     3: optional ThriftDictionaryExpression expression;
+    4: optional ThriftDictionaryFilter filter;
 }
 
 union ThriftDictionaryDefinition {

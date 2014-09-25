@@ -2,7 +2,7 @@ package com.ambiata.ivory.core.thrift
 
 import com.ambiata.ivory.core._
 import scala.collection.JavaConverters._
-import scalaz.{Name=>_,_}, Scalaz._, BijectionT._
+import scalaz.{Name => _, Value => _, _}, Scalaz._, BijectionT._
 
 object DictionaryThriftConversion {
 
@@ -91,17 +91,26 @@ object DictionaryThriftConversion {
       })
   }
 
+  object filter {
+    def to(filter: Filter): ThriftDictionaryFilter =
+      new ThriftDictionaryFilter(filter.render)
+    def from(filter: ThriftDictionaryFilter): Filter =
+      Filter(filter.getExpression)
+  }
+
   object virtual {
     def to(cd: VirtualDefinition): ThriftDictionaryVirtual = {
       val virt = new ThriftDictionaryVirtual(featureId.to(cd.source))
       cd.window.map(window.to).foreach(virt.setWindow)
       virt.setExpression(new ThriftDictionaryExpression(Expression.asString(cd.expression)))
+      cd.filter.map(filter.to).foreach(virt.setFilter)
       virt
     }
     def from(virt: ThriftDictionaryVirtual): String \/ VirtualDefinition = for {
       source <- featureId.from(virt.getSourceName)
       exp    <- (if (virt.isSetExpression) Expression.parse(virt.getExpression.getExpression) else Some(Latest)).toRightDisjunction("Invalid expression")
-    } yield VirtualDefinition(source, exp, virt.isSetWindow.option(window.from(virt.getWindow)))
+      fltr    = virt.isSetFilter.option(filter.from(virt.getFilter))
+    } yield VirtualDefinition(source, exp, fltr, virt.isSetWindow.option(window.from(virt.getWindow)))
   }
 
   val concrete = new {

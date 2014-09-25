@@ -1,3 +1,5 @@
 halibut:swiss_cheese|encoding=double|tombstone=T
 halibut:cooldown|source=halibut:swiss_cheese|window=1 month|expression=count
 halibut:latte|source=halibut:swiss_cheese|window=2 months|expression=count
+filter:age|encoding=int
+filter:adult|source=filter:age|expression=count|window=2 months|filter=or,18,19,20|tombstone=T

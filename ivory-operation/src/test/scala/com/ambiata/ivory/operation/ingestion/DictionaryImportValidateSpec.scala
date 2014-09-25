@@ -14,6 +14,7 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
    is valid normally                                               $selfValid
    is invalid with a hanging virtual definition                    $virtualMissingSource
    is invalid with a virtual definition with a virtual source      $virtualVirtualSource
+   is invalid with a virtual definition with an invalid filter     $virtualInvalidFilter
 
 """
 
@@ -56,6 +57,15 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
   def virtualVirtualSource = prop((vdict1: VirtualDictionary, vdict2: VirtualDictionary) => {
     val dict = vdict1.dictionary append Dictionary(List(Virtual(vdict2.fid, vdict2.vd.copy(source = vdict1.fid))))
     validateSelf(dict) ==== InvalidVirtualSource(vdict1.fid, ValidationPath(vdict2.fid)).failureNel
+  })
+
+  def virtualInvalidFilter = prop((vdict1: VirtualDictionary) => {
+    val filter = FilterTextV0.asString(FilterStruct(FilterOpAnd, List("missing" -> FilterEquals(StringValue("")))))
+    // The actual validation of different bad filters is handled in FilterSpec
+    val dict = Dictionary(List(Virtual(vdict1.fid, VirtualDefinition(vdict1.vd.source, vdict1.vd.expression, Some(filter), None))))
+    validateSelf(dict).toEither.left.map(_.head) must beLeft ((f: DictionaryValidateFailure) => f must beLike {
+      case InvalidVirtualSource(_, ValidationPath(p, Nil)) => p ==== vdict1.fid
+    })
   })
 
   // At some point it might be worth investigating Prism's from Monocle to share this code with the actual logic

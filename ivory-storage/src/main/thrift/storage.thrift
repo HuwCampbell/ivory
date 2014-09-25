@@ -37,7 +37,9 @@ struct FeatureReduction {
     1: string ns;
     2: string source;
     3: string expression;
-    4: optional i32 date;
+    4: string encoding;
+    5: optional string filter;
+    6: optional i32 date;
 }
 
 struct FeatureReductionLookup {

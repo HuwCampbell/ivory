@@ -49,16 +49,18 @@ object DictionaryImportValidate {
   /**
    * Make sure a dictionary is self-consistent, such as:
    *
-   * - virtual features derived fromg actual concrete features (for
+   * - virtual features derived from actual concrete features (for
    *   now, in the future this will be possible).
+   * - virtual features with an invalid filter
    */
   def validateSelf(dict: Dictionary): DictValidationUnit =
     dict.definitions.traverseU {
-      case Concrete(_, _)  => OK
-      case Virtual(fid, d) => dict.byFeatureId.get(d.source).filter {
-        case Concrete(_, _) => true
-        case Virtual(_, _)  => false
-      }.toRightDisjunction(InvalidVirtualSource(d.source, ValidationPath(fid))).validation.toValidationNel
+      case Concrete(_, _)    => OK
+      case Virtual(fid, vd)  => dict.byFeatureId.get(vd.source).traverseU {
+        case Concrete(_, cd) =>
+          vd.filter.traverseU(FilterTextV0.encode(_, cd.encoding).leftMap(InvalidFilter(_, ValidationPath(fid))).validation.toValidationNel)
+        case Virtual(_, _)   => InvalidVirtualSource(vd.source, ValidationPath(fid)).failureNel
+      }.flatMap(_.cata(_ => OK, InvalidVirtualSource(vd.source, ValidationPath(fid)).failureNel))
     }.void
 
   case class ValidationPath(id: FeatureId, path: List[StructName] = Nil) {
@@ -85,5 +87,8 @@ object DictionaryImportValidate {
   }
   case class InvalidVirtualSource(source: FeatureId, path: ValidationPath) extends DictionaryValidateFailure {
     override def toString = s"Supplied source '$source' not found at $path or is invalid"
+  }
+  case class InvalidFilter(error: String, path: ValidationPath) extends DictionaryValidateFailure {
+    override def toString = s"Invalid filter at $path: $error"
   }
 }
