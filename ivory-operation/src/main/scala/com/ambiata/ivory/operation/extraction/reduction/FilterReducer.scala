@@ -27,25 +27,29 @@ object FilterReducer {
     new FilterReducer(reduction, compileExpression(filter))
 
   def compileExpression(filter: FilterEncoded): FilterReductionExpression =
-    filter match {
+    new FilterReductionIgnoreTombstone(filter match {
       case FilterValues(op, fields) =>
-        compileOp(op, fields.map(compilePredicate).map(new FilterValueReducer(_)))
+        compileOp(op, fields.map {
+          case FilterEquals(value) => value match {
+            case StringValue(v)   => new FilterValueReducerString(new FilterReducerEquals(v))
+            case BooleanValue(v)  => new FilterValueReducerBoolean(new FilterReducerEquals(v))
+            case IntValue(v)      => new FilterValueReducerInt(new FilterReducerEquals(v))
+            case LongValue(v)     => new FilterValueReducerLong(new FilterReducerEquals(v))
+            case DoubleValue(v)   => new FilterValueReducerDouble(new FilterReducerEquals(v))
+          }
+        })
       case FilterStruct(op, fields) => compileOp(op, fields.map {
-        case (name, exp) => new FilterStructReducer(name, compilePredicate(exp))
+        case (name, exp) => exp match {
+          case FilterEquals(value) => value match {
+            case StringValue(v)   => new FilterStructReducerString(name, new FilterReducerEquals(v))
+            case BooleanValue(v)  => new FilterStructReducerBoolean(name, new FilterReducerEquals(v))
+            case IntValue(v)      => new FilterStructReducerInt(name, new FilterReducerEquals(v))
+            case LongValue(v)     => new FilterStructReducerLong(name, new FilterReducerEquals(v))
+            case DoubleValue(v)   => new FilterStructReducerDouble(name, new FilterReducerEquals(v))
+          }
+        }
       })
-    }
-
-  def compilePredicate(exp: FilterExpression): FilterReducerPredicate =
-    exp match {
-      case FilterEquals(value) => new FilterReducerEquals(value match {
-        case StringValue(v)   => v
-        case BooleanValue(v)  => v
-        case IntValue(v)      => v
-        case LongValue(v)     => v
-        case DoubleValue(v)   => v
-        case TombstoneValue() => Crash.error(Crash.Invariant, "Impossible code path")
-      })
-    }
+    })
 
   def compileOp(op: FilterOp, expressions: List[FilterReductionExpression]): FilterReductionExpression =
     op match {
@@ -84,30 +88,82 @@ class FilterOrReducer(expressions: List[FilterReductionExpression]) extends Filt
   }
 }
 
-class FilterValueReducer(pred: FilterReducerPredicate) extends FilterReductionExpression {
+/** This may need to be removed once we support more than equals */
+class FilterReductionIgnoreTombstone(p: FilterReductionExpression) extends FilterReductionExpression {
   def eval(fact: Fact): Boolean =
-    // Calling getFieldValue() here which returns 'Object'
-    // Unfortunately calling getX() does internal boxing so there isn't anything we can do
-    !fact.isTombstone && pred.eval(fact.toThrift.getValue.getFieldValue)
+    !fact.isTombstone && p.eval(fact)
 }
 
-class FilterStructReducer(field: String, pred: FilterReducerPredicate) extends FilterReductionExpression {
+/* Values */
+
+class FilterValueReducerString(pred: FilterReducerPredicate[String]) extends FilterReductionExpression {
   def eval(fact: Fact): Boolean =
-    if (!fact.isTombstone) {
-      val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
-      // We may need to pass this through if we add 'is set' as a predicate
-      value != null && pred.eval(value.getFieldValue)
-    } else false
+    pred.eval(fact.toThrift.getValue.getS)
+}
+
+class FilterValueReducerBoolean(pred: FilterReducerPredicate[Boolean]) extends FilterReductionExpression {
+  def eval(fact: Fact): Boolean =
+    pred.eval(fact.toThrift.getValue.getB)
+}
+
+class FilterValueReducerInt(pred: FilterReducerPredicate[Int]) extends FilterReductionExpression {
+  def eval(fact: Fact): Boolean =
+    pred.eval(fact.toThrift.getValue.getI)
+}
+
+class FilterValueReducerLong(pred: FilterReducerPredicate[Long]) extends FilterReductionExpression {
+  def eval(fact: Fact): Boolean =
+    pred.eval(fact.toThrift.getValue.getL)
+}
+
+class FilterValueReducerDouble(pred: FilterReducerPredicate[Double]) extends FilterReductionExpression {
+  def eval(fact: Fact): Boolean =
+    pred.eval(fact.toThrift.getValue.getD)
+}
+
+/* Structs */
+
+class FilterStructReducerString(field: String, pred: FilterReducerPredicate[String]) extends FilterReductionExpression {
+  def eval(fact: Fact): Boolean = {
+    val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
+    value != null && value.isSetS && pred.eval(value.getS)
+  }
+}
+
+class FilterStructReducerBoolean(field: String, pred: FilterReducerPredicate[Boolean]) extends FilterReductionExpression {
+  def eval(fact: Fact): Boolean = {
+    val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
+    value != null && value.isSetB && pred.eval(value.getB)
+  }
+}
+
+class FilterStructReducerInt(field: String, pred: FilterReducerPredicate[Int]) extends FilterReductionExpression {
+  def eval(fact: Fact): Boolean = {
+    val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
+    value != null && value.isSetI && pred.eval(value.getI)
+  }
+}
+
+class FilterStructReducerLong(field: String, pred: FilterReducerPredicate[Long]) extends FilterReductionExpression {
+  def eval(fact: Fact): Boolean = {
+    val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
+    value != null && value.isSetL && pred.eval(value.getL)
+  }
+}
+
+class FilterStructReducerDouble(field: String, pred: FilterReducerPredicate[Double]) extends FilterReductionExpression {
+  def eval(fact: Fact): Boolean = {
+    val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
+    value != null && value.isSetD && pred.eval(value.getD)
+  }
 }
 
 /* Predicates */
 
-trait FilterReducerPredicate {
-  def eval(v: Any): Boolean
+trait FilterReducerPredicate[@specialized(Boolean, Int, Long, Double) A] {
+  def eval(v: A): Boolean
 }
 
-/** We may want to specialize this, although currently `value` in [[ThriftFactPrimitiveValue]] is already boxed */
-class FilterReducerEquals(value: Any) extends FilterReducerPredicate {
-  def eval(v: Any): Boolean =
-    v == value
+class FilterReducerEquals[A](a: A) extends FilterReducerPredicate[A] {
+  def eval(v: A): Boolean = a == v
 }
