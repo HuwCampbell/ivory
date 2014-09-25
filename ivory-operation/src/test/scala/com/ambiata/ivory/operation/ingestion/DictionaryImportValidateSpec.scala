@@ -62,7 +62,7 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
   def virtualInvalidFilter = prop((vdict1: VirtualDictionary) => {
     val filter = FilterTextV0.asString(FilterStruct(FilterOpAnd, List("missing" -> FilterEquals(StringValue("")))))
     // The actual validation of different bad filters is handled in FilterSpec
-    val dict = Dictionary(List(Virtual(vdict1.fid, VirtualDefinition(vdict1.vd.source, vdict1.vd.expression, Some(filter), None))))
+    val dict = Dictionary(List(Virtual(vdict1.fid, vdict1.vd.copy(query = vdict1.vd.query.copy(filter = Some(filter))))))
     validateSelf(dict).toEither.left.map(_.head) must beLeft ((f: DictionaryValidateFailure) => f must beLike {
       case InvalidVirtualSource(_, ValidationPath(p, Nil)) => p ==== vdict1.fid
     })

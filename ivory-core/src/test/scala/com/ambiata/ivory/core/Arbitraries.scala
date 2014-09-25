@@ -204,7 +204,8 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
     exp        <- arbitrary[Expression]
     filter     <- arbitraryFilter(gen._2)
     window     <- arbitrary[Option[Window]]
-  } yield (fid, VirtualDefinition(gen._1, exp, filter.map(FilterTextV0.asString).map(_.render).map(Filter.apply), window))
+    query       = Query(exp, filter.map(FilterTextV0.asString).map(_.render).map(Filter.apply))
+  } yield (fid, VirtualDefinition(gen._1, query, window))
 
   implicit def FeatureMetaArbitrary: Arbitrary[ConcreteDefinition] =
     Arbitrary(featureMetaGen(arbitrary[Encoding]))

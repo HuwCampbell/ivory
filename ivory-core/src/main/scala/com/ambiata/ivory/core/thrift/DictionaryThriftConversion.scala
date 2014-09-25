@@ -91,26 +91,34 @@ object DictionaryThriftConversion {
       })
   }
 
-  object filter {
-    def to(filter: Filter): ThriftDictionaryFilter =
-      new ThriftDictionaryFilter(filter.render)
-    def from(filter: ThriftDictionaryFilter): Filter =
-      Filter(filter.getExpression)
+  object QueryConversion {
+    def to(q: Query): ThriftDictionaryExpression = {
+      val e = new ThriftDictionaryExpression(Expression.asString(q.expression))
+      q.filter.map(_.render).foreach(e.setFilter)
+      e
+    }
+
+    def from(expression: ThriftDictionaryExpression): Option[Query] = for {
+      exp <- Expression.parse(expression.getExpression)
+      fil  = Option(expression.getFilter).map(Filter.apply)
+    } yield Query(exp, fil)
+
+    def empty: Query =
+      Query(Latest, None)
   }
 
   object virtual {
     def to(cd: VirtualDefinition): ThriftDictionaryVirtual = {
       val virt = new ThriftDictionaryVirtual(featureId.to(cd.source))
       cd.window.map(window.to).foreach(virt.setWindow)
-      virt.setExpression(new ThriftDictionaryExpression(Expression.asString(cd.expression)))
-      cd.filter.map(filter.to).foreach(virt.setFilter)
+      virt.setExpression(QueryConversion.to(cd.query))
       virt
     }
     def from(virt: ThriftDictionaryVirtual): String \/ VirtualDefinition = for {
       source <- featureId.from(virt.getSourceName)
-      exp    <- (if (virt.isSetExpression) Expression.parse(virt.getExpression.getExpression) else Some(Latest)).toRightDisjunction("Invalid expression")
-      fltr    = virt.isSetFilter.option(filter.from(virt.getFilter))
-    } yield VirtualDefinition(source, exp, fltr, virt.isSetWindow.option(window.from(virt.getWindow)))
+      exp    <- (if (virt.isSetExpression) QueryConversion.from(virt.getExpression) else Some(QueryConversion.empty))
+        .toRightDisjunction("Invalid expression")
+    } yield VirtualDefinition(source, exp, virt.isSetWindow.option(window.from(virt.getWindow)))
   }
 
   val concrete = new {

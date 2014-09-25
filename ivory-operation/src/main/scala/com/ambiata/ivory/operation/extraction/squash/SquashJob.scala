@@ -125,19 +125,18 @@ object SquashJob {
 
   def concreteGroupToReductions(date: Date, fid: FeatureId, cg: ConcreteGroup): List[FeatureReduction] = {
     // We use 'latest' reduction to output the concrete feature as well
-    val cr = reductionToThriftExp(date, fid, Latest, cg.definition.encoding, None, None)
+    val cr = reductionToThriftExp(date, fid, Query(Latest, None), cg.definition.encoding, None)
     val vrs = cg.virtual.map((reductionToThrift(date, cg.definition.encoding) _).tupled)
     cr :: vrs
   }
 
   def reductionToThrift(date: Date, encoding: Encoding)(fid: FeatureId, vd: VirtualDefinition): FeatureReduction =
-    reductionToThriftExp(date, fid, vd.expression, encoding, vd.filter, vd.window)
+    reductionToThriftExp(date, fid, vd.query, encoding, vd.window)
 
-  def reductionToThriftExp(date: Date, fid: FeatureId, expression: Expression, encoding: Encoding,
-                           filter: Option[Filter], window: Option[Window]): FeatureReduction = {
-    val fr = new FeatureReduction(fid.namespace.name, fid.name, Expression.asString(expression), Encoding.render(encoding))
-    filter.map(_.render).foreach(fr.setFilter)
-    fr.setDate((expression match {
+  def reductionToThriftExp(date: Date, fid: FeatureId, query: Query, encoding: Encoding, window: Option[Window]): FeatureReduction = {
+    val fr = new FeatureReduction(fid.namespace.name, fid.name, Expression.asString(query.expression), Encoding.render(encoding))
+    query.filter.map(_.render).foreach(fr.setFilter)
+    fr.setDate((query.expression match {
       // For latest (and latest only) we need to match all facts (to catch them before the window)
       case Latest => Date.minValue
       // If no window is specified the only functions we should be applying will deal with a single value,

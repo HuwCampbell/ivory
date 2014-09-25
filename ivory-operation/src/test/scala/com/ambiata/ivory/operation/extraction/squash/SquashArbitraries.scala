@@ -54,7 +54,7 @@ object SquashArbitraries {
       // My kingdom for a lens :(
       // Disable filtering in squash tests, handled in FilterReductionSpec and window cli test
       cgf => cgf.copy(cg = cgf.cg.copy(virtual = cgf.cg.virtual.map {
-        case (fid, vd) => fid -> vd.copy(filter = None)
+        case (fid, vd) => fid -> vd.copy(query = vd.query.copy(filter = None))
       }))
     }
     // We should only ever see 1 fact when no window is defined

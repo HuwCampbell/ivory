@@ -59,27 +59,26 @@ object FilterTextV0 {
   }
 
   def encode(filter: Filter, encoding: Encoding): String \/ FilterEncoded = {
-    val terms = filter.render.split(",", -1).toList
-    if (terms.isEmpty) "Invalid filter: must not be blank".left
-    else {
-      val opString = terms.head
-      encoding match {
-        case StructEncoding(values) => for {
-          op     <- FilterOpTextV0.parse(opString)
-          fields <- terms.tail.grouped(2).toList.traverseU {
-            case List(field, value) =>
-              values.get(field)
-                .toRightDisjunction(s"Invalid filter: struct field $field not found")
-                .flatMap(se => FilterExpressionTextV0.parse(se.encoding, value).map(field ->))
-            case _ => "Invalid filter: struct filters require name/value pairs".left
-          }
-        } yield FilterStruct(op, fields)
-        case pe: PrimitiveEncoding => for {
-          op     <- FilterOpTextV0.parse(opString)
-          fields <- terms.tail.traverseU(FilterExpressionTextV0.parse(pe, _))
-        } yield FilterValues(op, fields)
-        case _: ListEncoding => "Filtering lists is not yet supported".left
-      }
+    filter.render.split(",", -1).toList match {
+      case Nil              => "Invalid filter: must not be blank".left
+      case opString :: tail =>
+        encoding match {
+          case StructEncoding(values) => for {
+            op <- FilterOpTextV0.parse(opString)
+            fields <- tail.grouped(2).toList.traverseU {
+              case List(field, value) =>
+                values.get(field)
+                  .toRightDisjunction(s"Invalid filter: struct field $field not found")
+                  .flatMap(se => FilterExpressionTextV0.parse(se.encoding, value).map(field ->))
+              case _ => "Invalid filter: struct filters require name/value pairs".left
+            }
+          } yield FilterStruct(op, fields)
+          case pe: PrimitiveEncoding => for {
+            op <- FilterOpTextV0.parse(opString)
+            fields <- tail.traverseU(FilterExpressionTextV0.parse(pe, _))
+          } yield FilterValues(op, fields)
+          case _: ListEncoding => "Filtering lists is not yet supported".left
+        }
     }
   }
 

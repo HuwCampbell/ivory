@@ -58,7 +58,8 @@ object DictionaryImportValidate {
       case Concrete(_, _)    => OK
       case Virtual(fid, vd)  => dict.byFeatureId.get(vd.source).traverseU {
         case Concrete(_, cd) =>
-          vd.filter.traverseU(FilterTextV0.encode(_, cd.encoding).leftMap(InvalidFilter(_, ValidationPath(fid))).validation.toValidationNel)
+          vd.query.filter.traverseU(FilterTextV0.encode(_, cd.encoding)
+            .leftMap(InvalidFilter(_, ValidationPath(fid))).validation.toValidationNel)
         case Virtual(_, _)   => InvalidVirtualSource(vd.source, ValidationPath(fid)).failureNel
       }.flatMap(_.cata(_ => OK, InvalidVirtualSource(vd.source, ValidationPath(fid)).failureNel))
     }.void

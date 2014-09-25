@@ -38,7 +38,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
   private static final org.apache.thrift.protocol.TField SOURCE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("sourceName", org.apache.thrift.protocol.TType.STRUCT, (short)1);
   private static final org.apache.thrift.protocol.TField WINDOW_FIELD_DESC = new org.apache.thrift.protocol.TField("window", org.apache.thrift.protocol.TType.STRUCT, (short)2);
   private static final org.apache.thrift.protocol.TField EXPRESSION_FIELD_DESC = new org.apache.thrift.protocol.TField("expression", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-  private static final org.apache.thrift.protocol.TField FILTER_FIELD_DESC = new org.apache.thrift.protocol.TField("filter", org.apache.thrift.protocol.TType.STRUCT, (short)4);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -49,14 +48,12 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
   public ThriftDictionaryFeatureId sourceName; // required
   public ThriftDictionaryWindow window; // optional
   public ThriftDictionaryExpression expression; // optional
-  public ThriftDictionaryFilter filter; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     SOURCE_NAME((short)1, "sourceName"),
     WINDOW((short)2, "window"),
-    EXPRESSION((short)3, "expression"),
-    FILTER((short)4, "filter");
+    EXPRESSION((short)3, "expression");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -77,8 +74,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
           return WINDOW;
         case 3: // EXPRESSION
           return EXPRESSION;
-        case 4: // FILTER
-          return FILTER;
         default:
           return null;
       }
@@ -119,7 +114,7 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
   }
 
   // isset id assignments
-  private _Fields optionals[] = {_Fields.WINDOW,_Fields.EXPRESSION,_Fields.FILTER};
+  private _Fields optionals[] = {_Fields.WINDOW,_Fields.EXPRESSION};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -129,8 +124,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftDictionaryWindow.class)));
     tmpMap.put(_Fields.EXPRESSION, new org.apache.thrift.meta_data.FieldMetaData("expression", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftDictionaryExpression.class)));
-    tmpMap.put(_Fields.FILTER, new org.apache.thrift.meta_data.FieldMetaData("filter", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftDictionaryFilter.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftDictionaryVirtual.class, metaDataMap);
   }
@@ -158,9 +151,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
     if (other.isSetExpression()) {
       this.expression = new ThriftDictionaryExpression(other.expression);
     }
-    if (other.isSetFilter()) {
-      this.filter = new ThriftDictionaryFilter(other.filter);
-    }
   }
 
   public ThriftDictionaryVirtual deepCopy() {
@@ -172,7 +162,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
     this.sourceName = null;
     this.window = null;
     this.expression = null;
-    this.filter = null;
   }
 
   public ThriftDictionaryFeatureId getSourceName() {
@@ -247,30 +236,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
     }
   }
 
-  public ThriftDictionaryFilter getFilter() {
-    return this.filter;
-  }
-
-  public ThriftDictionaryVirtual setFilter(ThriftDictionaryFilter filter) {
-    this.filter = filter;
-    return this;
-  }
-
-  public void unsetFilter() {
-    this.filter = null;
-  }
-
-  /** Returns true if field filter is set (has been assigned a value) and false otherwise */
-  public boolean isSetFilter() {
-    return this.filter != null;
-  }
-
-  public void setFilterIsSet(boolean value) {
-    if (!value) {
-      this.filter = null;
-    }
-  }
-
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case SOURCE_NAME:
@@ -297,14 +262,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
       }
       break;
 
-    case FILTER:
-      if (value == null) {
-        unsetFilter();
-      } else {
-        setFilter((ThriftDictionaryFilter)value);
-      }
-      break;
-
     }
   }
 
@@ -318,9 +275,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
 
     case EXPRESSION:
       return getExpression();
-
-    case FILTER:
-      return getFilter();
 
     }
     throw new IllegalStateException();
@@ -339,8 +293,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
       return isSetWindow();
     case EXPRESSION:
       return isSetExpression();
-    case FILTER:
-      return isSetFilter();
     }
     throw new IllegalStateException();
   }
@@ -382,15 +334,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
       if (!(this_present_expression && that_present_expression))
         return false;
       if (!this.expression.equals(that.expression))
-        return false;
-    }
-
-    boolean this_present_filter = true && this.isSetFilter();
-    boolean that_present_filter = true && that.isSetFilter();
-    if (this_present_filter || that_present_filter) {
-      if (!(this_present_filter && that_present_filter))
-        return false;
-      if (!this.filter.equals(that.filter))
         return false;
     }
 
@@ -436,16 +379,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
     }
     if (isSetExpression()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.expression, other.expression);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
-    lastComparison = Boolean.valueOf(isSetFilter()).compareTo(other.isSetFilter());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetFilter()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.filter, other.filter);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -497,16 +430,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
       }
       first = false;
     }
-    if (isSetFilter()) {
-      if (!first) sb.append(", ");
-      sb.append("filter:");
-      if (this.filter == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.filter);
-      }
-      first = false;
-    }
     sb.append(")");
     return sb.toString();
   }
@@ -522,9 +445,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
     }
     if (expression != null) {
       expression.validate();
-    }
-    if (filter != null) {
-      filter.validate();
     }
   }
 
@@ -589,15 +509,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 4: // FILTER
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.filter = new ThriftDictionaryFilter();
-              struct.filter.read(iprot);
-              struct.setFilterIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -632,13 +543,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
           oprot.writeFieldEnd();
         }
       }
-      if (struct.filter != null) {
-        if (struct.isSetFilter()) {
-          oprot.writeFieldBegin(FILTER_FIELD_DESC);
-          struct.filter.write(oprot);
-          oprot.writeFieldEnd();
-        }
-      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -666,10 +570,7 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
       if (struct.isSetExpression()) {
         optionals.set(2);
       }
-      if (struct.isSetFilter()) {
-        optionals.set(3);
-      }
-      oprot.writeBitSet(optionals, 4);
+      oprot.writeBitSet(optionals, 3);
       if (struct.isSetSourceName()) {
         struct.sourceName.write(oprot);
       }
@@ -679,15 +580,12 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
       if (struct.isSetExpression()) {
         struct.expression.write(oprot);
       }
-      if (struct.isSetFilter()) {
-        struct.filter.write(oprot);
-      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, ThriftDictionaryVirtual struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(4);
+      BitSet incoming = iprot.readBitSet(3);
       if (incoming.get(0)) {
         struct.sourceName = new ThriftDictionaryFeatureId();
         struct.sourceName.read(iprot);
@@ -702,11 +600,6 @@ public class ThriftDictionaryVirtual implements org.apache.thrift.TBase<ThriftDi
         struct.expression = new ThriftDictionaryExpression();
         struct.expression.read(iprot);
         struct.setExpressionIsSet(true);
-      }
-      if (incoming.get(3)) {
-        struct.filter = new ThriftDictionaryFilter();
-        struct.filter.read(iprot);
-        struct.setFilterIsSet(true);
       }
     }
   }
