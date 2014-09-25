@@ -24,7 +24,7 @@ trait Fact {
   }
 
   def isTombstone: Boolean = value match {
-    case v: TombstoneValue => true
+    case TombstoneValue     => true
     case _                  => false
   }
 
@@ -55,7 +55,7 @@ object Fact {
       case IntValue(i)      => ThriftFactValue.i(i)
       case LongValue(l)     => ThriftFactValue.l(l)
       case DoubleValue(d)   => ThriftFactValue.d(d)
-      case TombstoneValue() => ThriftFactValue.t(new ThriftTombstone())
+      case TombstoneValue   => ThriftFactValue.t(new ThriftTombstone())
       case ListValue(v)     => ThriftFactValue.lst(new ThriftFactList(v.map {
         case p: PrimitiveValue  => ThriftFactListValue.p(primValue(p))
         case StructValue(m)     => ThriftFactListValue.s(new ThriftFactStructSparse(m.mapValues(primValue).asJava))
@@ -70,7 +70,7 @@ object Fact {
     case IntValue(i)      => ThriftFactPrimitiveValue.i(i)
     case LongValue(l)     => ThriftFactPrimitiveValue.l(l)
     case DoubleValue(d)   => ThriftFactPrimitiveValue.d(d)
-    case TombstoneValue() => ThriftFactPrimitiveValue.t(new ThriftTombstone())
+    case TombstoneValue   => ThriftFactPrimitiveValue.t(new ThriftTombstone())
   }
 }
 
@@ -111,7 +111,7 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       case tv if tv.isSetI => IntValue(tv.getI)
       case tv if tv.isSetL => LongValue(tv.getL)
       case tv if tv.isSetB => BooleanValue(tv.getB)
-      case tv if tv.isSetT => TombstoneValue()
+      case tv if tv.isSetT => TombstoneValue
       case tv if tv.isSetStructSparse
                            => StructValue(tv.getStructSparse.getV.asScala.toMap.mapValues(factPrimitiveToValue))
       case tv if tv.isSetLst
@@ -128,7 +128,7 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       case tsv if tsv.isSetI => IntValue(tsv.getI)
       case tsv if tsv.isSetL => LongValue(tsv.getL)
       case tsv if tsv.isSetB => BooleanValue(tsv.getB)
-      case tsv if tsv.isSetT => TombstoneValue()
+      case tsv if tsv.isSetT => TombstoneValue
       case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
     }
 
@@ -201,7 +201,7 @@ case class IntValue(value: Int) extends PrimitiveValue
 case class LongValue(value: Long) extends PrimitiveValue
 case class DoubleValue(value: Double) extends PrimitiveValue
 case class StringValue(value: String) extends PrimitiveValue
-case class TombstoneValue() extends PrimitiveValue
+case object TombstoneValue extends PrimitiveValue
 
 case class StructValue(values: Map[String, PrimitiveValue]) extends SubValue
 case class ListValue(values: List[SubValue]) extends Value
@@ -216,7 +216,7 @@ object Value {
     case LongValue(i)     => Some(i.toString)
     case DoubleValue(d)   => Some(d.toString)
     case StringValue(s)   => Some(s)
-    case TombstoneValue() => None
+    case TombstoneValue   => None
   }
 
   def toString(v: Value, tombstoneValue: Option[String]): Option[String] = v match {

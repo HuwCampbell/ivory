@@ -221,7 +221,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
     m      <- mgen
     dtz    <- arbitrary[DateTimeWithZone]
     // Don't generate a Tombstone if it's not possible
-    v      <- Gen.frequency((if (m.tombstoneValue.nonEmpty) 1 else 0) -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding, m.tombstoneValue))
+    v      <- Gen.frequency((if (m.tombstoneValue.nonEmpty) 1 else 0) -> Gen.const(TombstoneValue), 99 -> valueOf(m.encoding, m.tombstoneValue))
   } yield (m, Fact.newFact(e, f.namespace.name, f.name, dtz.datetime.date, dtz.datetime.time, v), dtz.zone)
 
   /** All generated SparseEntities will have a large range of possible entity id's */
