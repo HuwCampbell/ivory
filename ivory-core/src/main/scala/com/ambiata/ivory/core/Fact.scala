@@ -70,7 +70,6 @@ object Fact {
     case IntValue(i)      => ThriftFactPrimitiveValue.i(i)
     case LongValue(l)     => ThriftFactPrimitiveValue.l(l)
     case DoubleValue(d)   => ThriftFactPrimitiveValue.d(d)
-    case TombstoneValue   => ThriftFactPrimitiveValue.t(new ThriftTombstone())
   }
 }
 
@@ -128,7 +127,6 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       case tsv if tsv.isSetI => IntValue(tsv.getI)
       case tsv if tsv.isSetL => LongValue(tsv.getL)
       case tsv if tsv.isSetB => BooleanValue(tsv.getB)
-      case tsv if tsv.isSetT => TombstoneValue
       case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
     }
 
@@ -201,7 +199,8 @@ case class IntValue(value: Int) extends PrimitiveValue
 case class LongValue(value: Long) extends PrimitiveValue
 case class DoubleValue(value: Double) extends PrimitiveValue
 case class StringValue(value: String) extends PrimitiveValue
-case object TombstoneValue extends PrimitiveValue
+
+case object TombstoneValue extends Value
 
 case class StructValue(values: Map[String, PrimitiveValue]) extends SubValue
 case class ListValue(values: List[SubValue]) extends Value
@@ -210,17 +209,17 @@ object Value {
   def validDouble(d: Double): Boolean =
     !d.isNaN && !d.isNegInfinity && !d.isPosInfinity
 
-  def toStringPrimitive(v: PrimitiveValue): Option[String] = v match {
-    case BooleanValue(b)  => Some(b.toString)
-    case IntValue(i)      => Some(i.toString)
-    case LongValue(i)     => Some(i.toString)
-    case DoubleValue(d)   => Some(d.toString)
-    case StringValue(s)   => Some(s)
-    case TombstoneValue   => None
+  def toStringPrimitive(v: PrimitiveValue): String = v match {
+    case BooleanValue(b)  => b.toString
+    case IntValue(i)      => i.toString
+    case LongValue(i)     => i.toString
+    case DoubleValue(d)   => d.toString
+    case StringValue(s)   => s
   }
 
   def toString(v: Value, tombstoneValue: Option[String]): Option[String] = v match {
-    case p: PrimitiveValue => toStringPrimitive(p) orElse tombstoneValue
+    case TombstoneValue    => tombstoneValue
+    case p: PrimitiveValue => Some(toStringPrimitive(p))
     // Currently we're ignoring lists/structs in all text format (for now)
     case _: ListValue      => None
     case StructValue(_)    => None
@@ -231,10 +230,11 @@ object Value {
 
   /** This is _not_ for general consumption - should only be use for testing or diffing */
   def toStringWithStruct(v: Value): String = v match {
-    case p: PrimitiveValue   => toStringPrimitive(p).getOrElse("")
+    case TombstoneValue      => ""
+    case p: PrimitiveValue   => toStringPrimitive(p)
     case ListValue(values)   => "[" + values.map(toStringWithStruct).mkString(",") + "]"
     case StructValue(values) =>
-      "(" + values.map { case (k, p) => k + ":" + toStringPrimitive(p).getOrElse("")}.mkString(",") + ")"
+      "(" + values.map { case (k, p) => k + ":" + toStringPrimitive(p)}.mkString(",") + ")"
   }
 
 }

@@ -180,23 +180,33 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
     Arbitrary(Gen.oneOf(NumericalType, ContinuousType, CategoricalType, BinaryType))
 
   def valueOf(encoding: Encoding, tombstones: List[String]): Gen[Value] = encoding match {
-    case sub: SubEncoding  => valueOfSub(sub, tombstones)
-    case ListEncoding(sub) => Gen.listOf(valueOfSub(sub, tombstones)).map(ListValue)
+    case p: PrimitiveEncoding => valueOfPrimOrTomb(p, tombstones)
+    case sub: SubEncoding  => valueOfSub(sub)
+    case ListEncoding(sub) => Gen.listOf(valueOfSub(sub)).map(ListValue)
   }
 
-  def valueOfSub(encoding: SubEncoding, tombstones: List[String]): Gen[SubValue] = encoding match {
-    case p: PrimitiveEncoding => valueOfPrim(p, tombstones)
+  def valueOfSub(encoding: SubEncoding): Gen[SubValue] = encoding match {
+    case p: PrimitiveEncoding => valueOfPrim(p)
     case StructEncoding(s)    =>
       Gen.sequence[Seq, Option[(String, PrimitiveValue)]](s.map { case (k, v) =>
         for {
-          p <- valueOfPrim(v.encoding, tombstones).map(k ->)
+          p <- valueOfPrim(v.encoding).map(k ->)
           // _Sometimes_ generate a value for optional fields :)
           b <- if (v.optional) arbitrary[Boolean] else Gen.const(true)
         } yield if (b) Some(p) else None
       }).map(_.flatten.toMap).map(StructValue)
   }
 
-  def valueOfPrim(encoding: PrimitiveEncoding, tombstones: List[String]): Gen[PrimitiveValue] = (encoding match {
+  def valueOfPrimOrTomb(encoding: PrimitiveEncoding, tombstones: List[String]): Gen[Value] =
+    valueOfPrim(encoding).flatMap { v =>
+      if (Value.toStringPrimitive(v).exists(tombstones.contains))
+        if (tombstones.nonEmpty) Gen.const(TombstoneValue)
+        // There's really nothing we can do here - need to try again
+        else valueOfPrimOrTomb(encoding, tombstones)
+      else Gen.const(v)
+    }
+
+  def valueOfPrim(encoding: PrimitiveEncoding): Gen[PrimitiveValue] = encoding match {
     case BooleanEncoding =>
       arbitrary[Boolean].map(BooleanValue)
     case IntEncoding =>
@@ -207,13 +217,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
       arbitrary[Double].retryUntil(Value.validDouble).map(DoubleValue)
     case StringEncoding =>
       arbitrary[String].map(StringValue)
-   }).flatMap { v =>
-    if (Value.toStringPrimitive(v).exists(tombstones.contains))
-      if (tombstones.nonEmpty) Gen.const(TombstoneValue())
-      // There's really nothing we can do here - need to try again
-      else valueOfPrim(encoding, tombstones)
-    else Gen.const(v)
-  }
+   }
 
   def factWithZoneGen(entity: Gen[String], mgen: Gen[ConcreteDefinition]): Gen[(ConcreteDefinition, Fact, DateTimeZone)] = for {
     e      <- entity
