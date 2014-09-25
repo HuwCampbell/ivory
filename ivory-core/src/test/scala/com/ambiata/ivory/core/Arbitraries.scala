@@ -199,7 +199,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
 
   def valueOfPrimOrTomb(encoding: PrimitiveEncoding, tombstones: List[String]): Gen[Value] =
     valueOfPrim(encoding).flatMap { v =>
-      if (Value.toStringPrimitive(v).exists(tombstones.contains))
+      if (tombstones.contains(Value.toStringPrimitive(v)))
         if (tombstones.nonEmpty) Gen.const(TombstoneValue)
         // There's really nothing we can do here - need to try again
         else valueOfPrimOrTomb(encoding, tombstones)

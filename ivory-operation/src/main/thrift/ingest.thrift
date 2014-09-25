@@ -26,6 +26,7 @@ union ThriftFactValue {
     1: ThriftFactPrimitiveValue primitive;
     2: ThriftFactStruct strct;
     3: ThriftFactList lst;
+    4: ThriftTombstone tombstone;
 }
 
 struct ThriftFact {
