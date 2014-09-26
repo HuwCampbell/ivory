@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation
 package arbitraries
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.core.arbitraries.{Factsets => _, _}
 import com.ambiata.ivory.storage.control._
 import TemporaryLocations._
 import TemporaryRepositories._
@@ -10,8 +10,7 @@ import com.ambiata.ivory.operation.ingestion._
 import DictionaryImporter._
 import Ingest._
 import com.ambiata.ivory.storage.repository.Repositories
-import com.ambiata.mundane.control._
-import ResultT._
+import com.ambiata.ivory.storage.fact.Factsets
 import com.ambiata.notion.core.TemporaryType
 import com.ambiata.notion.core.TemporaryType.{Hdfs, Posix, S3}
 import org.scalacheck.Arbitrary, Arbitrary.arbitrary
@@ -46,9 +45,9 @@ trait ArbitraryRepositories {
       ingestNumber        <- choose(1, 3)
       setup      =
         createLocationDir(repository.repo.root) >>
-        Repositories.create(repository.repo)    >>
+        Repositories.create(repository.repo, RepositoryConfig.testing) >>
         fromDictionary(repository.repo, factsWithDictionary.dictionary, ImportOpts(Update, false)) >>
-        importFacts(repository.repo, factsWithDictionary.facts).replicateM_(ingestNumber)
+        importFacts(repository.repo, factsWithDictionary.facts).run.run(IvoryRead.create).replicateM_(ingestNumber)
     } yield TemporaryRepositorySetup(repository, setup)
   }
 
@@ -62,10 +61,9 @@ trait ArbitraryRepositories {
     } yield createTemporaryRepository(repositoryType)
   }
 
-  def importFacts(repository: Repository, facts: List[Fact]): ResultTIO[Unit] = for {
-    r         <- IvoryRead.createIO
-    factsetId <- Ingest.createNewFactsetId(repository).run.run(r)
-    _         <- updateFeatureStore(repository, factsetId).run.run(r)
+  def importFacts(repository: Repository, facts: List[Fact]): IvoryTIO[Unit] = for {
+    factsetId <- Factsets.allocateFactsetIdI(repository)
+    _         <- updateFeatureStore(repository, factsetId)
   } yield ()
 
 }

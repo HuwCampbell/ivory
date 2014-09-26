@@ -108,10 +108,12 @@ object Repository {
   def snapshots: Key     = root / "snapshots"
   def metadata: Key      = root / "metadata"
 
+  def configs: Key       = metadata / "configs"
   def dictionaries: Key  = metadata / "dictionaries"
   def featureStores: Key = metadata / "stores"
   def commits: Key       = metadata / "commits"
 
+  def config(id: RepositoryConfigId): Key             = configs       / id.asKeyName
   def dictionaryById(id: DictionaryId): Key           = dictionaries  / id.asKeyName
   def featureStoreById(id: FeatureStoreId): Key       = featureStores / id.asKeyName
   def commitById(id: CommitId): Key                   = commits       / id.asKeyName

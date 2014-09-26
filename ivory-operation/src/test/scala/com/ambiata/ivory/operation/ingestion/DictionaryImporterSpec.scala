@@ -80,7 +80,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
 
   def differentStoreDict = prop((ivoryType: TemporaryType, dictType: TemporaryType, dict: Dictionary) => {
     TemporaryRepositories.withRepository(ivoryType) { ivory => for {
-      _   <- Repositories.create(ivory)
+      _   <- Repositories.create(ivory, RepositoryConfig.testing)
       _   <- TemporaryLocations.withIvoryLocationFile(dictType) { location =>
                IvoryLocation.writeUtf8(location, DictionaryTextStorageV2.delimitedString(dict)) >>
                importFromPath(ivory, location, opts.copy(ty = Override))
@@ -95,7 +95,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
     val dict2 = Dictionary(List(Definition.concrete(FeatureId(Name("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
 
     TemporaryRepositories.withRepository(Posix) { ivory => for {
-      _   <- Repositories.create(ivory)
+      _   <- Repositories.create(ivory, RepositoryConfig.testing)
       _   <- TemporaryLocations.withIvoryLocationDir(Posix) { location =>
                IvoryLocation.writeUtf8(location </> "dict1.psv", DictionaryTextStorageV2.delimitedString(dict1)) >>
                IvoryLocation.writeUtf8(location </> "dict2.psv", DictionaryTextStorageV2.delimitedString(dict2)) >>

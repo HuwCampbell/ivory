@@ -142,7 +142,7 @@ create and interact with an Ivory repository. First we can create a new Ivory re
 ```
 # Used by most ivory commands instead of setting --repository each time
 > export IVORY_REPOSITORY=hippay
-> ivory create-repository $IVORY_REPOSITORY
+> ivory create-repository -z Australia/Sydney $IVORY_REPOSITORY
 ```
 
 Before we can begin ingesting factsets, we first need to create a dictionary and

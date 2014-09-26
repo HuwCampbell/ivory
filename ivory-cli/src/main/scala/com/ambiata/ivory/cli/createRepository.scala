@@ -1,13 +1,15 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.core.Repository
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.control._
-import scalaz._, Scalaz._, effect.IO
+import com.ambiata.mundane.control.ResultT
+import org.joda.time.DateTimeZone
+import scalaz._, effect.IO
 
 object createRepository extends IvoryApp {
 
-  case class CliArguments(path: String = "")
+  case class CliArguments(path: String, timezone: String)
 
   val parser = new scopt.OptionParser[CliArguments]("create-repository"){
     head("""
@@ -19,12 +21,16 @@ object createRepository extends IvoryApp {
     help("help") text "shows this usage text"
     arg[String]("PATH") action { (x, c) => c.copy(path = x) } required() text
       s"Ivory repository to create."
-
+    opt[String]('z', "timezone") action { (x, c) => c.copy(timezone = x) } required() text
+      s"Timezone for all dates to be stored in Ivory.\nFor examples see http://joda-time.sourceforge.net/timezones.html, (eg. Sydney is 'Australia/Sydney')"
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments(), IvoryRunner { configuration => c =>
-      println("Created configuration: " + configuration)
-      IvoryT.fromResultTIO { Repository.fromUri(c.path, configuration).>>=(Repositories.create)
-        .as(Nil) }
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", ""), IvoryRunner { configuration => c =>
+    println("Created configuration: " + configuration)
+    IvoryT.fromResultTIO(for {
+      repo     <- Repository.fromUri(c.path, configuration)
+      timezone <- ResultT.fromDisjunction[IO, DateTimeZone](DateTimeZoneUtil.forID(c.timezone).leftMap(\&/.This.apply))
+      _        <- Repositories.create(repo, RepositoryConfig(timezone))
+    } yield Nil)
   })
 }

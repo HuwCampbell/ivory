@@ -1,6 +1,9 @@
 package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
+import com.ambiata.ivory.storage.control._
+import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.mundane.control.ResultTIO
 import com.ambiata.notion.core._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
@@ -18,6 +21,7 @@ Create repository should always create all folders
   Can create repository on HDFS                 $hdfs
   Can create repository on S3                   $s3           ${tag("aws")}
   Can create repository on local file system    $local
+  Can create repository on local file system    $config
 
 """
 
@@ -38,8 +42,16 @@ Create repository should always create all folders
     } must beOkLike(_ must contain(true).forall)
   }
 
+  def config = prop((config: RepositoryConfig) =>
+    TemporaryRepositoriesT.withRepositoryT(TemporaryType.Posix) { for {
+        _         <- RepositoryT.fromIvoryTIO(repo => Repositories.createI(repo, config))
+        newConfig <- Metadata.configuration
+      } yield newConfig
+    } must beOkValue(config)
+  )
+
   def createRepository(repo: Repository) =
-    Repositories.create(repo) >> Repositories.create(repo)
+    Repositories.create(repo, RepositoryConfig.testing) >> Repositories.create(repo, RepositoryConfig.testing)
 
   def checkRepository(repo: Repository): ResultTIO[List[Boolean]] = {
     List(

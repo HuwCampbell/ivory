@@ -3,6 +3,15 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-226a694
+
+- Repositories now requires a timezone, which is mandated in `create-repository`.
+  **WARNING**: Previously created repositories will default to 'Australia/Sydney'.
+
+    ivory create-repository -z Australia/Sydney
+
+  This also has implications for `ingest` which will _no longer_ create a repository if none is found.
+
 ## 1.0.0-*-37b2727
 
  - `snapshot` no longer has a `--no-incremental` flag.

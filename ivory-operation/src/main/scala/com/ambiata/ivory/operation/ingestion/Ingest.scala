@@ -5,7 +5,6 @@ import com.ambiata.ivory.storage.control.IvoryTIO
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
-import com.ambiata.ivory.storage.repository._
 import IvoryStorage._
 import com.ambiata.mundane.io.BytesQuantity
 import org.joda.time.DateTimeZone
@@ -57,20 +56,10 @@ object Ingest {
   def ingestFacts(repository: Repository, input: IvoryLocation, namespace: Option[Name],
                   timezone: DateTimeZone, optimal: BytesQuantity, format: Format): IvoryTIO[FactsetId] =
     for {
-      factsetId <- createNewFactsetId(repository)
+      factsetId <- Factsets.allocateFactsetIdI(repository)
       _         <- FactImporter.importFacts(repository, namespace, optimal, format, factsetId, input, timezone)
       _         <- updateFeatureStore(repository, factsetId)
     } yield factsetId
-
-  /**
-   * prepare the repository for the creation of a new factset
-   *  - create the repository if not created before
-   *  - allocate a new factset id
-   */
-  def createNewFactsetId(repository: Repository): IvoryTIO[FactsetId] = for {
-    _         <- Repositories.createI(repository)
-    factsetId <- Factsets.allocateFactsetIdI(repository)
-  } yield factsetId
 
   /**
    * update the repository after the import of facts in a factset:

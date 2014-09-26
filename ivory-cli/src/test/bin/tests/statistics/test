@@ -3,7 +3,7 @@
 DIR=$(dirname $0)
 . "${DIR}/../../setup.sh"
 
-$IVORY create-repository "${REPOSITORY}"
+$IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 $IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts"
 $IVORY factset-statistics -f "00000"

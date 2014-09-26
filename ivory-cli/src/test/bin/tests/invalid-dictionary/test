@@ -5,7 +5,7 @@ DIR=$(dirname $0)
 
 ### TEST ###
 
-$IVORY create-repository "${REPOSITORY}"
+$IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 
 # Import bad dictionary - should fail

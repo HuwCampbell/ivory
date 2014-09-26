@@ -1,7 +1,7 @@
 package com.ambiata.ivory.storage
 package metadata
 
-import com.ambiata.ivory.data._
+import com.ambiata.ivory.storage.control.RepositoryRead
 import com.ambiata.mundane.parse.ListParser
 
 import scalaz._, Scalaz._, effect._
@@ -9,9 +9,10 @@ import scalaz._, Scalaz._, effect._
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.core._
 
-// 2 lines.
+// 3 lines.
 // The first line is dictionaryId: DictionaryId
 // The second line is featureStoreId: FeatureStoreId
+// The third line is an optional repositoryConfigId: RepositoryConfigId
 object CommitTextStorage {
 
   def increment(repository: Repository, c: Commit): ResultTIO[CommitId] = for {
@@ -33,12 +34,13 @@ object CommitTextStorage {
     repository.store.linesUtf8.write(Repository.commitById(id), toLines(commit))
 
   def toLines(commit: Commit): List[String] =
-    List(commit.dictionaryId.render, commit.featureStoreId.render)
+    List(commit.dictionaryId.render, commit.featureStoreId.render) ++ commit.configId.map(_.render)
 
   def fromLines: ListParser[Commit] = for {
     did   <- Identifier.listParser.map(DictionaryId.apply)
     fsid  <- Identifier.listParser.map(FeatureStoreId.apply)
-  } yield Commit(did, fsid)
+    cid   <- ListParser.stringOpt.map(_.flatMap(RepositoryConfigId.parse))
+  } yield Commit(did, fsid, cid)
 
   /**
    * looks for the latest commit id, if there are no commits, it pushes one and returns
@@ -48,7 +50,10 @@ object CommitTextStorage {
     oCommitId <- latestId(repo)
     commitId <- oCommitId match {
       case Some(x)  => x.pure[ResultTIO]
-      case None     => increment(repo, Commit(dictionaryId, featureStoreId))
+      case None     =>
+        RepositoryRead.fromRepository(repo) >>= (read =>
+        RepositoryConfigTextStorage.latestId.run(read) >>= (rcid =>
+          increment(repo, Commit(dictionaryId, featureStoreId, rcid))))
     }
   } yield commitId
 

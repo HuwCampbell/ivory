@@ -96,24 +96,31 @@ object Metadata {
     CommitTextStorage.fromId(repo, commitId) >>=
       (commit => ResultT.fromOption(commit, s"Commit not found in Ivory '$commitId'"))
 
-  def incrementCommit(repo: Repository, dictionaryId: DictionaryId, featureStoreId: FeatureStoreId): ResultTIO[CommitId] =
-    CommitTextStorage.increment(repo, Commit(dictionaryId, featureStoreId))
+  def incrementCommit(repo: Repository, dictionaryId: DictionaryId, featureStoreId: FeatureStoreId,
+                      configId: RepositoryConfigId): ResultTIO[CommitId] =
+    CommitTextStorage.increment(repo, Commit(dictionaryId, featureStoreId, Some(configId)))
 
   def incrementCommitDictionary(repo: Repository, dictionaryId: DictionaryId): ResultTIO[CommitId] = for {
     // Don't fail if no feature store exists - create a blank one
     storeId  <- Metadata.latestFeatureStoreId(repo).flatMap(_.cata(_.point[ResultTIO], FeatureStoreTextStorage.increment(repo, Nil)))
-    commitId <- CommitTextStorage.increment(repo, Commit(dictionaryId, storeId))
+    repoRead <- RepositoryRead.fromRepository(repo)
+    configId <- latestConfigurationId.run(repoRead)
+    commitId <- CommitTextStorage.increment(repo, Commit(dictionaryId, storeId, configId))
   } yield commitId
 
   def incrementCommitFeatureStore(repo: Repository, featureStoreId: FeatureStoreId): ResultTIO[CommitId] = for {
     latestDictionaryId <- latestDictionaryIdFromIvory(repo)
-    commitId           <- CommitTextStorage.increment(repo, Commit(latestDictionaryId, featureStoreId))
+    repoRead           <- RepositoryRead.fromRepository(repo)
+    configId           <- latestConfigurationId.run(repoRead)
+    commitId           <- CommitTextStorage.increment(repo, Commit(latestDictionaryId, featureStoreId, configId))
   } yield commitId
 
-  def incrementCommitFeatureStoreT(featureStoreId: FeatureStoreId): RepositoryTIO[CommitId] = for {
-    latestDictionaryId <- latestDictionaryIdFromRepositoryT
-    commitId           <- RepositoryT.fromResultTIO { repository =>
-      CommitTextStorage.increment(repository, Commit(latestDictionaryId, featureStoreId)) }
-  } yield commitId
+  def incrementCommitFeatureStoreT(featureStoreId: FeatureStoreId): RepositoryTIO[CommitId] =
+    RepositoryT.fromResultTIO(repo => incrementCommitFeatureStore(repo, featureStoreId))
 
+  def latestConfigurationId: RepositoryTIO[Option[RepositoryConfigId]] =
+    RepositoryConfigTextStorage.latestId
+
+  def configuration: RepositoryTIO[RepositoryConfig] =
+    RepositoryConfigTextStorage.load
 }
