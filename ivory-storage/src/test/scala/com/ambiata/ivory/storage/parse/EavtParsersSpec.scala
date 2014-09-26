@@ -43,7 +43,7 @@ Eavt Parse Formats
 
   def factDateSpec[A](fz: PrimitiveSparseEntities, z: DateTimeZone, dt: String): Validation[String, Fact] = {
     import fz._
-    EavtParsers.fact(Dictionary(List(meta.toDefinition(fact.featureId))), fact.namespace, z).run(List(
+    EavtParsers.fact(Dictionary(List(meta.toDefinition(fact.featureId))), fact.namespace, z, z).run(List(
         fact.entity
       , fact.feature
       , Value.toString(fact.value, meta.tombstoneValue.headOption).getOrElse("")
@@ -57,6 +57,7 @@ Eavt Parse Formats
         Dictionary(List(Concrete(feature, bad.meta)))
       , feature.namespace
       , zone
+      , zone
       ).run(List(feature.namespace.name, entity.value, feature.name, bad.value, date.hyphenated)).toOption must beNone)
 
   def badattribute =
@@ -65,11 +66,12 @@ Eavt Parse Formats
         Dictionary.empty
       , feature.namespace
       , zone
+      , zone
       ).run(List(entity.value, feature.name, Value.toString(value, None).getOrElse("?"), date.hyphenated)).toOption must beNone})
 
   def structFail = {
     val dict = Dictionary(List(Definition.concrete(FeatureId(Name("ns"), "a"), StructEncoding(Map()), Mode.State, None, "", Nil)))
-    EavtParsers.parse("e|a|v|t", dict, Name("ns"), DateTimeZone.getDefault).toOption must beNone
+    EavtParsers.parse("e|a|v|t", dict, Name("ns"), DateTimeZone.getDefault, DateTimeZone.getDefault).toOption must beNone
   }
 
   def genBadDouble: Gen[DoubleValue] =

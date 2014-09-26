@@ -15,16 +15,16 @@ object EavtParsers {
       case other                   => other
     }
 
-  def parse(line: String, dictionary: Dictionary, namespace: Name, timezone: DateTimeZone): Validation[String, Fact] =
-    fact(dictionary, namespace, timezone).run(splitLine(line))
+  def parse(line: String, dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): Validation[String, Fact] =
+    fact(dictionary, namespace, ivoryTimezone, ingestTimezone).run(splitLine(line))
 
-  def fact(dictionary: Dictionary, namespace: Name, timezone: DateTimeZone): ListParser[Fact] =
+  def fact(dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] =
     for {
       entity    <- string.nonempty
       name      <- string.nonempty
       rawv      <- string
       v         <- value(validateFeature(dictionary, FeatureId(namespace, name), rawv))
-      time      <- Dates.parser(timezone, timezone)
+      time      <- Dates.parser(ingestTimezone, ivoryTimezone)
     } yield time match {
       case \/-(dt) =>
         Fact.newFactWithNamespaceName(entity, namespace, name, dt.date, dt.time, v)

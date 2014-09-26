@@ -188,7 +188,7 @@ class TextIngestMapper extends IngestMapper[LongWritable, Text] {
 
   override def parse(namespace: Name, value: Text): Validation[ParseError, Fact] = {
     val line = value.toString
-    EavtParsers.parse(line, dict, namespace, ingestZone).leftMap(ParseError(_, TextError(line)))
+    EavtParsers.parse(line, dict, namespace, ivoryZone, ingestZone).leftMap(ParseError(_, TextError(line)))
   }
 }
 
