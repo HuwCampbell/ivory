@@ -21,6 +21,11 @@ $V1 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
 # TODO Instead of piping the stdout output, we should write the content directly to a file
 # https://github.com/ambiata/ivory/issues/22
 
+### CONFIG ####
+
+$IVORY config | grep -v "Codec has been disabled" | grep -v "^$" > "${TARGET}/config"
+diff_test "${DIR}/expected/metadata/config" "${TARGET}/config"
+
 ### DICTIONARY ###
 
 # Need to remove the first line which comes out as a warning for the optional codec
