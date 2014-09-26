@@ -198,7 +198,7 @@ Having ingested a factset into the repository, we can run our first snapshot ext
 for the arbitrary date, 2014-06-01:
 
 ```
-> ivory snapshot --missing-value 'NULL' --delim ',' --date 2014-06-01 --output dense:psv=snapshot_20140601
+> ivory snapshot --missing-value 'NULL' --date 2014-06-01 --output dense:csv=snapshot_20140601
 
 > cat snapshot_20140601/out*
 fred,NULL,NULL,37,M,NULL,NULL,NULL
@@ -222,7 +222,7 @@ by a "dictionary" file that specifies the feature vector column ordering.
 We can of course extract a snapshot at a different date as well, for example, 2014-01-01:
 
 ```
-> ivory snapshot --missing-value 'NULL' --delim ',' --date 2014-01-01 --output dense:psv=snapshot_20140101
+> ivory snapshot --missing-value 'NULL' --date 2014-01-01 --output dense:csv=snapshot_20140101
 
 > cat snapshot_20140101/out*
 jill,NULL,NULL,25,F,NULL,NULL,NULL
@@ -248,7 +248,7 @@ mary|type|STANDARD|2013-11-24
 Now if we extract a snapshot at 2014-06-01 again, we can see that the `type` column is now populated:
 
 ```
-> ivory snapshot --missing-value 'NULL' --delim ',' --date 2014-06-01 --output dense:psv=snapshot_20140601.2
+> ivory snapshot --missing-value 'NULL' --date 2014-06-01 --output dense:csv=snapshot_20140601.2
 
 > cat snapshot_20140601.2/out*
 fred,NULL,XTREME,37,M,NULL,NULL,NULL
@@ -268,7 +268,7 @@ fred|type|EXTREME|2014-02-11
 
 > ivory ingest --input factset3.psv -z "Australia/Sydney" --namespace account
 
-> ivory snapshot --missing-value 'NULL' --delim ',' --date 2014-06-01 --output dense:psv=snapshot_20140601.3
+> ivory snapshot --missing-value 'NULL' --date 2014-06-01 --output dense:csv=snapshot_20140601.3
 
 > cat snapshot_20140601.3/out*
 fred,NULL,EXTREME,37,M,NULL,NULL,NULL
