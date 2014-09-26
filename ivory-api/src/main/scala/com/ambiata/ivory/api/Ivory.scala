@@ -83,10 +83,10 @@ object Ivory
   val SnapshotExtract = com.ambiata.ivory.operation.extraction.SnapshotExtract
   val ChordExtract = com.ambiata.ivory.operation.extraction.ChordExtract
 
-  type OutputFormat = com.ambiata.ivory.operation.extraction.OutputFormat
-  val OutputFormat = com.ambiata.ivory.operation.extraction.OutputFormat
-  type OutputFormats = com.ambiata.ivory.operation.extraction.OutputFormats
-  val OutputFormats = com.ambiata.ivory.operation.extraction.OutputFormats
+  type OutputFormat = com.ambiata.ivory.operation.extraction.output.OutputFormat
+  val OutputFormat = com.ambiata.ivory.operation.extraction.output.OutputFormat
+  type OutputFormats = com.ambiata.ivory.operation.extraction.output.OutputFormats
+  val OutputFormats = com.ambiata.ivory.operation.extraction.output.OutputFormats
 
   /**
    * Debug

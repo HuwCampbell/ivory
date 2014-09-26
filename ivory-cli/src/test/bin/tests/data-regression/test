@@ -27,22 +27,30 @@ $V1 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
 $IVORY cat-dictionary | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
 diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
 
+diff_test_mr() {
+  EXPECTED=$1
+  MR_OUT=$2
+  cat ${MR_OUT}/part-* | sort > ${MR_OUT}/all.psv
+  diff_test "${EXPECTED}" "${MR_OUT}/all.psv"
+}
+
 ### SNAPSHOT ###
 
-$IVORY snapshot -o "dense:psv=${TARGET}/snap-pivot"
+$IVORY snapshot -o "dense:psv=${TARGET}/snap-dense" -o "sparse:psv=${TARGET}/snap-sparse"
 $IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
-cat ${TARGET}/snap-pivot/part-r-* | sort > "${TARGET}/snap-pivot/all.psv"
-diff_test "${DIR}/expected/snap-pivot.psv" "${TARGET}/snap-pivot/all.psv"
+diff_test_mr "${DIR}/expected/snap-dense.psv" "${TARGET}/snap-dense"
+diff_test_mr "${DIR}/expected/snap-sparse.psv" "${TARGET}/snap-sparse"
 COUNT_FACTS_OUT=$($IVORY count-facts "${REPOSITORY}/snapshots/00000000")
 [ $(wc -l ${DIR}/expected/snapshot.psv | awk '{print $1}') = $COUNT_FACTS_OUT ]
 
 ### CHORD ###
 
-$IVORY chord -c "${INPUT}/chord.psv" -o "dense:psv=${TARGET}/chord-pivot"
-cat ${TARGET}/chord-pivot/part-r-* | sort > "${TARGET}/chord-pivot/all.psv"
-diff_test "${DIR}/expected/chord-pivot.psv" "${TARGET}/chord-pivot/all.psv"
-
+$IVORY chord -c "${INPUT}/chord.psv" -o "dense:psv=${TARGET}/chord-dense" -o "sparse:psv=${TARGET}/chord-sparse"
+cat ${TARGET}/chord-dense/part-* | sort > "${TARGET}/chord-dense/all.psv"
+diff_test "${DIR}/expected/chord-dense.psv" "${TARGET}/chord-dense/all.psv"
+diff_test_mr "${DIR}/expected/chord-dense.psv" "${TARGET}/chord-dense"
+diff_test_mr "${DIR}/expected/chord-sparse.psv" "${TARGET}/chord-sparse"
 ### COMMIT ###
 
 [ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "0" ]

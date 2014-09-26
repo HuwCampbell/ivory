@@ -3,6 +3,12 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-811f2fb
+
+- Removed `--delim` from `extract-chord` and `extract-snapshot`, use `--format` instead
+- Added `dense` formats `dense:csv`, `dense:tsv`
+- Added `sparse` formats `sparse:psv`, `sparse:csv`, `sparse:tsv`
+
 ## 1.0.0-*-1fab84d
 
 - Removed `extract-pivot` command

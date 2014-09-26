@@ -25,6 +25,11 @@ case class Reference[F[_]](store: Store[F], path: FilePath) {
 
   def </>(path2: String): Reference[F] =
     copy(path = path </> path2)
+
+  def readLines(implicit F: Monad[F]): F[List[String]] = for {
+    paths <- store.filter(path, p => { val sp = (FilePath.root </> p).relativeTo(path); !sp.path.startsWith("_") && !sp.path.startsWith(".") })
+    all   <- paths.traverseU(store.linesUtf8.read).map(_.flatten)
+  } yield all
 }
 
 object Reference {

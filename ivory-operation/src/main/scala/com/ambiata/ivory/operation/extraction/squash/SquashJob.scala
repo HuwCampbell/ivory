@@ -24,8 +24,11 @@ import scalaz._, Scalaz._
 
 object SquashJob {
 
-  def squashFromSnapshot(repository: Repository, dictionary: Dictionary, snapmeta: SnapshotMeta): ResultTIO[(FilePath, Boolean)] =
-    squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date)
+  def squashFromSnapshotWith[A](repository: Repository, dictionary: Dictionary, snapmeta: SnapshotMeta)(f: FilePath => ResultTIO[A]): ResultTIO[A] = for {
+    path <- squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date)
+    a    <- f(path._1)
+    _    <- ResultT.when(path._2, repository.toStore.deleteAll(path._1))
+  } yield a
 
   /**
    * Returns the path to the squashed facts if we have any virtual features (and true), or the original `in` path (and false).

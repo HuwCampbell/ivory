@@ -67,7 +67,8 @@ facts
 
 ```
 
-  V1       |   TEXT/PSV      |   Dense                                     ** write only
+  V1       |   TEXT/PSV/CSV/TSV |   Dense                                  ** write only
+  V2       |   TEXT/PSV/CSV/TSV |   Sparse                                 ** write only
 
 ```
 
