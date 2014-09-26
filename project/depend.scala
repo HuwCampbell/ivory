@@ -34,9 +34,9 @@ object depend {
 
   def scoobi(version: String) = {
     val jars =
-      if (version.contains("cdh4"))      Seq("com.nicta" %% "scoobi"                    % "0.9.0-cdh4-20140722073640-fe6f152",
+      if (version.contains("cdh4"))      Seq("com.nicta" %% "scoobi"                    % "0.9.0-cdh4-20140925051744-4b8dbfd",
                                              "com.nicta" %% "scoobi-compatibility-cdh4" % "1.0.2")
-      else if (version.contains("cdh5")) Seq("com.nicta" %% "scoobi"                    % "0.9.0-cdh5-20140722073131-fe6f152",
+      else if (version.contains("cdh5")) Seq("com.nicta" %% "scoobi"                    % "0.9.0-cdh5-20140925051050-4b8dbfd",
                                              "com.nicta" %% "scoobi-compatibility-cdh5" % "1.0.2")
       else                               sys.error(s"unsupported scoobi version, can not build for $version")
     jars.map(_ intransitive()) ++ Seq(
