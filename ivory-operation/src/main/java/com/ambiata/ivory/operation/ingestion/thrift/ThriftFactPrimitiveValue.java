@@ -39,7 +39,6 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
   private static final org.apache.thrift.protocol.TField L_FIELD_DESC = new org.apache.thrift.protocol.TField("l", org.apache.thrift.protocol.TType.I64, (short)3);
   private static final org.apache.thrift.protocol.TField D_FIELD_DESC = new org.apache.thrift.protocol.TField("d", org.apache.thrift.protocol.TType.DOUBLE, (short)4);
   private static final org.apache.thrift.protocol.TField B_FIELD_DESC = new org.apache.thrift.protocol.TField("b", org.apache.thrift.protocol.TType.BOOL, (short)5);
-  private static final org.apache.thrift.protocol.TField T_FIELD_DESC = new org.apache.thrift.protocol.TField("t", org.apache.thrift.protocol.TType.STRUCT, (short)6);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -47,8 +46,7 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
     I((short)2, "i"),
     L((short)3, "l"),
     D((short)4, "d"),
-    B((short)5, "b"),
-    T((short)6, "t");
+    B((short)5, "b");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -73,8 +71,6 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
           return D;
         case 5: // B
           return B;
-        case 6: // T
-          return T;
         default:
           return null;
       }
@@ -127,8 +123,6 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     tmpMap.put(_Fields.B, new org.apache.thrift.meta_data.FieldMetaData("b", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
-    tmpMap.put(_Fields.T, new org.apache.thrift.meta_data.FieldMetaData("t", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftTombstone.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftFactPrimitiveValue.class, metaDataMap);
   }
@@ -178,12 +172,6 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
     return x;
   }
 
-  public static ThriftFactPrimitiveValue t(ThriftTombstone value) {
-    ThriftFactPrimitiveValue x = new ThriftFactPrimitiveValue();
-    x.setT(value);
-    return x;
-  }
-
 
   @Override
   protected void checkType(_Fields setField, Object value) throws ClassCastException {
@@ -213,11 +201,6 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
           break;
         }
         throw new ClassCastException("Was expecting value of type Boolean for field 'b', but got " + value.getClass().getSimpleName());
-      case T:
-        if (value instanceof ThriftTombstone) {
-          break;
-        }
-        throw new ClassCastException("Was expecting value of type ThriftTombstone for field 't', but got " + value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -273,16 +256,6 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
-        case T:
-          if (field.type == T_FIELD_DESC.type) {
-            ThriftTombstone t;
-            t = new ThriftTombstone();
-            t.read(iprot);
-            return t;
-          } else {
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
-            return null;
-          }
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -315,10 +288,6 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
         Boolean b = (Boolean)value_;
         oprot.writeBool(b);
         return;
-      case T:
-        ThriftTombstone t = (ThriftTombstone)value_;
-        t.write(oprot);
-        return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
     }
@@ -349,11 +318,6 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
           Boolean b;
           b = iprot.readBool();
           return b;
-        case T:
-          ThriftTombstone t;
-          t = new ThriftTombstone();
-          t.read(iprot);
-          return t;
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -385,10 +349,6 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
         Boolean b = (Boolean)value_;
         oprot.writeBool(b);
         return;
-      case T:
-        ThriftTombstone t = (ThriftTombstone)value_;
-        t.write(oprot);
-        return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
     }
@@ -407,8 +367,6 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
         return D_FIELD_DESC;
       case B:
         return B_FIELD_DESC;
-      case T:
-        return T_FIELD_DESC;
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -495,20 +453,6 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
     value_ = value;
   }
 
-  public ThriftTombstone getT() {
-    if (getSetField() == _Fields.T) {
-      return (ThriftTombstone)getFieldValue();
-    } else {
-      throw new RuntimeException("Cannot get field 't' because union is currently set to " + getFieldDesc(getSetField()).name);
-    }
-  }
-
-  public void setT(ThriftTombstone value) {
-    if (value == null) throw new NullPointerException();
-    setField_ = _Fields.T;
-    value_ = value;
-  }
-
   public boolean isSetS() {
     return setField_ == _Fields.S;
   }
@@ -531,11 +475,6 @@ public class ThriftFactPrimitiveValue extends org.apache.thrift.TUnion<ThriftFac
 
   public boolean isSetB() {
     return setField_ == _Fields.B;
-  }
-
-
-  public boolean isSetT() {
-    return setField_ == _Fields.T;
   }
 
 

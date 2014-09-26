@@ -39,7 +39,7 @@ object EavtParsers {
     }.getOrElse(s"Could not find dictionary entry for '${fid}'".failure)
 
   def valueFromString(meta: ConcreteDefinition, raw: String): Validation[String, Value] = meta.encoding match {
-    case _ if meta.tombstoneValue.contains(raw)  => TombstoneValue().success[String]
+    case _ if meta.tombstoneValue.contains(raw)  => TombstoneValue.success[String]
     case BooleanEncoding                         => raw.parseBoolean.leftMap(_ => s"Value '$raw' is not a boolean").map(v => BooleanValue(v))
     case IntEncoding                             => raw.parseInt.leftMap(_ => s"Value '$raw' is not an integer").map(v => IntValue(v))
     case LongEncoding                            => raw.parseLong.leftMap(_ => s"Value '$raw' is not a long").map(v => LongValue(v))

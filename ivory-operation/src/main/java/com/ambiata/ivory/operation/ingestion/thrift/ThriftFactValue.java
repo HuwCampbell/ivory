@@ -37,12 +37,14 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
   private static final org.apache.thrift.protocol.TField PRIMITIVE_FIELD_DESC = new org.apache.thrift.protocol.TField("primitive", org.apache.thrift.protocol.TType.STRUCT, (short)1);
   private static final org.apache.thrift.protocol.TField STRCT_FIELD_DESC = new org.apache.thrift.protocol.TField("strct", org.apache.thrift.protocol.TType.STRUCT, (short)2);
   private static final org.apache.thrift.protocol.TField LST_FIELD_DESC = new org.apache.thrift.protocol.TField("lst", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+  private static final org.apache.thrift.protocol.TField TOMBSTONE_FIELD_DESC = new org.apache.thrift.protocol.TField("tombstone", org.apache.thrift.protocol.TType.STRUCT, (short)4);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     PRIMITIVE((short)1, "primitive"),
     STRCT((short)2, "strct"),
-    LST((short)3, "lst");
+    LST((short)3, "lst"),
+    TOMBSTONE((short)4, "tombstone");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -63,6 +65,8 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
           return STRCT;
         case 3: // LST
           return LST;
+        case 4: // TOMBSTONE
+          return TOMBSTONE;
         default:
           return null;
       }
@@ -111,6 +115,8 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftFactStruct.class)));
     tmpMap.put(_Fields.LST, new org.apache.thrift.meta_data.FieldMetaData("lst", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftFactList.class)));
+    tmpMap.put(_Fields.TOMBSTONE, new org.apache.thrift.meta_data.FieldMetaData("tombstone", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftTombstone.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftFactValue.class, metaDataMap);
   }
@@ -148,6 +154,12 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
     return x;
   }
 
+  public static ThriftFactValue tombstone(ThriftTombstone value) {
+    ThriftFactValue x = new ThriftFactValue();
+    x.setTombstone(value);
+    return x;
+  }
+
 
   @Override
   protected void checkType(_Fields setField, Object value) throws ClassCastException {
@@ -167,6 +179,11 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
           break;
         }
         throw new ClassCastException("Was expecting value of type ThriftFactList for field 'lst', but got " + value.getClass().getSimpleName());
+      case TOMBSTONE:
+        if (value instanceof ThriftTombstone) {
+          break;
+        }
+        throw new ClassCastException("Was expecting value of type ThriftTombstone for field 'tombstone', but got " + value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -207,6 +224,16 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
+        case TOMBSTONE:
+          if (field.type == TOMBSTONE_FIELD_DESC.type) {
+            ThriftTombstone tombstone;
+            tombstone = new ThriftTombstone();
+            tombstone.read(iprot);
+            return tombstone;
+          } else {
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            return null;
+          }
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -230,6 +257,10 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
       case LST:
         ThriftFactList lst = (ThriftFactList)value_;
         lst.write(oprot);
+        return;
+      case TOMBSTONE:
+        ThriftTombstone tombstone = (ThriftTombstone)value_;
+        tombstone.write(oprot);
         return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
@@ -256,6 +287,11 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
           lst = new ThriftFactList();
           lst.read(iprot);
           return lst;
+        case TOMBSTONE:
+          ThriftTombstone tombstone;
+          tombstone = new ThriftTombstone();
+          tombstone.read(iprot);
+          return tombstone;
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -279,6 +315,10 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
         ThriftFactList lst = (ThriftFactList)value_;
         lst.write(oprot);
         return;
+      case TOMBSTONE:
+        ThriftTombstone tombstone = (ThriftTombstone)value_;
+        tombstone.write(oprot);
+        return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
     }
@@ -293,6 +333,8 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
         return STRCT_FIELD_DESC;
       case LST:
         return LST_FIELD_DESC;
+      case TOMBSTONE:
+        return TOMBSTONE_FIELD_DESC;
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -355,6 +397,20 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
     value_ = value;
   }
 
+  public ThriftTombstone getTombstone() {
+    if (getSetField() == _Fields.TOMBSTONE) {
+      return (ThriftTombstone)getFieldValue();
+    } else {
+      throw new RuntimeException("Cannot get field 'tombstone' because union is currently set to " + getFieldDesc(getSetField()).name);
+    }
+  }
+
+  public void setTombstone(ThriftTombstone value) {
+    if (value == null) throw new NullPointerException();
+    setField_ = _Fields.TOMBSTONE;
+    value_ = value;
+  }
+
   public boolean isSetPrimitive() {
     return setField_ == _Fields.PRIMITIVE;
   }
@@ -367,6 +423,11 @@ public class ThriftFactValue extends org.apache.thrift.TUnion<ThriftFactValue, T
 
   public boolean isSetLst() {
     return setField_ == _Fields.LST;
+  }
+
+
+  public boolean isSetTombstone() {
+    return setField_ == _Fields.TOMBSTONE;
   }
 
 

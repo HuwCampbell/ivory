@@ -119,5 +119,5 @@ Eavt Parse Formats
   }
 
   def genValue(m: ConcreteDefinition): Gen[Value] =
-    Gen.frequency(1 -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding, m.tombstoneValue))
+    Gen.frequency(1 -> Gen.const(TombstoneValue), 99 -> valueOf(m.encoding, m.tombstoneValue))
 }
