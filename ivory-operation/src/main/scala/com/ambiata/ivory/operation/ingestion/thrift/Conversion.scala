@@ -30,8 +30,6 @@ object Conversion {
       case tsv if tsv.isSetI => ct.ThriftFactPrimitiveValue.i(tsv.getI)
       case tsv if tsv.isSetL => ct.ThriftFactPrimitiveValue.l(tsv.getL)
       case tsv if tsv.isSetB => ct.ThriftFactPrimitiveValue.b(tsv.getB)
-      // This is deprecated - tombstone is not a primitive value
-      case tsv if tsv.isSetT => ct.ThriftFactPrimitiveValue.t(new ct.ThriftTombstone())
       case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
     }
     fact match {
@@ -65,7 +63,6 @@ object Conversion {
       case tsv if tsv.isSetI => ThriftFactPrimitiveValue.i(tsv.getI)
       case tsv if tsv.isSetL => ThriftFactPrimitiveValue.l(tsv.getL)
       case tsv if tsv.isSetB => ThriftFactPrimitiveValue.b(tsv.getB)
-      case tsv if tsv.isSetT => ThriftFactPrimitiveValue.t(new ThriftTombstone())
       case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
     }
     value match {
