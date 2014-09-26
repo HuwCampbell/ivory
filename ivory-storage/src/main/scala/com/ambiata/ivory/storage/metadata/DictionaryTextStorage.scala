@@ -10,7 +10,6 @@ import com.ambiata.ivory.core._
 
 object DictionaryTextStorage extends TextStorage[(FeatureId, ConcreteDefinition), Dictionary] {
 
-  val name = "dictionary"
   val DELIM = "|"
 
   def fromList(entries: List[(FeatureId, ConcreteDefinition)]): ValidationNel[String, Dictionary] =

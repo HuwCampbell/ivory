@@ -11,8 +11,6 @@ import com.ambiata.ivory.core._
 // The second line is featureStoreId: FeatureStoreId
 object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Commit] {
 
-  val name = "commit"
-
   def increment(repository: Repository, c: Commit): ResultTIO[CommitId] = for {
     latest      <- latestId(repository)
     nextId      <- ResultT.fromOption[IO, CommitId](latest.map(_.next).getOrElse(Some(CommitId.initial)), "Ran out of Commit ids!")
