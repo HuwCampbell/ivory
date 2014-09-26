@@ -1,7 +1,7 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.data.Identifier
-import com.ambiata.ivory.core.TemporaryReferences._
+import com.ambiata.ivory.core.TemporaryLocations._
 import com.ambiata.mundane.store._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.specs2._

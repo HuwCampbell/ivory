@@ -3,6 +3,7 @@ package com.ambiata.ivory.storage.metadata
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.store._
+import ResultT._
 import com.ambiata.mundane.data.Lists
 
 import scalaz.{Value => _, _}, Scalaz._, effect.IO
@@ -15,23 +16,24 @@ trait TextStorage[L, T] {
   def toList(t: T): List[L]
   def toLine(l: L): String
 
-  def fromFileStore[F[+_] : Monad](ref: Reference[F]): F[Result[T]] = for {
-    lines  <- ReferenceStore.readLines[F](ref)
-  } yield Result.fromDisjunctionString(fromLines(lines))
+  def fromFileStore(location: IvoryLocation): ResultTIO[T] = for {
+    lines  <- IvoryLocation.readLines(location)
+    result <- ResultT.fromDisjunctionString[IO, T](fromLines(lines))
+  } yield result
 
-  def fromFileStoreIO(ref: ReferenceIO): ResultTIO[T] =
-    ReferenceStore.readLines(ref).flatMap(lines => ResultT.fromDisjunctionString[IO, T](fromLines(lines)))
+  def fromFileStoreIO(location: IvoryLocation): ResultTIO[T] =
+    IvoryLocation.readLines(location).flatMap(lines => ResultT.fromDisjunctionString[IO, T](fromLines(lines)))
 
-  def fromDirStore[F[+_] : Monad](ref: Reference[F]): F[Result[List[T]]] = for {
-    files <- ReferenceStore.list[F](ref)
-    ts    <- files.traverseU(file => fromFileStore[F](ref </> file))
-  } yield ts.sequence
+  def fromDirStore(location: IvoryLocation): ResultTIO[List[T]] = for {
+    files <- IvoryLocation.list(location)
+    ts    <- files.traverseU(file => fromFileStore(location </> file))
+  } yield ts
 
-  def toFileStore[F[+_] : Monad](ref: Reference[F], t: T): ResultT[F, Unit] =
-    new ResultT[F, Unit](ReferenceStore.writeUtf8[F](ref, delimitedString(t)).as(Result.ok(())))
+  def toFileStore(location: IvoryLocation, t: T): ResultTIO[Unit] =
+    IvoryLocation.writeUtf8(location, delimitedString(t)).void
 
-  def toFileStoreIO(ref: ReferenceIO, t: T): ResultTIO[Unit] =
-    ReferenceStore.writeUtf8(ref, delimitedString(t))
+  def toFileStoreIO(location: IvoryLocation, t: T): ResultTIO[Unit] =
+    IvoryLocation.writeUtf8(location, delimitedString(t))
 
   def toKeyStore(repository: Repository, key: Key, t: T): ResultTIO[Unit] =
     repository.store.utf8.write(key, delimitedString(t))

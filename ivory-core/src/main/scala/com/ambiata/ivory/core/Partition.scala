@@ -1,11 +1,14 @@
 package com.ambiata.ivory.core
 
+import com.ambiata.mundane.control.{ResultTIO, ResultT}
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.store._
 import com.ambiata.mundane.parse.ListParser
 
 import scalaz.Scalaz._
+import scalaz.\&/.This
 import scalaz._
+import scalaz.effect.IO
 
 case class Partition(namespace: Name, date: Date) {
   def key: Key =
@@ -31,13 +34,11 @@ object Partition {
   def parseFile(file: String): Validation[String, Partition] =
     parseFile(FilePath.unsafe(file))
 
-  def parseKey(key: Key): Validation[String, Partition] =
-    parseFile(FilePath.unsafe(key.name))
+  def parseNamespaceDateKey(key: Key): Validation[String, Partition] =
+    parseDir(DirPath.unsafe(key.name))
 
-  def parseFile(file: FilePath): Validation[String, Partition] = for {
-    parent    <- file.dirname.success[String]
-    partition <- parseDir(parent)
-  } yield partition
+  def parseFile(file: FilePath): Validation[String, Partition] =
+    parseDir(file.dirname)
 
   def listParser: ListParser[Partition] = {
     import com.ambiata.mundane.parse.ListParser._
@@ -86,4 +87,10 @@ object Partitions {
   /** Filter paths between two dates (inclusive) */
   def pathsBetween(partitions: List[Partition], from: Date, to: Date): List[Partition] =
     pathsBeforeOrEqual(pathsAfterOrEqual(partitions, from), to)
+
+  def getFromFactset(repository: Repository, factset: FactsetId): ResultTIO[Partitions] =
+    for {
+      keys       <- repository.store.list(Repository.factset(factset)).map(_.map(_.dropRight(1)).filter(_ != Key.Root).distinct)
+      partitions <- keys.traverseU(key => ResultT.fromDisjunction[IO, Partition](Partition.parseNamespaceDateKey(key).disjunction.leftMap(This.apply)))
+    } yield Partitions(partitions.sorted)
 }

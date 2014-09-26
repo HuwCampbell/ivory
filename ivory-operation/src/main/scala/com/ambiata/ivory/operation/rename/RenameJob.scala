@@ -13,7 +13,6 @@ import org.apache.hadoop.io._
 import org.apache.hadoop.mapreduce.Job
 import org.apache.hadoop.mapreduce.lib.input.{MultipleInputs, SequenceFileInputFormat}
 import org.apache.hadoop.mapreduce.lib.output._
-import com.ambiata.ivory.core.IvorySyntax._
 
 object RenameJob {
   def run(repository: Repository, mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], target: Path, reducerLookups: ReducerLookups,
@@ -48,7 +47,7 @@ object RenameJob {
       mappers.foreach({ case (clazz, factsetGlob) =>
         factsetGlob.keys.foreach { key =>
           println(s"Input path: ${key.name}")
-          MultipleInputs.addInputPath(job, repository.toFilePath(key).toHdfs, classOf[SequenceFileInputFormat[_, _]], clazz)
+          MultipleInputs.addInputPath(job, repository.toIvoryLocation(key).toHdfs, classOf[SequenceFileInputFormat[_, _]], clazz)
         }
       })
 

@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.extraction
 
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FactsetLookup, FactsetVersionLookup, SnapshotWindowLookup}
 import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
@@ -58,7 +58,7 @@ object SnapshotJob {
     mappers.foreach({ case (clazz, factsetGlob) =>
       factsetGlob.keys.foreach(key => {
         println(s"Input path: ${key}")
-        MultipleInputs.addInputPath(job, repository.toFilePath(key).toHdfs, classOf[SequenceFileInputFormat[_, _]], clazz)
+        MultipleInputs.addInputPath(job, repository.toIvoryLocation(key).toHdfs, classOf[SequenceFileInputFormat[_, _]], clazz)
       })
     })
 

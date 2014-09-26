@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.extraction
 
 import org.apache.commons.logging.LogFactory
 
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy._
@@ -15,7 +15,7 @@ import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
-
+import IvorySyntax._
 import scalaz.{DList => _, _}, Scalaz._, effect._
 
 /**
@@ -87,7 +87,7 @@ object Snapshot {
   def runSnapshot(repository: Repository, newSnapshot: SnapshotMeta, previousSnapshot: Option[SnapshotMeta], date: Date, newSnapshotId: SnapshotId): ResultTIO[Unit] =
     for {
       hr              <- downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'")
-      output          =  repository.toFilePath(Repository.snapshot(newSnapshot.snapshotId)).toDirPath
+      output          =  repository.toIvoryLocation(Repository.snapshot(newSnapshot.snapshotId))
       dictionary      <- latestDictionaryFromIvory(repository)
       windows         =  SnapshotWindows.planWindow(dictionary, date)
       newFactsetGlobs <- calculateGlobs(repository, dictionary, windows, newSnapshot, previousSnapshot, date)
@@ -117,8 +117,8 @@ object Snapshot {
                   windows: SnapshotWindows, codec: Option[CompressionCodec]): Hdfs[Unit] =
     for {
       conf            <- Hdfs.configuration
-      incrementalPath =  previousSnapshot.map(meta => repository.toFilePath(Repository.snapshot(meta.snapshotId)).toHdfs)
-      paths           =  factsetsGlobs.flatMap(_.value.keys.map(key => repository.toFilePath(key).toHdfs)) ++ incrementalPath.toList
+      incrementalPath =  previousSnapshot.map(meta => repository.toIvoryLocation(Repository.snapshot(meta.snapshotId)).toHdfs)
+      paths           =  factsetsGlobs.flatMap(_.value.keys.map(key => repository.toIvoryLocation(key).toHdfs)) ++ incrementalPath.toList
       size            <- paths.traverse(Hdfs.size).map(_.sum)
       _               <- Hdfs.log(s"Total input size: $size")
       reducers        =  size.toBytes.value / 2.gb.toBytes.value + 1 // one reducer per 2GB of input
@@ -129,8 +129,8 @@ object Snapshot {
   /** This is exposed through the external API */
   def snapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Path] = for {
     sc         <- ScoobiAction.scoobiConfiguration
-    repository <- ScoobiAction.fromResultTIO(Repository.fromUriResultTIO(repoPath.toString, IvoryConfiguration.fromScoobiConfiguration(sc)))
-    snap       <- ScoobiAction.fromResultTIO(takeSnapshot(repository, date, incremental).map(res => repository.toFilePath(Repository.snapshot(res.snapshotId)).toHdfs))
+    repository <- ScoobiAction.fromResultTIO(Repository.fromUri(repoPath.toString, IvoryConfiguration.fromScoobiConfiguration(sc)))
+    snap       <- ScoobiAction.fromResultTIO(takeSnapshot(repository, date, incremental).map(res => repository.toIvoryLocation(Repository.snapshot(res.snapshotId)).toHdfs))
   } yield snap
 
   def dictionaryForSnapshot(repository: Repository, meta: SnapshotMeta): ResultTIO[Dictionary] =

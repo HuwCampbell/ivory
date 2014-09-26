@@ -2,6 +2,7 @@ package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core.{ParseError => _, _}
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.io.Location
 import com.ambiata.mundane.parse._
 import org.parboiled2._, Parser.DeliveryScheme.Either
 import scalaz.effect.IO
@@ -16,17 +17,11 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
   def fromList(entries: List[(FeatureId, Definition)]): ValidationNel[String, Dictionary] =
     Validation.success(Dictionary(entries.map(_._2)))
 
-  def fromFiles[F[+_] : Monad](ref: Reference[F]): F[Option[Dictionary]] =
-    fromDirStore(ref).map(_.fold(ds => Some(Dictionary.reduce(ds)), _ => None))
+  def fromFiles(location: IvoryLocation): ResultTIO[Dictionary] =
+    fromDirStore(location).map(ds => Dictionary.reduce(ds))
 
-  def fromFile[F[+_] : Monad](ref: Reference[F]): F[Option[Dictionary]] =
-    fromFileStore(ref).map(_.fold(ds => Some(ds), _ => None))
-
-  def fromFileIO(ref: Reference[ResultTIO]): ResultTIO[Dictionary] =
-    fromFile(ref).flatMap { option => failIfMissing[IO](option) }
-
-  def failIfMissing[F[+_] : Monad](dictionary: Option[Dictionary]): ResultT[F, Dictionary] =
-    dictionary.fold(ResultT.fail[F, Dictionary]("missing dictionary"))(d => ResultT.ok[F, Dictionary](d))
+  def fromFile(location: IvoryLocation): ResultTIO[Dictionary] =
+    fromFileStore(location)
 
   def toList(dict: Dictionary): List[(FeatureId, Definition)] =
     dict.definitions.map(d => d.featureId -> d).toList

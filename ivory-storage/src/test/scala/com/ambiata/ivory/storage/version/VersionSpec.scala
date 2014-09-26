@@ -3,7 +3,7 @@ package com.ambiata.ivory.storage.version
 import com.ambiata.mundane.store._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.specs2.Specification
-import com.ambiata.ivory.core.TemporaryReferences._
+import com.ambiata.ivory.core.TemporaryLocations._
 import scalaz._, Scalaz._
 
 class VersionSpec extends Specification { def is = s2"""

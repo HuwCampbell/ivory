@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.rename
 
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.control.IvoryT._
 import com.ambiata.ivory.storage.fact._
@@ -46,7 +46,7 @@ object Rename {
   def renameWithFactsets(mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], reducerLookups: ReducerLookups): IvoryTIO[(FactsetId, RenameStats)] = for {
     factset    <- IvoryT.fromResultTIO(repository => Factsets.allocateFactsetId(repository))
     repository <- IvoryT.repository[ResultTIO]
-    output      = repository.toFilePath(Repository.factset(factset)).toHdfs
+    output      = repository.toIvoryLocation(Repository.factset(factset)).toHdfs
     hdfs       <- getHdfs
     stats      <- fromResultT(_ => RenameJob.run(repository, mapping, inputs, output, reducerLookups, hdfs.codec).run(ScoobiConfiguration(hdfs.configuration)))
     _          <- IvoryStorage.writeFactsetVersionI(List(factset))

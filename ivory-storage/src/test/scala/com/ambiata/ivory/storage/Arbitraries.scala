@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.data.Identifier
-import TemporaryReferences.{Hdfs, S3, Posix, TemporaryType}
+import TemporaryLocations.{Hdfs, S3, Posix, TemporaryType}
 import com.ambiata.ivory.storage.fact._
 
 import org.scalacheck._, Arbitrary._

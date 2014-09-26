@@ -186,7 +186,7 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
   def createRepository[R : AsResult](f: Repository => R): org.specs2.execute.Result = {
     val sc: ScoobiConfiguration = scoobiConfiguration
     Temporary.using { dir =>
-      val repo = HdfsRepository(dir </> FileName.unsafe("repo"), IvoryConfiguration.fromScoobiConfiguration(sc))
+      val repo = HdfsRepository(HdfsLocation(dir </> FileName.unsafe("repo")), IvoryConfiguration.fromScoobiConfiguration(sc))
       ResultT.ok[IO, org.specs2.execute.Result](AsResult(f(repo)))
     } must beOkLike(_.isSuccess)
   }

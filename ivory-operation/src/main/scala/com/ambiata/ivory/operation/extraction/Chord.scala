@@ -3,6 +3,7 @@ package com.ambiata.ivory.operation.extraction
 import java.util
 
 import com.ambiata.ivory.storage.legacy.FlatFactThriftStorageV1.FlatFactThriftLoader
+import com.ambiata.mundane.io.Location
 import com.nicta.scoobi.Scoobi._
 import org.apache.commons.logging.LogFactory
 import scalaz.{DList => _, Store => _, _}, Scalaz._
@@ -11,7 +12,6 @@ import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.store._
 import com.ambiata.mundane.control._
 
-import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.poacher.scoobi._
@@ -22,6 +22,7 @@ import com.ambiata.ivory.operation.validation._
 import Entities._
 import com.ambiata.ivory.scoobi._
 import scala.collection.JavaConversions._
+import IvorySyntax._
 
 /**
  * A Chord is the extraction of feature values for some entities at some dates
@@ -40,9 +41,9 @@ object Chord {
    * Returns a newly created [[FilePath]] to the chord in thrift format, which can be fed into other jobs.
    * Consumers of this method should delete the returned path when finished with the result.
    */
-  def createChord(repository: Repository, entitiesRef: ReferenceIO, takeSnapshot: Boolean): ResultTIO[Key] = for {
+  def createChord(repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean): ResultTIO[Key] = for {
     _                   <- checkThat(repository, repository.isInstanceOf[HdfsRepository], "Chord only works on HDFS repositories at this stage.")
-    entities            <- Entities.readEntitiesFrom(entitiesRef)
+    entities            <- Entities.readEntitiesFrom(entitiesLocation)
     _                   <- logInfo(s"Earliest date in chord file is '${entities.earliestDate}'")
     _                   <- logInfo(s"Latest date in chord file is '${entities.latestDate}'")
     store               <- Metadata.latestFeatureStoreOrFail(repository)
@@ -63,7 +64,7 @@ object Chord {
       featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotMeta(repository)(meta))
       dictionary           <- latestDictionaryFromIvory(repository)
       _                    <- chordScoobiJob(hr, dictionary, store, chordKey, entities.latestDate, featureStoreSnapshot,
-                                             repository.toFilePath(outputKey).toHdfs, hr.codec).run(hr.scoobiConfiguration)
+                                             repository.toIvoryLocation(outputKey).toHdfs, hr.codec).run(hr.scoobiConfiguration)
       // Delete the temporary chordRef - no longer needed
       _                    <- repository.store.delete(chordKey)
     } yield outputKey
@@ -160,7 +161,7 @@ object Chord {
           .map(_.map { case (p, fid, f) => (p, fid.right[SnapshotId], f) })
 
       case Some(snapshot) =>
-        val path          = repository.toFilePath(Repository.snapshot(snapshot.snapshotId)).toHdfs
+        val path          = repository.toIvoryLocation(Repository.snapshot(snapshot.snapshotId)).toHdfs
         val newFactsets   = featureStore diff snapshot.store
 
         for {

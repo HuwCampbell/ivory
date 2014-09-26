@@ -1,6 +1,5 @@
 package com.ambiata.ivory.storage.repository
 
-import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.io.BytesQuantity
 import com.ambiata.mundane.store._
@@ -29,17 +28,17 @@ object Stats {
     (dictionariesSize |@| featureStoresSize)(Seq(_, _).sum)
 
   def factsetSize(factset: FactsetId): StatAction[BytesQuantity] = repository.flatMap {
-    case r: HdfsRepository => fromHdfs(totalSize(r.toFilePath(Repository.factset(factset)).toHdfs))
+    case r: HdfsRepository => fromHdfs(totalSize(r.toIvoryLocation(Repository.factset(factset)).toHdfs))
     case _                 => fail("Unsupported repository!")
   }
 
   def factsetFiles(factset: FactsetId): StatAction[Int] = repository.flatMap {
-    case r: HdfsRepository => fromHdfs(numberOfFilesRecursively(r.toFilePath(Repository.factset(factset)).toHdfs))
+    case r: HdfsRepository => fromHdfs(numberOfFilesRecursively(r.toIvoryLocation(Repository.factset(factset)).toHdfs))
     case _                 => fail("Unsupported repository!")
   }
 
   def sizeOf(key: Key): StatAction[BytesQuantity] = repository.flatMap {
-    case r: HdfsRepository => fromHdfs(totalSize(r.toFilePath(key).toHdfs))
+    case r: HdfsRepository => fromHdfs(totalSize(r.toIvoryLocation(key).toHdfs))
     case _                 => fail("Unsupported repository!")
   }
 
@@ -47,12 +46,12 @@ object Stats {
     sizeOf(key).map(_.show)
 
   def numberOf(key: Key): StatAction[Int] = repository.flatMap {
-    case r: HdfsRepository => fromHdfs(Hdfs.globPaths(r.toFilePath(key).toHdfs).map(_.size))
+    case r: HdfsRepository => fromHdfs(Hdfs.globPaths(r.toIvoryLocation(key).toHdfs).map(_.size))
     case _                 => fail("Unsupported repository!")
   }
 
   def listOf(key: Key): StatAction[List[String]] = repository.flatMap {
-    case r: HdfsRepository => fromHdfs(Hdfs.globPaths(r.toFilePath(key).toHdfs).map(_.map(_.toUri.toString)))
+    case r: HdfsRepository => fromHdfs(Hdfs.globPaths(r.toIvoryLocation(key).toHdfs).map(_.map(_.toUri.toString)))
     case _                 => fail("Unsupported repository!")
   }
 

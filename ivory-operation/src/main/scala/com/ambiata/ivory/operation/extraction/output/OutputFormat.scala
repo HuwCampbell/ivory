@@ -18,4 +18,4 @@ object OutputFormat {
   })
 }
 
-case class OutputFormats(outputs: List[(OutputFormat, ReferenceIO)], missingValue: String)
+case class OutputFormats(outputs: List[(OutputFormat, IvoryLocation)], missingValue: String)

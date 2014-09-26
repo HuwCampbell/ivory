@@ -13,7 +13,7 @@ import com.ambiata.ivory.storage.fact.FactsetGlob
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.scoobi._
 import FactFormats._
-import IvorySyntax._
+
 
 trait PartitionFactThriftStorage {
   val parsePartition: String => ParseError \/ Partition = scalaz.Memo.mutableHashMapMemo { path: String =>
@@ -33,7 +33,7 @@ trait PartitionFactThriftStorage {
                case (None, Some(t))    => FactsetGlob.before(repo, factset, t)
                case (None, None)       => FactsetGlob.select(repo, factset)
              })
-    dlist <- loadScoobiFromPaths(glob.map(_.keys.map(_.name)).getOrElse(Nil))
+    dlist <- loadScoobiFromPaths(glob.map(_.keys.map(k => repo.toIvoryLocation(k).toHdfs.toString)).getOrElse(Nil))
   } yield dlist
 
   def loadScoobiFromPaths(paths: List[String]): ScoobiAction[DList[ParseError \/ Fact]] =
@@ -64,7 +64,7 @@ trait PartitionFactThriftStorage {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
       dlist.by(f => partitionPath((f.namespace.name, f.date)))
            .mapValues((f: Fact) => f.toThrift)
-           .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](repository.toFilePath(key).toHdfs.toString, identity, overwrite = true).persistWithCodec(codec)
+           .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](repository.toIvoryLocation(key).toHdfs.toString, identity, overwrite = true).persistWithCodec(codec)
     }
   }
 }

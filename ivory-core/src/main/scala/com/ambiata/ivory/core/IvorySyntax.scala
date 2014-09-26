@@ -1,29 +1,12 @@
 package com.ambiata.ivory.core
 
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
+import com.ambiata.mundane.io.DirPath
 import org.apache.commons.logging.Log
 import org.apache.hadoop.fs.Path
-
 import scalaz.effect.IO
 
 trait IvorySyntax {
-
-  implicit class IvoryFilePathSyntax(file: FilePath) {
-    def toHdfs: Path = new Path(file.path)
-  }
-
-  implicit class IvoryDirPathSyntax(dir: DirPath) {
-    def toHdfs: Path = new Path(dir.path)
-  }
-
-  implicit class IvoryReferenceIOSyntax[F[_]](ref: Reference[F]) {
-    def toHdfs: Path = ref.filePath.toHdfs
-  }
-
-  implicit class PathToIvoryDirPathSyntax(path: Path) {
-    def toDirPath: DirPath = DirPath.unsafe(path.toString)
-  }
 
   def checkThat[A](a: =>A, condition: Boolean, message: String): ResultTIO[A] =
     if (condition) ResultT.safe[IO, A](a)
@@ -39,6 +22,9 @@ trait IvorySyntax {
       catch { case _:Exception => ResultT.fail[IO, B](message) }
     }
 
+  implicit class PathToIvoryDirPathSyntax(path: Path) {
+    def toDirPath: DirPath = DirPath.unsafe(path.toString)
+  }
   /**
    * Logging utility functions when working with ResultTIO for now
    * This will be removed when IvoryT is introduced

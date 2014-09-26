@@ -75,7 +75,7 @@ object IvoryCmd {
       for {
         repoPath <- ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
           "-r|--repository was missing or environment variable IVORY_REPOSITORY not set")
-        repo     <- Repository.fromUriResultTIO(repoPath, config)
+        repo     <- Repository.fromUri(repoPath, config)
         result   <- runner(repo)(config)(c)
       } yield result
     ))

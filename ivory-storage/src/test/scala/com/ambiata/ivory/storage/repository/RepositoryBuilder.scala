@@ -7,7 +7,7 @@ import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.Temporary
+import com.ambiata.mundane.io.{HdfsLocation, Temporary}
 import com.nicta.scoobi.Scoobi._
 
 import scalaz._, Scalaz._
@@ -17,7 +17,7 @@ object RepositoryBuilder {
   def using[A](f: HdfsRepository => ResultTIO[A]): ResultTIO[A] = Temporary.using { dir =>
     val sc = ScoobiConfiguration()
     sc.set("hadoop.tmp.dir", dir.path)
-    val repo = HdfsRepository(dir, IvoryConfiguration.fromScoobiConfiguration(sc.configuration))
+    val repo = HdfsRepository(HdfsLocation(dir), IvoryConfiguration.fromScoobiConfiguration(sc.configuration))
     f(repo)
   }
 

@@ -24,16 +24,16 @@ Create repository should always create all folders
   lazy val conf = IvoryConfiguration.fromScoobiConfiguration(ScoobiConfiguration())
 
   def hdfs =
-    exists(TemporaryReferences.Hdfs)
+    exists(TemporaryLocations.Hdfs)
 
   def s3 =
-    exists(TemporaryReferences.S3)
+    exists(TemporaryLocations.S3)
 
   def local =
-    exists(TemporaryReferences.Posix)
+    exists(TemporaryLocations.Posix)
 
-  def exists(repository: TemporaryReferences.TemporaryType) = {
-    TemporaryReferences.withRepository(repository) { repo =>
+  def exists(repository: TemporaryLocations.TemporaryType) = {
+    TemporaryLocations.withRepository(repository) { repo =>
       createRepository(repo) >> checkRepository(repo)
     } must beOkLike(_ must contain(true).forall)
   }

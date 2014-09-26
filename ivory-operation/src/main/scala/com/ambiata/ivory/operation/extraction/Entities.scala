@@ -4,6 +4,7 @@ import java.util.HashMap
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.io.Location
 import com.ambiata.mundane.store._
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
@@ -92,10 +93,10 @@ object Entities {
   /**
    * read entities from a file
    */
-  def readEntitiesFrom(ref: ReferenceIO): ResultTIO[Entities] = {
+  def readEntitiesFrom(location: IvoryLocation): ResultTIO[Entities] = {
     val DatePattern = """(\d{4})-(\d{2})-(\d{2})""".r
 
-    ReferenceStore.readLines(ref).map { lines =>
+    IvoryLocation.readLines(location).map { lines =>
       val mappings = new HashMap[String, Array[Int]](lines.length)
       lines.map(parseLine(DatePattern)).groupBy(_._1).foreach { case (k, v) =>
         mappings.put(k, v.map(_._2).toArray.sorted.reverse)

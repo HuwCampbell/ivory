@@ -14,7 +14,7 @@ import org.specs2.execute.{AsResult, Result}
 
 import scalaz._, Scalaz._
 
-object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
+class FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
 
   Can get latest factset id                      $latest
   Can allocate a new factset id                  $allocate
@@ -33,15 +33,15 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
 
   def allocate = prop { factsetId: FactsetId => 
     withRepository { repo =>
-      val expected = factsetId.next.map((true, _))
+      val nextId = factsetId.next.get
 
       val res = for {
         _ <- allocatePath(repo, Repository.factset(factsetId))
         n <- Factsets.allocateFactsetId(repo)
-        e <- repo.store.exists(Repository.factset(factsetId.next.get))
+        e <- repo.store.existsPrefix(Repository.factset(nextId))
       } yield (e, n)
 
-      expected.map(e => res must beOkLike(_ must_== e)).getOrElse(res.run.unsafePerformIO.toOption must beNone)
+      res must beOkLike { case (e, n) => (e, n) must_== ((true, nextId)) }
     }
   }
 
@@ -68,7 +68,7 @@ object FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
   def withRepository[R : AsResult](f: Repository => R): Result =
     Temporary.using { dir =>
       for {
-        repository <- Repository.fromUriResultTIO((dir </> "repo").path, IvoryConfiguration.fromScoobiConfiguration(scoobiConfiguration))
+        repository <- Repository.fromUri((dir </> "repo").path, IvoryConfiguration.fromScoobiConfiguration(scoobiConfiguration))
       } yield AsResult(f(repository))
     } must beOkLike(r => r.isSuccess aka r.message must beTrue)
 

@@ -52,7 +52,7 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
   }
 
   private def run[A](f: (DictionaryThriftStorage, DirPath) => ResultTIO[A]): Result[A] =
-    Temporary.using(dir => f(DictionaryThriftStorage(LocalRepository(dir)), dir)).run.unsafePerformIO()
+    Temporary.using(dir => f(DictionaryThriftStorage(LocalRepository(LocalLocation(dir))), dir)).run.unsafePerformIO()
 
   // Text dictionaries can only handle primitive encoding _with_ types and _at least_ one tombstone
   case class PrimitiveDictionary(dict: Dictionary)

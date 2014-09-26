@@ -15,16 +15,17 @@ object depend {
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140923021613-78e3f9e" excludeAll(
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140929054455-11ad699" excludeAll(
     ExclusionRule(organization = "org.specs2"),
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec"),
     ExclusionRule(organization = "com.ambiata", name = "mundane-testing_2.10")
   ))
 
+  val MUNDANE_VERSION = "1.2.1-20140930010027-ad00ac4"
   val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-store").map(c =>
-                      "com.ambiata"          %% c                 % "1.2.1-20140923011337-357a71a") ++
-                  Seq("com.ambiata"          %% "mundane-testing" % "1.2.1-20140923011337-357a71a" % "test")
+                      "com.ambiata"          %% c                 % MUNDANE_VERSION) ++
+                  Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")
 
   val caliper   = Seq("com.google.caliper"   %  "caliper"         % "0.5-rc1",
                       "com.google.guava"     %  "guava"           % "14.0.1" force())
@@ -44,9 +45,10 @@ object depend {
       "javassist" %  "javassist" % "3.12.1.GA") ++ hadoop(version)
   }
 
+  val POACHER_VERSION = "1.0.0-cdh5-20140929054633-8bb99ea"
   def poacher(version: String) =
-  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20140923022227-7903e26")
-  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20140923022227-7903e26")
+  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % POACHER_VERSION)
+  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % POACHER_VERSION)
   else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 

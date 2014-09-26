@@ -3,7 +3,7 @@ package com.ambiata.ivory.operation.extraction
 import org.specs2._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._, Arbitraries._
-import IvorySyntax._
+
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.storage.legacy._
@@ -38,7 +38,7 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
     RepositoryBuilder.using { repo => for {
         _ <- RepositoryBuilder.createRepo(repo, vdict.vd.dictionary, List(facts ++ oldfacts))
         s <- Snapshot.takeSnapshot(repo, fact.date, false)
-        f  = valueFromSequenceFile[Fact](repo.toFilePath(Repository.snapshot(s.snapshotId)).toHdfs.toString).run(repo.scoobiConfiguration)
+        f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.snapshotId)).toHdfs.toString).run(repo.scoobiConfiguration)
       } yield f
     }.map(_.toSet) must beOkValue(facts.toSet)
   }).set(minTestsOk = 1)

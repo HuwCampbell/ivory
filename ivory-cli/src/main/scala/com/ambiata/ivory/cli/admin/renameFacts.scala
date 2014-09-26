@@ -42,11 +42,11 @@ object renameFacts extends IvoryApp {
     mapping.traverseU { case (f, t) => parseFeatureId(f) tuple parseFeatureId(t) }.map(RenameMapping.apply)
 
   def parseBatchFile(path: String, conf: IvoryConfiguration): ResultTIO[RenameMapping] = for {
-    ref     <- Reference.fromUriAsDir(path, conf)
-    exists  <- ReferenceStore.exists(ref)
-    _       <- if (!exists) ResultT.fail[IO, Unit](s"Path ${ref.path.path} does not exist in ${ref.store}!") else ResultT.unit[IO]
-    lines   <- ReferenceStore.readLines(ref)
-    mapping <- ResultT.fromDisjunction[IO, RenameMapping](lines.traverseU(parseLine).map(RenameMapping.apply).leftMap(\&/.This.apply))
+    location <- IvoryLocation.fromUri(path, conf)
+    exists   <- IvoryLocation.exists(location)
+    _        <- if (!exists) ResultT.fail[IO, Unit](s"Path ${location.path.path} does not exist") else ResultT.unit[IO]
+    lines    <- IvoryLocation.readLines(location)
+    mapping  <- ResultT.fromDisjunction[IO, RenameMapping](lines.traverseU(parseLine).map(RenameMapping.apply).leftMap(\&/.This.apply))
   } yield mapping
 
   def parseLine(line: String): String \/ (FeatureId, FeatureId) = {

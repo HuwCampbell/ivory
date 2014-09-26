@@ -1,6 +1,5 @@
 package com.ambiata.ivory.storage.legacy
 
-import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.scoobi.FactFormats._
@@ -76,7 +75,7 @@ object IvoryStorage {
    */
   def factsFromIvoryStoreFor(repo: Repository, store: FeatureStore, from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ (Priority, FactsetId, Fact)]] = for {
     factsets <- ScoobiAction.fromHdfs(store.factsets.filterM(factset =>
-                  Hdfs.exists(repo.toFilePath(Repository.version(factset.value.id)).toHdfs).map(_ && !factset.value.partitions.isEmpty)))
+                  Hdfs.exists(repo.toIvoryLocation(Repository.version(factset.value.id)).toHdfs).map(_ && !factset.value.partitions.isEmpty)))
     versions <- ScoobiAction.fromResultTIO(Versions.readPrioritized(repo, factsets.map(_.map(_.id))))
     byVersion: List[(FactsetVersion, List[Prioritized[FactsetId]])] = versions.groupBy(_._2).toList.map({ case (v, ids) => (v, ids.map(_._1)) })
     loaded   <- byVersion.traverseU({ case (v, ids) => IvoryStorage.multiFactsetLoader(repo, v, ids, from, to) })

@@ -3,16 +3,16 @@ package com.ambiata.ivory.operation.ingestion
 import com.ambiata.ivory.storage.fact.Namespaces
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.metadata.Metadata._
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.BytesQuantity
+import com.ambiata.mundane.io._
 import com.ambiata.poacher.hdfs._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.joda.time.DateTimeZone
 import EavtTextImporter._
-
 import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
+import IvorySyntax._
 
 /**
  * Import a text file, formatted as an EAVT file, into ivory.
@@ -25,14 +25,14 @@ case class EavtTextImporter(repository: Repository,
                             optimal: BytesQuantity,
                             format: Format) {
 
-  val  importFacts = { (factsetId: FactsetId, input: ReferenceIO, timezone: DateTimeZone) =>
+  val  importFacts = { (factsetId: FactsetId, input: IvoryLocation, timezone: DateTimeZone) =>
     val errorKey = Repository.errors / factsetId.asKeyName
 
     for {
       hr         <- downcast[Repository, HdfsRepository](repository, "Repository must be HDFS")
       dictionary <- latestDictionaryFromIvory(repository)
-      inputPath  <- Reference.hdfsPath(input)
-      errorPath  =  repository.toFilePath(errorKey).toHdfs
+      inputPath  =  input.toHdfs
+      errorPath  =  repository.toIvoryLocation(errorKey).toHdfs
       partitions <- namespace.fold(Namespaces.namespaceSizes(inputPath))(ns => Namespaces.namespaceSizesSingle(inputPath, ns).map(List(_))).run(hr.configuration)
       _          <- ResultT.fromDisjunction[IO, Unit](validateNamespaces(dictionary, partitions.map(_._1)).leftMap(\&/.This(_)))
       _          <- runJob(hr, dictionary, factsetId, inputPath, errorPath, partitions, timezone)
@@ -51,7 +51,7 @@ case class EavtTextImporter(repository: Repository,
         inputPath,
         namespace,
         paths,
-        repository.toFilePath(Repository.factset(factsetId)).toHdfs,
+        repository.toIvoryLocation(Repository.factset(factsetId)).toHdfs,
         errorPath,
         format,
         hr.codec

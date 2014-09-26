@@ -13,16 +13,16 @@ import scalaz._, Scalaz._, effect.IO
 object SyncExtract {
 
    def outputDataSet(input: ShadowOutputDataset, cluster: Cluster, output: OutputDataset): ResultTIO[Unit] =
-     output.location match {
-       case LocalLocation(p) => SyncHdfs.toLocal(input.path, cluster, p)
-       case S3Location(p)    => unImplementedSyncOperation
-       case HdfsLocation(_)  => unImplementedSyncOperation
+     output.location.location match {
+       case LocalLocation(p, _) => SyncHdfs.toLocal(input.location.path, cluster, p)
+       case S3Location(p, _)    => unImplementedSyncOperation
+       case HdfsLocation(_, _)  => unImplementedSyncOperation
      }
 
    def toRepository(data:Datasets, cluster: Cluster, repo: Repository): ResultTIO[Unit] = repo match {
      case HdfsRepository(_, _)          => unImplementedSyncOperation
      case S3Repository(bucket, root, _) => unImplementedSyncOperation
-     case LocalRepository(root)         => getKeys(data).traverseU(key => SyncHdfs.toLocal(cluster.root </> FileName.unsafe(key.name), cluster, root)).void
+     case LocalRepository(root)         => getKeys(data).traverseU(key => SyncHdfs.toLocal(cluster.root.path </> FileName.unsafe(key.name), cluster, root.path)).void
    }
 
  }

@@ -10,7 +10,6 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.mundane.control._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
-import IvorySyntax._
 
 import scalaz.{Value => _, _}, Scalaz._
 
@@ -32,8 +31,8 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
     RepositoryBuilder.using { repo => for {
       _ <- RepositoryBuilder.createRepo(repo, dict, List(allFacts))
       s <- Snapshot.takeSnapshot(repo, sf.date, false)
-      f <- SquashJob.squashFromSnapshotWith(repo, dict, s)(p =>
-        ResultT.ok(valueFromSequenceFile[Fact]((repo.root </> p.path).path).run(repo.scoobiConfiguration).toList))
+      f <- SquashJob.squashFromSnapshotWith(repo, dict, s)(key =>
+             ResultT.ok(valueFromSequenceFile[Fact](repo.toIvoryLocation(key).path.path).run(repo.scoobiConfiguration).toList))
     } yield f
     }.map(postProcess) must beOkValue(
       postProcess(sf.facts.list.flatMap(_.expectedFactsWithCount))

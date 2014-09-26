@@ -1,6 +1,6 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.core.{Reference, Repository}
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.api.IvoryRetire
 import com.ambiata.mundane.control.ResultT
 import com.ambiata.mundane.store._
@@ -44,10 +44,10 @@ object pivot extends IvoryApp {
                       |""".stripMargin
       println(banner)
       for {
-        repo   <- Repository.fromUriResultTIO(c.repo, conf)
+        repo   <- Repository.fromUri(c.repo, conf)
         input  <- ResultT.fromOption[IO, Key](Key.fromString(c.input), s"${c.input} is not a valid key to a factset in the Ivory repository")
-        output <- Reference.fromUriAsDir(c.output, conf)
-        _      <- IvoryRetire.pivot(repo, Reference.fromKey(repo, input), output, c.delim, c.tombstone)
+        output <- IvoryLocation.fromUri(c.output, conf)
+        _      <- IvoryRetire.pivot(repo, repo.toIvoryLocation(input), output, c.delim, c.tombstone)
       } yield List(banner, "Status -- SUCCESS")
     }))
 }

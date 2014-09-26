@@ -40,7 +40,7 @@ object ingest extends IvoryApp {
   val cmd = IvoryCmd.withRepo[CliArguments](parser,
       CliArguments("", None, DateTimeZone.getDefault, 256.mb, TextFormat),
       repo => configuration => c => for {
-        inputRef <- Reference.fromUriAsDir(c.input, configuration)
-        factset  <- Ingest.ingestFacts(repo, inputRef, c.namespace, c.timezone, c.optimal, c.format)
+        input   <- IvoryLocation.fromUri(c.input, configuration)
+        factset <- Ingest.ingestFacts(repo, input, c.namespace, c.timezone, c.optimal, c.format)
       } yield List(s"Successfully imported '${c.input}' as $factset into '${repo}'"))
 }

@@ -10,7 +10,7 @@ import com.ambiata.ivory.storage.repository._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
 import scalaz.effect.IO
-import IvorySyntax._
+
 
 class ChordSpec extends Specification with SampleFacts { def is = s2"""
 
@@ -26,11 +26,11 @@ ChordSpec
       val entities = List("eid1|2012-09-15", "eid2|2012-12-01", "eid1|2012-11-01")
       implicit val sc = repo.scoobiConfiguration
       for {
-        _           <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
-        entitiesRef <- Reference.fromUriAsDir((directory </> "entities").path, IvoryConfiguration.fromScoobiConfiguration(sc))
-        _           <- ReferenceStore.writeLines(entitiesRef, entities)
-        outPath     <- Chord.createChord(repo, entitiesRef, takeSnapshot = true)
-        facts       <- ResultT.safe[IO, List[Fact]](valueFromSequenceFile[Fact](repo.toFilePath(outPath).toHdfs.toString).run.toList)
+        _                <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
+        entitiesLocation =  IvoryLocation.fromDirPath(directory </> "entities")
+        _                <- IvoryLocation.writeUtf8Lines(entitiesLocation, entities)
+        outPath          <- Chord.createChord(repo, entitiesLocation, takeSnapshot = true)
+        facts            <- ResultT.safe[IO, List[Fact]](valueFromSequenceFile[Fact](repo.toIvoryLocation(outPath).toHdfs.toString).run.toList)
       } yield facts
     }
   } must beOkLike {

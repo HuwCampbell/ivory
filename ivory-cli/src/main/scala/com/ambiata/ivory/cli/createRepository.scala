@@ -23,7 +23,7 @@ object createRepository extends IvoryApp {
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments(), IvoryRunner { configuration => c =>
       println("Created configuration: " + configuration)
-      Repository.fromUriResultTIO(c.path, configuration).>>=(Repositories.create)
+      Repository.fromUri(c.path, configuration).>>=(Repositories.create)
         .as(Nil)
   })
 }

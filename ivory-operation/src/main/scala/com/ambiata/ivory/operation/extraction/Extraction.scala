@@ -17,7 +17,7 @@ import scalaz.Scalaz._
  */
 trait ExtractionInput
 case class SnapshotExtract(meta: SnapshotMeta) extends ExtractionInput
-case class ChordExtract(input: ReferenceIO) extends ExtractionInput
+case class ChordExtract(input: IvoryLocation) extends ExtractionInput
 
 object Extraction {
 

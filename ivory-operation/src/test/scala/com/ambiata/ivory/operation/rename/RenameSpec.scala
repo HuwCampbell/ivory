@@ -22,7 +22,7 @@ Rename
 
   rename a dictionary with a mapping                 $renameDictionary
 
-  rename of a multiple features                      $renameAll            ${tag("mr")}
+  rename of a multiple feature                       $renameAll            ${tag("mr")}
   rename of a one feature                            $renameOneFeature     ${tag("mr")}
   rename of a factset respect priority and time      $renamePriority       ${tag("mr")}
   rename of a factset respect entity                 $renameEntity         ${tag("mr")}

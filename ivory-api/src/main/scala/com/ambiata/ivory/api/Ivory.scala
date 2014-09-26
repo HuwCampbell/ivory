@@ -75,10 +75,6 @@ object Ivory
   type Name = com.ambiata.ivory.core.Name
   val Name = com.ambiata.ivory.core.Name
 
-  type Reference[F[_]] = com.ambiata.ivory.core.Reference[F]
-  val Reference = com.ambiata.ivory.core.Reference
-  type ReferenceIO = com.ambiata.ivory.core.ReferenceIO
-
   val Extraction = com.ambiata.ivory.operation.extraction.Extraction
   val SnapshotExtract = com.ambiata.ivory.operation.extraction.SnapshotExtract
   val ChordExtract = com.ambiata.ivory.operation.extraction.ChordExtract

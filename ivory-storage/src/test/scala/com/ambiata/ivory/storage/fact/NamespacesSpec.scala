@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
-import IvorySyntax._
+
 import com.ambiata.ivory.storage.ScalaCheckManagedProperties
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.store._
@@ -39,13 +39,13 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
   def e3 = managed { temp: Temporary => (nsInc: Set[FeatureNamespace], nsExc: Set[FeatureNamespace], fsInc: FactsetIdList, fsExc: FactsetIdList) =>
     !nsInc.exists(nsExc.contains) ==> {
       val sc = ScoobiConfiguration()
-      val repo = HdfsRepository(temp.dir, IvoryConfiguration.fromScoobiConfiguration(sc))
+      val repo = HdfsRepository(HdfsLocation(temp.dir), IvoryConfiguration.fromScoobiConfiguration(sc))
       val namespaces = (nsInc ++ nsExc).toList.flatMap(ns => (fsInc.ids ++ fsExc.ids).map(fs => fs -> ns.namespace)).map {
         case (fs, ns) => Repository.namespace(fs, ns)
       }
       val computNamespaces =
         (for {
-          _ <- namespaces.traverse(k => Hdfs.mkdir(repo.toFilePath(k).toHdfs).run(sc.configuration))
+          _ <- namespaces.traverse(k => Hdfs.mkdir(repo.toIvoryLocation(k).toHdfs).run(sc.configuration))
           _ <- namespaces.map(_ / "f1").traverse(createFile(repo))
           sizes <- allNamespaceSizes(repo, nsInc.toList.map(_.namespace), fsInc.ids).run(sc.configuration)
         } yield sizes).map(_.toSet) must
@@ -57,9 +57,9 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
     val ns1 = KeyName.unsafe("ns1")
     val ns2 = KeyName.unsafe("ns2")
     for {
-      repository <- Repository.fromUriResultTIO(dir.path, IvoryConfiguration.Empty)
+      repository <- Repository.fromUri(dir.path, IvoryConfiguration.Empty)
       _          <- List(ns1 / "f1", ns2 / "f2").traverse(createFile(repository))
-      result     <- f(dir.toHdfs)
+      result     <- f(new Path(dir.path))
     } yield result
   }
 

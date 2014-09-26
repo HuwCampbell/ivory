@@ -1,6 +1,5 @@
 package com.ambiata.ivory.operation.extraction.squash
 
-import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
 import com.ambiata.ivory.mr.{Committer, Compress, MrContext, ThriftCache}
@@ -9,8 +8,8 @@ import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.legacy.SnapshotMeta
 import com.ambiata.ivory.storage.lookup.ReducerSize
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.FilePath
 import com.ambiata.mundane.io.MemoryConversions._
+import com.ambiata.mundane.store._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodec
@@ -18,16 +17,17 @@ import org.apache.hadoop.io.{BytesWritable, NullWritable}
 import org.apache.hadoop.mapreduce.Job
 import org.apache.hadoop.mapreduce.lib.input.{MultipleInputs, SequenceFileInputFormat}
 import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, SequenceFileOutputFormat}
-
+import IvorySyntax._
 import scala.collection.JavaConverters._
 import scalaz._, Scalaz._
 
 object SquashJob {
 
-  def squashFromSnapshotWith[A](repository: Repository, dictionary: Dictionary, snapmeta: SnapshotMeta)(f: FilePath => ResultTIO[A]): ResultTIO[A] = for {
-    path <- squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date)
-    a    <- f(path._1)
-    _    <- ResultT.when(path._2, repository.toStore.deleteAll(path._1))
+  def squashFromSnapshotWith[A](repository: Repository, dictionary: Dictionary, snapmeta: SnapshotMeta)(f: Key => ResultTIO[A]): ResultTIO[A] = for {
+    toSquash        <- squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date)
+    (key, doSquash) =  toSquash
+    a               <- f(key)
+    _               <- ResultT.when(doSquash, repository.store.deleteAll(key))
   } yield a
 
   /**
@@ -42,17 +42,17 @@ object SquashJob {
    *    date for every possible entity date, and then look that up per entity on the reducer.
    *    This is _not_ implemented yet.
    */
-  def squash(repository: Repository, dictionary: Dictionary, input: FilePath, date: Date): ResultTIO[(FilePath, Boolean)] = {
+  def squash(repository: Repository, dictionary: Dictionary, input: Key, date: Date): ResultTIO[(Key, Boolean)] = {
     if (dictionary.hasVirtual) {
-      val path = FilePath.root </> "tmp" </> java.util.UUID.randomUUID().toString
-      val inPath = (repository.root </> input).toHdfs
+      val key = "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID)
+      val inPath = repository.toIvoryLocation(input).toHdfs
       for {
         hdfs <- downcast[Repository, HdfsRepository](repository, s"Squash only works with Hdfs repositories currently, got '$repository'")
         ns    = dictionary.byFeatureId.groupBy(_._1.namespace).keys.toList
         // This is about the best we can do at the moment, until we have more size information about each feature
         rs   <- ReducerSize.calculate(inPath, 1.gb).run(hdfs.configuration)
-        _    <- run(hdfs.configuration, rs, dictionary.byConcrete, date, inPath, (repository.root </> path).toHdfs, hdfs.codec)
-      } yield (path, true)
+        _    <- run(hdfs.configuration, rs, dictionary.byConcrete, date, inPath, repository.toIvoryLocation(key).toHdfs, hdfs.codec)
+      } yield (key, true)
     } else
     // No virtual features, let's skip the entire squash MR
       (input, false).point[ResultTIO]

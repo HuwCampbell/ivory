@@ -1,7 +1,6 @@
 package com.ambiata.ivory.storage.repository
 
 import com.ambiata.poacher.hdfs.Hdfs
-import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.fact.Versions
 import com.ambiata.ivory.storage.legacy.SampleFacts
@@ -27,7 +26,7 @@ class RecreateSpec extends Specification with SampleFacts { def is = s2"""
           _   <- Recreate.copyFactset(sampleDictionary, from, to, codec, 30.mb, false)(factset).run(to.scoobiConfiguration)
           // check that it has been properly created
           _   <- Versions.read(to, factset)
-          out <- Hdfs.globFiles(to.toFilePath(Repository.factset(factset)).toHdfs, "*/*/*/*/*").run(to.configuration)
+          out <- Hdfs.globFiles(to.toIvoryLocation(Repository.factset(factset)).toHdfs, "*/*/*/*/*").run(to.configuration)
         } yield out
       }
     } must beOkLike((_: List[_]) must not(beEmpty))

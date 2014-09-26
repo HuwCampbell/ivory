@@ -1,23 +1,18 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.mundane.io._
-import com.ambiata.mundane.store.Key
-
-case class ShadowRepository(root: DirPath, ivory: IvoryConfiguration) {
+case class ShadowRepository(root: IvoryLocation) {
+  def ivory: IvoryConfiguration = root.ivory
   def configuration       = ivory.configuration
   def scoobiConfiguration = ivory.scoobiConfiguration
   def codec               = ivory.codec
-
-  def toFilePath(key: Key): FilePath =
-    root </> FilePath.unsafe(key.name)
 }
 
 
 object ShadowRepository {
-  def fromHdfsPath(path: DirPath, configuration: IvoryConfiguration): ShadowRepository =
-    ShadowRepository(path, configuration)
+  def fromLocation(location: IvoryLocation): ShadowRepository =
+    ShadowRepository(location)
 
-  def fromCluster(cluster: Cluster): ShadowRepository = ShadowRepository(cluster.root, cluster.ivory)
+  def fromCluster(cluster: Cluster): ShadowRepository = ShadowRepository(cluster.root)
 
-  def toRepository(shadow: ShadowRepository): Repository = HdfsRepository(shadow.root, shadow.ivory)
+  def toRepository(shadow: ShadowRepository): Repository = HdfsRepository(shadow.root.location, shadow.ivory)
 }

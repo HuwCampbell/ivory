@@ -9,7 +9,6 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
-import com.ambiata.poacher.hdfs.HdfsStore
 import com.nicta.scoobi.Scoobi._
 import org.joda.time.DateTimeZone
 import org.specs2._
@@ -17,6 +16,8 @@ import org.specs2.execute.{AsResult, Result}
 import org.specs2.matcher.{MustThrownMatchers, FileMatchers, ThrownExpectations}
 import org.specs2.specification._
 import scalaz.{Name => _, _}, scalaz.effect._
+import syntax.bind._
+
 
 class EavtTextImporterSpec extends Specification with ThrownExpectations with FileMatchers with FixtureExample[Setup] { def is = s2"""
  
@@ -55,13 +56,14 @@ class EavtTextImporterSpec extends Specification with ThrownExpectations with Fi
 
 class Setup(val directory: DirPath) extends MustThrownMatchers {
   implicit def sc: ScoobiConfiguration = TestConfigurations.scoobiConfiguration
+  val ivory = IvoryConfiguration.fromScoobiConfiguration(sc)
   implicit lazy val fs = sc.fileSystem
 
-  lazy val base = Reference(HdfsStore(sc, directory), DirPath.Root)
-  lazy val input = base </> "input"
+  lazy val base = directory
+  lazy val input = IvoryLocation(LocalLocation(base </> "input"), ivory)
   lazy val namespaced = input </> "ns1"
-  lazy val repository = HdfsRepository(directory </> "repo", IvoryConfiguration.fromScoobiConfiguration(sc))
-  lazy val errors = base </> "errors"
+  lazy val repository = HdfsRepository(HdfsLocation(directory </> "repo"), ivory)
+  lazy val errors = IvoryLocation(LocalLocation(base </> "errors"), ivory)
   lazy val ns1 = Name("ns1")
 
   val dictionary =
@@ -87,7 +89,7 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
     import com.ambiata.ivory.operation.ingestion.thrift._
     val serializer = ThriftSerialiser()
 
-    SequenceUtil.writeBytes(directory </> "input" </> "ns1" <|> FileName.unsafe(java.util.UUID.randomUUID().toString), None) {
+    SequenceUtil.writeBytes(IvoryLocation.fromFilePath(directory </> "input" </> "ns1" <|> FileName(java.util.UUID.randomUUID)), None) {
       writer => ResultT.safe(expected.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
     }.run(sc) must beOk
   }
@@ -99,21 +101,13 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
     save(namespaced, raw) must beOk
   }
 
-  def save(path: ReferenceIO, raw: List[String]) =
-    ReferenceStore.writeLines(path </> "part", raw)
+  def save(path: IvoryLocation, raw: List[String]) =
+    IvoryLocation.writeUtf8Lines(path </> "part", raw)
 
-  def importAs(format: Format) = {
-    val action =
-      for {
-        inputPath  <- Reference.hdfsPath(input)
-        errorsPath <- Reference.hdfsPath(errors)
-        _          <- EavtTextImporter(repository, namespace = None, optimal = 128.mb, format).
-                        runJob(repository, dictionary, FactsetId.initial, inputPath, errorsPath, List(ns1 -> 1.mb), DateTimeZone.getDefault)
-        _ <- writeFactsetVersion(repository, List(FactsetId.initial))
-      } yield ()
-
-    action must beOk
-  }
+  def importAs(format: Format) =
+    EavtTextImporter(repository, namespace = None, optimal = 128.mb, format).
+        runJob(repository, dictionary, FactsetId.initial, input.toHdfs, errors.toHdfs, List(ns1 -> 1.mb), DateTimeZone.getDefault) >>
+    writeFactsetVersion(repository, List(FactsetId.initial)) must beOk
 
   def theImportMustBeOk = 
     factsFromIvoryFactset(repository, FactsetId.initial).map(_.run.collect { case \/-(r) => r }).run(sc) must beOkLike(_.toSet must_== expected.toSet)

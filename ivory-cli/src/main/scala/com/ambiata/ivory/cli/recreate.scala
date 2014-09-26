@@ -28,8 +28,8 @@ object recreate extends IvoryApp {
   val cmd = IvoryCmd[CliArguments](parser, CliArguments(input = "", output = "", clean = true, dry = false, overwrite = false, recreateData = RecreateData.ALL, maxNumber = None, reducerSize = None),
     IvoryRunner { configuration => c =>
       for {
-        from  <- Repository.fromUriResultTIO(c.input, configuration)
-        to    <- Repository.fromUriResultTIO(c.output, configuration)
+        from  <- Repository.fromUri(c.input, configuration)
+        to    <- Repository.fromUri(c.output, configuration)
         rconf =  RecreateConfig(from = from,
                                 to = to,
                                 sc = configuration.scoobiConfiguration,

@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.validation
 
-import com.ambiata.ivory.core._, Arbitraries._, IvorySyntax._
+import com.ambiata.ivory.core._, Arbitraries._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control.ResultT
@@ -32,7 +32,7 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
 
   def featureStore = {
     RepositoryBuilder.using { repo =>
-      val outpath = repo.rootPath </> "out"
+      val outpath = IvoryLocation(repo.root, IvoryConfiguration.Empty) </> "out"
       val dict = Dictionary(List(
         Definition.concrete(FeatureId(Name("ns1"), "fid1"), DoubleEncoding, Some(NumericalType), "desc", Nil),
         Definition.concrete(FeatureId(Name("ns1"), "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
@@ -53,7 +53,7 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
         fsid <- RepositoryBuilder.createFacts(repo, List(facts1, facts2)).map(_._1)
         fs   <- Metadata.featureStoreFromIvory(repo, fsid)
         _    <- ValidateStoreHdfs(repo, fs, dict, false).exec(outpath.toHdfs).run(sc)
-        res  <- ResultT.ok[IO, List[String]](fromTextFile(outpath.path).run.toList)
+        res  <- ResultT.ok[IO, List[String]](fromTextFile(outpath.path.path).run.toList)
       } yield (res, fsid)
     } must beOkLike { case (res, fsid) =>
       res must have size(1)
@@ -67,7 +67,7 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
 
   def factSet = {
     RepositoryBuilder.using { repo =>
-      val outpath = repo.rootPath </> "out"
+      val outpath = IvoryLocation(repo.root, IvoryConfiguration.Empty) </> "out"
 
       val dict = Dictionary(List(
         Definition.concrete(FeatureId(Name("ns1"), "fid1"), DoubleEncoding, Some(NumericalType), "desc", Nil),
@@ -85,7 +85,7 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
       for {
         fsid <- RepositoryBuilder.createFactset(repo, facts1)
         _    <- ValidateFactSetHdfs(repo, fsid, dict).exec(outpath.toHdfs).run(sc)
-        res  <- ResultT.ok[IO, List[String]](fromTextFile(outpath.path).run.toList)
+        res  <- ResultT.ok[IO, List[String]](fromTextFile(outpath.path.path).run.toList)
       } yield res
     } must beOkLike { res =>
       res must have size(1)

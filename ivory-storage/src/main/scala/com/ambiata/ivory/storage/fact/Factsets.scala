@@ -5,7 +5,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.store._
 
-import scalaz._, Scalaz._, effect._, \&/._
+import scalaz._, Scalaz._, effect._
 
 object Factsets {
 
@@ -29,8 +29,6 @@ object Factsets {
     factsets <- ids.traverse(id => factset(repository, id))
   } yield factsets.sortBy(_.id)
 
-  def factset(repository: Repository, id: FactsetId): ResultTIO[Factset] = for {
-    files      <- repository.store.list(Repository.factset(id)).map(_.filterHidden)
-    partitions <- ResultT.fromDisjunction[IO, List[Partition]](files.traverseU(Partition.parseKey).disjunction.leftMap(This.apply))
-  } yield Factset(id, Partitions(partitions.sorted))
+  def factset(repository: Repository, id: FactsetId): ResultTIO[Factset] =
+    Partitions.getFromFactset(repository, id).map(partitions => Factset(id, partitions.sorted))
 }

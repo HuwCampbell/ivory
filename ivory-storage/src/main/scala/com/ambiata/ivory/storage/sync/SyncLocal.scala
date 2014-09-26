@@ -7,12 +7,12 @@ import com.ambiata.mundane.io._
 import com.ambiata.poacher.hdfs.Hdfs
 import org.apache.hadoop.fs.Path
 import scalaz._, Scalaz._, effect.IO, effect.Effect._
-import IvorySyntax._
+
 
 object SyncLocal {
    def toHdfs(base: DirPath, destination: DirPath, cluster: Cluster): ResultTIO[Unit] = for {
      files <- Directories.list(base).map(_.map(_.asAbsolute))
-     _     <- Directories.mkdirs(cluster.root </> destination)
+     _     <- Directories.mkdirs(cluster.root.path </> destination)
      _     <- files.traverseU { path =>
        ResultT.using(path.asAbsolute.toInputStream) { input =>
          Hdfs.writeWith((cluster.root </> destination </> path.relativeTo(base)).toHdfs, { output =>

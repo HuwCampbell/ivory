@@ -9,7 +9,7 @@ import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.store._
-import com.ambiata.ivory.core.TemporaryReferences.{withRepository, Posix}
+import com.ambiata.ivory.core.TemporaryLocations.{withRepository, Posix}
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
@@ -75,15 +75,13 @@ class FactDiffSpec extends Specification with ThrownExpectations with FileMatche
     withRepository(Posix) { repository =>
       val key1   = "in" / "1"
       val key2   = "in" / "2"
-      val output = Reference(repository.store, DirPath.unsafe("out"))
+      val output = repository.toIvoryLocation(Key("out"))
 
       persist(PartitionFactThriftStorageV1.PartitionedFactThriftStorer(repository, key1, None).storeScoobi(facts1),
         PartitionFactThriftStorageV1.PartitionedFactThriftStorer(repository, key2, None).storeScoobi(facts2))
 
-      FactDiff.partitionFacts(
-        Reference(repository.store, repository.toFilePath(key1).toDirPath),
-        Reference(repository.store, repository.toFilePath(key2).toDirPath), output).run(sc) must beOk
-      ResultT.ok[IO, Result](AsResult(f(output.filePath.path, sc)))
+      FactDiff.partitionFacts(repository.toIvoryLocation(key1), repository.toIvoryLocation(key2), output).run(sc) must beOk
+      ResultT.ok[IO, Result](AsResult(f(output.path.path, sc)))
     } must beOkLike(identity)
   }
 }
