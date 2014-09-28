@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Used for ivory-cli tests to improve the startup performance of hadoop
+
+DIR=$(dirname $0)/..
+
+. ${DIR}/bin/hadoop-config.sh
+
+. "${DIR}/target/${HADOOP}/libexec/hadoop-config.sh"
+
+HADOOP_OPTS="${HADOOP_OPTS:-} -Dhadoop.security.logger=${HADOOP_SECURITY_LOGGER:-INFO,NullAppender}"
+
+JAR="$1"; shift
+MAIN_CLASS="$1"; shift
+
+exec "$JAVA" -cp "$CLASSPATH:$JAR" ${JAVA_HEAP_MAX:-} $HADOOP_OPTS "$MAIN_CLASS" "$@"
