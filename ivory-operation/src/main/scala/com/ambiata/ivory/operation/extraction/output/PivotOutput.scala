@@ -44,6 +44,6 @@ object PivotOutput {
     in          =  (inputStore.base </> input.path).toHdfs
     outputStore <- downcast[Any, HdfsStore](output.store, s"Pivot can only read from HDFS currently, got '$output'")
     out         =  (outputStore.base </> output.path).toHdfs
-    reducers    <- ReducerSize.calculate(in, 1.gb).run(hdfsRepo.configuration)
+    reducers    <- ReducerSize.calculate(in, 256.mb).run(hdfsRepo.configuration)
     } yield PivotOutputJob.run(hdfsRepo.configuration, dictionary, in, out, missing, delim, reducers, hdfsRepo.codec)
 }
