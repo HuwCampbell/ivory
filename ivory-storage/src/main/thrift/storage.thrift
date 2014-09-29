@@ -46,3 +46,12 @@ struct FeatureReduction {
 struct FeatureReductionLookup {
     1: map<i32, list<FeatureReduction>> reductions;
 }
+
+struct ChordEntity {
+    1: string entity;
+    2: list<i32> dates;
+}
+
+struct ChordEntities {
+    1: list<ChordEntity> entities;
+}
