@@ -29,10 +29,16 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
     )
     case Virtual(_, d) => List(
       Some("source" -> d.source.toString(":")),
-      Some("expression" -> Expression.asString(d.expression)),
+      Some("expression" -> Expression.asString(d.query.expression)),
+      d.query.filter.map(_.render).map("filter" ->),
       d.window.map(Window.asString).map("window" ->)
     )
   }).flatten.map { case (k, v) => k + "=" + v}.mkString(DELIM)
+
+  def parseEncoding(encv: String): ValidationNel[String, Encoding] =
+    DictionaryTextStorage.parseEncoding(encv).toValidationNel |||
+      DictionaryTextStorageV2(encv, DELIM).parseList |||
+      DictionaryTextStorageV2(encv, DELIM).parseStruct
 }
 
 case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extends Parser {
@@ -67,9 +73,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
   private def metaFromMap(featureId: FeatureId, m: Map[String, String]): ValidationNel[String, Definition] = {
     (m.get("encoding"), m.get("source")) match {
       case (Some(encv), None) =>
-        val enc = DictionaryTextStorage.parseEncoding(encv).toValidationNel |||
-          DictionaryTextStorageV2(encv, DELIMITER).parseList |||
-          DictionaryTextStorageV2(encv, DELIMITER).parseStruct
+        val enc = DictionaryTextStorageV2.parseEncoding(encv)
         val ty = m.get("type").cata(DictionaryTextStorage.parseType(_).map(some), None.success).toValidationNel
         val desc = m.getOrElse("description", "")
         val tomb = m.get("tombstone").cata(Delimited.parseCsv, Nil)
@@ -87,8 +91,9 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
         }
         val expression = m.get("expression").toRightDisjunction("Missing expression")
           .flatMap(e => Expression.parse(e).toRightDisjunction("Invalid expression: " + e))
+        val filter = m.get("filter").map(Filter.apply).right
         DictionaryTextStorageV2(source, DELIMITER).featureId.run().fold(formatError(_).failureNel,
-          fid => (fid |@| expression |@| window)(Definition.virtual(featureId, _, _, _)).validation.toValidationNel)
+          fid => (fid |@| (expression |@| filter)(Query.apply) |@| window)(Definition.virtual(featureId, _, _, _)).validation.toValidationNel)
       case (Some(_), Some(_))  =>
         "Must specify either 'encoding' or 'source' but not both".failureNel
       case (None, None)        =>

@@ -10,7 +10,7 @@ trait ArbitrariesDictionary {
   case class VirtualDictionary(cd: ConcreteDefinition, fid: FeatureId, vd: VirtualDefinition) {
 
     def withExpression(expression: Expression): VirtualDictionary =
-      copy(vd = vd.copy(expression = expression))
+      copy(vd = vd.copy(query = vd.query.copy(expression = expression)))
 
     def withSource(source: FeatureId): VirtualDictionary =
       copy(vd = vd.copy(source = source))
@@ -23,7 +23,7 @@ trait ArbitrariesDictionary {
   case class ConcreteGroupFeature(fid: FeatureId, cg: ConcreteGroup) {
 
     def withExpression(expression: Expression): ConcreteGroupFeature =
-      copy(cg = cg.copy(virtual = cg.virtual.map(vd => vd._1 -> vd._2.copy(expression = expression))))
+      copy(cg = cg.copy(virtual = cg.virtual.map(vd => vd._1 -> vd._2.copy(query = vd._2.query.copy(expression = expression)))))
 
     def dictionary: Dictionary =
       Dictionary(cg.definition.toDefinition(fid) :: cg.virtual.map(vd => vd._2.toDefinition(vd._1)))

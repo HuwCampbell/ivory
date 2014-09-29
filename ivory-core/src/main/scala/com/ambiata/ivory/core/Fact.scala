@@ -2,6 +2,7 @@ package com.ambiata.ivory.core
 
 import com.ambiata.ivory.core.thrift._
 import scala.collection.JavaConverters._
+import scalaz._, Scalaz._
 
 trait Fact {
   def entity: String
@@ -237,4 +238,12 @@ object Value {
       "(" + values.map { case (k, p) => k + ":" + toStringPrimitive(p)}.mkString(",") + ")"
   }
 
+  def parsePrimitive(encoding: PrimitiveEncoding, raw: String): Validation[String, PrimitiveValue] = encoding match {
+    case BooleanEncoding                         => raw.parseBoolean.leftMap(_ => s"Value '$raw' is not a boolean").map(v => BooleanValue(v))
+    case IntEncoding                             => raw.parseInt.leftMap(_ => s"Value '$raw' is not an integer").map(v => IntValue(v))
+    case LongEncoding                            => raw.parseLong.leftMap(_ => s"Value '$raw' is not a long").map(v => LongValue(v))
+    case DoubleEncoding                          => raw.parseDouble.flatMap(d => if(Value.validDouble(d)) d.success else ().failure)
+      .leftMap(_ => s"Value '$raw' is not a double").map(v => DoubleValue(v))
+    case StringEncoding                          => StringValue(raw).success[String]
+  }
 }

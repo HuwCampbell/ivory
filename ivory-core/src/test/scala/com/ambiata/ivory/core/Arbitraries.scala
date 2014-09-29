@@ -130,6 +130,70 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   implicit def ExpressionArbitrary: Arbitrary[Expression] =
     Arbitrary(Gen.oneOf(Count, Latest))
 
+  case class DefinitionWithFilter(cd: ConcreteDefinition, filter: FilterEncoded)
+  case class FactsWithFilter(filter: DefinitionWithFilter, facts: List[Fact], other: List[Fact])
+
+  implicit def DefinitionWithFilterArb: Arbitrary[DefinitionWithFilter] = Arbitrary(for {
+    cd <- featureMetaGen(Gen.oneOf(arbitrary[PrimitiveEncoding], arbitrary[StructEncoding]))
+    f  <- arbitraryFilter(cd)
+  } yield DefinitionWithFilter(cd, f.get))
+
+  implicit def FactsWithFilterArb: Arbitrary[FactsWithFilter] = Arbitrary(for {
+    d <- arbitrary[DefinitionWithFilter]
+    n <- Gen.choose(0, 10)
+    entities = Gen.choose(0, 1000).map(testEntityId)
+    f <- Gen.listOfN(n, for {
+      f <- factWithZoneGen(entities, Gen.const(d.cd))
+      // This is probably going to get pretty hairy when we add more filter operations
+      v <- d.filter match {
+        case FilterStruct(op, fields) => Gen.const(StructValue(fields.toMap.mapValues {
+          case FilterEquals(v) => v
+        }))
+        case FilterValues(_, fields) => Gen.oneOf(fields.map {
+          case FilterEquals(v) => v
+        })
+      }
+    } yield f._2.withValue(v))
+    o  <- Gen.choose(0, 10).flatMap(n => Gen.listOfN(n, factWithZoneGen(entities, Gen.const(d.cd)).map(_._2)).map(_.filterNot {
+      // Filter out facts that would otherwise match
+      fact => FilterTester.eval(d.filter, fact)
+    }))
+  } yield FactsWithFilter(d, f, o))
+
+  /** You can't generate a filter without first knowing what fields exist for this feature */
+  def arbitraryFilter(cd: ConcreteDefinition): Gen[Option[FilterEncoded]] = {
+
+    def arbitraryFilterExpression(encoding: PrimitiveEncoding): Gen[FilterExpression] =
+      valueOfPrim(encoding).flatMap {
+        case StringValue(s) => Gen.identifier.map(StringValue.apply) // Just for now keep this _really_ simple
+        case v              => Gen.const(v)
+      }.map(FilterEquals.apply)
+
+    cd.encoding match {
+      case se: StructEncoding =>
+        (for {
+          op     <- Gen.oneOf(FilterOpAnd, FilterOpOr)
+          // Make sure we have a at least one value
+          sev    <- Gen.choose(1, se.values.size).flatMap(i => Gen.pick(i, se.values))
+          fields <- Gen.sequence[Seq, (String, FilterExpression)](sev.map {
+            case (name, StructEncodedValue(enc, _)) => arbitraryFilterExpression(enc).map(name ->)
+          }).map(_.toList)
+        } yield FilterStruct(op, fields)).map(some)
+      case pe: PrimitiveEncoding =>
+        (for {
+          op     <- Gen.oneOf(FilterOpAnd, FilterOpOr)
+          // Make sure we have at least one value
+          n      <- Gen.choose(1, op match {
+            case FilterOpAnd => 1 // For non-struct values it's impossible to equal more than one value
+            case FilterOpOr  => 3
+          })
+          fields <- Gen.listOfN(n, arbitraryFilterExpression(pe))
+        } yield FilterValues(op, fields)).map(some)
+      // We don't support list encoding at the moment
+      case _: ListEncoding => Gen.const(none)
+    }
+  }
+
   implicit def WindowArbitrary: Arbitrary[Window] = Arbitrary(for {
     length <- Gen.posNum[Int]
     unit   <- Gen.oneOf(Days, Weeks, Months, Years)
@@ -138,8 +202,10 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   def virtualDefGen(gen: (FeatureId, ConcreteDefinition)): Gen[(FeatureId, VirtualDefinition)] = for {
     fid        <- arbitrary[FeatureId]
     exp        <- arbitrary[Expression]
+    filter     <- arbitraryFilter(gen._2)
     window     <- arbitrary[Option[Window]]
-  } yield (fid, VirtualDefinition(gen._1, exp, window))
+    query       = Query(exp, filter.map(FilterTextV0.asString).map(_.render).map(Filter.apply))
+  } yield (fid, VirtualDefinition(gen._1, query, window))
 
   implicit def FeatureMetaArbitrary: Arbitrary[ConcreteDefinition] =
     Arbitrary(featureMetaGen(arbitrary[Encoding]))

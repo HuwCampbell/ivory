@@ -21,7 +21,7 @@ object DictionaryOutput {
             case Concrete(_, cd) => Some(cd)
             case Virtual(_, _)   => None
           }.getOrElse(ConcreteDefinition(StringEncoding, None, "", List(tombstone)))
-          vd.expression match {
+          vd.query.expression match {
             // A short term hack for supporting feature gen based on known functions
             case Count  => ConcreteDefinition(LongEncoding, None, "", List(tombstone))
             case Latest => ConcreteDefinition(source.encoding, None, "", List(tombstone))

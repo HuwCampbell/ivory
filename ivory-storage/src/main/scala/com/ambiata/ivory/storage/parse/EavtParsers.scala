@@ -40,12 +40,7 @@ object EavtParsers {
 
   def valueFromString(meta: ConcreteDefinition, raw: String): Validation[String, Value] = meta.encoding match {
     case _ if meta.tombstoneValue.contains(raw)  => TombstoneValue.success[String]
-    case BooleanEncoding                         => raw.parseBoolean.leftMap(_ => s"Value '$raw' is not a boolean").map(v => BooleanValue(v))
-    case IntEncoding                             => raw.parseInt.leftMap(_ => s"Value '$raw' is not an integer").map(v => IntValue(v))
-    case LongEncoding                            => raw.parseLong.leftMap(_ => s"Value '$raw' is not a long").map(v => LongValue(v))
-    case DoubleEncoding                          => raw.parseDouble.flatMap(d => if(Value.validDouble(d)) d.success else ().failure)
-                                                        .leftMap(_ => s"Value '$raw' is not a double").map(v => DoubleValue(v))
-    case StringEncoding                          => StringValue(raw).success[String]
+    case p: PrimitiveEncoding                    => Value.parsePrimitive(p, raw)
     case s: StructEncoding                       => "Struct encoding not supported".failure
     case _: ListEncoding                         => "List encoding not supported".failure
   }

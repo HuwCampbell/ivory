@@ -38,7 +38,9 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
   private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField SOURCE_FIELD_DESC = new org.apache.thrift.protocol.TField("source", org.apache.thrift.protocol.TType.STRING, (short)2);
   private static final org.apache.thrift.protocol.TField EXPRESSION_FIELD_DESC = new org.apache.thrift.protocol.TField("expression", org.apache.thrift.protocol.TType.STRING, (short)3);
-  private static final org.apache.thrift.protocol.TField DATE_FIELD_DESC = new org.apache.thrift.protocol.TField("date", org.apache.thrift.protocol.TType.I32, (short)4);
+  private static final org.apache.thrift.protocol.TField ENCODING_FIELD_DESC = new org.apache.thrift.protocol.TField("encoding", org.apache.thrift.protocol.TType.STRING, (short)4);
+  private static final org.apache.thrift.protocol.TField FILTER_FIELD_DESC = new org.apache.thrift.protocol.TField("filter", org.apache.thrift.protocol.TType.STRING, (short)5);
+  private static final org.apache.thrift.protocol.TField DATE_FIELD_DESC = new org.apache.thrift.protocol.TField("date", org.apache.thrift.protocol.TType.I32, (short)6);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -49,6 +51,8 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
   public String ns; // required
   public String source; // required
   public String expression; // required
+  public String encoding; // required
+  public String filter; // optional
   public int date; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -56,7 +60,9 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
     NS((short)1, "ns"),
     SOURCE((short)2, "source"),
     EXPRESSION((short)3, "expression"),
-    DATE((short)4, "date");
+    ENCODING((short)4, "encoding"),
+    FILTER((short)5, "filter"),
+    DATE((short)6, "date");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -77,7 +83,11 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
           return SOURCE;
         case 3: // EXPRESSION
           return EXPRESSION;
-        case 4: // DATE
+        case 4: // ENCODING
+          return ENCODING;
+        case 5: // FILTER
+          return FILTER;
+        case 6: // DATE
           return DATE;
         default:
           return null;
@@ -121,7 +131,7 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
   // isset id assignments
   private static final int __DATE_ISSET_ID = 0;
   private byte __isset_bitfield = 0;
-  private _Fields optionals[] = {_Fields.DATE};
+  private _Fields optionals[] = {_Fields.FILTER,_Fields.DATE};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -130,6 +140,10 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
     tmpMap.put(_Fields.SOURCE, new org.apache.thrift.meta_data.FieldMetaData("source", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.EXPRESSION, new org.apache.thrift.meta_data.FieldMetaData("expression", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.ENCODING, new org.apache.thrift.meta_data.FieldMetaData("encoding", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.FILTER, new org.apache.thrift.meta_data.FieldMetaData("filter", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.DATE, new org.apache.thrift.meta_data.FieldMetaData("date", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
@@ -143,12 +157,14 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
   public FeatureReduction(
     String ns,
     String source,
-    String expression)
+    String expression,
+    String encoding)
   {
     this();
     this.ns = ns;
     this.source = source;
     this.expression = expression;
+    this.encoding = encoding;
   }
 
   /**
@@ -165,6 +181,12 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
     if (other.isSetExpression()) {
       this.expression = other.expression;
     }
+    if (other.isSetEncoding()) {
+      this.encoding = other.encoding;
+    }
+    if (other.isSetFilter()) {
+      this.filter = other.filter;
+    }
     this.date = other.date;
   }
 
@@ -177,6 +199,8 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
     this.ns = null;
     this.source = null;
     this.expression = null;
+    this.encoding = null;
+    this.filter = null;
     setDateIsSet(false);
     this.date = 0;
   }
@@ -253,6 +277,54 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
     }
   }
 
+  public String getEncoding() {
+    return this.encoding;
+  }
+
+  public FeatureReduction setEncoding(String encoding) {
+    this.encoding = encoding;
+    return this;
+  }
+
+  public void unsetEncoding() {
+    this.encoding = null;
+  }
+
+  /** Returns true if field encoding is set (has been assigned a value) and false otherwise */
+  public boolean isSetEncoding() {
+    return this.encoding != null;
+  }
+
+  public void setEncodingIsSet(boolean value) {
+    if (!value) {
+      this.encoding = null;
+    }
+  }
+
+  public String getFilter() {
+    return this.filter;
+  }
+
+  public FeatureReduction setFilter(String filter) {
+    this.filter = filter;
+    return this;
+  }
+
+  public void unsetFilter() {
+    this.filter = null;
+  }
+
+  /** Returns true if field filter is set (has been assigned a value) and false otherwise */
+  public boolean isSetFilter() {
+    return this.filter != null;
+  }
+
+  public void setFilterIsSet(boolean value) {
+    if (!value) {
+      this.filter = null;
+    }
+  }
+
   public int getDate() {
     return this.date;
   }
@@ -302,6 +374,22 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
       }
       break;
 
+    case ENCODING:
+      if (value == null) {
+        unsetEncoding();
+      } else {
+        setEncoding((String)value);
+      }
+      break;
+
+    case FILTER:
+      if (value == null) {
+        unsetFilter();
+      } else {
+        setFilter((String)value);
+      }
+      break;
+
     case DATE:
       if (value == null) {
         unsetDate();
@@ -324,6 +412,12 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
     case EXPRESSION:
       return getExpression();
 
+    case ENCODING:
+      return getEncoding();
+
+    case FILTER:
+      return getFilter();
+
     case DATE:
       return Integer.valueOf(getDate());
 
@@ -344,6 +438,10 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
       return isSetSource();
     case EXPRESSION:
       return isSetExpression();
+    case ENCODING:
+      return isSetEncoding();
+    case FILTER:
+      return isSetFilter();
     case DATE:
       return isSetDate();
     }
@@ -387,6 +485,24 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
       if (!(this_present_expression && that_present_expression))
         return false;
       if (!this.expression.equals(that.expression))
+        return false;
+    }
+
+    boolean this_present_encoding = true && this.isSetEncoding();
+    boolean that_present_encoding = true && that.isSetEncoding();
+    if (this_present_encoding || that_present_encoding) {
+      if (!(this_present_encoding && that_present_encoding))
+        return false;
+      if (!this.encoding.equals(that.encoding))
+        return false;
+    }
+
+    boolean this_present_filter = true && this.isSetFilter();
+    boolean that_present_filter = true && that.isSetFilter();
+    if (this_present_filter || that_present_filter) {
+      if (!(this_present_filter && that_present_filter))
+        return false;
+      if (!this.filter.equals(that.filter))
         return false;
     }
 
@@ -445,6 +561,26 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetEncoding()).compareTo(other.isSetEncoding());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetEncoding()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.encoding, other.encoding);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetFilter()).compareTo(other.isSetFilter());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetFilter()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.filter, other.filter);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     lastComparison = Boolean.valueOf(isSetDate()).compareTo(other.isSetDate());
     if (lastComparison != 0) {
       return lastComparison;
@@ -498,6 +634,24 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
       sb.append(this.expression);
     }
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("encoding:");
+    if (this.encoding == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.encoding);
+    }
+    first = false;
+    if (isSetFilter()) {
+      if (!first) sb.append(", ");
+      sb.append("filter:");
+      if (this.filter == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.filter);
+      }
+      first = false;
+    }
     if (isSetDate()) {
       if (!first) sb.append(", ");
       sb.append("date:");
@@ -573,7 +727,23 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 4: // DATE
+          case 4: // ENCODING
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.encoding = iprot.readString();
+              struct.setEncodingIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 5: // FILTER
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.filter = iprot.readString();
+              struct.setFilterIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 6: // DATE
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
               struct.date = iprot.readI32();
               struct.setDateIsSet(true);
@@ -611,6 +781,18 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
         oprot.writeString(struct.expression);
         oprot.writeFieldEnd();
       }
+      if (struct.encoding != null) {
+        oprot.writeFieldBegin(ENCODING_FIELD_DESC);
+        oprot.writeString(struct.encoding);
+        oprot.writeFieldEnd();
+      }
+      if (struct.filter != null) {
+        if (struct.isSetFilter()) {
+          oprot.writeFieldBegin(FILTER_FIELD_DESC);
+          oprot.writeString(struct.filter);
+          oprot.writeFieldEnd();
+        }
+      }
       if (struct.isSetDate()) {
         oprot.writeFieldBegin(DATE_FIELD_DESC);
         oprot.writeI32(struct.date);
@@ -643,10 +825,16 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
       if (struct.isSetExpression()) {
         optionals.set(2);
       }
-      if (struct.isSetDate()) {
+      if (struct.isSetEncoding()) {
         optionals.set(3);
       }
-      oprot.writeBitSet(optionals, 4);
+      if (struct.isSetFilter()) {
+        optionals.set(4);
+      }
+      if (struct.isSetDate()) {
+        optionals.set(5);
+      }
+      oprot.writeBitSet(optionals, 6);
       if (struct.isSetNs()) {
         oprot.writeString(struct.ns);
       }
@@ -656,6 +844,12 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
       if (struct.isSetExpression()) {
         oprot.writeString(struct.expression);
       }
+      if (struct.isSetEncoding()) {
+        oprot.writeString(struct.encoding);
+      }
+      if (struct.isSetFilter()) {
+        oprot.writeString(struct.filter);
+      }
       if (struct.isSetDate()) {
         oprot.writeI32(struct.date);
       }
@@ -664,7 +858,7 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, FeatureReduction struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(4);
+      BitSet incoming = iprot.readBitSet(6);
       if (incoming.get(0)) {
         struct.ns = iprot.readString();
         struct.setNsIsSet(true);
@@ -678,6 +872,14 @@ public class FeatureReduction implements org.apache.thrift.TBase<FeatureReductio
         struct.setExpressionIsSet(true);
       }
       if (incoming.get(3)) {
+        struct.encoding = iprot.readString();
+        struct.setEncodingIsSet(true);
+      }
+      if (incoming.get(4)) {
+        struct.filter = iprot.readString();
+        struct.setFilterIsSet(true);
+      }
+      if (incoming.get(5)) {
         struct.date = iprot.readI32();
         struct.setDateIsSet(true);
       }

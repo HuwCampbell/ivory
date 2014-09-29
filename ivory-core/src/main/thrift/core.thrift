@@ -152,6 +152,7 @@ struct ThriftDictionaryWindow {
 
 struct ThriftDictionaryExpression {
     1: string expression;
+    2: optional string filter;
 }
 
 struct ThriftDictionaryVirtual {

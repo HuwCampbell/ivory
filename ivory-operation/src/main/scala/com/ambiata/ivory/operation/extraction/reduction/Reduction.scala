@@ -3,6 +3,7 @@ package com.ambiata.ivory.operation.extraction.reduction
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift.ThriftFactValue
 import com.ambiata.ivory.lookup.FeatureReduction
+import com.ambiata.ivory.storage.metadata.DictionaryTextStorageV2
 
 /**
  * Map-reduce reductions that represent a single feature gen.
@@ -23,8 +24,12 @@ trait Reduction {
 
 object Reduction {
 
-  def compile(fr: FeatureReduction): Option[Reduction] =
-    Expression.parse(fr.getExpression).map(Reduction.fromExpression)
+  def compile(fr: FeatureReduction): Option[Reduction] = for {
+    exp      <- Expression.parse(fr.getExpression)
+    encoding <- DictionaryTextStorageV2.parseEncoding(fr.getEncoding).toOption
+    filter    = if (fr.isSetFilter) Some(Filter(fr.getFilter)) else None
+    reduction = Reduction.fromExpression(exp)
+  } yield filter.flatMap(FilterReducer.compile(_, encoding, reduction).toOption).getOrElse(reduction)
 
   def fromExpression(exp: Expression): Reduction = exp match {
     case Count  => new CountReducer()
