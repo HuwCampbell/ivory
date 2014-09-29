@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.SnapshotJob
 import com.ambiata.ivory.storage.fact.FactsetGlob
-import com.ambiata.ivory.storage.lookup.ReducerLookups
+import com.ambiata.ivory.storage.lookup.{ReducerLookups, FactsetLookups}
 import com.ambiata.ivory.storage.task.FactsetJobKeys
 import com.ambiata.poacher.scoobi.ScoobiAction
 import org.apache.hadoop.fs.Path
@@ -64,10 +64,10 @@ object RenameJob {
 
       /* cache / config initializtion */
       ctx.thriftCache.push(job, Keys.Mapping, RenameMapping.toThrift(mapping, reducerLookups.features))
-      ctx.thriftCache.push(job, SnapshotJob.Keys.FactsetLookup, SnapshotJob.priorityTable(inputs))
+      ctx.thriftCache.push(job, SnapshotJob.Keys.FactsetLookup, FactsetLookups.priorityTable(inputs))
       ctx.thriftCache.push(job, ReducerLookups.Keys.NamespaceLookup, reducerLookups.namespaces)
       ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,   reducerLookups.reducers)
-      ctx.thriftCache.push(job, SnapshotJob.Keys.FactsetVersionLookup, SnapshotJob.versionTable(inputs.map(_.value)))
+      ctx.thriftCache.push(job, SnapshotJob.Keys.FactsetVersionLookup, FactsetLookups.versionTable(inputs.map(_.value)))
 
       /* run job */
       if (!job.waitForCompletion(true))

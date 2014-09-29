@@ -5,6 +5,7 @@ import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FactsetLookup, FactsetVersionLookup, SnapshotWindowLookup}
 import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
 import com.ambiata.ivory.storage.fact._
+import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.mr._
 import com.ambiata.mundane.io.FilePath
 
@@ -79,8 +80,8 @@ object SnapshotJob {
 
     // cache / config initializtion
     job.getConfiguration.set(Keys.SnapshotDate, date.int.toString)
-    ctx.thriftCache.push(job, Keys.FactsetLookup, priorityTable(inputs))
-    ctx.thriftCache.push(job, Keys.FactsetVersionLookup, versionTable(inputs.map(_.value)))
+    ctx.thriftCache.push(job, Keys.FactsetLookup, FactsetLookups.priorityTable(inputs))
+    ctx.thriftCache.push(job, Keys.FactsetVersionLookup, FactsetLookups.versionTable(inputs.map(_.value)))
     val (featureIdLookup, windowLookup) = windowTable(windows)
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup)
     ctx.thriftCache.push(job, Keys.WindowLookup, windowLookup)
@@ -94,18 +95,6 @@ object SnapshotJob {
       case "snap" => output
     }, true).run(conf).run.unsafePerformIO
     ()
-  }
-
-  def priorityTable(globs: List[Prioritized[FactsetGlob]]): FactsetLookup = {
-    val lookup = new FactsetLookup
-    globs.foreach(p => lookup.putToPriorities(p.value.factset.render, p.priority.toShort))
-    lookup
-  }
-
-  def versionTable(globs: List[FactsetGlob]): FactsetVersionLookup = {
-    val lookup = new FactsetVersionLookup
-    globs.foreach(g => lookup.putToVersions(g.factset.render, g.version.toByte))
-    lookup
   }
 
   def windowTable(windows: SnapshotWindows): (FeatureIdLookup, SnapshotWindowLookup) = {
