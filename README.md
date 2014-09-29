@@ -337,11 +337,11 @@ Ivory is developed by the engineering team at [Ambiata](http://ambiata.com/), fe
 > Eric Torreborre
 > <eric.torreborre@ambiata.com>
 
-> Max Swadling
-> <maxwell.swadling@ambiata.com>
-
 > Charles O'Farrell
 > <charles.ofarrell@ambiata.com>
 > [@charlesofarrell](https://twitter.com/charlesofarrell)
+
+> Nick Hibberd
+> <nick.hibberd@ambiata.com>
 
 You can also follow the project on Twitter [@ivoryproject](https://twitter.com/ivoryproject).
