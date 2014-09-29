@@ -9,6 +9,7 @@ import com.ambiata.ivory.mr.{Counter => _, _}
 import com.ambiata.ivory.operation.extraction._
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.task.FactsetJobKeys
+import com.ambiata.ivory.storage.fact._
 import org.apache.hadoop.io._
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs
 import org.apache.hadoop.mapreduce.{Counter, Mapper, Reducer}

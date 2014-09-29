@@ -5,7 +5,6 @@ import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FactsetLookup, FactsetVersionLookup, SnapshotWindowLookup}
 import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
 import com.ambiata.ivory.storage.fact._
-import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.mr._
 import com.ambiata.mundane.io.FilePath
 
@@ -133,19 +132,6 @@ object SnapshotJob {
 
 object SnapshotMapper {
   type MapperContext = Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context
-}
-
-/** Version specific thrift converter */
-sealed trait VersionedFactConverter {
-  def convert(tfact: ThriftFact): Fact
-}
-case class VersionOneFactConverter(partition: Partition) extends VersionedFactConverter {
-  def convert(tfact: ThriftFact): Fact =
-    PartitionFactThriftStorageV1.createFact(partition, tfact)
-}
-case class VersionTwoFactConverter(partition: Partition) extends VersionedFactConverter {
-  def convert(tfact: ThriftFact): Fact =
-    PartitionFactThriftStorageV2.createFact(partition, tfact)
 }
 
 /**
