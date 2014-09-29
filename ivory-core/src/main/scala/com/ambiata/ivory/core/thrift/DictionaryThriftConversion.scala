@@ -15,7 +15,8 @@ object DictionaryThriftConversion {
       IntEncoding -> INT,
       LongEncoding -> LONG,
       DoubleEncoding -> DOUBLE,
-      StringEncoding -> STRING
+      StringEncoding -> STRING,
+      DateEncoding -> DATE
     )
     val to: PrimitiveEncoding => ThriftDictionaryEncoding =
       enc => encodings.find(_._1 == enc).get._2

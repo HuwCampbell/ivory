@@ -57,6 +57,7 @@ object Fact {
       case LongValue(l)     => ThriftFactValue.l(l)
       case DoubleValue(d)   => ThriftFactValue.d(d)
       case TombstoneValue   => ThriftFactValue.t(new ThriftTombstone())
+      case DateValue(r)     => ThriftFactValue.date(r.int)
       case ListValue(v)     => ThriftFactValue.lst(new ThriftFactList(v.map {
         case p: PrimitiveValue  => ThriftFactListValue.p(primValue(p))
         case StructValue(m)     => ThriftFactListValue.s(new ThriftFactStructSparse(m.mapValues(primValue).asJava))
@@ -71,6 +72,7 @@ object Fact {
     case IntValue(i)      => ThriftFactPrimitiveValue.i(i)
     case LongValue(l)     => ThriftFactPrimitiveValue.l(l)
     case DoubleValue(d)   => ThriftFactPrimitiveValue.d(d)
+    case DateValue(r)     => ThriftFactPrimitiveValue.date(r.int)
   }
 }
 
@@ -111,6 +113,7 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       case tv if tv.isSetI => IntValue(tv.getI)
       case tv if tv.isSetL => LongValue(tv.getL)
       case tv if tv.isSetB => BooleanValue(tv.getB)
+      case tv if tv.isSetDate => DateValue(Date.unsafeFromInt(tv.getDate))
       case tv if tv.isSetT => TombstoneValue
       case tv if tv.isSetStructSparse
                            => StructValue(tv.getStructSparse.getV.asScala.toMap.mapValues(factPrimitiveToValue))
@@ -128,6 +131,7 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       case tsv if tsv.isSetI => IntValue(tsv.getI)
       case tsv if tsv.isSetL => LongValue(tsv.getL)
       case tsv if tsv.isSetB => BooleanValue(tsv.getB)
+      case tsv if tsv.isSetDate => DateValue(Date.unsafeFromInt(tsv.getDate))
       case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
     }
 
@@ -184,6 +188,11 @@ object StringFact {
   val fromTuple = apply _ tupled
 }
 
+object DateFact {
+  def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Date): Fact = 
+    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.date(value.int))
+}
+
 object TombstoneFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time): Fact =
     FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.t(new ThriftTombstone()))
@@ -200,7 +209,7 @@ case class IntValue(value: Int) extends PrimitiveValue
 case class LongValue(value: Long) extends PrimitiveValue
 case class DoubleValue(value: Double) extends PrimitiveValue
 case class StringValue(value: String) extends PrimitiveValue
-
+case class DateValue(value: Date) extends PrimitiveValue
 case object TombstoneValue extends Value
 
 case class StructValue(values: Map[String, PrimitiveValue]) extends SubValue
@@ -215,6 +224,7 @@ object Value {
     case IntValue(i)      => i.toString
     case LongValue(i)     => i.toString
     case DoubleValue(d)   => d.toString
+    case DateValue(r)     => r.hyphenated
     case StringValue(s)   => s
   }
 
@@ -244,6 +254,7 @@ object Value {
     case LongEncoding                            => raw.parseLong.leftMap(_ => s"Value '$raw' is not a long").map(v => LongValue(v))
     case DoubleEncoding                          => raw.parseDouble.flatMap(d => if(Value.validDouble(d)) d.success else ().failure)
       .leftMap(_ => s"Value '$raw' is not a double").map(v => DoubleValue(v))
+    case DateEncoding                            => Dates.date(raw).toRightDisjunction(s"Value '$raw' is not a date").validation.map(v => DateValue(v))
     case StringEncoding                          => StringValue(raw).success[String]
   }
 }

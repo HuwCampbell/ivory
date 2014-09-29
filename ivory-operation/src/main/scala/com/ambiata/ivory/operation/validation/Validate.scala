@@ -126,6 +126,7 @@ object Validate {
       case (LongValue(_),    LongEncoding)      => Success(())
       case (DoubleValue(_),  DoubleEncoding)    => Success(())
       case (StringValue(_),  StringEncoding)    => Success(())
+      case (DateValue(_),    DateEncoding)      => Success(())
       case (s:StructValue,   e: StructEncoding) => validateStruct(s, e)
       case (l:ListValue,     e: ListEncoding)   => l.values.foldMap(validateEncoding(_, e.encoding))
       case _                                    => s"Not a valid ${Encoding.render(encoding)}!".failure

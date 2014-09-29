@@ -11,6 +11,7 @@ union ThriftFactPrimitiveValue {
     5: bool b;
     // DEPRECATED - DO NOT USE
     6: ThriftTombstone t;
+    7: i32 date;
 }
 
 struct ThriftFactStructSparse {
@@ -36,6 +37,7 @@ union ThriftFactValue {
     6: ThriftTombstone t;
     7: ThriftFactStructSparse structSparse;
     8: ThriftFactList lst;
+    9: i32 date;
 }
 
 struct ThriftFact {
@@ -75,7 +77,8 @@ enum ThriftDictionaryEncoding {
     LONG = 2,
     DOUBLE = 3,
     STRING = 4,
-    STRUCT = 5
+    STRUCT = 5,
+    DATE = 6
 }
 
 enum ThriftDictionaryType {
