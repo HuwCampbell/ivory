@@ -15,7 +15,7 @@ import org.apache.hadoop.mapreduce.lib.input.{MultipleInputs, SequenceFileInputF
 import org.apache.hadoop.mapreduce.lib.output._
 
 object RenameJob {
-  def run(repository: Repository, mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], target: Path, reducerLookups: ReducerLookups,
+  def run(repository: HdfsRepository, mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], target: Path, reducerLookups: ReducerLookups,
           codec: Option[CompressionCodec]): ScoobiAction[RenameStats] = for {
     conf  <- ScoobiAction.scoobiConfiguration
     job = Job.getInstance(conf.configuration)
@@ -47,7 +47,7 @@ object RenameJob {
       mappers.foreach({ case (clazz, factsetGlob) =>
         factsetGlob.keys.foreach { key =>
           println(s"Input path: ${key.name}")
-          MultipleInputs.addInputPath(job, repository.toIvoryLocation(key).toHdfs, classOf[SequenceFileInputFormat[_, _]], clazz)
+          MultipleInputs.addInputPath(job, repository.toIvoryLocation(key).toHdfsPath, classOf[SequenceFileInputFormat[_, _]], clazz)
         }
       })
 

@@ -87,11 +87,11 @@ object Snapshot {
   def runSnapshot(repository: Repository, newSnapshot: SnapshotMeta, previousSnapshot: Option[SnapshotMeta], date: Date, newSnapshotId: SnapshotId): ResultTIO[Unit] =
     for {
       hr              <- downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'")
-      output          =  repository.toIvoryLocation(Repository.snapshot(newSnapshot.snapshotId))
+      output          =  hr.toIvoryLocation(Repository.snapshot(newSnapshot.snapshotId))
       dictionary      <- latestDictionaryFromIvory(repository)
       windows         =  SnapshotWindows.planWindow(dictionary, date)
       newFactsetGlobs <- calculateGlobs(repository, dictionary, windows, newSnapshot, previousSnapshot, date)
-      _               <- job(hr, previousSnapshot, newFactsetGlobs, date, output.toHdfs, windows, hr.codec).run(hr.configuration)
+      _               <- job(hr, previousSnapshot, newFactsetGlobs, date, output.toHdfsPath, windows, hr.codec).run(hr.configuration)
       _               <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(newSnapshot.snapshotId) / ".dictionary", dictionary)
       _               <- SnapshotMeta.save(repository, newSnapshot)
     } yield ()
@@ -112,13 +112,13 @@ object Snapshot {
   /**
    * create a new snapshot as a Map-Reduce job
    */
-  private def job(repository: Repository, previousSnapshot: Option[SnapshotMeta],
+  private def job(repository: HdfsRepository, previousSnapshot: Option[SnapshotMeta],
                   factsetsGlobs: List[Prioritized[FactsetGlob]], snapshotDate: Date, outputPath: Path,
                   windows: SnapshotWindows, codec: Option[CompressionCodec]): Hdfs[Unit] =
     for {
       conf            <- Hdfs.configuration
-      incrementalPath =  previousSnapshot.map(meta => repository.toIvoryLocation(Repository.snapshot(meta.snapshotId)).toHdfs)
-      paths           =  factsetsGlobs.flatMap(_.value.keys.map(key => repository.toIvoryLocation(key).toHdfs)) ++ incrementalPath.toList
+      incrementalPath =  previousSnapshot.map(meta => repository.toIvoryLocation(Repository.snapshot(meta.snapshotId)).toHdfsPath)
+      paths           =  factsetsGlobs.flatMap(_.value.keys.map(key => repository.toIvoryLocation(key).toHdfsPath)) ++ incrementalPath.toList
       size            <- paths.traverse(Hdfs.size).map(_.sum)
       _               <- Hdfs.log(s"Total input size: $size")
       reducers        =  size.toBytes.value / 2.gb.toBytes.value + 1 // one reducer per 2GB of input
@@ -130,7 +130,8 @@ object Snapshot {
   def snapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Path] = for {
     sc         <- ScoobiAction.scoobiConfiguration
     repository <- ScoobiAction.fromResultTIO(Repository.fromUri(repoPath.toString, IvoryConfiguration.fromScoobiConfiguration(sc)))
-    snap       <- ScoobiAction.fromResultTIO(takeSnapshot(repository, date, incremental).map(res => repository.toIvoryLocation(Repository.snapshot(res.snapshotId)).toHdfs))
+    hr         <- ScoobiAction.fromResultTIO(downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'"))
+    snap       <- ScoobiAction.fromResultTIO(takeSnapshot(hr, date, incremental).map(res => hr.toIvoryLocation(Repository.snapshot(res.snapshotId)).toHdfsPath))
   } yield snap
 
   def dictionaryForSnapshot(repository: Repository, meta: SnapshotMeta): ResultTIO[Dictionary] =

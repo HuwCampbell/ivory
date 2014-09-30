@@ -9,7 +9,7 @@ import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.store._
-import com.ambiata.ivory.core.TemporaryLocations.{withRepository, Posix}
+import com.ambiata.ivory.core.TemporaryLocations.withHdfsRepository
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
@@ -72,7 +72,7 @@ class FactDiffSpec extends Specification with ThrownExpectations with FileMatche
 
   private def diff[R : AsResult](facts1: DList[Fact], facts2: DList[Fact])(f: (String, ScoobiConfiguration) => R): Result = {
     implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
-    withRepository(Posix) { repository =>
+    withHdfsRepository { repository =>
       val key1   = "in" / "1"
       val key2   = "in" / "2"
       val output = repository.toIvoryLocation(Key("out"))
@@ -81,7 +81,7 @@ class FactDiffSpec extends Specification with ThrownExpectations with FileMatche
         PartitionFactThriftStorageV1.PartitionedFactThriftStorer(repository, key2, None).storeScoobi(facts2))
 
       FactDiff.partitionFacts(repository.toIvoryLocation(key1), repository.toIvoryLocation(key2), output).run(sc) must beOk
-      ResultT.ok[IO, Result](AsResult(f(output.path.path, sc)))
+      ResultT.ok[IO, Result](AsResult(f(output.toHdfs, sc)))
     } must beOkLike(identity)
   }
 }

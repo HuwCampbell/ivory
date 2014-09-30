@@ -45,13 +45,13 @@ object SquashJob {
   def squash(repository: Repository, dictionary: Dictionary, input: Key, date: Date): ResultTIO[(Key, Boolean)] = {
     if (dictionary.hasVirtual) {
       val key = "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID)
-      val inPath = repository.toIvoryLocation(input).toHdfs
       for {
-        hdfs <- downcast[Repository, HdfsRepository](repository, s"Squash only works with Hdfs repositories currently, got '$repository'")
-        ns    = dictionary.byFeatureId.groupBy(_._1.namespace).keys.toList
+        hr     <- downcast[Repository, HdfsRepository](repository, s"Squash only works with Hdfs repositories currently, got '$repository'")
+        inPath =  hr.toIvoryLocation(input).toHdfsPath
+        ns     =  dictionary.byFeatureId.groupBy(_._1.namespace).keys.toList
         // This is about the best we can do at the moment, until we have more size information about each feature
-        rs   <- ReducerSize.calculate(inPath, 1.gb).run(hdfs.configuration)
-        _    <- run(hdfs.configuration, rs, dictionary.byConcrete, date, inPath, repository.toIvoryLocation(key).toHdfs, hdfs.codec)
+        rs     <- ReducerSize.calculate(inPath, 1.gb).run(hr.configuration)
+        _      <- run(hr.configuration, rs, dictionary.byConcrete, date, inPath, hr.toIvoryLocation(key).toHdfsPath, hr.codec)
       } yield (key, true)
     } else
     // No virtual features, let's skip the entire squash MR

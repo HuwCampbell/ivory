@@ -1,6 +1,6 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.core.Repository
+import com.ambiata.ivory.core.{HdfsRepository, Repository}
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
 import MemoryConversions._
@@ -28,8 +28,8 @@ object recreate extends IvoryApp {
   val cmd = IvoryCmd[CliArguments](parser, CliArguments(input = "", output = "", clean = true, dry = false, overwrite = false, recreateData = RecreateData.ALL, maxNumber = None, reducerSize = None),
     IvoryRunner { configuration => c =>
       for {
-        from  <- Repository.fromUri(c.input, configuration)
-        to    <- Repository.fromUri(c.output, configuration)
+        from  <- HdfsRepository.fromUri(c.input, configuration)
+        to    <- HdfsRepository.fromUri(c.output, configuration)
         rconf =  RecreateConfig(from = from,
                                 to = to,
                                 sc = configuration.scoobiConfiguration,

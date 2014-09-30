@@ -32,7 +32,7 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
       _ <- RepositoryBuilder.createRepo(repo, dict, List(allFacts))
       s <- Snapshot.takeSnapshot(repo, sf.date, false)
       f <- SquashJob.squashFromSnapshotWith(repo, dict, s)(key =>
-             ResultT.ok(valueFromSequenceFile[Fact](repo.toIvoryLocation(key).path.path).run(repo.scoobiConfiguration).toList))
+             ResultT.ok(valueFromSequenceFile[Fact](repo.toIvoryLocation(key).toHdfs).run(repo.scoobiConfiguration).toList))
     } yield f
     }.map(postProcess) must beOkValue(
       postProcess(sf.facts.list.flatMap(_.expectedFactsWithCount))

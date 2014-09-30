@@ -1,5 +1,6 @@
 package com.ambiata.ivory.core
 
+import java.io.File
 import java.net.URI
 
 import com.ambiata.mundane.io._
@@ -44,6 +45,6 @@ Repository Known Answer Tests
 
   def fragment =
     Repository.parseUri("some/path", conf) must
-      be_\/-(HdfsRepository(HdfsLocation("some" </> "path", new URI("some/path")), conf))
+      be_\/-(HdfsRepository(HdfsIvoryLocation(HdfsLocation(DirPath.unsafe(new File(".").getAbsolutePath).dirname </> "some" </> "path", new URI("some/path")), conf.configuration, conf.scoobiConfiguration, conf.codec)))
 
 }

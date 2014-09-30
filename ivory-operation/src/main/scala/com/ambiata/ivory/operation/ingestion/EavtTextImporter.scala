@@ -29,13 +29,14 @@ case class EavtTextImporter(repository: Repository,
     val errorKey = Repository.errors / factsetId.asKeyName
 
     for {
-      hr         <- downcast[Repository, HdfsRepository](repository, "Repository must be HDFS")
-      dictionary <- latestDictionaryFromIvory(repository)
-      inputPath  =  input.toHdfs
-      errorPath  =  repository.toIvoryLocation(errorKey).toHdfs
-      partitions <- namespace.fold(Namespaces.namespaceSizes(inputPath))(ns => Namespaces.namespaceSizesSingle(inputPath, ns).map(List(_))).run(hr.configuration)
-      _          <- ResultT.fromDisjunction[IO, Unit](validateNamespaces(dictionary, partitions.map(_._1)).leftMap(\&/.This(_)))
-      _          <- runJob(hr, dictionary, factsetId, inputPath, errorPath, partitions, timezone)
+      hr            <- downcast[Repository, HdfsRepository](repository, "Repository must be HDFS")
+      inputLocation <- downcast[IvoryLocation, HdfsIvoryLocation](input, "The input must be HDFS")
+      dictionary    <- latestDictionaryFromIvory(repository)
+      inputPath     =  inputLocation.toHdfsPath
+      errorPath     =  hr.toIvoryLocation(errorKey).toHdfsPath
+      partitions    <- namespace.fold(Namespaces.namespaceSizes(inputPath))(ns => Namespaces.namespaceSizesSingle(inputPath, ns).map(List(_))).run(hr.configuration)
+      _             <- ResultT.fromDisjunction[IO, Unit](validateNamespaces(dictionary, partitions.map(_._1)).leftMap(\&/.This(_)))
+      _             <- runJob(hr, dictionary, factsetId, inputPath, errorPath, partitions, timezone)
     } yield ()
   }
 
@@ -51,7 +52,7 @@ case class EavtTextImporter(repository: Repository,
         inputPath,
         namespace,
         paths,
-        repository.toIvoryLocation(Repository.factset(factsetId)).toHdfs,
+        hr.toIvoryLocation(Repository.factset(factsetId)).toHdfsPath,
         errorPath,
         format,
         hr.codec

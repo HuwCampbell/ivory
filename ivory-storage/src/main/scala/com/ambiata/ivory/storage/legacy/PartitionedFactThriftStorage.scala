@@ -26,14 +26,14 @@ trait PartitionFactThriftStorage {
   def createFact(partition: Partition, tfact: ThriftFact): Fact =
     FatThriftFact(partition.namespace.name, partition.date, tfact)
 
-  def loadScoobiWith(repo: Repository, factset: FactsetId, from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ Fact]] = for {
+  def loadScoobiWith(repo: HdfsRepository, factset: FactsetId, from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ Fact]] = for {
     glob  <- ScoobiAction.fromResultTIO((from, to) match {
                case (Some(f), Some(t)) => FactsetGlob.between(repo, factset, f, t)
                case (Some(f), None)    => FactsetGlob.after(repo, factset, f)
                case (None, Some(t))    => FactsetGlob.before(repo, factset, t)
                case (None, None)       => FactsetGlob.select(repo, factset)
              })
-    dlist <- loadScoobiFromPaths(glob.map(_.keys.map(k => repo.toIvoryLocation(k).toHdfs.toString)).getOrElse(Nil))
+    dlist <- loadScoobiFromPaths(glob.map(_.keys.map(k => repo.toIvoryLocation(k).toHdfs)).getOrElse(Nil))
   } yield dlist
 
   def loadScoobiFromPaths(paths: List[String]): ScoobiAction[DList[ParseError \/ Fact]] =
@@ -44,12 +44,12 @@ trait PartitionFactThriftStorage {
         DList[ParseError \/ Fact]()
     })
 
-  case class PartitionedFactThriftLoader(repo: Repository, factset: FactsetId, from: Option[Date] = None, to: Option[Date] = None) {
+  case class PartitionedFactThriftLoader(repo: HdfsRepository, factset: FactsetId, from: Option[Date] = None, to: Option[Date] = None) {
     def loadScoobi: ScoobiAction[DList[ParseError \/ Fact]] =
       loadScoobiWith(repo, factset, from, to)
   }
 
-  case class PartitionedMultiFactsetThriftLoader(repo: Repository, factsets: List[Prioritized[FactsetId]], from: Option[Date] = None, to: Option[Date] = None) {
+  case class PartitionedMultiFactsetThriftLoader(repo: HdfsRepository, factsets: List[Prioritized[FactsetId]], from: Option[Date] = None, to: Option[Date] = None) {
     def loadScoobi: ScoobiAction[DList[ParseError \/ (Priority, FactsetId, Fact)]] =
       factsets.traverseU(pfs =>
         loadScoobiWith(repo, pfs.value, from, to).map(_.map(_.map((pfs.priority, pfs.value, _))))
@@ -60,11 +60,11 @@ trait PartitionFactThriftStorage {
     Partition.stringPath(nsd._1, nsd._2)
   }
 
-  case class PartitionedFactThriftStorer(repository: Repository, key: Key, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
+  case class PartitionedFactThriftStorer(repository: HdfsRepository, key: Key, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
       dlist.by(f => partitionPath((f.namespace.name, f.date)))
            .mapValues((f: Fact) => f.toThrift)
-           .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](repository.toIvoryLocation(key).toHdfs.toString, identity, overwrite = true).persistWithCodec(codec)
+           .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](repository.toIvoryLocation(key).toHdfs, identity, overwrite = true).persistWithCodec(codec)
     }
   }
 }

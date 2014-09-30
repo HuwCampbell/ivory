@@ -1,18 +1,15 @@
 package com.ambiata.ivory.core
 
-case class ShadowRepository(root: IvoryLocation) {
-  def ivory: IvoryConfiguration = root.ivory
-  def configuration       = ivory.configuration
-  def scoobiConfiguration = ivory.scoobiConfiguration
-  def codec               = ivory.codec
+case class ShadowRepository(root: HdfsIvoryLocation) {
+  def configuration       = root.configuration
+  def scoobiConfiguration = root.scoobiConfiguration
+  def codec               = root.codec
 }
 
 
 object ShadowRepository {
-  def fromLocation(location: IvoryLocation): ShadowRepository =
-    ShadowRepository(location)
 
   def fromCluster(cluster: Cluster): ShadowRepository = ShadowRepository(cluster.root)
 
-  def toRepository(shadow: ShadowRepository): Repository = HdfsRepository(shadow.root.location, shadow.ivory)
+  def toRepository(shadow: ShadowRepository): Repository = HdfsRepository(shadow.root)
 }

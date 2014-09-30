@@ -35,6 +35,6 @@ object importDictionary extends IvoryApp {
           case f @ Failure(errors) => ResultT.safe[IO, Unit](errors.list.foreach(println))
         }
         _       <- ResultT.fromOption[IO, DictionaryId](result._2, "Invalid dictionary")
-      } yield List(s"Successfully imported dictionary ${c.path} into ${repository.root.path.path}")
+      } yield List(s"Successfully imported dictionary ${c.path} into ${repository.root.show}")
   })
 }

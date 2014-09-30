@@ -3,7 +3,6 @@ package com.ambiata.ivory.operation.diff
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, Value => _, _}, Scalaz._
 import com.ambiata.poacher.scoobi._
-import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.scoobi._
@@ -11,10 +10,10 @@ import FactFormats._
 
 object FactDiff {
 
-  def partitionFacts(input1: IvoryLocation, input2: IvoryLocation, outputPath: IvoryLocation): ScoobiAction[Unit] = {
+  def partitionFacts(input1: HdfsIvoryLocation, input2: HdfsIvoryLocation, outputPath: HdfsIvoryLocation): ScoobiAction[Unit] = {
     for {
-      dlist1 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(input1.path </> "*" </> "*" </> "*" </> "*").map(_.path)).flatMap(parseError)
-      dlist2 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(input2.path </> "*" </> "*" </> "*" </> "*").map(_.path)).flatMap(parseError)
+      dlist1 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(input1.toHdfs+"/*/*/*/*")).flatMap(parseError)
+      dlist2 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(input2.toHdfs+"/*/*/*/*")).flatMap(parseError)
       _      <- scoobiJob(dlist1, dlist2, outputPath)
     } yield ()
   }
@@ -27,17 +26,17 @@ object FactDiff {
       })
     })
 
-  def flatFacts(input1: IvoryLocation, input2: IvoryLocation, outputPath: IvoryLocation): ScoobiAction[Unit] = for {
+  def flatFacts(input1: HdfsIvoryLocation, input2: HdfsIvoryLocation, outputPath: HdfsIvoryLocation): ScoobiAction[Unit] = for {
     res <- ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-             val dlist1 = valueFromSequenceFile[Fact](input1.path.path)
-             val dlist2 = valueFromSequenceFile[Fact](input2.path.path)
+             val dlist1 = valueFromSequenceFile[Fact](input1.toHdfs)
+             val dlist2 = valueFromSequenceFile[Fact](input2.toHdfs)
              (dlist1, dlist2)
            })
     (dlist1, dlist2) = res
     _   <- scoobiJob(dlist1, dlist2, outputPath)
   } yield ()
 
-  def scoobiJob(first_facts: DList[Fact], second_facts: DList[Fact], outputPath: IvoryLocation): ScoobiAction[Unit] = {
+  def scoobiJob(first_facts: DList[Fact], second_facts: DList[Fact], outputPath: HdfsIvoryLocation): ScoobiAction[Unit] = {
     ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
 
       val facts = first_facts.map((true, _)) ++ second_facts.map((false, _))
@@ -58,7 +57,7 @@ object FactDiff {
         case g                    => s"Found duplicates - '${g}'"
       })
 
-      persist(out.toTextFile(outputPath.path.path, overwrite = true))
+      persist(out.toTextFile(outputPath.toHdfs, overwrite = true))
       ()
     }
   }

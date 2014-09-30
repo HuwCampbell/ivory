@@ -33,6 +33,6 @@ object chord extends IvoryApp {
       _    <- Extraction.extract(of, ChordExtract(repo.toIvoryLocation(out))).run(IvoryRead.prod(repo))
       // Delete the output file only if successful - could be useful for debugging otherwise
       _    <- repo.store.deleteAll(out)
-    } yield List(s"Successfully extracted chord from '${repo.root.path.path}'")
+    } yield List(s"Successfully extracted chord from '${repo.root.show}'")
   })
 }

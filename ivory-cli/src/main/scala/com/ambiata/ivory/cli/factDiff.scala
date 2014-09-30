@@ -23,9 +23,9 @@ object factDiff extends IvoryApp {
 
     val action =
       for {
-        input1 <- IvoryLocation.fromUri(c.input1, configuration)
-        input2 <- IvoryLocation.fromUri(c.input2, configuration)
-        output <- IvoryLocation.fromUri(c.output, configuration)
+        input1 <- HdfsIvoryLocation.fromUri(c.input1, configuration)
+        input2 <- HdfsIvoryLocation.fromUri(c.input2, configuration)
+        output <- HdfsIvoryLocation.fromUri(c.output, configuration)
         _      <- IvoryRetire.diffFacts(input1, input2, output).run(configuration.scoobiConfiguration)
       } yield ()
 

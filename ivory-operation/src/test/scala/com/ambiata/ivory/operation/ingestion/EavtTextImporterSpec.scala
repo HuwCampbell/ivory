@@ -60,10 +60,10 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
   implicit lazy val fs = sc.fileSystem
 
   lazy val base = directory
-  lazy val input = IvoryLocation(LocalLocation(base </> "input"), ivory)
+  lazy val input = HdfsIvoryLocation(HdfsLocation(base </> "input"), ivory)
   lazy val namespaced = input </> "ns1"
   lazy val repository = HdfsRepository(HdfsLocation(directory </> "repo"), ivory)
-  lazy val errors = IvoryLocation(LocalLocation(base </> "errors"), ivory)
+  lazy val errors = HdfsIvoryLocation(HdfsLocation(base </> "errors"), ivory)
   lazy val ns1 = Name("ns1")
 
   val dictionary =
@@ -89,7 +89,7 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
     import com.ambiata.ivory.operation.ingestion.thrift._
     val serializer = ThriftSerialiser()
 
-    SequenceUtil.writeBytes(IvoryLocation.fromFilePath(directory </> "input" </> "ns1" <|> FileName(java.util.UUID.randomUUID)), None) {
+    SequenceUtil.writeBytes(HdfsIvoryLocation(HdfsLocation(directory </> "input" </> "ns1" </> FileName(java.util.UUID.randomUUID)), IvoryConfiguration.Empty), None) {
       writer => ResultT.safe(expected.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
     }.run(sc) must beOk
   }
@@ -106,7 +106,7 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
 
   def importAs(format: Format) =
     EavtTextImporter(repository, namespace = None, optimal = 128.mb, format).
-        runJob(repository, dictionary, FactsetId.initial, input.toHdfs, errors.toHdfs, List(ns1 -> 1.mb), DateTimeZone.getDefault) >>
+        runJob(repository, dictionary, FactsetId.initial, input.toHdfsPath, errors.toHdfsPath, List(ns1 -> 1.mb), DateTimeZone.getDefault) >>
     writeFactsetVersion(repository, List(FactsetId.initial)) must beOk
 
   def theImportMustBeOk = 

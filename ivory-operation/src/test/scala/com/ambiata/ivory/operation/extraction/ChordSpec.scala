@@ -30,7 +30,7 @@ ChordSpec
         entitiesLocation =  IvoryLocation.fromDirPath(directory </> "entities")
         _                <- IvoryLocation.writeUtf8Lines(entitiesLocation, entities)
         outPath          <- Chord.createChord(repo, entitiesLocation, takeSnapshot = true)
-        facts            <- ResultT.safe[IO, List[Fact]](valueFromSequenceFile[Fact](repo.toIvoryLocation(outPath).toHdfs.toString).run.toList)
+        facts            <- ResultT.safe[IO, List[Fact]](valueFromSequenceFile[Fact](repo.toIvoryLocation(outPath).toHdfs).run.toList)
       } yield facts
     }
   } must beOkLike {

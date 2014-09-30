@@ -16,35 +16,35 @@ object SyncIngest {
    def inputDataSet(input: InputDataset, cluster: Cluster): ResultTIO[ShadowInputDataset] = {
      val outputPath = DirPath.unsafe(s"shadowInputDataset/${UUID.randomUUID()}")
 
-     input.location.location match {
-       case l: LocalLocation =>
+     input.location match {
+       case LocalIvoryLocation(LocalLocation(path, _)) =>
          val out =
-           if (l.path.toFile.isFile) outputPath </> l.path.basename
-           else                      outputPath
+           if (path.toFile.isFile) outputPath </> path.basename
+           else                    outputPath
 
-         SyncLocal.toHdfs(l.path, outputPath, cluster) >>
+         SyncLocal.toHdfs(path, outputPath, cluster) >>
            ResultT.ok(shadowInputDatasetFromPath(out, cluster))
 
-       case l: S3Location =>
-         SyncS3.toHdfs(l.path, outputPath, cluster) >>
+       case S3IvoryLocation(S3Location(path,_ ), _) =>
+         SyncS3.toHdfs(path, outputPath, cluster) >>
            ResultT.ok(shadowInputDatasetFromPath(outputPath, cluster))
 
-       case l: HdfsLocation =>
-         ResultT.ok(ShadowInputDataset(input.location.copy(ivory = cluster.ivory)))
+       case h @ HdfsIvoryLocation(HdfsLocation(_, _), _, _, _) =>
+         ResultT.ok(ShadowInputDataset(h))
      }
    }
 
    def shadowInputDatasetFromPath(path: DirPath, cluster: Cluster): ShadowInputDataset =
-     ShadowInputDataset((cluster.root </> path).copy(ivory = cluster.ivory))
+     ShadowInputDataset(cluster.root </> path)
 
    def toCluster(datasets:Datasets, source: Repository, cluster: Cluster): ResultTIO[ShadowRepository] =
-     (source match {
-       case S3Repository(bucket, root, _) => getKeys(datasets).traverseU(key => SyncS3.toHdfs(root, DirPath.unsafe(key.name), cluster)).void
-       case LocalRepository(root)         => getKeys(datasets).traverseU(key => SyncLocal.toHdfs(root.path, DirPath.unsafe(key.name), cluster)).void
-       case HdfsRepository(_, _)          => ResultT.unit[IO]
+     (source.root.location match {
+       case S3Location(root, _)    => getKeys(datasets).traverseU(key => SyncS3.toHdfs(root, DirPath.unsafe(key.name), cluster)).void
+       case LocalLocation(root, _) => getKeys(datasets).traverseU(key => SyncLocal.toHdfs(root, DirPath.unsafe(key.name), cluster)).void
+       case HdfsLocation(_, _)     => ResultT.unit[IO]
      }).as(source match {
-       case HdfsRepository(r, c) => ShadowRepository(IvoryLocation(r, c))
-       case _                    => ShadowRepository(cluster.root)
+       case HdfsRepository(r) => ShadowRepository(r)
+       case _                 => ShadowRepository(cluster.root)
      })
 
  }

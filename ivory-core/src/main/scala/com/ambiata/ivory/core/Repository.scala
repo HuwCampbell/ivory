@@ -21,26 +21,43 @@ import scalaz.{Store => _, _}
  */
 sealed trait Repository {
   def store: Store[ResultTIO]
-  def root: Location
+  def root: IvoryLocation
   def toIvoryLocation(key: Key): IvoryLocation
 }
 
-case class HdfsRepository(root: Location, @transient ivory: IvoryConfiguration) extends Repository {
-  def configuration       = ivory.configuration
-  def scoobiConfiguration = ivory.scoobiConfiguration
-  def codec               = ivory.codec
+case class HdfsRepository(root: HdfsIvoryLocation) extends Repository {
+  def configuration       = root.configuration
+  def scoobiConfiguration = root.scoobiConfiguration
+  def codec               = root.codec
 
-  val store = HdfsStore(configuration, root.path)
+  val store = HdfsStore(configuration, root.location.path)
 
-  def toIvoryLocation(key: Key): IvoryLocation =
-    IvoryLocation(HdfsLocation(root.path </> DirPath.unsafe(key.name), root.uri), ivory)
+  def toIvoryLocation(key: Key): HdfsIvoryLocation =
+    root </> DirPath.unsafe(key.name)
 }
 
-case class LocalRepository(root: Location) extends Repository {
-  def store = PosixStore(root.path)
+object HdfsRepository {
+  def apply(location: HdfsLocation, ivory: IvoryConfiguration): HdfsRepository =
+    new HdfsRepository(HdfsIvoryLocation(location, ivory.configuration, ivory.scoobiConfiguration, ivory.codec))
 
-  def toIvoryLocation(key: Key): IvoryLocation =
-    IvoryLocation(LocalLocation(root.path </> DirPath.unsafe(key.name), root.uri), IvoryConfiguration.Empty)
+  def fromUri(uri: String, ivory: IvoryConfiguration): ResultTIO[HdfsRepository] =
+    Repository.fromUri(uri, ivory).flatMap {
+      case h: HdfsRepository => ResultT.ok[IO, HdfsRepository](h)
+      case r                 => ResultT.fail[IO, HdfsRepository](s"${r.root.show} is not an HDFS repository")
+    }
+
+}
+
+case class LocalRepository(root: LocalIvoryLocation) extends Repository {
+  def store = PosixStore(root.location.path)
+
+  def toIvoryLocation(key: Key): LocalIvoryLocation =
+    root </> DirPath.unsafe(key.name)
+}
+
+object LocalRepository {
+  def apply(location: LocalLocation): LocalRepository =
+    new LocalRepository(LocalIvoryLocation(location))
 }
 
 /**
@@ -49,17 +66,16 @@ case class LocalRepository(root: Location) extends Repository {
  * tmpDirectory is a transient directory (on Hdfs) that is used to import data and
  * convert them to the ivory format before pushing them to S3
  */
-case class S3Repository(root: Location, s3TmpDirectory: DirPath, @transient ivory: IvoryConfiguration) extends Repository {
-  def store = S3Store(root.path.rootname.basename.name, root.path.fromRoot, ivory.s3Client, s3TmpDirectory)
+case class S3Repository(root: S3IvoryLocation, s3TmpDirectory: DirPath) extends Repository {
+  def store = S3Store(root.location.path.rootname.basename.name, root.location.path.fromRoot, root.s3Client, s3TmpDirectory)
 
-  def toIvoryLocation(key: Key): IvoryLocation =
-    IvoryLocation(S3Location(root.path </> DirPath.unsafe(key.name), root.uri), ivory)
+  def toIvoryLocation(key: Key): S3IvoryLocation =
+    root </> DirPath.unsafe(key.name)
 }
 
 object S3Repository {
-  def apply(location: Location, ivory: IvoryConfiguration): S3Repository =
-    new S3Repository(location, ivory.s3TmpDirectory, ivory)
-
+  def apply(location: S3Location, ivory: IvoryConfiguration): S3Repository =
+    new S3Repository(S3IvoryLocation(location, ivory.s3Client), ivory.s3TmpDirectory)
 }
 
 object Repository {
@@ -93,12 +109,10 @@ object Repository {
   def fromUri(uri: String, repositoryConfiguration: IvoryConfiguration): ResultTIO[Repository] =
     ResultT.fromDisjunction[IO, Repository](parseUri(uri, repositoryConfiguration).leftMap(This.apply))
 
-  def fromLocation(location: Location, repositoryConfiguration: IvoryConfiguration): Repository = location match {
-    case l: HdfsLocation  => HdfsRepository(l, repositoryConfiguration)
-    case l: LocalLocation => LocalRepository(l)
-    case l: S3Location    => S3Repository(l, repositoryConfiguration)
+  def fromIvoryLocation(location: IvoryLocation, repositoryConfiguration: IvoryConfiguration): Repository = location match {
+    case l: HdfsIvoryLocation  => HdfsRepository(l)
+    case l: LocalIvoryLocation => LocalRepository(l)
+    case l: S3IvoryLocation    => S3Repository(l, repositoryConfiguration.s3TmpDirectory)
   }
 
-  def fromIvoryLocation(location: IvoryLocation, repositoryConfiguration: IvoryConfiguration): Repository =
-    fromLocation(location.location, repositoryConfiguration)
 }

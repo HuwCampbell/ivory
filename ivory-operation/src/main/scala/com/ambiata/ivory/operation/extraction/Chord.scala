@@ -64,7 +64,7 @@ object Chord {
       featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotMeta(repository)(meta))
       dictionary           <- latestDictionaryFromIvory(repository)
       _                    <- chordScoobiJob(hr, dictionary, store, chordKey, entities.latestDate, featureStoreSnapshot,
-                                             repository.toIvoryLocation(outputKey).toHdfs, hr.codec).run(hr.scoobiConfiguration)
+                                             hr.toIvoryLocation(outputKey).toHdfsPath, hr.codec).run(hr.scoobiConfiguration)
       // Delete the temporary chordRef - no longer needed
       _                    <- repository.store.delete(chordKey)
     } yield outputKey
@@ -74,7 +74,7 @@ object Chord {
    * Persist facts which are the latest corresponding to a set of dates given for each entity.
    * Use the latest feature store snapshot if available
    */
-  def chordScoobiJob(repository: Repository, dictionary: Dictionary, store: FeatureStore, chordKey: Key,
+  def chordScoobiJob(repository: HdfsRepository, dictionary: Dictionary, store: FeatureStore, chordKey: Key,
                      latestDate: Date, snapshot: Option[FeatureStoreSnapshot],
                      outputPath: Path, codec: Option[CompressionCodec]): ScoobiAction[Unit] = ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
 
@@ -153,7 +153,7 @@ object Chord {
    * Read facts from a FeatureStore, up to a given date
    * If a FeatureStore snapshot is given we use it to retrieve the latest values
    */
-  def readFacts(repository: Repository, featureStore: FeatureStore,
+  def readFacts(repository: HdfsRepository, featureStore: FeatureStore,
                 latestDate: Date, featureStoreSnapshot: Option[FeatureStoreSnapshot]): ScoobiAction[DList[(Priority, SnapshotId \/ FactsetId, Fact)]] = {
     featureStoreSnapshot match {
       case None =>
@@ -161,7 +161,7 @@ object Chord {
           .map(_.map { case (p, fid, f) => (p, fid.right[SnapshotId], f) })
 
       case Some(snapshot) =>
-        val path          = repository.toIvoryLocation(Repository.snapshot(snapshot.snapshotId)).toHdfs
+        val path          = repository.toIvoryLocation(Repository.snapshot(snapshot.snapshotId)).toHdfsPath
         val newFactsets   = featureStore diff snapshot.store
 
         for {

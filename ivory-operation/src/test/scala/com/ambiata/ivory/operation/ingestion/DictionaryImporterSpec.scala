@@ -36,7 +36,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
       val dictionaryPath = dir <|> "dictionary.psv"
       for {
         _    <- Streams.write(new java.io.FileOutputStream(dictionaryPath.toFile), DictionaryTextStorageV2.delimitedString(dict))
-        repo =  Repository.fromLocation(LocalLocation(dir), IvoryConfiguration.Empty)
+        repo =  Repository.fromIvoryLocation(LocalIvoryLocation(LocalLocation(dir)), IvoryConfiguration.Empty)
         _    <- DictionaryImporter.importFromPath(repo, IvoryLocation.fromFilePath(dictionaryPath), opts.copy(ty = Override))
         out  <- latestDictionaryFromIvory(repo)
       } yield out
@@ -47,7 +47,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
     val dict1 = Dictionary(List(Definition.concrete(FeatureId(Name("a"), "b"), StringEncoding, Some(CategoricalType), "", Nil)))
     val dict2 = Dictionary(List(Definition.concrete(FeatureId(Name("c"), "d"), StringEncoding, Some(CategoricalType), "", Nil)))
     Temporary.using { dir =>
-      val repo = Repository.fromLocation(LocalLocation(dir), IvoryConfiguration.Empty)
+      val repo = Repository.fromIvoryLocation(LocalIvoryLocation(LocalLocation(dir)), IvoryConfiguration.Empty)
       for {
         _    <- fromDictionary(repo, dict1, opts.copy(ty = Override))
         _    <- fromDictionary(repo, dict2, opts.copy(ty = Update))

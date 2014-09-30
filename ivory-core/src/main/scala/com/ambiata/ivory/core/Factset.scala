@@ -20,7 +20,7 @@ object Factset {
 
   def parseFile(file: FilePath): Validation[String, (FactsetId, Partition)] = for {
     parent <- file.dirname.success[String]
-    res    <- pathListParser.run(parent.path.split("/").reverse.toList)
+    res    <- pathListParser.run(parent.components.reverse)
   } yield res
 
   def pathListParser: ListParser[(FactsetId, Partition)] = for {

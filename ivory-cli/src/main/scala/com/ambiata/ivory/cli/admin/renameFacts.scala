@@ -44,7 +44,7 @@ object renameFacts extends IvoryApp {
   def parseBatchFile(path: String, conf: IvoryConfiguration): ResultTIO[RenameMapping] = for {
     location <- IvoryLocation.fromUri(path, conf)
     exists   <- IvoryLocation.exists(location)
-    _        <- if (!exists) ResultT.fail[IO, Unit](s"Path ${location.path.path} does not exist") else ResultT.unit[IO]
+    _        <- if (!exists) ResultT.fail[IO, Unit](s"Path ${location.show} does not exist") else ResultT.unit[IO]
     lines    <- IvoryLocation.readLines(location)
     mapping  <- ResultT.fromDisjunction[IO, RenameMapping](lines.traverseU(parseLine).map(RenameMapping.apply).leftMap(\&/.This.apply))
   } yield mapping

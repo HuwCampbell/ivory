@@ -38,7 +38,7 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
     RepositoryBuilder.using { repo => for {
         _ <- RepositoryBuilder.createRepo(repo, vdict.vd.dictionary, List(facts ++ oldfacts))
         s <- Snapshot.takeSnapshot(repo, fact.date, false)
-        f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.snapshotId)).toHdfs.toString).run(repo.scoobiConfiguration)
+        f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.snapshotId)).toHdfs).run(repo.scoobiConfiguration)
       } yield f
     }.map(_.toSet) must beOkValue(facts.toSet)
   }).set(minTestsOk = 1)

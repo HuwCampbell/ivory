@@ -45,7 +45,7 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
       }
       val computNamespaces =
         (for {
-          _ <- namespaces.traverse(k => Hdfs.mkdir(repo.toIvoryLocation(k).toHdfs).run(sc.configuration))
+          _ <- namespaces.traverse(k => Hdfs.mkdir(repo.toIvoryLocation(k).toHdfsPath).run(sc.configuration))
           _ <- namespaces.map(_ / "f1").traverse(createFile(repo))
           sizes <- allNamespaceSizes(repo, nsInc.toList.map(_.namespace), fsInc.ids).run(sc.configuration)
         } yield sizes).map(_.toSet) must

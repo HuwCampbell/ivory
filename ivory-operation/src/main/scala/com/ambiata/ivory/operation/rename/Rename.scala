@@ -29,14 +29,14 @@ object Rename {
     hdfs       <- getHdfs
     subdict     = renameDictionary(mapping, dictionary)
     namespaces  = subdict.byFeatureId.groupBy(_._1.namespace).keys.toList
-    partitions <- fromResultT(Namespaces.allNamespaceSizes(_, namespaces, factsets).run(hdfs.configuration))
+    partitions <- fromResultT(_ => Namespaces.allNamespaceSizes(hdfs, namespaces, factsets).run(hdfs.configuration))
     _          <- fromResultT(_ => ResultT.fromDisjunction[IO, Unit](validate(mapping, dictionary).leftMap(\&/.This.apply)))
     // Create a subset of the dictionary with only the featureIds that we care about
     lookup      = ReducerLookups.createLookups(subdict, partitions, reducerSize)
   } yield lookup
 
   def prepareGlobsFromLatestStore(mapping: RenameMapping): IvoryTIO[List[Prioritized[FactsetGlob]]] = for {
-    repository <- IvoryT.repository[ResultTIO]
+    repository <- getHdfs
     storeIdO   <- Metadata.latestFeatureStoreIdT
     storeId    <- fromResultT(_ => ResultT.fromOption[IO, FeatureStoreId](storeIdO, "Repository doesn't yet contain a store"))
     store      <- Metadata.featureStoreFromIvoryT(storeId)
@@ -45,10 +45,9 @@ object Rename {
 
   def renameWithFactsets(mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], reducerLookups: ReducerLookups): IvoryTIO[(FactsetId, RenameStats)] = for {
     factset    <- IvoryT.fromResultTIO(repository => Factsets.allocateFactsetId(repository))
-    repository <- IvoryT.repository[ResultTIO]
-    output      = repository.toIvoryLocation(Repository.factset(factset)).toHdfs
     hdfs       <- getHdfs
-    stats      <- fromResultT(_ => RenameJob.run(repository, mapping, inputs, output, reducerLookups, hdfs.codec).run(ScoobiConfiguration(hdfs.configuration)))
+    output      = hdfs.toIvoryLocation(Repository.factset(factset)).toHdfsPath
+    stats      <- fromResultT(_ => RenameJob.run(hdfs, mapping, inputs, output, reducerLookups, hdfs.codec).run(ScoobiConfiguration(hdfs.configuration)))
     _          <- IvoryStorage.writeFactsetVersionI(List(factset))
   } yield factset -> stats
 

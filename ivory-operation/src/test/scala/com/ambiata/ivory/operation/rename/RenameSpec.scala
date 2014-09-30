@@ -93,7 +93,7 @@ Rename
         _      <- IvoryT.fromResultTIO(_ => RepositoryBuilder.createRepo(repo, dictionary, input.map(_.toList)))
         result <- Rename.rename(mapping, 10.mb)
         sc = repo.scoobiConfiguration
-        facts  <- IvoryT.fromResultT(IvoryStorage.factsFromIvoryFactset(_, result._1).run(sc).map(_.run(sc)))
+        facts  <- IvoryT.fromResultT(_ => IvoryStorage.factsFromIvoryFactset(repo, result._1).run(sc).map(_.run(sc)))
       } yield (result._3, facts.flatMap(_.toOption))).run(IvoryRead.testing(repo))
     }
 }
