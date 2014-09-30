@@ -10,6 +10,7 @@ case object IntEncoding       extends PrimitiveEncoding
 case object LongEncoding      extends PrimitiveEncoding
 case object DoubleEncoding    extends PrimitiveEncoding
 case object StringEncoding    extends PrimitiveEncoding
+case object DateEncoding      extends PrimitiveEncoding
 
 sealed trait SubEncoding extends Encoding
 
@@ -42,6 +43,7 @@ object Encoding {
     case LongEncoding    => "long"
     case DoubleEncoding  => "double"
     case StringEncoding  => "string"
+    case DateEncoding    => "date"
   }
 
   def isPrimitive(enc: Encoding): Boolean =

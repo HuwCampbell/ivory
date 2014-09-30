@@ -6,6 +6,7 @@ union ThriftFactPrimitiveValue {
     3: i64 l;
     4: double d;
     5: bool b;
+    6: string date;
 }
 
 struct ThriftFactStruct {

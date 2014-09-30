@@ -114,6 +114,7 @@ Eavt Parse Formats
     case DoubleEncoding  => s.parseDouble.fold(_ => false, Value.validDouble)
     case BooleanEncoding => s.parseBoolean.isSuccess
     case LongEncoding    => s.parseLong.isSuccess
+    case DateEncoding    => Dates.date(s).isDefined
     case _: StructEncoding => false
     case _: ListEncoding   => false
   }

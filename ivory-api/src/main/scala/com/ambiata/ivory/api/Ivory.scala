@@ -16,6 +16,7 @@ object Ivory
   val IntValue = com.ambiata.ivory.core.IntValue
   val LongValue = com.ambiata.ivory.core.LongValue
   val DoubleValue = com.ambiata.ivory.core.DoubleValue
+  val DateValue = com.ambiata.ivory.core.DateValue
   val StringValue = com.ambiata.ivory.core.StringValue
   val TombstoneValue = com.ambiata.ivory.core.TombstoneValue
 

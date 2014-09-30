@@ -61,6 +61,7 @@ object DictionaryTextStorage extends TextStorage[(FeatureId, ConcreteDefinition)
       case "long"       => LongEncoding.success
       case "double"     => DoubleEncoding.success
       case "string"     => StringEncoding.success
+      case "date"       => DateEncoding.success
       case otherwise    => s"""not a valid encoding: '$s'""".failure
     }
 

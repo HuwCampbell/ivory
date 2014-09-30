@@ -22,6 +22,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
     , 2 -> (arbitrary[Long] map LongValue.apply)
     , 2 -> (arbitrary[Double] map DoubleValue.apply)
     , 2 -> (arbitrary[Boolean] map BooleanValue.apply)
+    , 2 -> (arbitrary[Date] map DateValue.apply)
     ))
 
   implicit def PriorityArbitrary: Arbitrary[Priority] =
@@ -229,7 +230,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
     Arbitrary(Gen.oneOf(arbitrary[PrimitiveEncoding], arbitrary[StructEncoding]))
 
   implicit def PrimitiveEncodingArbitrary: Arbitrary[PrimitiveEncoding] =
-    Arbitrary(Gen.oneOf(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding))
+    Arbitrary(Gen.oneOf(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding, DateEncoding))
 
   // TODO needs review
   implicit def StructEncodingArbitrary: Arbitrary[StructEncoding] =
@@ -283,6 +284,8 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
       arbitrary[Double].retryUntil(Value.validDouble).map(DoubleValue)
     case StringEncoding =>
       arbitrary[String].map(StringValue)
+    case DateEncoding =>
+      arbitrary[Date].map(DateValue)
    }
 
   def factWithZoneGen(entity: Gen[String], mgen: Gen[ConcreteDefinition]): Gen[(ConcreteDefinition, Fact, DateTimeZone)] = for {

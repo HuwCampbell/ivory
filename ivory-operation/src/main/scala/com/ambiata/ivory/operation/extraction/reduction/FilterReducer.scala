@@ -36,6 +36,7 @@ object FilterReducer {
             case IntValue(v)      => new FilterValueReducerInt(new FilterReducerEquals(v))
             case LongValue(v)     => new FilterValueReducerLong(new FilterReducerEquals(v))
             case DoubleValue(v)   => new FilterValueReducerDouble(new FilterReducerEquals(v))
+            case DateValue(v)     => new FilterValueReducerDate(new FilterReducerEquals(v))
           }
         })
       case FilterStruct(op, fields) => compileOp(op, fields.map {
@@ -46,6 +47,7 @@ object FilterReducer {
             case IntValue(v)      => new FilterStructReducerInt(name, new FilterReducerEquals(v))
             case LongValue(v)     => new FilterStructReducerLong(name, new FilterReducerEquals(v))
             case DoubleValue(v)   => new FilterStructReducerDouble(name, new FilterReducerEquals(v))
+            case DateValue(v)     => new FilterStructReducerDate(name, new FilterReducerEquals(v))
           }
         }
       })
@@ -121,6 +123,11 @@ class FilterValueReducerDouble(pred: FilterReducerPredicate[Double]) extends Fil
     pred.eval(fact.toThrift.getValue.getD)
 }
 
+class FilterValueReducerDate(pred: FilterReducerPredicate[Date]) extends FilterReductionExpression {
+  def eval(fact: Fact): Boolean =
+    pred.eval(Date.unsafeFromInt(fact.toThrift.getValue.getDate))
+}
+
 /* Structs */
 
 class FilterStructReducerString(field: String, pred: FilterReducerPredicate[String]) extends FilterReductionExpression {
@@ -158,6 +165,12 @@ class FilterStructReducerDouble(field: String, pred: FilterReducerPredicate[Doub
   }
 }
 
+class FilterStructReducerDate(field: String, pred: FilterReducerPredicate[Date]) extends FilterReductionExpression {
+  def eval(fact: Fact): Boolean = {
+    val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
+    value != null && value.isSetDate && pred.eval(Date.unsafeFromInt(value.getDate))
+  }
+}
 /* Predicates */
 
 trait FilterReducerPredicate[@specialized(Boolean, Int, Long, Double) A] {
