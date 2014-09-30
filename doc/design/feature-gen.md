@@ -42,8 +42,8 @@ Return the number of days (or weeks, etc) between the earliest fact in `facts` a
 ### `count_by(field)`
 Return the number of facts in `facts` grouped by `field`.
 
-### `sum_by(field)`
-Return the sum of facts in `facts` grouped by `field`.
+### `sum_by(field, sum_field)`
+Return the sum of `sum_field` facts in `facts` grouped by `field`.
 
 ### `days_since_latest_by(field)`
 Return the number of days between the most recent fact in `facts` and `ref`, grouped
