@@ -13,6 +13,9 @@ import org.apache.hadoop.mapreduce.Partitioner
  *
  * entity | featureId | date | time | priority
  *       -14         -10    -6     -2
+ *
+ *                      !!! WARNING !!!
+ * This is used for the chord mr job also, so be aware when changing
  */
 object SnapshotWritable {
 

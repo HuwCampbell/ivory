@@ -3,6 +3,7 @@ package com.ambiata.ivory.operation.extraction
 import java.util.HashMap
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.lookup.{ChordEntities, ChordEntity}
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import scala.collection.JavaConverters._
@@ -102,6 +103,21 @@ object Entities {
       }
       Entities(mappings)
     }
+  }
+
+  def fromChordEntities(chordEntities: ChordEntities): Entities = {
+    val mappings = new HashMap[String, Array[Int]](chordEntities.entities.size)
+    chordEntities.entities.asScala.foreach(entity =>
+      mappings.put(entity.entity, entity.dates.asScala.map(_.toInt).toArray.sorted.reverse))
+    Entities(mappings)
+  }
+
+  def toChordEntities(entities: Entities): ChordEntities = {
+    val chordEntities = new ChordEntities
+    entities.entities.asScala.foreach({ case (k, vs) =>
+      chordEntities.addToEntities(new ChordEntity(k, vs.toList.map(Int.box).asJava))
+    })
+    chordEntities
   }
 
   def empty = Entities(new java.util.HashMap[String, Array[Int]])
