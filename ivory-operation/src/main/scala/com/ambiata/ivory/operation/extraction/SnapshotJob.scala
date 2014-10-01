@@ -176,12 +176,12 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     date = Date.fromInt(strDate.toInt).getOrElse(Crash.error(Crash.DataIntegrity, s"Invalid snapshot date '${strDate}'"))
-    val (factsetVersion, vfc, p) = SnapshotFactsetMapper.setupVersionAndPriority(ctx.thriftCache,
-      context.getConfiguration, context.getInputSplit)
-    converter = vfc
-    priority = p
-    okCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.ok")
-    skipCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.skip")
+    val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, SnapshotJob.Keys.FactsetVersionLookup,
+      SnapshotJob.Keys.FactsetLookup, context.getConfiguration, context.getInputSplit)
+    converter = factsetInfo.factConverter
+    priority = factsetInfo.priority
+    okCounter = MrCounter("ivory", s"snapshot.v${factsetInfo.version}.ok")
+    skipCounter = MrCounter("ivory", s"snapshot.v${factsetInfo.version}.skip")
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
   }
 
@@ -218,25 +218,6 @@ object SnapshotFactsetMapper {
       vout.set(bytes, 0, bytes.length)
       emitter.emit(kout, vout)
     }
-  }
-
-  def setupVersionAndPriority(thriftCache: ThriftCache, configuration: Configuration, inputSplit: InputSplit): (FactsetVersion, VersionedFactConverter, Priority) = {
-    val versionLookup = new FactsetVersionLookup <| (fvl => thriftCache.pop(configuration, SnapshotJob.Keys.FactsetVersionLookup, fvl))
-    val path = FilePath.unsafe(MrContext.getSplitPath(inputSplit).toString)
-    val (factsetId, partition) = Factset.parseFile(path) match {
-      case Success(r) => r
-      case Failure(e) => Crash.error(Crash.DataIntegrity, s"Can not parse factset path ${e}")
-    }
-    val rawVersion = versionLookup.versions.get(factsetId.render)
-    val factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(Crash.error(Crash.DataIntegrity, s"Can not parse factset version '${rawVersion}'"))
-
-    val converter = factsetVersion match {
-      case FactsetVersionOne => VersionOneFactConverter(partition)
-      case FactsetVersionTwo => VersionTwoFactConverter(partition)
-    }
-    val priorityLookup = new FactsetLookup <| (fl => thriftCache.pop(configuration, SnapshotJob.Keys.FactsetLookup, fl))
-    val priority = priorityLookup.priorities.get(factsetId.render)
-    (factsetVersion, converter, Priority.unsafe(priority))
   }
 }
 

@@ -13,7 +13,6 @@ import java.lang.{Iterable => JIterable}
 import java.util.{Iterator => JIterator, HashMap}
 
 import scala.collection.JavaConverters._
-import scalaz.{Name => _, Reducer => _, _}, Scalaz._
 
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf._
@@ -169,12 +168,12 @@ class ChordFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWritab
 
   override def setup(context: MapperContext): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
-    val (factsetVersion, vfc, p) = ChordFactsetMapper.setupVersionAndPriority(ctx.thriftCache,
-      context.getConfiguration, context.getInputSplit)
-    converter = vfc
-    priority = p
-    okCounter = MrCounter("ivory", s"chord.v${factsetVersion}.ok")
-    skipCounter = MrCounter("ivory", s"chord.v${factsetVersion}.skip")
+    val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, ChordJob.Keys.FactsetVersionLookup,
+      ChordJob.Keys.FactsetLookup, context.getConfiguration, context.getInputSplit)
+    converter = factsetInfo.factConverter
+    priority = factsetInfo.priority
+    okCounter = MrCounter("ivory", s"chord.v${factsetInfo.version}.ok")
+    skipCounter = MrCounter("ivory", s"chord.v${factsetInfo.version}.skip")
     ctx.thriftCache.pop(context.getConfiguration, ChordJob.Keys.FeatureIdLookup, featureIdLookup)
     entities = ChordJob.setupEntities(ctx.thriftCache, context.getConfiguration)
   }
@@ -212,25 +211,6 @@ object ChordFactsetMapper {
       vout.set(bytes, 0, bytes.length)
       emitter.emit(kout, vout)
     }
-  }
-
-  def setupVersionAndPriority(thriftCache: ThriftCache, configuration: Configuration, inputSplit: InputSplit): (FactsetVersion, VersionedFactConverter, Priority) = {
-    val versionLookup = new FactsetVersionLookup <| (fvl => thriftCache.pop(configuration, ChordJob.Keys.FactsetVersionLookup, fvl))
-    val path = FilePath(MrContext.getSplitPath(inputSplit).toString)
-    val (factsetId, partition) = Factset.parseFile(path) match {
-      case Success(r) => r
-      case Failure(e) => Crash.error(Crash.DataIntegrity, s"Can not parse factset path ${e}")
-    }
-    val rawVersion = versionLookup.versions.get(factsetId.render)
-    val factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(Crash.error(Crash.DataIntegrity, s"Can not parse factset version '${rawVersion}'"))
-
-    val converter = factsetVersion match {
-      case FactsetVersionOne => VersionOneFactConverter(partition)
-      case FactsetVersionTwo => VersionTwoFactConverter(partition)
-    }
-    val priorityLookup = new FactsetLookup <| (fl => thriftCache.pop(configuration, ChordJob.Keys.FactsetLookup, fl))
-    val priority = priorityLookup.priorities.get(factsetId.render)
-    (factsetVersion, converter, Priority.unsafe(priority))
   }
 }
 
