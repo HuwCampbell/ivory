@@ -50,6 +50,8 @@ object SnapshotWritable {
   object GroupingEntityFeatureId {
     def getFeatureId(bw: BytesWritable): Int =
       WritableComparator.readInt(bw.getBytes, bw.getLength - Offsets.featureId)
+    def getEntity(bw: BytesWritable): String =
+      new String(bw.getBytes, 0, bw.getLength - Offsets.featureId, "UTF-8")
   }
 
   class Comparator extends BytesWritable.Comparator

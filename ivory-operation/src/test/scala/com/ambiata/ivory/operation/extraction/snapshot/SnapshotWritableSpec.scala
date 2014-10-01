@@ -13,6 +13,7 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
   Grouping                                            $grouping
   Sorting                                             $sorting
   Feature Id                                          $featureId
+  Entity                                              $entity
 """
 
   def grouping = prop((f1: FactAndPriority, f2: FactAndPriority) => {
@@ -31,6 +32,12 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
     val bw = Writables.bytesWritable(4096)
     KeyState.set(f1.f, f1.p, bw, i)
     GroupingEntityFeatureId.getFeatureId(bw) ==== i
+  })
+
+  def entity = prop((f1: FactAndPriority, i: Int) => {
+    val bw = Writables.bytesWritable(4096)
+    KeyState.set(f1.f, f1.p, bw, i)
+    GroupingEntityFeatureId.getEntity(bw) ==== f1.f.entity
   })
 
   def check(f1: FactAndPriority, f2: FactAndPriority)(f: (FactAndPriority, Array[Byte], Array[Byte]) => (Int, Int)): Result =

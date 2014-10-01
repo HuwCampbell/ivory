@@ -1,16 +1,16 @@
 package com.ambiata.ivory.operation.extraction
 
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.mr._
-import com.ambiata.mundane.io.FilePath
+import com.ambiata.mundane.control._
 
 import java.lang.{Iterable => JIterable}
-import java.util.{Iterator => JIterator, HashMap}
+import java.util.{Iterator => JIterator}
 
 import scala.collection.JavaConverters._
 
@@ -30,10 +30,10 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
  * This uses the SnapshotWritable in the exact same way snapshot does
  */
 object ChordJob {
-  def run(conf: Configuration, reducers: Int, inputs: List[Prioritized[FactsetGlob]], output: Path, entities: Entities,
-          dictionary: Dictionary, incremental: Option[Path], codec: Option[CompressionCodec]): Unit = {
+  def run(repository: HdfsRepository, reducers: Int, inputs: List[Prioritized[FactsetGlob]], output: Path, entities: Entities,
+          dictionary: Dictionary, incremental: Option[Path], codec: Option[CompressionCodec]): ResultTIO[Unit] = {
 
-    val job = Job.getInstance(conf)
+    val job = Job.getInstance(repository.configuration)
     val ctx = MrContext.newContext("ivory-chord", job)
 
     job.setJarByClass(classOf[ChordReducer])
@@ -57,9 +57,9 @@ object ChordJob {
     // input
     val mappers = inputs.map(p => (classOf[ChordFactsetMapper], p.value))
     mappers.foreach({ case (clazz, factsetGlob) =>
-      factsetGlob.paths.foreach(path => {
-        println(s"Input path: ${path.path}")
-        MultipleInputs.addInputPath(job, path.toHdfs, classOf[SequenceFileInputFormat[_, _]], clazz)
+      factsetGlob.keys.foreach(path => {
+        println(s"Input path: ${path.name}")
+        MultipleInputs.addInputPath(job, repository.toIvoryLocation(path).toHdfsPath, classOf[SequenceFileInputFormat[_, _]], clazz)
       })
     })
 
@@ -92,8 +92,7 @@ object ChordJob {
     // commit files to factset
     Committer.commit(ctx, {
       case "chord" => output
-    }, true).run(conf).run.unsafePerformIO
-    ()
+    }, true).run(repository.configuration)
   }
 
   def featureIdLookup(dict: Dictionary): FeatureIdLookup =
@@ -106,7 +105,7 @@ object ChordJob {
   }
 
   object Keys {
-    val ChordDate = "ivory.snapdate"
+    val ChordDate = "ivory.chorddate"
     val FeatureIdLookup = ThriftCache.Key("feature-id-lookup")
     val FactsetLookup = ThriftCache.Key("factset-lookup")
     val FactsetVersionLookup = ThriftCache.Key("factset-version-lookup")
@@ -168,8 +167,8 @@ class ChordFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWritab
 
   override def setup(context: MapperContext): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
-    val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, ChordJob.Keys.FactsetVersionLookup,
-      ChordJob.Keys.FactsetLookup, context.getConfiguration, context.getInputSplit)
+    val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, ChordJob.Keys.FactsetLookup,
+      ChordJob.Keys.FactsetVersionLookup, context.getConfiguration, context.getInputSplit)
     converter = factsetInfo.factConverter
     priority = factsetInfo.priority
     okCounter = MrCounter("ivory", s"chord.v${factsetInfo.version}.ok")
@@ -257,6 +256,7 @@ class ChordIncrementalMapper extends Mapper[NullWritable, BytesWritable, BytesWr
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
     emitter.context = context
     okCounter.context = context
+    skipCounter.context = context
     ChordIncrementalMapper.map(fact, value, Priority.Max, kout, vout, emitter, okCounter, skipCounter, serializer, featureIdLookup, entities)
   }
 }
@@ -316,7 +316,8 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
 
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
     emitter.context = context
-    ChordReducer.reduce(fact, iter.iterator, mutator, emitter, vout, entities, buffer)
+    val entity = SnapshotWritable.GroupingEntityFeatureId.getEntity(key)
+    ChordReducer.reduce(fact, iter.iterator, mutator, emitter, vout, entities.entities.get(entity), buffer)
   }
 }
 
@@ -331,59 +332,64 @@ object ChordReducer {
   type ReducerContext = Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context
 
   val delim = ':'
+  val sentinelDateTime = DateTime.unsafeFromLong(-1)
 
   def newEntityId(entity: String, date: Date, buffer: StringBuilder): String = {
     buffer.setLength(0)
     buffer.append(entity)
     buffer.append(delim)
     buffer.append(date.hyphenated)
-    buffer.toString
-  }
-
-  /**
-   * Entity ids need to be appended with the date in the chord file as its possible to have the same entity
-   * id with multiple dates in the chord file.
-   */
-  def mutateEntity[A](fact: MutableFact, date: Date, mutator: PipeFactMutator[A, A], out: A, buffer: StringBuilder): Unit = {
-    mutator.from(out, fact)
-    fact.fact.setEntity(newEntityId(fact.entity, date, buffer))
-    mutator.mutate(fact, out)
+    buffer.toString()
   }
 
   def reduce[A](fact: MutableFact, iter: JIterator[A], mutator: PipeFactMutator[A, A],
-                emitter: Emitter[NullWritable, A], out: A, entities: Entities, buffer: StringBuilder): Unit = {
-    var datetime = DateTime.unsafeFromLong(0)
+                emitter: Emitter[NullWritable, A], out: A, dates: Array[Int], buffer: StringBuilder): Unit = {
     val kout = NullWritable.get()
-    var dates: Array[Int] = null
-    var i: Int = 0
-    var found = false
 
-    while(iter.hasNext) {
-      val next = iter.next
-      mutator.from(next, fact)
-      if(dates == null) {
-        dates = entities.entities.get(fact.entity)
-        // dates are ordered latest to earliest, but we want it the other way around
-        i = dates.size - 1
-      }
-      // facts are in priority order already, so this simply takes the top priority when there is a date/time clash
-      if(datetime.long != fact.datetime.long) {
-        datetime = fact.datetime
-        if(fact.yyyyMMdd <= dates(i)) {
-          found = true
-        } else {
-          // emit the latest fact that is less then or equal to the i'th date
-          if(found) {
-            mutateEntity(fact, Date.unsafeFromInt(dates(i)), mutator, out, buffer)
-            emitter.emit(kout, out)
-            found = false
-          }
+    /**
+     * Entity ids need to be appended with the date in the chord file as its possible to have the same entity
+     * id with multiple dates in the chord file.
+     */
+    def emitEntity(previousDatetime: DateTime, date: Date, offset: Int): Int = {
+      var i = offset
+      // If the first chord has no matches there won't be anything to emit
+      // It also covers the (otherwise impossible) case that the iterator is empty
+      if (previousDatetime != sentinelDateTime) {
+        // Load the fact once from the cache
+        mutator.from(out, fact)
+        // Keep the original entity here because we're about to mutate the fact version
+        val entity = fact.entity
+        while (i >= 0 && date.underlying > dates(i)) {
+          fact.fact.setEntity(newEntityId(entity, Date.unsafeFromInt(dates(i)), buffer))
+          mutator.mutate(fact, out)
+          emitter.emit(kout, out)
           i = i - 1
         }
+      } else {
+        // Ignore any old chords that don't have a matching fact
+        while (i >= 0 && date.underlying > dates(i)) {
+          i = i - 1
+        }
+      }
+      i
+    }
+    // dates are ordered latest to earliest, but we want it the other way around
+    var i = dates.length - 1
+    var previousDatetime = sentinelDateTime
+    while (iter.hasNext) {
+      val next = iter.next
+      mutator.from(next, fact)
+      val datetime = fact.datetime
+      // facts are in priority order already, so this simply takes the top priority when there is a date/time clash
+      if (datetime != previousDatetime) {
+        i = emitEntity(previousDatetime, datetime.date, i)
+        previousDatetime = datetime
+        // Store this fact to be emitted if we can't find a better match
         mutator.pipe(next, out)
       }
     }
-    mutateEntity(fact, Date.unsafeFromInt(dates(i)), mutator, out, buffer)
-    emitter.emit(kout, out)
+    // Flush the remaining chords
+    emitEntity(previousDatetime, Date.maxValue, i)
+    ()
   }
 }

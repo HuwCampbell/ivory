@@ -28,10 +28,9 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   implicit def PriorityArbitrary: Arbitrary[Priority] =
     Arbitrary(Gen.choose(Priority.Min.toShort, Priority.Max.toShort).map(Priority.unsafe))
 
-  def genDate(from: Date, to: Date): Gen[Date] = for {
-    // Should we use DateTimeUtils for performance?
-    y <- Gen.choose(0, JodaDays.daysBetween(from.localDate, to.localDate).getDays)
-  } yield Date.fromLocalDate(from.localDate.plusDays(y))
+  def genDate(from: Date, to: Date): Gen[Date] =
+     Gen.choose(0, JodaDays.daysBetween(from.localDate, to.localDate).getDays)
+       .map(y => Date.fromLocalDate(from.localDate.plusDays(y)))
 
   implicit def DateArbitrary: Arbitrary[Date] =
     Arbitrary(genDate(Date(1970, 1, 1), Date(3000, 12, 31)))

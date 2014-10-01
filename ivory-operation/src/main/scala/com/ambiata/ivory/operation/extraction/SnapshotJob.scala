@@ -2,12 +2,11 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.lookup.{FeatureIdLookup, FactsetLookup, FactsetVersionLookup, SnapshotWindowLookup}
+import com.ambiata.ivory.lookup.{FeatureIdLookup, SnapshotWindowLookup}
 import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.mr._
-import com.ambiata.mundane.io.FilePath
 
 import java.lang.{Iterable => JIterable}
 import java.util.{Iterator => JIterator}
@@ -176,8 +175,8 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     date = Date.fromInt(strDate.toInt).getOrElse(Crash.error(Crash.DataIntegrity, s"Invalid snapshot date '${strDate}'"))
-    val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, SnapshotJob.Keys.FactsetVersionLookup,
-      SnapshotJob.Keys.FactsetLookup, context.getConfiguration, context.getInputSplit)
+    val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, SnapshotJob.Keys.FactsetLookup,
+      SnapshotJob.Keys.FactsetVersionLookup, context.getConfiguration, context.getInputSplit)
     converter = factsetInfo.factConverter
     priority = factsetInfo.priority
     okCounter = MrCounter("ivory", s"snapshot.v${factsetInfo.version}.ok")

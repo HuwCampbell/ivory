@@ -40,8 +40,8 @@ class RenameMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, By
 
   override def setup(context: MapperContext): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, SnapshotJob.Keys.FactsetVersionLookup,
-      SnapshotJob.Keys.FactsetLookup, context.getConfiguration, context.getInputSplit)
+    val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, SnapshotJob.Keys.FactsetLookup,
+      SnapshotJob.Keys.FactsetVersionLookup, context.getConfiguration, context.getInputSplit)
     converter = factsetInfo.factConverter
     priority = factsetInfo.priority
     ctx.thriftCache.pop(context.getConfiguration, RenameJob.Keys.Mapping, mapping)
