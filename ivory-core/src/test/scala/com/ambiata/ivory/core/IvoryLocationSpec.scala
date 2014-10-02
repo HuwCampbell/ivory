@@ -19,19 +19,19 @@ IvoryLocation
 
   def local =
     IvoryLocation.parseUri("file:///some/path", ivory).toEither must
-      beRight((_: IvoryLocation).location must_== LocalLocation(DirPath.Root </> "some" </> "path", new URI("file:///some/path")))
+      beRight((_: IvoryLocation).location must_== LocalLocation(DirPath.Root </> "some" </> "path"))
     
   def localShort =
     IvoryLocation.parseUri("file:///some/", ivory).toEither must
-      beRight((_: IvoryLocation).location must_== LocalLocation(DirPath.Root </> "some", new URI("file:///some/")))
+      beRight((_: IvoryLocation).location must_== LocalLocation(DirPath.Root </> "some"))
 
   def hdfs =
     IvoryLocation.parseUri("hdfs:///some/path", ivory).toEither must
-      beRight((_: IvoryLocation).location must_== HdfsLocation(DirPath.Root </> "some" </> "path", new URI("hdfs:///some/path")))
+      beRight((_: IvoryLocation).location must_== HdfsLocation(DirPath.Root </> "some" </> "path"))
 
   def s3 =
     IvoryLocation.parseUri("s3://bucket/key", ivory).toEither must
-      beRight((_: IvoryLocation).location must_== S3Location(DirPath.Root </> "bucket" </> "key", new URI("s3://bucket/key")))
+      beRight((_: IvoryLocation).location must_== S3Location(DirPath.Root </> "bucket" </> "key"))
   
   val ivory = IvoryConfiguration.Empty
 }

@@ -17,7 +17,7 @@ object SyncIngest {
      val outputPath = DirPath.unsafe(s"shadowInputDataset/${UUID.randomUUID()}")
 
      input.location match {
-       case LocalIvoryLocation(LocalLocation(path, _)) =>
+       case LocalIvoryLocation(LocalLocation(path)) =>
          val out =
            if (path.toFile.isFile) outputPath </> path.basename
            else                    outputPath
@@ -25,11 +25,11 @@ object SyncIngest {
          SyncLocal.toHdfs(path, outputPath, cluster) >>
            ResultT.ok(shadowInputDatasetFromPath(out, cluster))
 
-       case S3IvoryLocation(S3Location(path,_ ), _) =>
+       case S3IvoryLocation(S3Location(path), _) =>
          SyncS3.toHdfs(path, outputPath, cluster) >>
            ResultT.ok(shadowInputDatasetFromPath(outputPath, cluster))
 
-       case h @ HdfsIvoryLocation(HdfsLocation(_, _), _, _, _) =>
+       case h @ HdfsIvoryLocation(HdfsLocation(_), _, _, _) =>
          ResultT.ok(ShadowInputDataset(h))
      }
    }
@@ -39,9 +39,9 @@ object SyncIngest {
 
    def toCluster(datasets:Datasets, source: Repository, cluster: Cluster): ResultTIO[ShadowRepository] =
      (source.root.location match {
-       case S3Location(root, _)    => getKeys(datasets).traverseU(key => SyncS3.toHdfs(root, DirPath.unsafe(key.name), cluster)).void
-       case LocalLocation(root, _) => getKeys(datasets).traverseU(key => SyncLocal.toHdfs(root, DirPath.unsafe(key.name), cluster)).void
-       case HdfsLocation(_, _)     => ResultT.unit[IO]
+       case S3Location(root)    => getKeys(datasets).traverseU(key => SyncS3.toHdfs(root, DirPath.unsafe(key.name), cluster)).void
+       case LocalLocation(root) => getKeys(datasets).traverseU(key => SyncLocal.toHdfs(root, DirPath.unsafe(key.name), cluster)).void
+       case HdfsLocation(_)     => ResultT.unit[IO]
      }).as(source match {
        case HdfsRepository(r) => ShadowRepository(r)
        case _                 => ShadowRepository(cluster.root)

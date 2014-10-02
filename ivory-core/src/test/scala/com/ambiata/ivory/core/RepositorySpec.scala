@@ -25,26 +25,26 @@ Repository Known Answer Tests
 
   def hdfs =
     Repository.parseUri("hdfs:///some/path", conf) must
-      be_\/-(HdfsRepository(HdfsLocation(DirPath.Root </> "some" </> "path", new URI("hdfs:///some/path")), conf))
+      be_\/-(HdfsRepository(HdfsLocation(DirPath.Root </> "some" </> "path"), conf))
 
   def s3 =
     Repository.parseUri("s3://bucket/key", conf) must
-      be_\/-(S3Repository(S3Location(DirPath.Root </> "bucket" </> "key", new URI("s3://bucket/key")), conf))
+      be_\/-(S3Repository(S3Location(DirPath.Root </> "bucket" </> "key"), conf))
 
   def local =
     Repository.parseUri("file:///some/path", conf) must
-      be_\/-(LocalRepository(LocalLocation(DirPath.Root </> "some" </> "path", new URI("file:///some/path"))))
+      be_\/-(LocalRepository(LocalLocation(DirPath.Root </> "some" </> "path")))
 
   def relative =
     Repository.parseUri("file:some/path", conf) must
-      be_\/-(LocalRepository(LocalLocation(DirPath.Empty </> "some" </> "path", new URI("file:some/path"))))
+      be_\/-(LocalRepository(LocalLocation(DirPath.Empty </> "some" </> "path")))
 
   def dfault =
     Repository.parseUri("/some/path", conf) must
-      be_\/-(HdfsRepository(HdfsLocation(DirPath.Root </> "some" </> "path", new URI("/some/path")), conf))
+      be_\/-(HdfsRepository(HdfsLocation(DirPath.Root </> "some" </> "path"), conf))
 
   def fragment =
     Repository.parseUri("some/path", conf) must
-      be_\/-(HdfsRepository(HdfsIvoryLocation(HdfsLocation(DirPath.unsafe(new File(".").getAbsolutePath).dirname </> "some" </> "path", new URI("some/path")), conf.configuration, conf.scoobiConfiguration, conf.codec)))
+      be_\/-(HdfsRepository(HdfsIvoryLocation(HdfsLocation(DirPath.unsafe(new File(".").getAbsolutePath).dirname </> "some" </> "path"), conf.configuration, conf.scoobiConfiguration, conf.codec)))
 
 }

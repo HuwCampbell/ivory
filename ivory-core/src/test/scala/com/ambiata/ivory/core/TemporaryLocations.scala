@@ -70,9 +70,9 @@ object TemporaryLocations {
   def createLocation(storeType: TemporaryType): IvoryLocation = {
     val uniquePath = createUniquePath
     storeType match {
-      case Posix  => LocalIvoryLocation(LocalLocation(uniquePath, new java.net.URI("hdfs:/"+uniquePath.path)))
-      case S3     => S3IvoryLocation(S3Location(testBucketDir </> uniquePath, new java.net.URI("s3:/"+uniquePath.path)), conf.s3Client)
-      case Hdfs   => HdfsIvoryLocation(HdfsLocation(uniquePath, new java.net.URI("file:/"+uniquePath.path)), conf.configuration, conf.scoobiConfiguration, conf.codec)
+      case Posix  => LocalIvoryLocation(LocalLocation(uniquePath))
+      case S3     => S3IvoryLocation(S3Location(testBucketDir </> uniquePath), conf.s3Client)
+      case Hdfs   => HdfsIvoryLocation(HdfsLocation(uniquePath), conf.configuration, conf.scoobiConfiguration, conf.codec)
     }
   }
 
@@ -133,17 +133,17 @@ object TemporaryLocations {
 
   def createUniqueLocalLocation: LocalIvoryLocation = {
     val path = createUniquePath
-    LocalIvoryLocation(LocalLocation(path, new URI(path.path)))
+    LocalIvoryLocation(LocalLocation(path))
   }
 
   def createUniqueS3Location: S3IvoryLocation = {
     val path = createUniquePath
-    S3IvoryLocation(S3Location(testBucketDir </> path, new URI(testBucketDir+"/"+path.path)), conf.s3Client)
+    S3IvoryLocation(S3Location(testBucketDir </> path), conf.s3Client)
   }
 
   def createUniqueHdfsLocation: HdfsIvoryLocation = {
     val path = createUniquePath
-    HdfsIvoryLocation(HdfsLocation(createUniquePath, new URI(path.path)), conf.configuration, conf.scoobiConfiguration, conf.codec)
+    HdfsIvoryLocation(HdfsLocation(createUniquePath), conf.configuration, conf.scoobiConfiguration, conf.codec)
   }
 
   def createLocationFile(location: IvoryLocation): ResultTIO[Unit] =
@@ -153,9 +153,9 @@ object TemporaryLocations {
     IvoryLocation.writeUtf8(location, content)
 
   def createLocationDir(location: IvoryLocation): ResultTIO[Unit] = location match {
-    case l @ LocalIvoryLocation(LocalLocation(path, _))                 => Directories.mkdirs(path)
-    case s @ S3IvoryLocation(S3Location(path, _), s3Client)             => SawsS3.storeObject(path <|> "file", (path <|> "file").toFile).executeT(s3Client).void
-    case h @ HdfsIvoryLocation(HdfsLocation(s, _), configuration, _, _) => PoacherHdfs.mkdir(h.toHdfsPath).void.run(configuration)
+    case l @ LocalIvoryLocation(LocalLocation(path))                 => Directories.mkdirs(path)
+    case s @ S3IvoryLocation(S3Location(path), s3Client)             => SawsS3.storeObject(path <|> "file", (path <|> "file").toFile).executeT(s3Client).void
+    case h @ HdfsIvoryLocation(HdfsLocation(_), configuration, _, _) => PoacherHdfs.mkdir(h.toHdfsPath).void.run(configuration)
   }
 
   def s3TempPath: DirPath =

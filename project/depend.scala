@@ -22,7 +22,7 @@ object depend {
     ExclusionRule(organization = "com.ambiata", name = "mundane-testing_2.10")
   ))
 
-  val MUNDANE_VERSION = "1.2.1-20140930010027-ad00ac4"
+  val MUNDANE_VERSION = "1.2.1-20141003002210-37bd0c4"
   val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-store").map(c =>
                       "com.ambiata"          %% c                 % MUNDANE_VERSION) ++
                   Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")

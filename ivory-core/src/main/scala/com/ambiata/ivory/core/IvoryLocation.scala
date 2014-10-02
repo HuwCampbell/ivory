@@ -71,21 +71,21 @@ case class LocalIvoryLocation(location: LocalLocation) extends IvoryLocation {
 
 object IvoryLocation {
   def deleteAll(location: IvoryLocation): ResultTIO[Unit] = location match {
-    case l @ LocalIvoryLocation(LocalLocation(path, _))            => Directories.delete(path).void
-    case s @ S3IvoryLocation(S3Location(path, _), s3Client)        => S3.deleteAll(path).executeT(s3Client)
-    case h @ HdfsIvoryLocation(HdfsLocation(path, _), conf, sc, _) => Hdfs.deleteAll(h.toHdfsPath).run(conf)
+    case l @ LocalIvoryLocation(LocalLocation(path))            => Directories.delete(path).void
+    case s @ S3IvoryLocation(S3Location(path), s3Client)        => S3.deleteAll(path).executeT(s3Client)
+    case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.deleteAll(h.toHdfsPath).run(conf)
   }
 
   def delete(location: IvoryLocation): ResultTIO[Unit] = location match {
-    case l @ LocalIvoryLocation(LocalLocation(path, _))            => Files.delete(path.toFilePath).void
-    case s @ S3IvoryLocation(S3Location(path, _), s3Client)        => S3.deleteObject(path.toFilePath).executeT(s3Client)
-    case h @ HdfsIvoryLocation(HdfsLocation(path, _), conf, sc, _) => Hdfs.delete(h.toHdfsPath).run(conf)
+    case l @ LocalIvoryLocation(LocalLocation(path))            => Files.delete(path.toFilePath).void
+    case s @ S3IvoryLocation(S3Location(path), s3Client)        => S3.deleteObject(path.toFilePath).executeT(s3Client)
+    case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.delete(h.toHdfsPath).run(conf)
   }
 
   def readLines(location: IvoryLocation): ResultTIO[List[String]] = location match {
-    case l @ LocalIvoryLocation(LocalLocation(path, _))            => Files.readLines(path.toFilePath).map(_.toList)
-    case s @ S3IvoryLocation(S3Location(path, _), s3Client)        => S3.readLines(path.toFilePath).executeT(s3Client)
-    case h @ HdfsIvoryLocation(HdfsLocation(path, _), conf, sc, _) =>
+    case l @ LocalIvoryLocation(LocalLocation(path))            => Files.readLines(path.toFilePath).map(_.toList)
+    case s @ S3IvoryLocation(S3Location(path), s3Client)        => S3.readLines(path.toFilePath).executeT(s3Client)
+    case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
       Hdfs.isDirectory(h.toHdfsPath).flatMap { isDirectory =>
         if (isDirectory)
           Hdfs.globFilesRecursively(h.toHdfsPath).filterHidden
@@ -96,24 +96,24 @@ object IvoryLocation {
   }
 
   def list(location: IvoryLocation): ResultTIO[List[FilePath]] = location match {
-    case l @ LocalIvoryLocation(LocalLocation(path, _))            => Directories.list(path)
-    case s @ S3IvoryLocation(S3Location(path, _), s3Client)        => S3.listKeys(path).map(_.map(FilePath.unsafe)).executeT(s3Client)
-    case h @ HdfsIvoryLocation(HdfsLocation(path, _), conf, sc, _) => Hdfs.globFilesRecursively(h.toHdfsPath).map(_.map(p => FilePath.unsafe(p.toString))).run(conf)
+    case l @ LocalIvoryLocation(LocalLocation(path))            => Directories.list(path)
+    case s @ S3IvoryLocation(S3Location(path), s3Client)        => S3.listKeys(path).map(_.map(FilePath.unsafe)).executeT(s3Client)
+    case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.globFilesRecursively(h.toHdfsPath).map(_.map(p => FilePath.unsafe(p.toString))).run(conf)
   }
   
   def exists(location: IvoryLocation): ResultTIO[Boolean] = location match {
-    case l @ LocalIvoryLocation(LocalLocation(path, _))            => Files.exists(path.toFilePath).flatMap(e => if (e) ResultT.ok[IO, Boolean](e) else Directories.exists(path))
-    case s @ S3IvoryLocation(S3Location(path, _), s3Client)        => S3.exists(path.toFilePath).executeT(s3Client)
-    case h @ HdfsIvoryLocation(HdfsLocation(path, _), conf, sc, _) => Hdfs.exists(h.toHdfsPath).run(conf)
+    case l @ LocalIvoryLocation(LocalLocation(path))            => Files.exists(path.toFilePath).flatMap(e => if (e) ResultT.ok[IO, Boolean](e) else Directories.exists(path))
+    case s @ S3IvoryLocation(S3Location(path), s3Client)        => S3.exists(path.toFilePath).executeT(s3Client)
+    case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.exists(h.toHdfsPath).run(conf)
   }
   
   def writeUtf8Lines(location: IvoryLocation, lines: List[String]): ResultTIO[Unit] = 
     writeUtf8(location, lines.mkString("\n"))
   
   def writeUtf8(location: IvoryLocation, string: String): ResultTIO[Unit] = location match {
-    case l @ LocalIvoryLocation(LocalLocation(path, _))            => Files.write(path.toFilePath, string)
-    case s @ S3IvoryLocation(S3Location(path, _), s3Client)        => S3.writeLines(path.toFilePath, string.split("\n")).executeT(s3Client).void
-    case h @ HdfsIvoryLocation(HdfsLocation(path, _), conf, sc, _) => Hdfs.writeWith(h.toHdfsPath, out => Streams.write(out, string)).run(conf)
+    case l @ LocalIvoryLocation(LocalLocation(path))            => Files.write(path.toFilePath, string)
+    case s @ S3IvoryLocation(S3Location(path), s3Client)        => S3.writeLines(path.toFilePath, string.split("\n")).executeT(s3Client).void
+    case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.writeWith(h.toHdfsPath, out => Streams.write(out, string)).run(conf)
   }
   
   def fromKey(repository: Repository, key: Key): IvoryLocation =
@@ -123,10 +123,10 @@ object IvoryLocation {
     ResultT.fromDisjunctionString[IO, IvoryLocation](parseUri(s, ivory))
 
   def fromDirPath(dirPath: DirPath): LocalIvoryLocation =
-    LocalIvoryLocation(LocalLocation(dirPath, new java.net.URI("file:/"+dirPath.path)))
+    LocalIvoryLocation(LocalLocation(dirPath))
 
   def fromFilePath(filePath: FilePath): LocalIvoryLocation =
-    LocalIvoryLocation(LocalLocation(filePath.toDirPath, new java.net.URI("file:/"+filePath.path)))
+    LocalIvoryLocation(LocalLocation(filePath.toDirPath))
 
   def parseUri(s: String, ivory: IvoryConfiguration): String \/ IvoryLocation = try {
     val uri = new java.net.URI(s)
@@ -134,7 +134,7 @@ object IvoryLocation {
       case null =>
         // TODO Should be LocalLocation but our own consumers aren't ready yet
         // https://github.com/ambiata/ivory/issues/87
-        HdfsIvoryLocation(HdfsLocation(DirPath.unsafe(new File(uri.getPath).getAbsolutePath), uri), ivory.configuration, ivory.scoobiConfiguration, ivory.codec).right
+        HdfsIvoryLocation(HdfsLocation(DirPath.unsafe(new File(uri.getPath).getAbsolutePath)), ivory.configuration, ivory.scoobiConfiguration, ivory.codec).right
 
       case _ => Location.fromUri(s).map {
         case l: LocalLocation  => LocalIvoryLocation(l)
