@@ -12,7 +12,7 @@ trait SampleFacts extends MustThrownMatchers {
     Definition.concrete(FeatureId(Name("ns2"), "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil)
   ))
 
-  val sampleFacts = List(List(
+  val sampleFacts: List[List[Fact]] = List(List(
     StringFact("eid1",  FeatureId(Name("ns1"), "fid1"), Date(2012, 10, 1), Time(0), "abc"),
     StringFact("eid1",  FeatureId(Name("ns1"), "fid1"), Date(2012, 9, 1), Time(0), "def"),
     IntFact("eid2",     FeatureId(Name("ns1"), "fid2"), Date(2012, 10, 1), Time(0), 10),

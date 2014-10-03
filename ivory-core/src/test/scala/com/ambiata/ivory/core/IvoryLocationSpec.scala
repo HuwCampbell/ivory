@@ -4,12 +4,12 @@ import com.ambiata.mundane.io._
 import org.specs2._
 import TemporaryLocations._
 import org.specs2.execute.AsResult
-import org.specs2.matcher.ThrownExpectations
+import org.specs2.matcher.{MustMatchers, ThrownExpectations}
 import org.specs2.specification.FixtureExample
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import scalaz._, Scalaz._
 
-class IvoryLocationSpec extends Specification with FixtureExample[TemporaryType] with ThrownExpectations { def is = s2"""
+class IvoryLocationSpec extends Specification with ForeachTemporaryType with ThrownExpectations { def is = s2"""
 
 IvoryLocation
 -------------
@@ -111,7 +111,10 @@ IvoryLocation
 
   val ivory = IvoryConfiguration.Empty
 
-  def fixture[R : AsResult](f: TemporaryType => R) =
-    Seq(Posix, Hdfs, S3).reverse.toStream.map(t => AsResult(f(t))).reduceLeft(_ and _)
 
+}
+
+trait ForeachTemporaryType extends FixtureExample[TemporaryType] with MustMatchers {
+  def fixture[R : AsResult](f: TemporaryType => R) =
+    Seq(Posix, Hdfs, S3).toStream.map(t => AsResult(f(t))).reduceLeft(_ and _)
 }

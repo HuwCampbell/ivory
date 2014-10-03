@@ -10,8 +10,7 @@ import org.scalacheck.Arbitrary, Arbitrary._
 import org.specs2.{ScalaCheck, Specification}
 import scalaz._, Scalaz._
 
-class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
-  def is = s2"""
+class DictionaryThriftStorageSpec extends Specification with ScalaCheck { def is = s2"""
 
   Given a dictionary we can:
     store and then load it successfully             $e1
