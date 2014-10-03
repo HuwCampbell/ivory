@@ -93,7 +93,7 @@ object Repository {
 
   def dictionaries: Key  = metadata / "dictionaries"
   def featureStores: Key = metadata / "stores"
-  def commits: Key       = metadata / "repositories"
+  def commits: Key       = metadata / "commits"
 
   def dictionaryById(id: DictionaryId): Key           = dictionaries  / id.asKeyName
   def featureStoreById(id: FeatureStoreId): Key       = featureStores / id.asKeyName
