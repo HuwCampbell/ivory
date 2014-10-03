@@ -17,11 +17,8 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
   def fromList(entries: List[(FeatureId, Definition)]): ValidationNel[String, Dictionary] =
     Validation.success(Dictionary(entries.map(_._2)))
 
-  def fromFiles(location: IvoryLocation): ResultTIO[Dictionary] =
-    fromDirStore(location).map(ds => Dictionary.reduce(ds))
-
-  def fromFile(location: IvoryLocation): ResultTIO[Dictionary] =
-    fromFileStore(location)
+  def dictionaryFromIvoryLocation(location: IvoryLocation): ResultTIO[Dictionary] =
+    fromIvoryLocation(location).map(Dictionary.reduce)
 
   def toList(dict: Dictionary): List[(FeatureId, Definition)] =
     dict.definitions.map(d => d.featureId -> d).toList

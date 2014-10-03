@@ -16,24 +16,20 @@ trait TextStorage[L, T] {
   def toList(t: T): List[L]
   def toLine(l: L): String
 
-  def fromFileStore(location: IvoryLocation): ResultTIO[T] = for {
+  def fromSingleFile(location: IvoryLocation): ResultTIO[T] = for {
     lines  <- IvoryLocation.readLines(location)
     result <- ResultT.fromDisjunctionString[IO, T](fromLines(lines))
   } yield result
 
-  def fromFileStoreIO(location: IvoryLocation): ResultTIO[T] =
-    IvoryLocation.readLines(location).flatMap(lines => ResultT.fromDisjunctionString[IO, T](fromLines(lines)))
-
-  def fromDirStore(location: IvoryLocation): ResultTIO[List[T]] = for {
-    files <- IvoryLocation.list(location)
-    ts    <- files.traverseU(file => fromFileStore(location </> file))
-  } yield ts
-
-  def toFileStore(location: IvoryLocation, t: T): ResultTIO[Unit] =
-    IvoryLocation.writeUtf8(location, delimitedString(t)).void
-
-  def toFileStoreIO(location: IvoryLocation, t: T): ResultTIO[Unit] =
-    IvoryLocation.writeUtf8(location, delimitedString(t))
+  /**
+   * Read text data from a Location that is either a directory containing files
+   * or just a single file
+   */
+  def fromIvoryLocation(location: IvoryLocation): ResultTIO[List[T]] =
+    IvoryLocation.isDirectory(location).flatMap { isDirectory =>
+      if (isDirectory) IvoryLocation.list(location).flatMap(_.traverseU(fromSingleFile))
+      else             fromSingleFile(location).map(t => List(t))
+    }
 
   def toKeyStore(repository: Repository, key: Key, t: T): ResultTIO[Unit] =
     repository.store.utf8.write(key, delimitedString(t))

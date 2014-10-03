@@ -12,9 +12,19 @@ object DictionaryImporter {
 
   import com.ambiata.ivory.operation.ingestion.DictionaryImportValidate._
 
+  /**
+   * import a dictionary from a given location
+   * in any format, as a text file, or a directory containing text files
+   *
+   * Then convert the dictionary to Thrift for internal storage
+   */
   def importFromPath(repository: Repository, source: IvoryLocation, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[DictionaryId])] =
-    DictionaryTextStorageV2.fromFile(source).flatMap(fromDictionary(repository, _, importOpts))
+    DictionaryTextStorageV2.dictionaryFromIvoryLocation(source).flatMap(fromDictionary(repository, _, importOpts))
 
+  /**
+   * Load the existing dictionary and append the new one
+   * If there are any inconsistencies report them
+   */
   def fromDictionary(repository: Repository, dictionary: Dictionary, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[DictionaryId])] = {
     val storage = DictionaryThriftStorage(repository)
     for {

@@ -25,11 +25,8 @@ object DictionaryTextStorage extends TextStorage[(FeatureId, ConcreteDefinition)
         None
     }
 
-  def fromFiles(location: IvoryLocation): ResultTIO[Dictionary] =
-    fromDirStore(location).map(ds => Dictionary.reduce(ds))
-
-  def fromFile(location: IvoryLocation): ResultTIO[Dictionary] =
-    fromFileStore(location)
+  def dictionaryFromIvoryLocation(location: IvoryLocation): ResultTIO[Dictionary] =
+    fromIvoryLocation(location).map(Dictionary.reduce)
 
   def parseLine(i: Int, e: String): ValidationNel[String, (FeatureId, ConcreteDefinition)] =
     parseDictionaryEntry(e).toValidationNel

@@ -19,7 +19,7 @@ object convertDictionary extends IvoryApp {
       for {
         in         <- IvoryLocation.fromUri(input, conf)
         out        <- IvoryLocation.fromUri(output, conf)
-        dictionary <- DictionaryTextStorage.fromFiles(in)
+        dictionary <- DictionaryTextStorage.dictionaryFromIvoryLocation(in)
         _          <- IvoryLocation.writeUtf8(out, DictionaryTextStorageV2.delimitedString(dictionary))
       } yield List(s"File successfully written to $output")
   }})
