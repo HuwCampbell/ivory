@@ -15,8 +15,8 @@ import org.specs2._
 class PivotOutputSpec extends Specification with SampleFacts with ThrownExpectations { def is = s2"""
 
  A Sequence file containing feature values can be
-   pivoted as a row-oriented file                        $pivot       ${tag("mr")}
-   pivoted as a row-oriented file (another example)      $pivot2      ${tag("mr")}
+   pivoted as a row-oriented file, example 1           $pivot       ${tag("mr")}
+   pivoted as a row-oriented file, example 2           $pivot2      ${tag("mr")}
 
 """
   def pivot =
@@ -29,7 +29,7 @@ class PivotOutputSpec extends Specification with SampleFacts with ThrownExpectat
 
   def pivot2 = {
     val facts = List(
-        IntFact(    "eid1", FeatureId(Name("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
+      IntFact(      "eid1", FeatureId(Name("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
       , IntFact(    "eid3", FeatureId(Name("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
       , StringFact( "eid1", FeatureId(Name("ns1"), "fid1"), Date(2012,  9,  1), Time(0), "abc")
       , StringFact( "eid1", FeatureId(Name("ns1"), "fid1"), Date(2012, 10,  1), Time(0), "ghi")
@@ -56,13 +56,13 @@ class PivotOutputSpec extends Specification with SampleFacts with ThrownExpectat
     Temporary.using { dir =>
       for {
         _     <- RepositoryBuilder.createRepo(repo, sampleDictionary, facts)
-        pivot <- Reference.fromUriResultTIO((dir </> "pivot").path, repo.configuration)
+        pivot <- IvoryLocation.fromUri((dir </> "pivot").path, IvoryConfiguration.Empty)
         meta  <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), incremental = false)
-        input     = repo.toReference(Repository.snapshot(meta.snapshotId))
+        input     = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
         _                <- PivotOutput.createPivot(repo, input, pivot, '|', "NA")
-        dictRef          <- Reference.fromUriResultTIO((dir </> "pivot" </> ".dictionary").path, repo.configuration)
-        dictionaryLines  <- dictRef.run(_.linesUtf8.read)
-        pivotLines       <- pivot.readLines
+        dictLocation     <- IvoryLocation.fromUri((dir </> "pivot" </> ".dictionary").path, IvoryConfiguration.Empty)
+        dictionaryLines  <- IvoryLocation.readLines(dictLocation)
+        pivotLines       <- IvoryLocation.readLines(pivot)
       } yield (pivotLines.mkString("\n").trim, dictionaryLines)
     }
 }

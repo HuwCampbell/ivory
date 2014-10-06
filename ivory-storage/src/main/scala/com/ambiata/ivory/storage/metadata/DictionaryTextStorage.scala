@@ -1,5 +1,9 @@
 package com.ambiata.ivory.storage.metadata
 
+import com.ambiata.mundane.control.{ResultTIO, ResultT}
+import com.ambiata.mundane.io.Location
+
+import scalaz.effect.IO
 import scalaz.{Name => _, Value => _, _}, Scalaz._
 import com.ambiata.mundane.parse._
 import com.ambiata.ivory.core._
@@ -20,6 +24,9 @@ object DictionaryTextStorage extends TextStorage[(FeatureId, ConcreteDefinition)
       case Virtual(_, _) =>
         None
     }
+
+  def dictionaryFromIvoryLocation(location: IvoryLocation): ResultTIO[Dictionary] =
+    fromIvoryLocation(location).map(Dictionary.reduce)
 
   def parseLine(i: Int, e: String): ValidationNel[String, (FeatureId, ConcreteDefinition)] =
     parseDictionaryEntry(e).toValidationNel

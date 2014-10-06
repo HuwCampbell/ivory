@@ -3,15 +3,16 @@ package com.ambiata.ivory.operation.ingestion
 import com.ambiata.ivory.storage.fact.Namespaces
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.metadata.Metadata._
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.BytesQuantity
+import com.ambiata.mundane.io._
 import com.ambiata.poacher.hdfs._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.joda.time.DateTimeZone
-
+import EavtTextImporter._
 import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
+import IvorySyntax._
 
 /**
  * Import a text file, formatted as an EAVT file, into ivory.
@@ -24,19 +25,18 @@ case class EavtTextImporter(repository: Repository,
                             optimal: BytesQuantity,
                             format: Format) {
 
-  import EavtTextImporter._
-
-  val  importFacts = { (factsetId: FactsetId, input: ReferenceIO, timezone: DateTimeZone) =>
-    val errorRef = repository.toReference(Repository.errors </> factsetId.render)
+  val  importFacts = { (factsetId: FactsetId, input: IvoryLocation, timezone: DateTimeZone) =>
+    val errorKey = Repository.errors / factsetId.asKeyName
 
     for {
-      hr         <- downcast[Repository, HdfsRepository](repository, "Repository must be HDFS")
-      dictionary <- latestDictionaryFromIvory(repository)
-      inputPath  <- Reference.hdfsPath(input)
-      errorPath  <- Reference.hdfsPath(errorRef)
-      partitions <- namespace.fold(Namespaces.namespaceSizes(inputPath))(ns => Namespaces.namespaceSizesSingle(inputPath, ns).map(List(_))).run(hr.configuration)
-      _          <- ResultT.fromDisjunction[IO, Unit](validateNamespaces(dictionary, partitions.map(_._1)).leftMap(\&/.This(_)))
-      _          <- runJob(hr, dictionary, factsetId, inputPath, errorPath, partitions, timezone)
+      hr            <- downcast[Repository, HdfsRepository](repository, "Repository must be HDFS")
+      inputLocation <- downcast[IvoryLocation, HdfsIvoryLocation](input, "The input must be HDFS")
+      dictionary    <- latestDictionaryFromIvory(repository)
+      inputPath     =  inputLocation.toHdfsPath
+      errorPath     =  hr.toIvoryLocation(errorKey).toHdfsPath
+      partitions    <- namespace.fold(Namespaces.namespaceSizes(inputPath))(ns => Namespaces.namespaceSizesSingle(inputPath, ns).map(List(_))).run(hr.configuration)
+      _             <- ResultT.fromDisjunction[IO, Unit](validateNamespaces(dictionary, partitions.map(_._1)).leftMap(\&/.This(_)))
+      _             <- runJob(hr, dictionary, factsetId, inputPath, errorPath, partitions, timezone)
     } yield ()
   }
 
@@ -52,7 +52,7 @@ case class EavtTextImporter(repository: Repository,
         inputPath,
         namespace,
         paths,
-        repository.factset(factsetId).toHdfs,
+        hr.toIvoryLocation(Repository.factset(factsetId)).toHdfsPath,
         errorPath,
         format,
         hr.codec

@@ -1,6 +1,6 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.core.Reference
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.metadata._
 
 object convertDictionary extends IvoryApp {
@@ -17,10 +17,10 @@ object convertDictionary extends IvoryApp {
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments("", ""), IvoryRunner { conf => {
     case CliArguments(input, output) =>
       for {
-        in         <- Reference.fromUriResultTIO(input, conf)
-        out        <- Reference.fromUriResultTIO(output, conf)
-        dictionary <- DictionaryTextStorage.fromStore(in)
-        _          <- out.run(s => p => s.utf8.write(p, DictionaryTextStorageV2.delimitedString(dictionary)))
+        in         <- IvoryLocation.fromUri(input, conf)
+        out        <- IvoryLocation.fromUri(output, conf)
+        dictionary <- DictionaryTextStorage.dictionaryFromIvoryLocation(in)
+        _          <- IvoryLocation.writeUtf8(out, DictionaryTextStorageV2.delimitedString(dictionary))
       } yield List(s"File successfully written to $output")
   }})
 }

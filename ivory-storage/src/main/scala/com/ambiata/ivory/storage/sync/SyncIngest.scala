@@ -7,35 +7,44 @@ import com.ambiata.ivory.storage.sync.Sync._
 import com.ambiata.ivory.storage.plan._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import org.apache.hadoop.fs.{Path, Hdfs}
+import com.ambiata.saws.s3.{S3Path, S3}
 
 import scalaz._, Scalaz._, effect.IO
 
 object SyncIngest {
 
    def inputDataSet(input: InputDataset, cluster: Cluster): ResultTIO[ShadowInputDataset] = {
-     val outputPath: FilePath = FilePath(s"shadowInputDataset/${UUID.randomUUID()}")
+     val outputPath = DirPath.unsafe(s"shadowInputDataset/${UUID.randomUUID()}")
+
      input.location match {
-       case LocalLocation(path) => FilePath(path).toFile.isFile match {
-         case true =>  SyncLocal.toHdfs(FilePath(path), outputPath, cluster) >> ResultT.ok(shadowInputDatasetFromPath( outputPath </> FilePath(path).basename, cluster))
-         case false => SyncLocal.toHdfs(FilePath(path), outputPath, cluster) >> ResultT.ok(shadowInputDatasetFromPath(outputPath, cluster))
-       }
-       case S3Location(b,k)     => SyncS3.toHdfs(b, FilePath(k), outputPath, cluster) >> ResultT.ok(shadowInputDatasetFromPath(outputPath, cluster))
-       case HdfsLocation(path)  => ResultT.ok(ShadowInputDataset(FilePath(path), cluster.hdfsConfiguration))
+       case LocalIvoryLocation(LocalLocation(path)) =>
+         val out =
+           if (path.toFile.isFile) outputPath </> path.basename
+           else                    outputPath
+
+         SyncLocal.toHdfs(path, outputPath, cluster) >>
+           ResultT.ok(shadowInputDatasetFromPath(out, cluster))
+
+       case S3IvoryLocation(S3Location(path), _) =>
+         SyncS3.toHdfs(path, outputPath, cluster) >>
+           ResultT.ok(shadowInputDatasetFromPath(outputPath, cluster))
+
+       case h @ HdfsIvoryLocation(HdfsLocation(_), _, _, _) =>
+         ResultT.ok(ShadowInputDataset(h))
      }
    }
 
-   def shadowInputDatasetFromPath(path: FilePath, cluster: Cluster): ShadowInputDataset =
-     ShadowInputDataset(cluster.root </> path, cluster.ivory.configuration)
+   def shadowInputDatasetFromPath(path: DirPath, cluster: Cluster): ShadowInputDataset =
+     ShadowInputDataset(cluster.root </> path)
 
    def toCluster(datasets:Datasets, source: Repository, cluster: Cluster): ResultTIO[ShadowRepository] =
-     (source match {
-       case S3Repository(bucket, root, _) => getPaths(datasets).traverseU(z => SyncS3.toHdfs(bucket, root, z, cluster)).void
-       case LocalRepository(root) => getPaths(datasets).traverseU(z => SyncLocal.toHdfs(root, FilePath(""), cluster)).void
-       case HdfsRepository(_, _) => ResultT.unit[IO]
+     (source.root.location match {
+       case S3Location(root)    => getKeys(datasets).traverseU(key => SyncS3.toHdfs(root, DirPath.unsafe(key.name), cluster)).void
+       case LocalLocation(root) => getKeys(datasets).traverseU(key => SyncLocal.toHdfs(root, DirPath.unsafe(key.name), cluster)).void
+       case HdfsLocation(_)     => ResultT.unit[IO]
      }).as(source match {
-       case HdfsRepository(r, c) => ShadowRepository(r, c)
-       case _ => ShadowRepository(cluster.root, cluster.ivory)
+       case HdfsRepository(r) => ShadowRepository(r)
+       case _                 => ShadowRepository(cluster.root)
      })
 
  }

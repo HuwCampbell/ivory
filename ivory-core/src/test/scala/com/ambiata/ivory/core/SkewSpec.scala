@@ -1,10 +1,9 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.mundane.io._
 import org.specs2._
 
 import scalaz._, Scalaz._
-import MemoryConversions._
+import com.ambiata.mundane.io.MemoryConversions._
 
 class SkewSpec extends Specification with ScalaCheck { def is = s2"""
 

@@ -2,7 +2,8 @@ package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.ScalaCheckManagedProperties
-import com.ambiata.mundane.io._
+import com.ambiata.mundane.io.{LocalLocation, Temporary}
+import com.ambiata.mundane.store._
 import com.ambiata.mundane.control._
 
 import org.specs2._
@@ -27,48 +28,43 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
 
   def readFeatureStore = managed { temp: Temporary => fstore: FeatureStore =>
     val expected = fstore.copy(factsets = fstore.factsets.map(_.map(fs => fs.copy(partitions = fs.partitions.sorted))))
-
-    val base = LocalLocation(temp.file.path)
-    val repo = LocalRepository(base.path)
+    val repo = LocalRepository(LocalLocation(temp.dir))
 
     writeFeatureStore(repo, fstore) >>
     fromId(repo, fstore.id) must beOkValue(expected)
   }
 
   def writeFeatureStore = managed { temp: Temporary => fstore: FeatureStore =>
-    val base = LocalLocation(temp.file.path)
-    val repo = LocalRepository(base.path)
+    val repo = LocalRepository(LocalLocation(temp.dir))
     toId(repo, fstore) >>
-    repo.toStore.utf8.read(Repository.featureStoreById(fstore.id)) must
+      repo.store.utf8.read(Repository.featureStoreById(fstore.id)) must
       beOkLike(_ must_== delimitedString(fstore.factsetIds))
   }
 
   def listFeatureStorIds = managed { temp: Temporary => ids: SmallFeatureStoreIdList =>
-    val base = LocalLocation(temp.file.path)
-    val repo = LocalRepository(base.path)
+    val repo = LocalRepository(LocalLocation(temp.dir))
     writeFeatureStoreIds(repo, ids.ids) >>
-    Metadata.listFeatureStoreIds(repo) must beOkValue(ids.ids)
+    Metadata.listFeatureStoreIds(repo).map(_.toSet) must beOkValue(ids.ids.toSet)
   }
 
   def latestFeatureStoreIs = managed { temp: Temporary => ids: SmallFeatureStoreIdList =>
-    val base = LocalLocation(temp.file.path)
-    val repo = LocalRepository(base.path)
+    val repo = LocalRepository(LocalLocation(temp.dir))
     writeFeatureStoreIds(repo, ids.ids) >>
     Metadata.latestFeatureStoreId(repo) must beOkValue(ids.ids.sortBy(_.id).lastOption)
   }
 
   def writeFeatureStoreIds(repo: Repository, ids: List[FeatureStoreId]): ResultTIO[Unit] =
-    ids.traverse(id => writeFile(repo, Repository.featureStores </> FilePath(id.render), List(""))).void
+    ids.traverse(id => writeLines(repo, Repository.featureStores / id.asKeyName, List(""))).void
 
   /* Write out the feature store and factsets within it */
   def writeFeatureStore(repo: Repository, fstore: FeatureStore): ResultTIO[Unit] = for {
-    _ <- writeFile(repo, Repository.featureStoreById(fstore.id), fstore.factsetIds.map(_.value.render))
+    _ <- writeLines(repo, Repository.featureStoreById(fstore.id), fstore.factsetIds.map(_.value.render))
     _ <- fstore.factsets.map(_.value).traverseU(factset => factset.partitions.partitions.traverseU(partition =>
-           writeFile(repo, Repository.factset(factset.id) </> partition.path </> FilePath("data"), List(""))
+           writeLines(repo, Repository.factset(factset.id) / partition.key / "data", List(""))
          )).map(_.flatten)
   } yield ()
 
-  def writeFile(repo: Repository, file: FilePath, lines: List[String]): ResultTIO[Unit] =
-    repo.toStore.linesUtf8.write(file, lines)
+  def writeLines(repository: Repository, key: Key, lines: List[String]): ResultTIO[Unit] =
+    repository.store.linesUtf8.write(key, lines)
 }
 

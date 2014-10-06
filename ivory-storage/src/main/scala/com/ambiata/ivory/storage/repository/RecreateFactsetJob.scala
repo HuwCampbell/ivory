@@ -98,7 +98,7 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, LongWrit
   override def setup(context: MapperContext): Unit = {
     version = context.getConfiguration.get(Keys.Version, "")
     ctx = MrContext.fromConfiguration(context.getConfiguration)
-    path = FilePath(MrContext.getSplitPath(context.getInputSplit).toString)
+    path = FilePath.unsafe(MrContext.getSplitPath(context.getInputSplit).toString)
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.FeatureIdLookup, featureIdLookup)
     partition = Partition.parseFile(path) match {
       case Success(p) => p

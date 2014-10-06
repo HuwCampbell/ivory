@@ -17,11 +17,11 @@ import scalaz._, Scalaz._
 case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryRunner[A]) {
 
   def run(args: Array[String]): IO[Option[Unit]] = {
-    val repositoryConfiguration = createRepositoryConfiguration(args)
+    val repositoryConfiguration = createIvoryConfiguration(args)
     parseAndRun(repositoryConfiguration.arguments, runner.run(repositoryConfiguration))
   }
 
-  private def createRepositoryConfiguration(args: Array[String]): IvoryConfiguration =
+  private def createIvoryConfiguration(args: Array[String]): IvoryConfiguration =
     IvoryConfiguration(
       arguments        = parseHadoopArguments(args)._2.toList,
       s3Client         = Clients.s3,
@@ -75,7 +75,7 @@ object IvoryCmd {
       for {
         repoPath <- ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
           "-r|--repository was missing or environment variable IVORY_REPOSITORY not set")
-        repo     <- Repository.fromUriResultTIO(repoPath, config)
+        repo     <- Repository.fromUri(repoPath, config)
         result   <- runner(repo)(config)(c)
       } yield result
     ))

@@ -14,6 +14,7 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 
 import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
 import com.ambiata.mundane.control._
 import org.specs2.execute.AsResult
 import org.specs2.matcher.{Matcher, ThrownExpectations}
@@ -48,7 +49,7 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
 
       for {
         _                <- snapshots.metas.traverse(storeSnapshotMeta(repository, _))
-        latestBeforeDate = snapshots.metas.filter(_.date <= date1).sorted.lastOption
+        latestBeforeDate =  snapshots.metas.filter(_.date <= date1).sorted.lastOption
         snapshot         <- SnapshotMeta.latestSnapshot(repository, date1)
       } yield snapshot must_== latestBeforeDate
     } must beOkResult
@@ -61,7 +62,7 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
       for {
         _         <- snapshots.metas.traverse(storeSnapshotMeta(repository, _))
         factsetId <- Factsets.allocateFactsetId(repository)
-        _         <- repository.toStore.utf8.write(Repository.factset(factsetId) </> "ns" </> FilePath(factsetDate.slashed) </> "part", "content")
+        _         <- repository.store.utf8.write(Repository.factset(factsetId) / "ns" / Key.unsafe(factsetDate.slashed) / "part", "content")
         store     <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.testing(repository))
         _         <- writeFactsetVersion(repository, List(factsetId))
         snapshot  <- SnapshotMeta.latestUpToDateSnapshot(repository, date1)
@@ -185,14 +186,14 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
   def createRepository[R : AsResult](f: Repository => R): org.specs2.execute.Result = {
     val sc: ScoobiConfiguration = scoobiConfiguration
     Temporary.using { dir =>
-      val repo = Repository.fromHdfsPath(dir </> "repo", sc)
+      val repo = HdfsRepository(HdfsLocation(dir </> FileName.unsafe("repo")), IvoryConfiguration.fromScoobiConfiguration(sc))
       ResultT.ok[IO, org.specs2.execute.Result](AsResult(f(repo)))
     } must beOkLike(_.isSuccess)
   }
 
   def storeSnapshotMeta(repo: Repository, meta: SnapshotMeta): ResultTIO[Unit] = {
-    val path = Repository.snapshots </> FilePath(meta.snapshotId.render) </> SnapshotMeta.fname
-    repo.toReference(path).run(store => p => store.linesUtf8.write(p, meta.stringLines))
+    val key = Repository.snapshots / meta.snapshotId.asKeyName / SnapshotMeta.metaKeyName
+    repo.store.linesUtf8.write(key, meta.stringLines)
   }
 
 }

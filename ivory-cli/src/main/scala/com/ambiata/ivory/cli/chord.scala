@@ -3,6 +3,7 @@ package com.ambiata.ivory.cli
 import com.ambiata.ivory.api.Ivory._
 import com.ambiata.ivory.api.IvoryRetire
 import com.ambiata.ivory.cli.extract._
+import com.ambiata.ivory.core.{IvoryLocation, Repository}
 import com.ambiata.ivory.storage.control.IvoryRead
 import com.ambiata.mundane.control.ResultT
 import scalaz.effect.IO
@@ -13,10 +14,10 @@ object chord extends IvoryApp {
 
   val parser = Extract.options(new scopt.OptionParser[CliArguments]("chord") {
     head("""
-         |Extract the latest features from a given ivory repo using a list of entity id and date pairs
-         |
-         |The output entity ids will be of the form eid:yyyy-MM-dd
-         |""".stripMargin)
+           |Extract the latest features from a given ivory repo using a list of entity id and date pairs
+           |
+           |The output entity ids will be of the form eid:yyyy-MM-dd
+           |""".stripMargin)
 
     help("help") text "shows this usage text"
     opt[String]('c', "entities") action { (x, c) => c.copy(entities = x) }  required() text "Path to file containing entity/date pairs (eid|yyyy-MM-dd)."
@@ -25,13 +26,13 @@ object chord extends IvoryApp {
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments("", true, ExtractOutput()), { repo => conf => c =>
     for {
-      ent  <- Reference.fromUriResultTIO(c.entities, conf)
+      ent  <- IvoryLocation.fromUri(c.entities, conf)
       of   <- Extract.parse(conf, c.formats)
       _    <- ResultT.when(of.outputs.isEmpty, ResultT.fail[IO, Unit]("No output/format specified"))
       out  <- IvoryRetire.chord(repo, ent, c.takeSnapshot)
-      _    <- Extraction.extract(of, ChordExtract(repo.toReference(out))).run(IvoryRead.prod(repo))
+      _    <- Extraction.extract(of, ChordExtract(repo.toIvoryLocation(out))).run(IvoryRead.prod(repo))
       // Delete the output file only if successful - could be useful for debugging otherwise
-      _    <- repo.toStore.deleteAll(out)
-    } yield List(s"Successfully extracted chord from '${repo.root.path}'")
+      _    <- repo.store.deleteAll(out)
+    } yield List(s"Successfully extracted chord from '${repo.root.show}'")
   })
 }

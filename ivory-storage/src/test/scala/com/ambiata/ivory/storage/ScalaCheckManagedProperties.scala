@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage
 
-import com.ambiata.mundane.io.{FilePath, Temporary}
+import com.ambiata.mundane.io.{DirPath, FilePath, Temporary}
 import org.scalacheck.{Shrink, Prop, Gen, Arbitrary}
 import org.specs2.ScalaCheck
 import scalaz.effect.{IO, Resource}
@@ -131,7 +131,7 @@ trait ScalaCheckManagedProperties { this: ScalaCheck =>
     Arbitrary[Temporary](genTemporaryDir)
 
   def genTemporaryDir =
-    Gen.wrap(Gen.const(Temporary.directory(FilePath(System.getProperty("java.io.tmpdir", "/tmp")), "temporary")
+    Gen.wrap(Gen.const(Temporary.directory(DirPath.unsafe(System.getProperty("java.io.tmpdir", "/tmp")), "temporary")
       .run.unsafePerformIO.toOption.get))
 
   /**

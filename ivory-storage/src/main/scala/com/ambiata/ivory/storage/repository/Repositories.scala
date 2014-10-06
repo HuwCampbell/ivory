@@ -1,16 +1,16 @@
 package com.ambiata.ivory.storage.repository
 
-import com.ambiata.ivory.core.Repository
-import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.metadata._
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.store.Store
+import com.ambiata.mundane.store._
+import com.ambiata.ivory.core._
 
 import scalaz.Scalaz._
 
 object Repositories {
 
-  val initialPaths = List(
+  def initialKeys(repository: Repository) = List(
     Repository.root,
     Repository.dictionaries,
     Repository.featureStores,
@@ -21,16 +21,17 @@ object Repositories {
   )
 
   def create(repo: Repository): ResultTIO[Unit] = {
-    val store: Store[ResultTIO] = repo.toStore
+
     for {
-      e <- store.exists(Repository.root </> ".allocated")
+      e <- repo.store.exists(Key(".allocated"))
       r <- ResultT.unless(e, for {
-        _     <- initialPaths.traverse(p => store.utf8.write(p </> ".allocated", "")).void
+        _     <- initialKeys(repo).traverse(key => repo.store.utf8.write(key / ".allocated", "")).void
         // Set the initial commit
         dict  <- DictionaryThriftStorage(repo).store(Dictionary.empty)
         store <- FeatureStoreTextStorage.increment(repo, Nil)
         _     <- Metadata.incrementCommit(repo, dict, store)
       } yield ())
+
     } yield r
   }
 }

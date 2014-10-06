@@ -1,11 +1,13 @@
 package com.ambiata.ivory.core
 
 import com.ambiata.ivory.data.Identifier
+import com.ambiata.mundane.io.FileName
 import scalaz._, Scalaz._
 import scala.math.{Ordering => SOrdering}
 
 case class DictionaryId(id: Identifier) {
   def render = id.render
+  def asKeyName = id.asKeyName
   def next = id.next.map(DictionaryId.apply)
   def order(other: DictionaryId): Ordering =
     id ?|? other.id

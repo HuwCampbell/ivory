@@ -1,7 +1,6 @@
 package com.ambiata.ivory.operation.diff
 
 import com.ambiata.mundane.control.ResultT
-import com.nicta.scoobi.testing.TestFiles
 import org.specs2._
 import org.specs2.execute.{Result, AsResult}
 import org.specs2.matcher.{ThrownExpectations, FileMatchers}
@@ -9,6 +8,8 @@ import org.apache.hadoop.fs.Path
 import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
+import com.ambiata.ivory.core.TemporaryLocations.withHdfsRepository
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
@@ -21,7 +22,7 @@ import scalaz.effect.IO
 class FactDiffSpec extends Specification with ThrownExpectations with FileMatchers { def is = sequential ^ s2"""
 
   FactDiff finds difference with all facts $e1
-  FactDiff finds no difference $e2
+  FactDiff finds no difference             $e2
   FactDiff finds difference with structs   $structs
   FactDiff finds difference with list      $list
 
@@ -71,17 +72,16 @@ class FactDiffSpec extends Specification with ThrownExpectations with FileMatche
 
   private def diff[R : AsResult](facts1: DList[Fact], facts2: DList[Fact])(f: (String, ScoobiConfiguration) => R): Result = {
     implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
-    Temporary.using { dir =>
-      val directory = TestFiles.path(dir.path)
-      val input1 = directory + "/1"
-      val input2 = directory + "/2"
-      val output = directory + "/out"
+    withHdfsRepository { repository =>
+      val key1   = "in" / "1"
+      val key2   = "in" / "2"
+      val output = repository.toIvoryLocation(Key("out"))
 
-      persist(PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input1, None).storeScoobi(facts1),
-        PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input2, None).storeScoobi(facts2))
+      persist(PartitionFactThriftStorageV1.PartitionedFactThriftStorer(repository, key1, None).storeScoobi(facts1),
+        PartitionFactThriftStorageV1.PartitionedFactThriftStorer(repository, key2, None).storeScoobi(facts2))
 
-      FactDiff.partitionFacts(input1, input2, output).run(sc) must beOk
-      ResultT.ok[IO, Result](AsResult(f(output, sc)))
-    }.run.unsafePerformIO.toOption.get
+      FactDiff.partitionFacts(repository.toIvoryLocation(key1), repository.toIvoryLocation(key2), output).run(sc) must beOk
+      ResultT.ok[IO, Result](AsResult(f(output.toHdfs, sc)))
+    } must beOkLike(identity)
   }
 }

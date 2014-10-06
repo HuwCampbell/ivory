@@ -1,8 +1,7 @@
 package com.ambiata.ivory.scoobi
 
-import com.ambiata.ivory.core.IvorySyntax._
+import com.ambiata.ivory.core.{HdfsIvoryLocation, IvoryLocation}
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.FilePath
 import com.ambiata.poacher.scoobi.ScoobiAction
 import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.hadoop.io.{BytesWritable, NullWritable, SequenceFile}
@@ -16,11 +15,11 @@ object SequenceUtil {
     def close(w: SequenceFile.Writer) = IO(w.close())
   }
 
-  def writeBytes(file: FilePath, codec: Option[CompressionCodec])(f: (Array[Byte] => Unit) => ResultTIO[Unit]): ScoobiAction[Unit] = for {
+  def writeBytes(location: HdfsIvoryLocation, codec: Option[CompressionCodec])(f: (Array[Byte] => Unit) => ResultTIO[Unit]): ScoobiAction[Unit] = for {
     conf <- ScoobiAction.scoobiConfiguration
     _    <- ScoobiAction.fromResultTIO {
       val opts = List(
-        SequenceFile.Writer.file(file.toHdfs),
+        SequenceFile.Writer.file(location.toHdfsPath),
         SequenceFile.Writer.keyClass(classOf[NullWritable]),
         SequenceFile.Writer.valueClass(classOf[BytesWritable])
       ) ++ codec.map {

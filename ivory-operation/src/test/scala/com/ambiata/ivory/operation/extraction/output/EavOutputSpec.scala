@@ -36,13 +36,13 @@ class EavOutputSpec extends Specification with SampleFacts with ThrownExpectatio
     Temporary.using { dir =>
       for {
         _               <- RepositoryBuilder.createRepo(repo, sampleDictionary, facts)
-        eav             <- Reference.fromUriResultTIO((dir </> "eav").path, repo.configuration)
+        eav             <- IvoryLocation.fromUri((dir </> "eav").path, IvoryConfiguration.Empty)
         meta            <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), incremental = false)
-        input            = repo.toReference(Repository.snapshot(meta.snapshotId))
+        input            = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
         _               <- EavOutput.extractFromSnapshot(repo, eav, '|', "NA", meta)
-        dictRef         <- Reference.fromUriResultTIO((dir </> "eav" </> ".dictionary").path, repo.configuration)
-        dictionaryLines <- dictRef.run(_.linesUtf8.read)
-        eavLines        <- eav.readLines.map(_.sorted)
+        dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, IvoryConfiguration.Empty)
+        dictionaryLines <- IvoryLocation.readLines(dictLocation)
+        eavLines        <- IvoryLocation.readLines(eav).map(_.sorted)
       } yield (eavLines.mkString("\n").trim, dictionaryLines)
     }
 }

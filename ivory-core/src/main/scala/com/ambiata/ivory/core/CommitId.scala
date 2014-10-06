@@ -6,6 +6,7 @@ import scalaz._, Scalaz._
 
 case class CommitId(id: Identifier) {
   def render = id.render
+  def asKeyName = id.asKeyName
   def next = id.next.map(CommitId.apply)
   def order(other: CommitId): Ordering =
     id ?|? other.id

@@ -4,13 +4,13 @@ import com.ambiata.ivory.core._, Arbitraries._
 import com.ambiata.ivory.data.Identifier
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
 import com.ambiata.mundane.testing.ResultMatcher._
 import org.scalacheck.Arbitrary, Arbitrary._
 import org.specs2.{ScalaCheck, Specification}
 import scalaz._, Scalaz._
 
-class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
-  def is = s2"""
+class DictionaryThriftStorageSpec extends Specification with ScalaCheck { def is = s2"""
 
   Given a dictionary we can:
     store and then load it successfully             $e1
@@ -45,15 +45,13 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck {
     loader.store(dict) >>= (id => loader.loadFromId(id))
   }.map(_.map(_.byFeatureId)) must beOkValue(Some(dict.byFeatureId)))
 
-  private def storeDateDicts(dict: Dictionary, dir: FilePath): ResultTIO[Unit] = {
+  private def storeDateDicts(dict: Dictionary, dir: DirPath): ResultTIO[Unit] = {
     import DictionaryTextStorage._
-    def storeText(name: String) =
-      Repository.fromLocalPath(dir).toStore.utf8.write(Repository.dictionaries </> name, delimitedString(dict))
-    storeText("2004-03-12")
+    PosixStore(dir).utf8.write(Repository.dictionaries / "2004-03-12", delimitedString(dict))
   }
 
-  private def run[A](f: (DictionaryThriftStorage, FilePath) => ResultTIO[A]): Result[A] =
-    Temporary.using(dir => f(DictionaryThriftStorage(Repository.fromLocalPath(dir)), dir)).run.unsafePerformIO()
+  private def run[A](f: (DictionaryThriftStorage, DirPath) => ResultTIO[A]): Result[A] =
+    Temporary.using(dir => f(DictionaryThriftStorage(LocalRepository(LocalLocation(dir))), dir)).run.unsafePerformIO()
 
   // Text dictionaries can only handle primitive encoding _with_ types and _at least_ one tombstone
   case class PrimitiveDictionary(dict: Dictionary)

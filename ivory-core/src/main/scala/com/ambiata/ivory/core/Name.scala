@@ -1,7 +1,9 @@
 package com.ambiata.ivory.core
 
+import com.ambiata.mundane.io._
 import com.ambiata.ivory.reflect.MacrosCompat
 import com.ambiata.mundane.parse.ListParser
+import com.ambiata.mundane.store.KeyName
 import org.apache.hadoop.fs.Path
 
 import scalaz.{Name => _,_}, Scalaz._
@@ -16,7 +18,12 @@ import scalaz.{Name => _,_}, Scalaz._
  *
  * As a result it can be used to create a file name
  */
-class Name private(val name: String) extends AnyVal
+class Name private(val name: String) extends AnyVal {
+  def asFileName = FileName.unsafe(name)
+  def asKeyName  = KeyName.unsafe(name)
+  def asDirPath = DirPath.unsafe(name)
+  def asFilePath = FilePath.unsafe(name)
+}
 
 object Name extends MacrosCompat {
 
@@ -62,7 +69,7 @@ object Name extends MacrosCompat {
     nameFromStringDisjunction(s).toOption
 
   def nameFromStringDisjunction(s: String): String \/ Name =
-    if (s.matches("([A-Z]|[a-z]|[0-9]|\\-|_)+") && !s.startsWith("_")) (new Name(s)).right
+    if (s.matches("([A-Z]|[a-z]|[0-9]|\\-|_)+") && !s.startsWith("_")) new Name(s).right
     else                                                               s"$s is not a valid Name".left
 
   def createNameFromStringMacro(c: Context)(s: c.Expr[String]): c.Expr[Name] = {

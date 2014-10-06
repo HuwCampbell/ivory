@@ -1,10 +1,11 @@
 package com.ambiata.ivory.operation.validation
 
-import com.ambiata.ivory.core._, Arbitraries._, IvorySyntax._
+import com.ambiata.ivory.core._, Arbitraries._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control.ResultT
 import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.io._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
 import org.specs2.matcher.{ThrownExpectations, FileMatchers}
@@ -50,11 +51,11 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
       implicit val sc = repo.scoobiConfiguration
       for {
         fsid <- RepositoryBuilder.createFacts(repo, List(facts1, facts2)).map(_._1)
-        fs  <- Metadata.featureStoreFromIvory(repo, fsid)
-        _   <- ValidateStoreHdfs(repo, fs, dict, false).exec(outpath.toHdfs).run(sc)
-        res <- ResultT.ok[IO, List[String]](fromTextFile(outpath.path).run.toList)
-      } yield (fsid, res)
-    } must beOkLike { case (fsid, res) =>
+        fs   <- Metadata.featureStoreFromIvory(repo, fsid)
+        _    <- ValidateStoreHdfs(repo, fs, dict, false).exec(outpath.toHdfsPath).run(sc)
+        res  <- ResultT.ok[IO, List[String]](fromTextFile(outpath.toHdfs).run.toList)
+      } yield (res, fsid)
+    } must beOkLike { case (res, fsid) =>
       res must have size(1)
       res must contain("Not a valid double!")
       res must contain("eid1")
@@ -83,8 +84,8 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
       implicit val sc = repo.scoobiConfiguration
       for {
         fsid <- RepositoryBuilder.createFactset(repo, facts1)
-        _    <- ValidateFactSetHdfs(repo, fsid, dict).exec(outpath.toHdfs).run(sc)
-        res  <- ResultT.ok[IO, List[String]](fromTextFile(outpath.path).run.toList)
+        _    <- ValidateFactSetHdfs(repo, fsid, dict).exec(outpath.toHdfsPath).run(sc)
+        res  <- ResultT.ok[IO, List[String]](fromTextFile(outpath.toHdfs).run.toList)
       } yield res
     } must beOkLike { res =>
       res must have size(1)

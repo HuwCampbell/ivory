@@ -2,27 +2,26 @@ package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
+import com.ambiata.mundane.store._
 
-import scalaz._, Scalaz._, effect.IO, \&/._
+import scalaz._, effect.IO
 
 // TODO remove once plan api is created
-case class FactsetGlob(repo: Repository, factset: FactsetId, version: FactsetVersion, partitions: List[Partition]) {
+case class FactsetGlob(repo: Repository, factset: FactsetId, version: FactsetVersion, partitions: Partitions) {
   def filterPartitions(f: Partition => Boolean): Option[FactsetGlob] = {
     val filtered = partitions.filter(f)
-    if(filtered.isEmpty) None else Some(copy(partitions = filtered))
+    if (filtered.isEmpty) None else Some(copy(partitions = filtered))
   }
 
-  def paths: List[FilePath] =
-    partitions.map(p => repo.factset(factset) </> p.path)
+  def keys: List[Key] =
+    partitions.partitions.map(p => Repository.factset(factset) / p.key)
 }
 
 object FactsetGlob {
   def select(repository: Repository, factset: FactsetId): ResultT[IO, Option[FactsetGlob]] = for {
-    paths   <- repository.toStore.list(Repository.factset(factset) </> "/*/*/*/*")
-    parts   <- paths.traverseU(path => ResultT.fromDisjunction[IO, Partition](Partition.parseFile((repository.root </> path)).disjunction.leftMap(This.apply)))
-    version <- if(parts.isEmpty) ResultT.ok[IO, Option[FactsetVersion]](None) else Versions.read(repository, factset).map(Some.apply)
-  } yield version.map(v => FactsetGlob(repository, factset, v, parts.distinct))
+    partitions <- Partitions.getFromFactset(repository, factset)
+    version    <- if (partitions.isEmpty) ResultT.ok[IO, Option[FactsetVersion]](None) else Versions.read(repository, factset).map(Some.apply)
+  } yield version.map(v => FactsetGlob(repository, factset, v, partitions))
 
   def before(repository: Repository, factset: FactsetId, to: Date): ResultT[IO, Option[FactsetGlob]] =
     filter(repository, factset, _.date.isBeforeOrEqual(to))

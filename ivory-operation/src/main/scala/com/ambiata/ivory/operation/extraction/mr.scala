@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.extraction
 
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FactsetLookup, FactsetVersionLookup, SnapshotWindowLookup}
 import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
@@ -29,7 +29,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
  * This is a hand-coded MR job to squeeze the most out of snapshot performance.
  */
 object SnapshotJob {
-  def run(conf: Configuration, reducers: Int, date: Date, inputs: List[Prioritized[FactsetGlob]], output: Path,
+  def run(repository: HdfsRepository, conf: Configuration, reducers: Int, date: Date, inputs: List[Prioritized[FactsetGlob]], output: Path,
           windows: SnapshotWindows, incremental: Option[Path], codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
@@ -56,9 +56,9 @@ object SnapshotJob {
     // input
     val mappers = inputs.map(p => (classOf[SnapshotFactsetMapper], p.value))
     mappers.foreach({ case (clazz, factsetGlob) =>
-      factsetGlob.paths.foreach(path => {
-        println(s"Input path: ${path.path}")
-        MultipleInputs.addInputPath(job, path.toHdfs, classOf[SequenceFileInputFormat[_, _]], clazz)
+      factsetGlob.keys.foreach(key => {
+        println(s"Input path: ${key}")
+        MultipleInputs.addInputPath(job, repository.toIvoryLocation(key).toHdfsPath, classOf[SequenceFileInputFormat[_, _]], clazz)
       })
     })
 
@@ -247,7 +247,7 @@ object SnapshotFactsetMapper {
 
   def setupVersionAndPriority(thriftCache: ThriftCache, configuration: Configuration, inputSplit: InputSplit): (FactsetVersion, VersionedFactConverter, Priority) = {
     val versionLookup = new FactsetVersionLookup <| (fvl => thriftCache.pop(configuration, SnapshotJob.Keys.FactsetVersionLookup, fvl))
-    val path = FilePath(MrContext.getSplitPath(inputSplit).toString)
+    val path = FilePath.unsafe(MrContext.getSplitPath(inputSplit).toString)
     val (factsetId, partition) = Factset.parseFile(path) match {
       case Success(r) => r
       case Failure(e) => Crash.error(Crash.DataIntegrity, s"Can not parse factset path ${e}")

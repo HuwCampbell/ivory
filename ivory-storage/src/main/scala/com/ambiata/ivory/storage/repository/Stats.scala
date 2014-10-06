@@ -1,9 +1,9 @@
 package com.ambiata.ivory.storage.repository
 
-import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
+import com.ambiata.mundane.io.BytesQuantity
+import com.ambiata.mundane.store._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.{BytesQuantity, FilePath}
 import com.ambiata.poacher.hdfs.Hdfs.{numberOfFilesRecursively, totalSize}
 import com.ambiata.poacher.hdfs._
 import org.apache.hadoop.conf.Configuration
@@ -28,44 +28,44 @@ object Stats {
     (dictionariesSize |@| featureStoresSize)(Seq(_, _).sum)
 
   def factsetSize(factset: FactsetId): StatAction[BytesQuantity] = repository.flatMap {
-    case r: HdfsRepository => fromHdfs(totalSize(r.factset(factset).toHdfs))
+    case r: HdfsRepository => fromHdfs(totalSize(r.toIvoryLocation(Repository.factset(factset)).toHdfsPath))
     case _                 => fail("Unsupported repository!")
   }
 
   def factsetFiles(factset: FactsetId): StatAction[Int] = repository.flatMap {
-    case r: HdfsRepository => fromHdfs(numberOfFilesRecursively(r.factset(factset).toHdfs))
+    case r: HdfsRepository => fromHdfs(numberOfFilesRecursively(r.toIvoryLocation(Repository.factset(factset)).toHdfsPath))
     case _                 => fail("Unsupported repository!")
   }
 
-  def sizeOf(path: Repository => FilePath): StatAction[BytesQuantity] = repository.flatMap {
-    case r: HdfsRepository => fromHdfs(totalSize(path(r).toHdfs))
+  def sizeOf(key: Key): StatAction[BytesQuantity] = repository.flatMap {
+    case r: HdfsRepository => fromHdfs(totalSize(r.toIvoryLocation(key).toHdfsPath))
     case _                 => fail("Unsupported repository!")
   }
 
-  def showSizeOfInBytes(path: Repository => FilePath): StatAction[String] =
-    sizeOf(path).map(_.show)
+  def showSizeOfInBytes(key: Key): StatAction[String] =
+    sizeOf(key).map(_.show)
 
-  def numberOf(path: Repository => FilePath): StatAction[Int] = repository.flatMap {
-    case r: HdfsRepository => fromHdfs(Hdfs.globPaths(path(r).toHdfs).map(_.size))
+  def numberOf(key: Key): StatAction[Int] = repository.flatMap {
+    case r: HdfsRepository => fromHdfs(Hdfs.globPaths(r.toIvoryLocation(key).toHdfsPath).map(_.size))
     case _                 => fail("Unsupported repository!")
   }
 
-  def listOf(path: Repository => FilePath): StatAction[List[String]] = repository.flatMap {
-    case r: HdfsRepository => fromHdfs(Hdfs.globPaths(path(r).toHdfs).map(_.map(_.toUri.toString)))
+  def listOf(key: Key): StatAction[List[String]] = repository.flatMap {
+    case r: HdfsRepository => fromHdfs(Hdfs.globPaths(r.toIvoryLocation(key).toHdfsPath).map(_.map(_.toUri.toString)))
     case _                 => fail("Unsupported repository!")
   }
 
-  def dictionariesSize: StatAction[BytesQuantity]  = sizeOf((_:Repository).dictionaries)
-  def dictionaryVersions: StatAction[Int] = numberOf((_:Repository).dictionaries)
+  def dictionariesSize: StatAction[BytesQuantity]  = sizeOf(Repository.dictionaries)
+  def dictionaryVersions: StatAction[Int] = numberOf(Repository.dictionaries)
 
-  def featureStoresSize: StatAction[BytesQuantity] = sizeOf((_:Repository).featureStores)
-  def featureStoreCount: StatAction[Int]  = numberOf((_:Repository).featureStores)
+  def featureStoresSize: StatAction[BytesQuantity] = sizeOf(Repository.featureStores)
+  def featureStoreCount: StatAction[Int]  = numberOf(Repository.featureStores)
 
-  def factsetsSize: StatAction[BytesQuantity] = sizeOf((_:Repository).factsets)
-  def factsetCount: StatAction[Int] = numberOf((_:Repository).factsets)
+  def factsetsSize: StatAction[BytesQuantity] = sizeOf(Repository.factsets)
+  def factsetCount: StatAction[Int] = numberOf(Repository.factsets)
 
-  def snapshotsSize: StatAction[BytesQuantity] = sizeOf((_:Repository).snapshots)
-  def snapshotCount: StatAction[Int]  = numberOf((_:Repository).snapshots)
+  def snapshotsSize: StatAction[BytesQuantity] = sizeOf(Repository.snapshots)
+  def snapshotCount: StatAction[Int]  = numberOf(Repository.snapshots)
 
   /**
    * STAT ACTION methods

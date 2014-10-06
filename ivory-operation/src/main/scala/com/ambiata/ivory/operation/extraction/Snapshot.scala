@@ -2,20 +2,20 @@ package com.ambiata.ivory.operation.extraction
 
 import org.apache.commons.logging.LogFactory
 
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.store._
 import com.ambiata.mundane.io.MemoryConversions._
-import com.ambiata.mundane.io._
 import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
-
+import IvorySyntax._
 import scalaz.{DList => _, _}, Scalaz._, effect._
 
 /**
@@ -70,14 +70,13 @@ object Snapshot {
   def createSnapshot(repository: Repository, date: Date): Option[SnapshotMeta] => ResultTIO[SnapshotMeta] = (previousSnapshot: Option[SnapshotMeta]) =>
     for {
       newSnapshot <- SnapshotMeta.createSnapshotMeta(repository, date)
-      output      =  repository.toReference(Repository.snapshot(newSnapshot.snapshotId))
-      _           <- runSnapshot(repository, newSnapshot, previousSnapshot, date, output).info(s"""
+      _           <- runSnapshot(repository, newSnapshot, previousSnapshot, date, newSnapshot.snapshotId).info(s"""
                                  | Running extractor on:
                                  |
-                                 | Repository     : ${repository.root.path}
+                                 | Repository     : ${repository}
                                  | Feature Store  : ${newSnapshot.featureStoreId.render}
                                  | Date           : ${date.hyphenated}
-                                 | Output         : $output
+                                 | Output         : ${Repository.snapshot(newSnapshot.snapshotId).name}
                                  |
                                  """.stripMargin)
     } yield newSnapshot
@@ -85,17 +84,16 @@ object Snapshot {
   /**
    * Run a snapshot on a given repository using the previous snapshot in case of an incremental snapshot
    */
-  def runSnapshot(repository: Repository, newSnapshot: SnapshotMeta, previousSnapshot: Option[SnapshotMeta], date: Date, output: ReferenceIO): ResultTIO[Unit] =
+  def runSnapshot(repository: Repository, newSnapshot: SnapshotMeta, previousSnapshot: Option[SnapshotMeta], date: Date, newSnapshotId: SnapshotId): ResultTIO[Unit] =
     for {
       hr              <- downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'")
-      outputStore     <- downcast[Any, HdfsStore](output.store, s"Snapshot output must be on HDFS, got '$output'")
-      out             =  (outputStore.base </> output.path).toHdfs
-      dictionary      <- dictionaryForSnapshot(repository, newSnapshot)
+      output          =  hr.toIvoryLocation(Repository.snapshot(newSnapshot.snapshotId))
+      dictionary      <- latestDictionaryFromIvory(repository)
       windows         =  SnapshotWindows.planWindow(dictionary, date)
       newFactsetGlobs <- calculateGlobs(repository, dictionary, windows, newSnapshot, previousSnapshot, date)
-      _               <- job(hr, previousSnapshot, newFactsetGlobs, date, out, windows, hr.codec).run(hr.configuration)
-      _               <- DictionaryTextStorageV2.toStore(output </> FilePath(".dictionary"), dictionary)
-      _               <- SnapshotMeta.save(newSnapshot, output)
+      _               <- job(hr, previousSnapshot, newFactsetGlobs, date, output.toHdfsPath, windows, hr.codec).run(hr.configuration)
+      _               <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(newSnapshot.snapshotId) / ".dictionary", dictionary)
+      _               <- SnapshotMeta.save(repository, newSnapshot)
     } yield ()
 
   def calculateGlobs(repository: Repository, dictionary: Dictionary, windows: SnapshotWindows, newSnapshot: SnapshotMeta,
@@ -114,25 +112,26 @@ object Snapshot {
   /**
    * create a new snapshot as a Map-Reduce job
    */
-  private def job(repository: Repository, previousSnapshot: Option[SnapshotMeta],
+  private def job(repository: HdfsRepository, previousSnapshot: Option[SnapshotMeta],
                   factsetsGlobs: List[Prioritized[FactsetGlob]], snapshotDate: Date, outputPath: Path,
                   windows: SnapshotWindows, codec: Option[CompressionCodec]): Hdfs[Unit] =
     for {
       conf            <- Hdfs.configuration
-      incrementalPath =  previousSnapshot.map(meta => repository.snapshot(meta.snapshotId).toHdfs)
-      paths           =  factsetsGlobs.flatMap(_.value.paths.map(_.toHdfs)) ++ incrementalPath.toList
+      incrementalPath =  previousSnapshot.map(meta => repository.toIvoryLocation(Repository.snapshot(meta.snapshotId)).toHdfsPath)
+      paths           =  factsetsGlobs.flatMap(_.value.keys.map(key => repository.toIvoryLocation(key).toHdfsPath)) ++ incrementalPath.toList
       size            <- paths.traverse(Hdfs.size).map(_.sum)
       _               <- Hdfs.log(s"Total input size: $size")
       reducers        =  size.toBytes.value / 2.gb.toBytes.value + 1 // one reducer per 2GB of input
       _               <- Hdfs.log(s"Number of reducers: $reducers")
-      _               <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshotDate, factsetsGlobs, outputPath, windows, incrementalPath, codec))
+      _               <- Hdfs.safe(SnapshotJob.run(repository, conf, reducers.toInt, snapshotDate, factsetsGlobs, outputPath, windows, incrementalPath, codec))
     } yield ()
 
   /** This is exposed through the external API */
   def snapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Path] = for {
-    sc   <- ScoobiAction.scoobiConfiguration
-    repo <- Repository.fromHdfsPath(repoPath.toString.toFilePath, sc).pure[ScoobiAction]
-    snap <- ScoobiAction.fromResultTIO(takeSnapshot(repo, date, incremental).map(res => repo.snapshot(res.snapshotId).toHdfs))
+    sc         <- ScoobiAction.scoobiConfiguration
+    repository <- ScoobiAction.fromResultTIO(Repository.fromUri(repoPath.toString, IvoryConfiguration.fromScoobiConfiguration(sc)))
+    hr         <- ScoobiAction.fromResultTIO(downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'"))
+    snap       <- ScoobiAction.fromResultTIO(takeSnapshot(hr, date, incremental).map(res => hr.toIvoryLocation(Repository.snapshot(res.snapshotId)).toHdfsPath))
   } yield snap
 
   def dictionaryForSnapshot(repository: Repository, meta: SnapshotMeta): ResultTIO[Dictionary] =

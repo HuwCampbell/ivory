@@ -32,7 +32,7 @@ ThriftCache
     job.setInputFormatClass(classOf[TextInputFormat])
     job.setMapOutputKeyClass(classOf[LongWritable])
     job.setMapOutputValueClass(classOf[Text])
-    Files.write("target/test/in/ThriftCacheSpec.csv".toFilePath, "fred,10\nbarney,1000\n").run.unsafePerformIO
+    Files.write(FilePath.unsafe("target/test/in/ThriftCacheSpec.csv"), "fred,10\nbarney,1000\n").run.unsafePerformIO
     FileInputFormat.addInputPaths(job, "target/test/in/ThriftCacheSpec.csv")
     FileOutputFormat.setOutputPath(job, new Path("target/test/out/ThriftCacheSpec-" + java.util.UUID.randomUUID))
     val fact = new ThriftFact("entity", "test", ThriftFactValue.s("value"))

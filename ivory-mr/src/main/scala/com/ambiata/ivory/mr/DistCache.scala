@@ -46,7 +46,7 @@ case class DistCache(base: Path, contextId: ContextId) {
      _hard_ if anything goes wrong. */
   def pop[A](conf: Configuration, key: DistCache.Key, f: Array[Byte] => String \/ A): A = {
     val nskey = key.namespaced(contextId.value)
-    Files.readBytes(findCacheFile(conf, nskey).toFilePath).flatMap(bytes => ResultT.safe { f(bytes) }).run.unsafePerformIO match {
+    Files.readBytes(FilePath.unsafe(findCacheFile(conf, nskey))).flatMap(bytes => ResultT.safe { f(bytes) }).run.unsafePerformIO match {
       case Ok(\/-(a)) =>
         a
       case Ok(-\/(s)) =>

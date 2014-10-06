@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.display
 
 import com.ambiata.ivory.storage.fact._
 import org.specs2._
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.ivory.operation.extraction._
@@ -24,7 +24,7 @@ class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""
       buffer     = new StringBuffer
       stringBufferLogging = (s: String) => IO { buffer.append(s+"\n"); ()}
       _         <- ResultT.fromIO(PrintFacts.print(
-        List(repo.snapshot(snapshot1.snapshotId).toHdfs),
+        List(repo.toIvoryLocation(Repository.snapshot(snapshot1.snapshotId)).toHdfsPath),
         repo.configuration,
         delim = "|",
         tombstone = "NA",

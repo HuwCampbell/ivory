@@ -153,6 +153,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
     val namespace = singleNamespace.fold(namespaces.getOrElseUpdate(splitPath.getParent.toString, findIt(splitPath)))(identity)
 
     parse(Name.unsafe(namespace), value) match {
+
       case Success(f) =>
 
         context.getCounter("ivory", "ingest.ok").increment(1)

@@ -13,7 +13,7 @@ case class IvoryConfiguration(
     hdfs: () => Configuration,
     scoobi: () => ScoobiConfiguration,
     compressionCodec: () => Option[CompressionCodec]) {
-  val s3TmpDirectory: FilePath = IvoryConfiguration.defaultS3TmpDirectory
+  val s3TmpDirectory: DirPath = IvoryConfiguration.defaultS3TmpDirectory
 
   lazy val configuration: Configuration             = hdfs()
   lazy val scoobiConfiguration: ScoobiConfiguration = scoobi()
@@ -21,6 +21,8 @@ case class IvoryConfiguration(
 }
 
 object IvoryConfiguration {
+  val Empty = fromConfiguration(new Configuration)
+
   def fromConfiguration(configuration: Configuration): IvoryConfiguration =
     new IvoryConfiguration(
       arguments = List(),
@@ -37,5 +39,5 @@ object IvoryConfiguration {
       scoobi = () => sc,
       compressionCodec = () => None)
 
-  val defaultS3TmpDirectory: FilePath = ".s3repository".toFilePath
+  val defaultS3TmpDirectory: DirPath = DirPath(".s3repository")
 }

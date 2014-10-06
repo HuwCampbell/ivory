@@ -1,10 +1,14 @@
 package com.ambiata.ivory.core
 
+import java.io.File
+import java.net.URI
+
 import com.ambiata.mundane.io._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
+import org.specs2.matcher.DisjunctionMatchers
 
-class RepositorySpec extends Specification with ScalaCheck { def is = s2"""
+class RepositorySpec extends Specification with ScalaCheck with DisjunctionMatchers { def is = s2"""
 
 Repository Known Answer Tests
 -----------------------------
@@ -20,33 +24,27 @@ Repository Known Answer Tests
   lazy val conf = IvoryConfiguration.fromScoobiConfiguration(ScoobiConfiguration())
 
   def hdfs =
-    Repository.fromUri("hdfs:///some/path", conf).toEither must beRight((r: Repository) => r must beLike({
-      case HdfsRepository(_, _) =>
-        r must_== HdfsRepository("/some/path".toFilePath, conf)
-    }))
+    Repository.parseUri("hdfs:///some/path", conf) must
+      be_\/-(HdfsRepository(HdfsLocation(DirPath.Root </> "some" </> "path"), conf))
 
   def s3 =
-    Repository.fromUri("s3://bucket/key", conf).toEither must beRight((r: Repository) => r must beLike({
-      case repository: S3Repository =>
-        r must_== S3Repository("bucket", "key".toFilePath, conf)
-    }))
+    Repository.parseUri("s3://bucket/key", conf) must
+      be_\/-(S3Repository(S3Location(DirPath.Root </> "bucket" </> "key"), conf))
 
   def local =
-    Repository.fromUri("file:///some/path", conf).toEither must beRight(LocalRepository(FilePath.root </> "some" </> "path"))
+    Repository.parseUri("file:///some/path", conf) must
+      be_\/-(LocalRepository(LocalLocation(DirPath.Root </> "some" </> "path")))
 
   def relative =
-    Repository.fromUri("file:some/path", conf).toEither must beRight(LocalRepository("some" </> "path"))
+    Repository.parseUri("file:some/path", conf) must
+      be_\/-(LocalRepository(LocalLocation(DirPath.Empty </> "some" </> "path")))
 
   def dfault =
-    Repository.fromUri("/some/path", conf).toEither must beRight((r: Repository) => r must beLike({
-      case HdfsRepository(_, _) =>
-        r must_== HdfsRepository("/some/path".toFilePath, conf)
-    }))
+    Repository.parseUri("/some/path", conf) must
+      be_\/-(HdfsRepository(HdfsLocation(DirPath.Root </> "some" </> "path"), conf))
 
   def fragment =
-    Repository.fromUri("some/path", conf).toEither must beRight((r: Repository) => r must beLike({
-      case HdfsRepository(_, _) =>
-        r must_== HdfsRepository("some/path".toFilePath, conf)
-    }))
+    Repository.parseUri("some/path", conf) must
+      be_\/-(HdfsRepository(HdfsIvoryLocation(HdfsLocation(DirPath.unsafe(new File(".").getAbsolutePath).dirname </> "some" </> "path"), conf.configuration, conf.scoobiConfiguration, conf.codec)))
 
 }

@@ -17,14 +17,14 @@ import scalaz.Scalaz._
  */
 trait ExtractionInput
 case class SnapshotExtract(meta: SnapshotMeta) extends ExtractionInput
-case class ChordExtract(input: ReferenceIO) extends ExtractionInput
+case class ChordExtract(input: IvoryLocation) extends ExtractionInput
 
 object Extraction {
 
   def extract(formats: OutputFormats, input: ExtractionInput): IvoryTIO[Unit] = IvoryT.fromResultTIO(repository =>
     formats.outputs.traverse {
       case (DenseFormat(delim), output) =>
-        println(s"Pivoting extracted file from '$input' to '${output.path}'")
+        println(s"Pivoting extracted file from '$input' to '${output.show}'")
         input match {
           case SnapshotExtract(meta)    =>
             PivotOutput.createPivotFromSnapshot(repository, output, delim, formats.missingValue, meta)
@@ -32,7 +32,7 @@ object Extraction {
             PivotOutput.createPivot(repository, chordInput, output, delim, formats.missingValue)
         }
       case (SparseFormat(delim), output) =>
-        println(s"Storing extracted data '$input' to '${output.path}'")
+        println(s"Storing extracted data '$input' to '${output.show}'")
         input match {
           case SnapshotExtract(meta)    =>
             EavOutput.extractFromSnapshot(repository, output, delim, formats.missingValue, meta)

@@ -5,7 +5,7 @@ import com.ambiata.mundane.io.{Logger, BytesQuantity}
 import com.nicta.scoobi.core.ScoobiConfiguration
 import org.apache.hadoop.io.compress.CompressionCodec
 
-case class RecreateConfig(from: Repository, to: Repository,
+case class RecreateConfig(from: HdfsRepository, to: HdfsRepository,
                           sc: ScoobiConfiguration, codec: Option[CompressionCodec],
                           clean: Boolean, dry: Boolean, recreateData: List[RecreateData],
                           maxNumber: Option[Int],

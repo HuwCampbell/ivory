@@ -8,8 +8,8 @@ import org.specs2.matcher.ThrownExpectations
 
 import scalaz.effect.IO
 
-class IvoryCmdSpec extends Specification with ThrownExpectations { def is = sequential ^ s2"""
-  The IvoryCmd creates a RepositoryConfiguration instance with
+class   IvoryCmdSpec extends Specification with ThrownExpectations { def is = sequential ^ s2"""
+  The IvoryCmd creates an IvoryConfiguration instance with
     the user arguments                                          $userArguments
     a Configuration set-up with Hadoop arguments                $hadoopArguments
     a ScoobiConfiguration set-up with Scoobi arguments          $scoobiArguments

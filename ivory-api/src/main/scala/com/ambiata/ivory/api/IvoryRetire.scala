@@ -42,7 +42,7 @@ object IvoryRetire {
    * ivory, without concern for the current implementation.
    */
   val importWorkflow = Ingest.ingestFacts _
-  val importDictionary = com.ambiata.ivory.operation.ingestion.DictionaryImporter.fromPath _
+  val importDictionary = com.ambiata.ivory.operation.ingestion.DictionaryImporter.importFromPath _
   val dictionaryFromIvory = com.ambiata.ivory.storage.metadata.Metadata.latestDictionaryFromIvory _
   val dictionaryToString = com.ambiata.ivory.storage.metadata.DictionaryTextStorageV2.delimitedString _
 

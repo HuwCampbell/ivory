@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.ingestion
 
-import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control.IvoryRead
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy._
@@ -11,7 +11,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.BytesQuantity
 import org.apache.commons.logging.LogFactory
 import org.joda.time.DateTimeZone
-
+import IvorySyntax._
 /**
  * Import facts in an Ivory repository from an input path.
  *
@@ -59,7 +59,7 @@ object Ingest {
    * @param optimal size of each reducer ingesting facts
    * @param format text or thrift
    */
-  def ingestFacts(repository: Repository, input: ReferenceIO, namespace: Option[Name],
+  def ingestFacts(repository: Repository, input: IvoryLocation, namespace: Option[Name],
                   timezone: DateTimeZone, optimal: BytesQuantity, format: Format): ResultTIO[FactsetId] =
     for {
       factsetId <- createNewFactsetId(repository)

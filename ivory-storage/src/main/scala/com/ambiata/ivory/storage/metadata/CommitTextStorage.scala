@@ -1,10 +1,9 @@
-package com.ambiata.ivory.storage.metadata
+package com.ambiata.ivory.storage
+package metadata
 
 import scalaz._, Scalaz._, effect._
 
 import com.ambiata.mundane.control._
-
-import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.data._
 import com.ambiata.ivory.core._
 
@@ -15,24 +14,21 @@ object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Com
 
   val name = "commit"
 
-  def increment(repo: Repository, c: Commit): ResultTIO[CommitId] = for {
-    latest      <- latestId(repo)
+  def increment(repository: Repository, c: Commit): ResultTIO[CommitId] = for {
+    latest      <- latestId(repository)
     nextId      <- ResultT.fromOption[IO, CommitId](latest.map(_.next).getOrElse(Some(CommitId.initial)), "Ran out of Commit ids!")
-    _           <- storeCommitToId(repo, nextId, c)
+    _           <- storeCommitToId(repository, nextId, c)
   } yield nextId
 
-  def fromId(repo: Repository, id: CommitId): ResultTIO[Option[Commit]] = for {
-    commitId <- listIds(repo).map(_.find(_ === id))
-    commit <- commitId.cata(x =>
-        fromStore(repo.toReference(Repository.commitById(x))).map(_.some)
+  def fromId(repository: Repository, id: CommitId): ResultTIO[Option[Commit]] = for {
+    commitId <- listIds(repository).map(_.find(_ === id))
+    commit   <- commitId.cata(x =>
+        fromKeyStore(repository, Repository.commitById(x)).map(_.some)
       , none.pure[ResultTIO])
   } yield commit
 
   def storeCommitToId(repository: Repository, id: CommitId, commit: Commit): ResultTIO[Unit] =
-    storeCommitToReference(repository.toReference(Repository.commitById(id)), commit)
-
-  def storeCommitToReference(ref: ReferenceIO, commit: Commit): ResultTIO[Unit] =
-    toStore(ref, commit)
+    toKeyStore(repository, Repository.commitById(id), commit)
 
   def fromList(entries: List[DictionaryId \/ FeatureStoreId]): ValidationNel[String, Commit] =
     entries match {
@@ -52,20 +48,19 @@ object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Com
       Validation.failure(NonEmptyList(s"commit text storage parse error on line ${i}: $l"))
     }
 
-  def toLine(l: DictionaryId \/ FeatureStoreId): String = l match {
+  def toLine(id: DictionaryId \/ FeatureStoreId): String = id match {
     case -\/(l) => l.id.render
     case \/-(r) => r.id.render
   }
 
-  def toList(t: Commit): List[DictionaryId \/ FeatureStoreId] = t match {
-      case Commit(dict, feat) => List(-\/(dict), \/-(feat))
-    }
+  def toList(commit: Commit): List[DictionaryId \/ FeatureStoreId] = commit match {
+    case Commit(dict, feat) => List(-\/(dict), \/-(feat))
+  }
 
   def listIds(repo: Repository): ResultTIO[List[CommitId]] = for {
-    paths <- repo.toStore.list(Repository.commits).map(_.filterHidden)
-    ids   <- paths.traverseU(p =>
-               ResultT.fromOption[IO, CommitId](CommitId.parse(p.basename.path),
-                                                      s"Can not parse Commit id '${p}'"))
+    keys <- repo.store.list(Repository.commits).map(_.filterHidden)
+    ids  <- keys.traverseU(key => ResultT.fromOption[IO, CommitId](CommitId.parse(key.name),
+                                                      s"Can not parse Commit id '$key'"))
   } yield ids
 
   def latestId(repo: Repository): ResultTIO[Option[CommitId]] =

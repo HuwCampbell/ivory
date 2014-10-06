@@ -26,8 +26,7 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
 
   def readCommit = prop { (commit: Commit, commitId: CommitId) =>
     Temporary.using { dir =>
-      val base = LocalLocation(dir.path)
-      val repo = LocalRepository(base.path)
+      val repo = LocalRepository(LocalLocation(dir))
 
       storeCommitToId(repo, commitId, commit) >>
       fromId(repo, commitId)
@@ -36,34 +35,28 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
 
   def writeCommit = prop { (commit: Commit, commitId: CommitId) =>
     Temporary.using { dir =>
-      val base = LocalLocation(dir.path)
-      val repo = LocalRepository(base.path)
+      val repo = LocalRepository(LocalLocation(dir))
       storeCommitToId(repo, commitId, commit) >>
-      repo.toStore.utf8.read(Repository.commitById(commitId))
+      repo.store.utf8.read(Repository.commitById(commitId))
     } must beOkLike(_ must_== delimitedString(commit))
   }
 
   def listCommitIds = prop { ids: SmallCommitIdList =>
     Temporary.using { dir =>
-      val base = LocalLocation(dir.path)
-      val repo = LocalRepository(base.path)
+      val repo = LocalRepository(LocalLocation(dir))
       writeCommitIds(repo, ids.ids) >>
-      Metadata.listCommitIds(repo)
-    } must beOkValue(ids.ids)
+      Metadata.listCommitIds(repo).map(_.toSet)
+    } must beOkValue(ids.ids.toSet)
   }
 
   def latestCommitId = prop { ids: SmallCommitIdList =>
     Temporary.using { dir =>
-      val base = LocalLocation(dir.path)
-      val repo = LocalRepository(base.path)
+      val repo = LocalRepository(LocalLocation(dir))
       writeCommitIds(repo, ids.ids) >>
       Metadata.latestCommitId(repo)
     } must beOkValue(ids.ids.sortBy(_.id).lastOption)
   }
 
   def writeCommitIds(repo: Repository, ids: List[CommitId]): ResultTIO[Unit] =
-    ids.traverse(id => writeFile(repo, Repository.commits </> FilePath(id.render), List(""))).void
-
-  def writeFile(repo: Repository, file: FilePath, lines: List[String]): ResultTIO[Unit] =
-    repo.toStore.linesUtf8.write(file, lines)
+    ids.traverse(id => repo.store.linesUtf8.write(Repository.commits / id.asKeyName, List(""))).void
 }

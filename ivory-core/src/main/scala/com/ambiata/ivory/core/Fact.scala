@@ -20,7 +20,7 @@ trait Fact {
   def toNamespacedThrift: MutableFact
 
   def coordinateString(delim: Char): String = {
-    val fields = List(s"$entity", s"$featureId", s"${date.int}-${time}}")
+    val fields = List(s"$entity", s"$featureId", s"${date.int}-${time}")
     fields.mkString(delim.toString)
   }
 

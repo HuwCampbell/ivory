@@ -39,7 +39,7 @@ object Metadata {
   /** @return the latest store id or fail if there is none */
   def latestFeatureStoreIdOrFail(repository: Repository): ResultTIO[FeatureStoreId] =
     latestFeatureStoreId(repository).flatMap { latest =>
-      ResultT.fromOption[IO, FeatureStoreId](latest, s"no store found for this repository ${repository.root}")
+      ResultT.fromOption[IO, FeatureStoreId](latest, s"no store found for this repository ${repository}")
     }
 
   def listFeatureStoreIds(repo: Repository): ResultTIO[List[FeatureStoreId]] =

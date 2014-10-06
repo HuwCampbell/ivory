@@ -4,7 +4,8 @@ import java.util.HashMap
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-
+import com.ambiata.mundane.io.Location
+import com.ambiata.mundane.store._
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
 import scalaz.Order
@@ -73,29 +74,29 @@ object Entities {
    */
   type Mappings = HashMap[String, Array[Int]]
 
-  def serialiseEntities(entities: Entities, ref: ReferenceIO): ResultTIO[Unit] = {
+  def serialiseEntities(repository: Repository, entities: Entities, key: Key): ResultTIO[Unit] = {
     import java.io.ObjectOutputStream
-    ref.run(store => path => store.unsafe.withOutputStream(path)(os => ResultT.safe({
+    repository.store.unsafe.withOutputStream(key)(os => ResultT.safe({
       val bOut = new ObjectOutputStream(os)
       bOut.writeObject(entities.entities)
       bOut.close()
-    })))
+    }))
   }
 
   // TODO Change to thrift serialization, see #131
-  def deserialiseEntities(ref: ReferenceIO): ResultTIO[Entities] = {
+  def deserialiseEntities(repository: Repository, chordKey: Key): ResultTIO[Entities] = {
     import java.io.{ByteArrayInputStream, ObjectInputStream}
-    ref.run(store => path => store.bytes.read(path).flatMap(bytes =>
-      ResultT.safe(Entities(new ObjectInputStream(new ByteArrayInputStream(bytes.toArray)).readObject.asInstanceOf[Mappings]))))
+    repository.store.bytes.read(chordKey).flatMap(bytes =>
+      ResultT.safe(Entities(new ObjectInputStream(new ByteArrayInputStream(bytes.toArray)).readObject.asInstanceOf[Mappings])))
   }
 
   /**
    * read entities from a file
    */
-  def readEntitiesFrom(ref: ReferenceIO): ResultTIO[Entities] = {
+  def readEntitiesFrom(location: IvoryLocation): ResultTIO[Entities] = {
     val DatePattern = """(\d{4})-(\d{2})-(\d{2})""".r
 
-    ref.run(s => s.linesUtf8.read).map { lines =>
+    IvoryLocation.readLines(location).map { lines =>
       val mappings = new HashMap[String, Array[Int]](lines.length)
       lines.map(parseLine(DatePattern)).groupBy(_._1).foreach { case (k, v) =>
         mappings.put(k, v.map(_._2).toArray.sorted.reverse)

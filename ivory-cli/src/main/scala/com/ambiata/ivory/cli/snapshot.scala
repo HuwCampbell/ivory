@@ -34,7 +34,7 @@ object snapshot extends IvoryApp {
                       |Arguments --
                       |
                       |  Run ID                  : ${runId}
-                      |  Ivory Repository        : ${repo.root.path}
+                      |  Ivory Repository        : ${repo.root.show}
                       |  Extract At Date         : ${c.date.toString("yyyy/MM/dd")}
                       |  Incremental             : ${c.incremental}
                       |  Outputs                 : ${c.formats.formats.mkString(", ")}

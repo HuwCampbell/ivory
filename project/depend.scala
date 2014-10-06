@@ -10,21 +10,22 @@ object depend {
   val joda      = Seq("joda-time"            %  "joda-time"       % "2.1")
 
   val specs2    = Seq("specs2-core", "specs2-junit", "specs2-html", "specs2-matcher-extra", "specs2-scalacheck").map(c =>
-                      "org.specs2"           %% c                 % "2.4.1-scalaz-7.0.6" % "test" excludeAll ExclusionRule(organization = "org.scalamacros"))
+                      "org.specs2"           %% c                 % "2.4.4-scalaz-7.0.6" % "test" excludeAll ExclusionRule(organization = "org.scalamacros"))
 
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140718230620-63e75be" excludeAll(
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141003055816-6c5d1ec" excludeAll(
     ExclusionRule(organization = "org.specs2"),
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec"),
     ExclusionRule(organization = "com.ambiata", name = "mundane-testing_2.10")
   ))
 
+  val MUNDANE_VERSION = "1.2.1-20141003002210-37bd0c4"
   val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-store").map(c =>
-                      "com.ambiata"          %% c                 % "1.2.1-20140717072700-5f009f0") ++
-                  Seq("com.ambiata"          %% "mundane-testing" % "1.2.1-20140708033412-e6bdaf5" % "test")
+                      "com.ambiata"          %% c                 % MUNDANE_VERSION) ++
+                  Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")
 
   val caliper   = Seq("com.google.caliper"   %  "caliper"         % "0.5-rc1",
                       "com.google.guava"     %  "guava"           % "14.0.1" force())
@@ -44,10 +45,11 @@ object depend {
       "javassist" %  "javassist" % "3.12.1.GA") ++ hadoop(version)
   }
 
+  val POACHER_VERSION = "1.0.0-cdh5-20140929054633-8bb99ea"
   def poacher(version: String) =
-    if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20140801055153-7d5f35d")
-    else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20140801054750-7d5f35d")
-    else                               sys.error(s"unsupported poacher version, can not build for $version")
+  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % POACHER_VERSION)
+  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % POACHER_VERSION)
+  else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 
   def reflect(version: String) =

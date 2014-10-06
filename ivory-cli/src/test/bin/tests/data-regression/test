@@ -23,8 +23,9 @@ $V1 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
 
 ### DICTIONARY ###
 
-# Need to remove extra blank line
-$IVORY cat-dictionary | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
+# Need to remove the first line which comes out as a warning for the optional codec
+# + any extra blank line
+$IVORY cat-dictionary | tail -n +2 | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
 diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
 
 diff_test_mr() {

@@ -1,5 +1,6 @@
 package com.ambiata.ivory.operation.display
 
+import scalaz.stream.Cause.Terminated
 import scalaz.stream.{Sink, io}
 import java.io.File
 import scalaz.concurrent.Task
@@ -7,7 +8,7 @@ import scalaz.syntax.traverse._
 import scalaz.std.list._
 import org.apache.hadoop.io.{SequenceFile, BytesWritable, NullWritable}
 import scalaz.stream.Process
-import scalaz.stream.Process.End
+import scalaz.stream.Cause
 import com.ambiata.mundane.io.{IOActions, IOAction}
 import scalaz.std.anyVal._
 import org.apache.hadoop.fs.{Path}
@@ -36,8 +37,8 @@ object Print {
     def readValue(r: SequenceFile.Reader): schema.SeqType = {
       val bytes = new BytesWritable()
       try {
-        if (!r.next(NullWritable.get, bytes)) throw End
-      } catch { case t: Throwable => throw End }
+        if (!r.next(NullWritable.get, bytes)) throw Terminated(Cause.End)
+      } catch { case t: Throwable => throw Terminated(Cause.Error(t)) }
       bytes.asInstanceOf[schema.SeqType]
     }
 
