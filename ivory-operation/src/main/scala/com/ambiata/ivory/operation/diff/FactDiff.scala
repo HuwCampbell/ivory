@@ -41,7 +41,7 @@ object FactDiff {
 
       val facts = first_facts.map((true, _)) ++ second_facts.map((false, _))
 
-      val grp = facts.groupBy({ case (flag, fact) => (fact.entity, fact.featureId.toString, fact.date.int, fact.time.seconds, Value.toStringWithStruct(fact.value)) })
+      val grp = facts.groupBy({ case (flag, fact) => (fact.entity, fact.featureId.toString, fact.date.int, fact.time.seconds, Value.toStringWithStruct(fact.value, "")) })
 
       val diff: DList[List[(Boolean, Fact)]] = grp.mapFlatten({ case (_, vs) =>
         vs.toList match {
