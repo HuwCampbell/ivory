@@ -5,11 +5,6 @@ export PROJECT=${TEST}/../../../../../..
 # Disable Snappy for us poor OSX users
 export IVORY_NO_CODEC=1
 
-random() {
-    # /bin/sh doesn't have $RANDOM
-    date '+%Y%m%d%H%M%S'-$$
-}
-
 # Lazily load a specific ivory version from S3 and execute with the supplied extra arguments
 ivory_run() {
     VERSION=$1
@@ -26,8 +21,8 @@ diff_test() {
 . "${COMMON}/build.sh"
 . "${COMMON}/versions.sh"
 
-export TARGET="${PROJECT}/target/regression/"
-export IVORY_REPOSITORY="/tmp/ivory-$(random)"
+export TARGET="${PROJECT}/target/tmp/regression-$$"
+export IVORY_REPOSITORY="${PROJECT}/target/tmp/ivory-$$"
 # Deprecated
 export REPOSITORY="$IVORY_REPOSITORY"
 export INPUT="${TEST}/input"
