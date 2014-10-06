@@ -15,14 +15,14 @@ object depend {
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141003055816-6c5d1ec" excludeAll(
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141006225022-c52c1de" excludeAll(
     ExclusionRule(organization = "org.specs2"),
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec"),
     ExclusionRule(organization = "com.ambiata", name = "mundane-testing_2.10")
   ))
 
-  val MUNDANE_VERSION = "1.2.1-20141003002210-37bd0c4"
+  val MUNDANE_VERSION ="1.2.1-20141006215357-902d6b3"
   val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-store").map(c =>
                       "com.ambiata"          %% c                 % MUNDANE_VERSION) ++
                   Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")
@@ -45,10 +45,9 @@ object depend {
       "javassist" %  "javassist" % "3.12.1.GA") ++ hadoop(version)
   }
 
-  val POACHER_VERSION = "1.0.0-cdh5-20140929054633-8bb99ea"
   def poacher(version: String) =
-  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % POACHER_VERSION)
-  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % POACHER_VERSION)
+  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141006224709-49cb270")
+  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141006223408-49cb270")
   else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 
