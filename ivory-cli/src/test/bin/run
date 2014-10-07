@@ -16,9 +16,6 @@ for TEST in ${DIR}/tests/*; do
     echo
 done
 
-# Delete all the test data at the end
-rm -rf ${DIR}/../../../../../target/tmp
-
 if [ -n "${FAILED}" ]; then
     echo "Tests failed!"
     for TEST in ${FAILED}; do echo "* ${TEST}"; done
