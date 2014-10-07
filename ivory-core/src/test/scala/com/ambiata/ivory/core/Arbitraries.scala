@@ -146,13 +146,14 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
     f <- Gen.listOfN(n, for {
       f <- factWithZoneGen(entities, Gen.const(d.cd))
       // This is probably going to get pretty hairy when we add more filter operations
-      v <- d.filter match {
-        case FilterStruct(op, fields) => Gen.const(StructValue(fields.toMap.mapValues {
-          case FilterEquals(v) => v
-        }))
-        case FilterValues(_, fields) => Gen.oneOf(fields.map {
-          case FilterEquals(v) => v
-        })
+      v  = d.filter.fold({
+        case FilterEquals(ev) => ev
+      })(identity, (k, v) => StructValue(Map(k -> v))) {
+        case (op, h :: t) => op.fold(t.foldLeft(h) {
+          case (StructValue(m1), StructValue(m2)) => StructValue(m1 ++ m2)
+          case (a, _) => a
+        }, h)
+        case (_, Nil)     => StringValue("")
       }
     } yield f._2.withValue(v))
     o  <- Gen.choose(0, 10).flatMap(n => Gen.listOfN(n, factWithZoneGen(entities, Gen.const(d.cd)).map(_._2)).map(_.filterNot {
@@ -172,24 +173,35 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
 
     cd.encoding match {
       case se: StructEncoding =>
-        (for {
-          op     <- Gen.oneOf(FilterOpAnd, FilterOpOr)
-          // Make sure we have a at least one value
-          sev    <- Gen.choose(1, se.values.size).flatMap(i => Gen.pick(i, se.values))
-          fields <- Gen.sequence[Seq, (String, FilterExpression)](sev.map {
-            case (name, StructEncodedValue(enc, _)) => arbitraryFilterExpression(enc).map(name ->)
-          }).map(_.toList)
-        } yield FilterStruct(op, fields)).map(some)
+        def sub(maxChildren: Int, left: Map[String, StructEncodedValue]): Gen[FilterStructOp] =
+          for {
+            // Be careful in this section - ScalaCheck will discard values if asking for move than is contained
+            // in a list, which can break some of the MR specs that have a low minTestsOk value (eg SquashSpec).
+            op     <- Gen.oneOf(FilterOpAnd, FilterOpOr)
+            // Make sure we have a at least one value
+            sev    <- Gen.choose(1, left.size).flatMap(i => Gen.pick(i, left))
+            fields <- Gen.sequence[Seq, (String, FilterExpression)](sev.map {
+              case (name, StructEncodedValue(enc, _)) => arbitraryFilterExpression(enc).map(name ->)
+            }).map(_.toList)
+            // For 'and' we can only see each key once
+            cn     <- op.fold(Gen.const(1), Gen.choose(0, maxChildren))
+            keys    = op.fold(sev.map(_._1), Nil)
+            subvs   = left -- keys
+            chlds  <- Gen.listOfN(Math.min(subvs.size, cn), sub(maxChildren - 1, subvs))
+          } yield FilterStructOp(op, fields, chlds)
+        sub(2, se.values).map(FilterStruct).map(some)
       case pe: PrimitiveEncoding =>
-        (for {
-          op     <- Gen.oneOf(FilterOpAnd, FilterOpOr)
-          // Make sure we have at least one value
-          n      <- Gen.choose(1, op match {
-            case FilterOpAnd => 1 // For non-struct values it's impossible to equal more than one value
-            case FilterOpOr  => 3
-          })
-          fields <- Gen.listOfN(n, arbitraryFilterExpression(pe))
-        } yield FilterValues(op, fields)).map(some)
+        def sub(maxChildren: Int): Gen[FilterValuesOp] =
+          for {
+            op     <- Gen.oneOf(FilterOpAnd, FilterOpOr)
+            // Make sure we have at least one value
+            // For non-struct values it's impossible to equal more than one value
+            n      <- Gen.choose(1, op.fold(1, 3))
+            fields <- Gen.listOfN(n, arbitraryFilterExpression(pe))
+            cn     <- op.fold(Gen.const(0), Gen.choose(0, maxChildren))
+            chlds  <- Gen.listOfN(cn, sub(maxChildren - 1))
+          } yield FilterValuesOp(op, fields, chlds)
+        sub(2).map(FilterValues).map(some)
       // We don't support list encoding at the moment
       case _: ListEncoding => Gen.const(none)
     }

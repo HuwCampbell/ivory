@@ -27,37 +27,32 @@ object FilterReducer {
     new FilterReducer(reduction, compileExpression(filter))
 
   def compileExpression(filter: FilterEncoded): FilterReductionExpression =
-    new FilterReductionIgnoreTombstone(filter match {
-      case FilterValues(op, fields) =>
-        compileOp(op, fields.map {
-          case FilterEquals(value) => value match {
-            case StringValue(v)   => new FilterValueReducerString(new FilterReducerEquals(v))
-            case BooleanValue(v)  => new FilterValueReducerBoolean(new FilterReducerEquals(v))
-            case IntValue(v)      => new FilterValueReducerInt(new FilterReducerEquals(v))
-            case LongValue(v)     => new FilterValueReducerLong(new FilterReducerEquals(v))
-            case DoubleValue(v)   => new FilterValueReducerDouble(new FilterReducerEquals(v))
-            case DateValue(v)     => new FilterValueReducerDate(new FilterReducerEquals(v))
-          }
-        })
-      case FilterStruct(op, fields) => compileOp(op, fields.map {
-        case (name, exp) => exp match {
-          case FilterEquals(value) => value match {
-            case StringValue(v)   => new FilterStructReducerString(name, new FilterReducerEquals(v))
-            case BooleanValue(v)  => new FilterStructReducerBoolean(name, new FilterReducerEquals(v))
-            case IntValue(v)      => new FilterStructReducerInt(name, new FilterReducerEquals(v))
-            case LongValue(v)     => new FilterStructReducerLong(name, new FilterReducerEquals(v))
-            case DoubleValue(v)   => new FilterStructReducerDouble(name, new FilterReducerEquals(v))
-            case DateValue(v)     => new FilterStructReducerDate(name, new FilterReducerEquals(v))
-          }
+    new FilterReductionIgnoreTombstone(filter.fold(identity)({
+      case FilterEquals(value) => value match {
+        case StringValue(v)   => new FilterValueReducerString(new FilterReducerEquals(v))
+        case BooleanValue(v)  => new FilterValueReducerBoolean(new FilterReducerEquals(v))
+        case IntValue(v)      => new FilterValueReducerInt(new FilterReducerEquals(v))
+        case LongValue(v)     => new FilterValueReducerLong(new FilterReducerEquals(v))
+        case DoubleValue(v)   => new FilterValueReducerDouble(new FilterReducerEquals(v))
+        case DateValue(v)     => new FilterValueReducerDate(new FilterReducerEquals(v))
+      }
+    }, {
+      (name, exp) => exp match {
+        case FilterEquals(value) => value match {
+          case StringValue(v)   => new FilterStructReducerString(name, new FilterReducerEquals(v))
+          case BooleanValue(v)  => new FilterStructReducerBoolean(name, new FilterReducerEquals(v))
+          case IntValue(v)      => new FilterStructReducerInt(name, new FilterReducerEquals(v))
+          case LongValue(v)     => new FilterStructReducerLong(name, new FilterReducerEquals(v))
+          case DoubleValue(v)   => new FilterStructReducerDouble(name, new FilterReducerEquals(v))
+          case DateValue(v)     => new FilterStructReducerDate(name, new FilterReducerEquals(v))
         }
-      })
+      }
+    }) {
+      (op, expressions) => op match {
+        case FilterOpAnd => new FilterAndReducer(expressions)
+        case FilterOpOr  => new FilterOrReducer(expressions)
+      }
     })
-
-  def compileOp(op: FilterOp, expressions: List[FilterReductionExpression]): FilterReductionExpression =
-    op match {
-      case FilterOpAnd => new FilterAndReducer(expressions)
-      case FilterOpOr  => new FilterOrReducer(expressions)
-    }
 }
 
 /* Expressions */
