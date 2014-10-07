@@ -6,7 +6,7 @@ if [ ! -e "$IVORY" ]; then
 
     TARGET="${PROJECT}/target/ivory-cli"
     mkdir -p "${TARGET}"
-    ${PROJECT}/sbt ";project cli; clean; universal:package-zip-tarball"
+    ${PROJECT}/sbt -Dsbt.log.noformat=true ";project cli; clean; universal:package-zip-tarball"
     tar xvf ${PROJECT}/ivory-cli/target/universal/ivory-cli*.tgz --strip-components 1 -C ${TARGET}
     export IVORY=${TARGET}/bin/ivory
 fi
