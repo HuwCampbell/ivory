@@ -28,27 +28,27 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
 
   def readFeatureStore = managed { temp: Temporary => fstore: FeatureStore =>
     val expected = fstore.copy(factsets = fstore.factsets.map(_.map(fs => fs.copy(partitions = fs.partitions.sorted))))
-    val repo = LocalRepository(LocalLocation(temp.dir))
+    val repo = LocalRepository.create(temp.dir)
 
     writeFeatureStore(repo, fstore) >>
     fromId(repo, fstore.id) must beOkValue(expected)
   }
 
   def writeFeatureStore = managed { temp: Temporary => fstore: FeatureStore =>
-    val repo = LocalRepository(LocalLocation(temp.dir))
+    val repo = LocalRepository.create(temp.dir)
     toId(repo, fstore) >>
       repo.store.utf8.read(Repository.featureStoreById(fstore.id)) must
       beOkLike(_ must_== delimitedString(fstore.factsetIds))
   }
 
   def listFeatureStorIds = managed { temp: Temporary => ids: SmallFeatureStoreIdList =>
-    val repo = LocalRepository(LocalLocation(temp.dir))
+    val repo = LocalRepository.create(temp.dir)
     writeFeatureStoreIds(repo, ids.ids) >>
     Metadata.listFeatureStoreIds(repo).map(_.toSet) must beOkValue(ids.ids.toSet)
   }
 
   def latestFeatureStoreIs = managed { temp: Temporary => ids: SmallFeatureStoreIdList =>
-    val repo = LocalRepository(LocalLocation(temp.dir))
+    val repo = LocalRepository.create(temp.dir)
     writeFeatureStoreIds(repo, ids.ids) >>
     Metadata.latestFeatureStoreId(repo) must beOkValue(ids.ids.sortBy(_.id).lastOption)
   }

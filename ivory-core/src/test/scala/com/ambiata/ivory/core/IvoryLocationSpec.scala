@@ -30,19 +30,19 @@ IvoryLocation
 """
   def local =
     IvoryLocation.parseUri("file:///some/path", ivory).toEither must
-      beRight((_: IvoryLocation).location must_== LocalLocation(DirPath.Root </> "some" </> "path"))
+      beRight((_: IvoryLocation).location must_== LocalLocation("/some/path"))
 
   def localShort =
     IvoryLocation.parseUri("file:///some/", ivory).toEither must
-      beRight((_: IvoryLocation).location must_== LocalLocation(DirPath.Root </> "some"))
+      beRight((_: IvoryLocation).location must_== LocalLocation("/some/"))
 
   def hdfs =
     IvoryLocation.parseUri("hdfs:///some/path", ivory).toEither must
-      beRight((_: IvoryLocation).location must_== HdfsLocation(DirPath.Root </> "some" </> "path"))
+      beRight((_: IvoryLocation).location must_== HdfsLocation("/some/path"))
 
   def s3 =
     IvoryLocation.parseUri("s3://bucket/key", ivory).toEither must
-      beRight((_: IvoryLocation).location must_== S3Location(DirPath.Root </> "bucket" </> "key"))
+      beRight((_: IvoryLocation).location must_== S3Location("bucket", "key"))
 
   def isDirectory = { temporaryType: TemporaryType =>
     "This location is a directory on "+temporaryType ==> {

@@ -14,12 +14,14 @@ object SyncExtract {
 
    def outputDataSet(input: ShadowOutputDataset, cluster: Cluster, output: OutputDataset): ResultTIO[Unit] =
      (input.location.location, output.location.location) match {
-       case (HdfsLocation(p1), LocalLocation(p2)) => SyncHdfs.toLocal(p1, cluster, p2)
-       case (_, _)                                => unImplementedSyncOperation
+       case (l1 @ HdfsLocation(p1), l2 @ LocalLocation(p2)) => SyncHdfs.toLocal(l1.dirPath, cluster, l2.dirPath)
+       case (_, _)                                          => unImplementedSyncOperation
      }
 
-   def toRepository(data:Datasets, cluster: Cluster, repo: Repository): ResultTIO[Unit] = repo match {
-     case LocalRepository(LocalIvoryLocation(LocalLocation(path))) => getKeys(data).traverseU(key => SyncHdfs.toLocal(cluster.root.location.path </> FileName.unsafe(key.name), cluster, path)).void
+   def toRepository(data: Datasets, cluster: Cluster, repo: Repository): ResultTIO[Unit] = repo match {
+     case LocalRepository(LocalIvoryLocation(l @ LocalLocation(path))) => getKeys(data).traverseU { key =>
+       SyncHdfs.toLocal(cluster.root.location.dirPath </> FileName.unsafe(key.name), cluster, l.dirPath)
+     }.void
      case _                                                           => unImplementedSyncOperation
    }
 

@@ -15,14 +15,14 @@ object depend {
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141006225022-c52c1de" excludeAll(
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141008054723-26e7592" excludeAll(
     ExclusionRule(organization = "org.specs2"),
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec"),
     ExclusionRule(organization = "com.ambiata", name = "mundane-testing_2.10")
   ))
 
-  val MUNDANE_VERSION ="1.2.1-20141006215357-902d6b3"
+  val MUNDANE_VERSION ="1.2.1-20141008034312-4dd16c5"
   val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-store").map(c =>
                       "com.ambiata"          %% c                 % MUNDANE_VERSION) ++
                   Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")

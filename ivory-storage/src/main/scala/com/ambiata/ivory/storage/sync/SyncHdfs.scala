@@ -21,7 +21,7 @@ object SyncHdfs {
        files <- Hdfs.globFilesRecursively(new Path(absoluteBasePath.path)).map(_.map(fs.makeQualified)).run(cluster.hdfsConfiguration)
        _     <- files.traverseU( path =>
          Hdfs.readWith(path, input => {
-           val p = destination </> FilePath.unsafe(path.toUri.getPath).relativeTo(cluster.root.location.path)
+           val p = destination </> FilePath.unsafe(path.toUri.getPath).relativeTo(cluster.root.location.dirPath)
            Directories.mkdirs(p.dirname) >> ResultT.using(p.asAbsolute.toOutputStream) { output =>
              Streams.pipe(input, output, ChunkSize)
            }}

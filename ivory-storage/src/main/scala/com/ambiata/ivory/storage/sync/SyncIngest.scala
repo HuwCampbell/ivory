@@ -1,5 +1,6 @@
 package com.ambiata.ivory.storage.sync
 
+import java.io.File
 import java.util.UUID
 
 import com.ambiata.ivory.core._
@@ -7,8 +8,6 @@ import com.ambiata.ivory.storage.sync.Sync._
 import com.ambiata.ivory.storage.plan._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.saws.s3.{S3Path, S3}
-
 import scalaz._, Scalaz._, effect.IO
 
 object SyncIngest {
@@ -17,16 +16,16 @@ object SyncIngest {
      val outputPath = DirPath.unsafe(s"shadowInputDataset/${UUID.randomUUID()}")
 
      input.location match {
-       case LocalIvoryLocation(LocalLocation(path)) =>
+       case LocalIvoryLocation(l @ LocalLocation(path)) =>
          val out =
-           if (path.toFile.isFile) outputPath </> path.basename
-           else                    outputPath
+           if (new File(path).isFile) outputPath </> FileName.unsafe(new File(path).getName)
+           else                       outputPath
 
-         SyncLocal.toHdfs(path, outputPath, cluster) >>
+         SyncLocal.toHdfs(l.dirPath, outputPath, cluster) >>
            ResultT.ok(shadowInputDatasetFromPath(out, cluster))
 
-       case S3IvoryLocation(S3Location(path), _) =>
-         SyncS3.toHdfs(path, outputPath, cluster) >>
+       case S3IvoryLocation(S3Location(bucket, key), _) =>
+         SyncS3.toHdfs(DirPath.unsafe(key), outputPath, cluster) >>
            ResultT.ok(shadowInputDatasetFromPath(outputPath, cluster))
 
        case h @ HdfsIvoryLocation(HdfsLocation(_), _, _, _) =>
@@ -37,11 +36,11 @@ object SyncIngest {
    def shadowInputDatasetFromPath(path: DirPath, cluster: Cluster): ShadowInputDataset =
      ShadowInputDataset(cluster.root </> path)
 
-   def toCluster(datasets:Datasets, source: Repository, cluster: Cluster): ResultTIO[ShadowRepository] =
+   def toCluster(datasets: Datasets, source: Repository, cluster: Cluster): ResultTIO[ShadowRepository] =
      (source.root.location match {
-       case S3Location(root)    => getKeys(datasets).traverseU(key => SyncS3.toHdfs(root, DirPath.unsafe(key.name), cluster)).void
-       case LocalLocation(root) => getKeys(datasets).traverseU(key => SyncLocal.toHdfs(root, DirPath.unsafe(key.name), cluster)).void
-       case HdfsLocation(_)     => ResultT.unit[IO]
+       case S3Location(bucket, key) => getKeys(datasets).traverseU(key => SyncS3.toHdfs(DirPath.unsafe(key.name), DirPath.unsafe(key.name), cluster)).void
+       case l @ LocalLocation(root) => getKeys(datasets).traverseU(key => SyncLocal.toHdfs(l.dirPath, DirPath.unsafe(key.name), cluster)).void
+       case HdfsLocation(_)         => ResultT.unit[IO]
      }).as(source match {
        case HdfsRepository(r) => ShadowRepository(r)
        case _                 => ShadowRepository(cluster.root)

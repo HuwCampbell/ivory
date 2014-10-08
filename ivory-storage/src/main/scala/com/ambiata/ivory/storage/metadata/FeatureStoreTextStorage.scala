@@ -73,7 +73,7 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
     val p = paths
     paths.traverseU(p =>
                ResultT.fromOption[IO, FeatureStoreId](FeatureStoreId.parse(p.name),
-                                                      s"Can not parse Feature Store id '${p}'"))
+                                                      s"Can not parse Feature Store id '${p.name}'"))
     }
   } yield ids
 
