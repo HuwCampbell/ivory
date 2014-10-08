@@ -3,7 +3,7 @@ package com.ambiata.ivory.operation.extraction.output
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.legacy.SnapshotMeta
 import com.ambiata.ivory.storage.lookup.ReducerSize
-import com.ambiata.ivory.operation.extraction.squash.SquashJob
+import com.ambiata.ivory.operation.extraction.squash.{SquashConfig, SquashJob}
 import com.ambiata.ivory.operation.extraction.Snapshot
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.mundane.control._
@@ -19,9 +19,10 @@ object PivotOutput {
   /**
    * Take a snapshot first then extract a pivot
    */
-  def createPivotFromSnapshot(repository: Repository, output: IvoryLocation, delim: Char, missing: String, meta: SnapshotMeta): ResultTIO[Unit] = for {
+  def createPivotFromSnapshot(repository: Repository, output: IvoryLocation, delim: Char, missing: String,
+                              meta: SnapshotMeta, squash: SquashConfig): ResultTIO[Unit] = for {
     dict <- Snapshot.dictionaryForSnapshot(repository, meta)
-    _    <- SquashJob.squashFromSnapshotWith(repository, dict, meta)(path =>
+    _    <- SquashJob.squashFromSnapshotWith(repository, dict, meta, output, squash)(path =>
       createPivotWithDictionary(repository, repository.toIvoryLocation(path), output, dict, delim, missing))
   } yield ()
 

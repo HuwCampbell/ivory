@@ -35,11 +35,12 @@ struct SnapshotWindowLookup {
 
 struct FeatureReduction {
     1: string ns;
-    2: string source;
-    3: string expression;
-    4: string encoding;
-    5: optional string filter;
-    6: optional i32 date;
+    2: string name;
+    3: string source;
+    4: string expression;
+    5: string encoding;
+    6: optional string filter;
+    7: optional i32 date;
 }
 
 struct FeatureReductionLookup {

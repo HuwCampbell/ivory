@@ -8,6 +8,7 @@ import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.legacy.SnapshotMeta
 import com.ambiata.ivory.storage.lookup.{ReducerLookups, ReducerSize}
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.io.FileName
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.notion.core._
 import org.apache.hadoop.conf.Configuration
@@ -23,11 +24,17 @@ import scalaz._, Scalaz._
 
 object SquashJob {
 
-  def squashFromSnapshotWith[A](repository: Repository, dictionary: Dictionary, snapmeta: SnapshotMeta)(f: Key => ResultTIO[A]): ResultTIO[A] = for {
-    toSquash        <- squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date)
-    (key, doSquash) =  toSquash
+  def squashFromSnapshotWith[A](repository: Repository, dictionary: Dictionary, snapmeta: SnapshotMeta,
+                                output: IvoryLocation, conf: SquashConfig)(f: Key => ResultTIO[A]): ResultTIO[A] = for {
+    toSquash        <- squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date, conf)
+    (profile, key, doSquash) =  toSquash
     a               <- f(key)
-    _               <- ResultT.when(doSquash, repository.store.deleteAll(key))
+    _               <- ResultT.when(doSquash, for {
+      _             <- profile.traverseU {
+        prof => IvoryLocation.writeUtf8Lines(output </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof))
+      }
+      _             <- repository.store.deleteAll(key)
+    } yield ())
   } yield a
 
   /**
@@ -42,7 +49,7 @@ object SquashJob {
    *    date for every possible entity date, and then look that up per entity on the reducer.
    *    This is _not_ implemented yet.
    */
-  def squash(repository: Repository, dictionary: Dictionary, input: Key, date: Date): ResultTIO[(Key, Boolean)] = {
+  def squash(repository: Repository, dictionary: Dictionary, input: Key, date: Date, conf: SquashConfig): ResultTIO[(Option[SquashStats], Key, Boolean)] = {
     if (dictionary.hasVirtual) {
       val key = "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID)
       for {
@@ -51,15 +58,16 @@ object SquashJob {
         ns     =  dictionary.byFeatureId.groupBy(_._1.namespace).keys.toList
         // This is about the best we can do at the moment, until we have more size information about each feature
         rs     <- ReducerSize.calculate(inPath, 1.gb).run(hr.configuration)
-        _      <- run(hr.configuration, rs, dictionary.byConcrete, date, inPath, hr.toIvoryLocation(key).toHdfsPath, hr.codec)
-      } yield (key, true)
+        prof   <- run(hr.configuration, rs, dictionary.byConcrete, date, inPath, hr.toIvoryLocation(key).toHdfsPath,
+          hr.codec, conf)
+      } yield (some(prof), key, true)
     } else
     // No virtual features, let's skip the entire squash MR
-      (input, false).point[ResultTIO]
+      (none[SquashStats], input, false).point[ResultTIO]
   }
 
   def run(conf: Configuration, reducers: Int, dictionary: DictionaryConcrete, date: Date, input: Path, output: Path,
-          codec: Option[CompressionCodec]): ResultTIO[Unit] = {
+          codec: Option[CompressionCodec], squashConf: SquashConfig): ResultTIO[SquashStats] = {
 
     val job = Job.getInstance(conf)
     val ctx = MrContext.newContext("ivory-squash", job)
@@ -99,6 +107,7 @@ object SquashJob {
 
     // cache / config initialization
     job.getConfiguration.set(SnapshotJob.Keys.SnapshotDate, date.int.toString)
+    job.getConfiguration.setInt(Keys.ProfileMod, squashConf.profileSampleRate)
     val (featureIdLookup, reductionLookup) = dictToLookup(dictionary, date)
     ctx.thriftCache.push(job, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
     ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,
@@ -112,7 +121,18 @@ object SquashJob {
     // commit files to factset
     Committer.commit(ctx, {
       case "squash" => output
-    }, true).run(conf)
+    }, true).run(conf).as {
+      def update(groupName: String)(f: Long => SquashCounts): Map[String, SquashCounts] = {
+        val group = job.getCounters.getGroup(groupName)
+        group.iterator().asScala.map(c => c.getName -> f(c.getValue)).toMap
+      }
+      SquashStats(
+        update(Keys.CounterTotalGroup)(c => SquashCounts(c, 0, 0, 0)) |+|
+        update(Keys.CounterSaveGroup)(c => SquashCounts(0, c, 0, 0)) |+|
+        update(Keys.ProfileTotalGroup)(c => SquashCounts(0, 0, c, 0)) |+|
+        update(Keys.ProfileSaveGroup)(c => SquashCounts(0, 0, 0, c))
+      )
+    }
   }
 
   def dictToLookup(dictionary: DictionaryConcrete, date: Date): (FeatureIdLookup, FeatureReductionLookup) = {
@@ -136,7 +156,7 @@ object SquashJob {
     reductionToThriftExp(date, fid, vd.query, encoding, vd.window)
 
   def reductionToThriftExp(date: Date, fid: FeatureId, query: Query, encoding: Encoding, window: Option[Window]): FeatureReduction = {
-    val fr = new FeatureReduction(fid.namespace.name, fid.name, Expression.asString(query.expression), Encoding.render(encoding))
+    val fr = new FeatureReduction(fid.namespace.name, fid.toString, fid.name, Expression.asString(query.expression), Encoding.render(encoding))
     query.filter.map(_.render).foreach(fr.setFilter)
     fr.setDate((query.expression match {
       // For latest (and latest only) we need to match all facts (to catch them before the window)
@@ -149,6 +169,11 @@ object SquashJob {
   }
 
   object Keys {
+    val ProfileMod = "squash-profile-mod"
+    val CounterTotalGroup = "squash-counter-total"
+    val CounterSaveGroup = "squash-counter-save"
+    val ProfileTotalGroup = "squash-profile-total"
+    val ProfileSaveGroup = "squash-profile-save"
     val ExpressionLookup = ThriftCache.Key("squash-expression-lookup")
   }
 }

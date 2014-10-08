@@ -1,6 +1,7 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.api.IvoryRetire
+import com.ambiata.ivory.api.Ivory.SquashConfig
 import com.ambiata.ivory.cli.extract._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.api.Ivory.{Date => _, _}
@@ -10,7 +11,7 @@ import java.util.{Calendar, UUID}
 
 object snapshot extends IvoryApp {
 
-  case class CliArguments(date: LocalDate, incremental: Boolean, formats: ExtractOutput)
+  case class CliArguments(date: LocalDate, incremental: Boolean, squash: SquashConfig, formats: ExtractOutput)
 
   val parser = Extract.options(new scopt.OptionParser[CliArguments]("snapshot") {
     head("""
@@ -22,11 +23,14 @@ object snapshot extends IvoryApp {
 
     help("help") text "shows this usage text"
     opt[Unit]("no-incremental") action { (x, c) => c.copy(incremental = false) }   text "Flag to turn off incremental mode"
+    opt[Int]("sample-rate") action { (x, c) => c.copy(squash = c.squash.copy(profileSampleRate = x)) } text
+      "Every X number of facts will be sampled when calculating virtual results. Defaults to 1,000,000. " +
+        "WARNING: Decreasing this number will degrade performance."
     opt[Calendar]('d', "date")  action { (x, c) => c.copy(date = LocalDate.fromCalendarFields(x)) } text
       s"Optional date to take snapshot from, default is now."
   })(c => f => c.copy(formats = f(c.formats)))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(LocalDate.now(), true, ExtractOutput()), {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(LocalDate.now(), true, SquashConfig.default, ExtractOutput()), {
     repo => configuration => c =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
@@ -44,7 +48,7 @@ object snapshot extends IvoryApp {
       for {
         of   <- Extract.parse(configuration, c.formats)
         meta <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental)
-        _    <- Extraction.extract(of, SnapshotExtract(meta)).run(IvoryRead.prod(repo))
+        _    <- Extraction.extract(of, SnapshotExtract(meta, c.squash)).run(IvoryRead.prod(repo))
       } yield List(banner, s"Output path: ${meta.snapshotId}", "Status -- SUCCESS")
   })
 }

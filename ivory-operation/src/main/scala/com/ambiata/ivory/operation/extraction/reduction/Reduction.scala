@@ -26,13 +26,15 @@ trait Reduction {
 
 object Reduction {
 
-  def compile(fr: FeatureReduction, end: Date): Option[Reduction] = for {
+  def compile(fr: FeatureReduction, end: Date, profile: Reduction => Reduction): Option[Reduction] = for {
     exp      <- Expression.parse(fr.getExpression).toOption
     encoding <- DictionaryTextStorageV2.parseEncoding(fr.getEncoding).toOption
     filter    = if (fr.isSetFilter) Some(Filter(fr.getFilter)) else None
     dates     = DateOffsets.calculateLazyCompact(Date.unsafeFromInt(fr.date), end)
     reduction<- Reduction.fromExpression(exp, encoding, dates)
-  } yield filter.flatMap(FilterReducer.compile(_, encoding, reduction).toOption).getOrElse(reduction)
+    // We want to profile _after_ the filter has been applied
+    profiled  = profile(reduction)
+  } yield filter.flatMap(FilterReducer.compile(_, encoding, profiled).toOption).getOrElse(profiled)
 
   def fromExpression(exp: Expression, encoding: Encoding, dates: DateOffsetsLazy): Option[Reduction] = exp match {
     case Count                        => Some(new CountReducer())

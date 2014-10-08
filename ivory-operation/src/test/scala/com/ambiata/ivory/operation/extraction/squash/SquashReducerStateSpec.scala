@@ -13,7 +13,7 @@ class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2
 
   def squash = prop((sf: SquashFacts) => {
     val frs = SquashReducer.compileAll(
-      SquashJob.concreteGroupToReductions(sf.date, sf.dict.fid, sf.dict.withExpression(Count).cg), sf.date
+      SquashJob.concreteGroupToReductions(sf.date, sf.dict.fid, sf.dict.withExpression(Count).cg), sf.date, (_, r) => r
     )
 
     val facts = sf.facts.list.sortBy(fact => (fact.entity, fact.datetime.long))
