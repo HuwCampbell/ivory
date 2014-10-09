@@ -60,10 +60,10 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
   implicit lazy val fs = sc.fileSystem
 
   lazy val base = directory
-  lazy val input = HdfsIvoryLocation(HdfsLocation(base </> "input"), ivory)
+  lazy val input = HdfsIvoryLocation.create(base </> "input", ivory)
   lazy val namespaced = input </> "ns1"
-  lazy val repository = HdfsRepository(HdfsLocation(directory </> "repo"), ivory)
-  lazy val errors = HdfsIvoryLocation(HdfsLocation(base </> "errors"), ivory)
+  lazy val repository = HdfsRepository.create(directory </> "repo", ivory)
+  lazy val errors = HdfsIvoryLocation.create(base </> "errors", ivory)
   lazy val ns1 = Name("ns1")
 
   val dictionary =
@@ -89,7 +89,7 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
     import com.ambiata.ivory.operation.ingestion.thrift._
     val serializer = ThriftSerialiser()
 
-    SequenceUtil.writeBytes(HdfsIvoryLocation(HdfsLocation(directory </> "input" </> "ns1" </> FileName(java.util.UUID.randomUUID)), IvoryConfiguration.Empty), None) {
+    SequenceUtil.writeBytes(HdfsIvoryLocation.create(directory </> "input" </> "ns1" </> FileName(java.util.UUID.randomUUID), IvoryConfiguration.Empty), None) {
       writer => ResultT.safe(expected.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
     }.run(sc) must beOk
   }

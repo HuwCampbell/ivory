@@ -39,7 +39,7 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
   def e3 = managed { temp: Temporary => (nsInc: Set[FeatureNamespace], nsExc: Set[FeatureNamespace], fsInc: FactsetIdList, fsExc: FactsetIdList) =>
     !nsInc.exists(nsExc.contains) ==> {
       val sc = ScoobiConfiguration()
-      val repo = HdfsRepository(HdfsLocation(temp.dir), IvoryConfiguration.fromScoobiConfiguration(sc))
+      val repo = HdfsRepository(HdfsLocation(temp.dir.path), IvoryConfiguration.fromScoobiConfiguration(sc))
       val namespaces = (nsInc ++ nsExc).toList.flatMap(ns => (fsInc.ids ++ fsExc.ids).map(fs => fs -> ns.namespace)).map {
         case (fs, ns) => Repository.namespace(fs, ns)
       }

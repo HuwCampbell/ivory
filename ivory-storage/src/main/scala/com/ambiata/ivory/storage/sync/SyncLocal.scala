@@ -12,7 +12,7 @@ import scalaz._, Scalaz._, effect.IO, effect.Effect._
 object SyncLocal {
    def toHdfs(base: DirPath, destination: DirPath, cluster: Cluster): ResultTIO[Unit] = for {
      files <- Directories.list(base).map(_.map(_.asAbsolute))
-     _     <- Directories.mkdirs(cluster.root.location.path </> destination)
+     _     <- Directories.mkdirs(cluster.root.location.dirPath </> destination)
      _     <- files.traverseU { path =>
        ResultT.using(path.asAbsolute.toInputStream) { input =>
          Hdfs.writeWith((cluster.root </> destination </> path.relativeTo(base)).toHdfsPath, { output =>

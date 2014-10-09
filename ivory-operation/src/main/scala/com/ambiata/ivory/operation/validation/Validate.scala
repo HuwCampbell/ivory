@@ -11,7 +11,6 @@ import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.metadata.Metadata._
-import IvorySyntax._
 
 sealed trait Validate {
   val counterGroup = "VALIDATION"
@@ -100,14 +99,14 @@ case class ValidateFactSetHdfs(repo: HdfsRepository, factset: FactsetId, dict: D
 object Validate {
 
   def validateHdfsStore(repoPath: Path, store: FeatureStoreId, output: Path, includeOverridden: Boolean): ScoobiAction[Long] = for {
-    r <- ScoobiAction.scoobiConfiguration.map(sc => HdfsRepository(HdfsLocation(repoPath.toDirPath), IvoryConfiguration.fromScoobiConfiguration(sc)))
+    r <- ScoobiAction.scoobiConfiguration.map(sc => HdfsRepository(HdfsLocation(repoPath.toString), IvoryConfiguration.fromScoobiConfiguration(sc)))
     d <- ScoobiAction.fromResultTIO(latestDictionaryFromIvory(r))
     s <- ScoobiAction.fromResultTIO(featureStoreFromIvory(r, store))
     c <- ValidateStoreHdfs(r, s, d, includeOverridden).exec(output)
   } yield c
 
   def validateHdfsFactSet(repoPath: Path, factset: FactsetId, output: Path): ScoobiAction[Long] = for {
-    r <- ScoobiAction.scoobiConfiguration.map(sc => HdfsRepository(HdfsLocation(repoPath.toDirPath), IvoryConfiguration.fromScoobiConfiguration(sc)))
+    r <- ScoobiAction.scoobiConfiguration.map(sc => HdfsRepository(HdfsLocation(repoPath.toString), IvoryConfiguration.fromScoobiConfiguration(sc)))
     d <- ScoobiAction.fromResultTIO(latestDictionaryFromIvory(r))
     c <- ValidateFactSetHdfs(r, factset, d).exec(output)
   } yield c

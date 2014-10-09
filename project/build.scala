@@ -164,7 +164,7 @@ object build extends Build {
   , base = file("ivory-operation")
   , settings = standardSettings ++ lib("operation") ++ Seq[Settings](
       name := "ivory-operation"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.mundane)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoop(version.value) ++ depend.specs2 ++ depend.mundane ++ depend.poacher(version.value))
   )
   .dependsOn(core, scoobi, storage, mr % "test->test", core % "test->test", scoobi % "test->test", storage % "test->test")
 
@@ -191,7 +191,7 @@ object build extends Build {
   , base = file("ivory-scoobi")
   , settings = standardSettings ++ lib("scoobi") ++ Seq[Settings](
       name := "ivory-scoobi"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.poacher(version.value) ++ depend.scoobi(version.value) ++ depend.saws ++ depend.specs2 ++ depend.mundane)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.poacher(version.value) ++ depend.scoobi(version.value) ++ depend.saws ++ depend.specs2)
   )
 .dependsOn(core, core % "test->test")
 
@@ -200,7 +200,7 @@ object build extends Build {
   , base = file("ivory-storage")
   , settings = standardSettings ++ lib("storage") ++ Seq[Settings](
       name := "ivory-storage"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz  ++ depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.mundane ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.specs2++ depend.saws)
   )
   .dependsOn(core, data, scoobi, mr, core % "test->test",  scoobi % "test->test", data % "test->test")
 

@@ -30,13 +30,16 @@ case class HdfsRepository(root: HdfsIvoryLocation) extends Repository {
   def scoobiConfiguration = root.scoobiConfiguration
   def codec               = root.codec
 
-  val store = HdfsStore(configuration, root.location.path)
+  val store = HdfsStore(configuration, root.location.dirPath)
 
   def toIvoryLocation(key: Key): HdfsIvoryLocation =
     root </> DirPath.unsafe(key.name)
 }
 
 object HdfsRepository {
+  def create(dir: DirPath, ivory: IvoryConfiguration): HdfsRepository =
+    apply(HdfsLocation(dir.path), ivory)
+
   def apply(location: HdfsLocation, ivory: IvoryConfiguration): HdfsRepository =
     new HdfsRepository(HdfsIvoryLocation(location, ivory.configuration, ivory.scoobiConfiguration, ivory.codec))
 
@@ -49,13 +52,16 @@ object HdfsRepository {
 }
 
 case class LocalRepository(root: LocalIvoryLocation) extends Repository {
-  def store = PosixStore(root.location.path)
+  def store = PosixStore(root.dirPath)
 
   def toIvoryLocation(key: Key): LocalIvoryLocation =
     root </> DirPath.unsafe(key.name)
 }
 
 object LocalRepository {
+  def create(dir: DirPath): LocalRepository =
+    apply(LocalLocation(dir.path))
+
   def apply(location: LocalLocation): LocalRepository =
     new LocalRepository(LocalIvoryLocation(location))
 }
@@ -67,7 +73,7 @@ object LocalRepository {
  * convert them to the ivory format before pushing them to S3
  */
 case class S3Repository(root: S3IvoryLocation, s3TmpDirectory: DirPath) extends Repository {
-  def store = S3Store(root.location.path.rootname.basename.name, root.location.path.fromRoot, root.s3Client, s3TmpDirectory)
+  def store = S3Store(root.location.bucket, DirPath.unsafe(root.location.key), root.s3Client, s3TmpDirectory)
 
   def toIvoryLocation(key: Key): S3IvoryLocation =
     root </> DirPath.unsafe(key.name)
