@@ -6,7 +6,7 @@ import com.ambiata.ivory.mr.{Committer, Compress, MrContext, ThriftCache}
 import com.ambiata.ivory.operation.extraction.SnapshotJob
 import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.legacy.SnapshotMeta
-import com.ambiata.ivory.storage.lookup.ReducerSize
+import com.ambiata.ivory.storage.lookup.{ReducerLookups, ReducerSize}
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.notion.core._
@@ -72,7 +72,7 @@ object SquashJob {
     job.setMapOutputValueClass(classOf[BytesWritable])
 
     // partition & sort
-    job.setPartitionerClass(classOf[SquashWritable.PartitionerFeatureId])
+    job.setPartitionerClass(classOf[SquashPartitioner])
     job.setGroupingComparatorClass(classOf[SquashWritable.GroupingByFeatureId])
     job.setSortComparatorClass(classOf[SquashWritable.ComparatorFeatureId])
 
@@ -101,6 +101,8 @@ object SquashJob {
     job.getConfiguration.set(SnapshotJob.Keys.SnapshotDate, date.int.toString)
     val (featureIdLookup, reductionLookup) = dictToLookup(dictionary, date)
     ctx.thriftCache.push(job, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
+    ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,
+      SquashReducerLookup.create(dictionary, featureIdLookup, reducers))
     ctx.thriftCache.push(job, Keys.ExpressionLookup, reductionLookup)
 
     // run job

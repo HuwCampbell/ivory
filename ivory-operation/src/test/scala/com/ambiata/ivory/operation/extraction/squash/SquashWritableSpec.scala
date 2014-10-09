@@ -6,6 +6,7 @@ import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.mr.Writables
 import com.ambiata.ivory.operation.extraction.squash.SquashWritable._
+import org.apache.hadoop.io.WritableComparator
 import org.specs2.execute.Result
 import org.specs2.{ScalaCheck, Specification}
 
@@ -13,6 +14,7 @@ class SquashWritableSpec extends Specification with ScalaCheck { def is = s2"""
 
   Group by featureId                                              $groupFeature
   Sorting by featureId then date, entity, time and priority       $sortingFeature
+  Can get the entity hash                                         $entityHash
 """
 
   def groupFeature = prop((f1: Fact, f2: Fact) => {
@@ -25,6 +27,15 @@ class SquashWritableSpec extends Specification with ScalaCheck { def is = s2"""
     check(f1, f2) { case (f3, b1, b2) =>
       new ComparatorFeatureId().compare(b1, 0, b1.length, b2, 0, b2.length) -> compareByFeatureEntityDateTimePriority(f1, f3)
     }
+  })
+
+  def entityHash = prop((f: Fact) => {
+    val bw = Writables.bytesWritable(4096)
+    KeyState.set(f, bw, 0)
+    val bw2 = Writables.bytesWritable(4096)
+    val e = f.entity.getBytes("UTF-8")
+    bw2.set(e, 0, e.length)
+    GroupingByFeatureId.hashEntity(bw) ==== WritableComparator.hashBytes(e, 0, e.length)
   })
 
   def check(f1: Fact, f2: Fact)(f: (Fact, Array[Byte], Array[Byte]) => (Int, Int)): Result =

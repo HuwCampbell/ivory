@@ -3,7 +3,6 @@ package com.ambiata.ivory.operation.extraction.squash
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.mr.{RawBytesComparator, ByteWriter}
 import org.apache.hadoop.io.{BytesWritable, WritableComparator}
-import org.apache.hadoop.mapreduce.Partitioner
 
 /**
  * Utility classes for dealing with the key bytes in a squash.
@@ -52,12 +51,10 @@ object SquashWritable {
 
     def getFeatureId(bw: BytesWritable): Int =
       WritableComparator.readInt(bw.getBytes, Offsets.Before.featureId)
+
+    def hashEntity(bw: BytesWritable): Int =
+      WritableComparator.hashBytes(bw.getBytes, Offsets.After.featureId, bw.getLength - (Offsets.Before.date + Offsets.After.featureId))
   }
 
   class ComparatorFeatureId extends BytesWritable.Comparator
-
-  class PartitionerFeatureId extends Partitioner[BytesWritable, BytesWritable] {
-    def getPartition(key: BytesWritable, value: BytesWritable, partitions: Int): Int =
-      (WritableComparator.hashBytes(key.getBytes, Offsets.Before.featureId, 4) & Int.MaxValue) % partitions
-  }
 }
