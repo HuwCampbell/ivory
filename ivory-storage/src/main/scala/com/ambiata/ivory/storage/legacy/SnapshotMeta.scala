@@ -32,13 +32,22 @@ object SnapshotMeta {
   implicit def SnapshotMetaOrdering =
     SnapshotMetaOrder.toScalaOrdering
 
-  def fromIdentifier(repository: Repository, id: SnapshotId): ResultTIO[SnapshotMeta] =
+  def fromIdentifier(repository: Repository, id: SnapshotId): ResultTIO[Option[SnapshotMeta]] = {
+    val path = Repository.snapshot(id) / metaKeyName
     for {
-      lines       <- repository.store.linesUtf8.read(Repository.snapshot(id) / metaKeyName)
+      exists      <- repository.store.exists(path)
+      sm          <- if (exists) for {
+      lines       <- repository.store.linesUtf8.read(path)
       // Ensure we have at least 3 lines (to include new commitId)
-      safeLines   = if (lines.length == 2) lines ++ List("") else lines
-      sm         <- ResultT.fromDisjunction[IO, SnapshotMeta](parser(id).run(safeLines).disjunction.leftMap(This.apply))
+      safeLines    = if (lines.length == 2) lines ++ List("") else lines
+      sm          <- ResultT.fromDisjunction[IO, SnapshotMeta](parser(id).run(safeLines).disjunction.leftMap(This.apply))
+      } yield some(sm) else {
+        // It's possible for snapshots to be allocated but either not deleted or still in progress
+        println(s"WARNING: No $path found for ${id.render}")
+        none.point[ResultTIO]
+      }
     } yield sm
+  }
 
   /**
    * Parse a snapshot meta file for a given snapshot id
@@ -112,8 +121,8 @@ object SnapshotMeta {
    */
   def latestSnapshot(repository: Repository, date: Date): ResultTIO[Option[SnapshotMeta]] = for {
     ids      <- repository.store.listHeads(Repository.snapshots)
-    metas    <- ids.traverseU(sid => SnapshotId.parse(sid.name).map(id => fromIdentifier(repository, id)).sequenceU)
-    filtered =  metas.flatten.filter(_.date isBeforeOrEqual date)
+    metas    <- ids.traverseU(sid => SnapshotId.parse(sid.name).traverseU(id => fromIdentifier(repository, id)))
+    filtered =  metas.flatten.flatten.filter(_.date isBeforeOrEqual date)
   } yield filtered.sorted.lastOption
 
   /** 
