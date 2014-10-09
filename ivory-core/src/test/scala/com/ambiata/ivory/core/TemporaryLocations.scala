@@ -138,7 +138,7 @@ object TemporaryLocations {
   }
 
   def createUniqueS3Location: S3IvoryLocation = {
-    val path = createUniquePath.path
+    val path = createUniquePath.asRelative.path
     S3IvoryLocation(S3Location(testBucket, path), conf.s3Client)
   }
 

@@ -115,7 +115,7 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
       x <- TemporaryLocations.runWithIvoryLocationDir(location)(loc => for {
         _   <- loc match {
           case l @ LocalIvoryLocation(LocalLocation(p)) => Directories.mkdirs(l.dirPath)
-          case s @ S3IvoryLocation(S3Location(b, k), _) => S3.putString(b, k, "").executeT(conf.s3Client)
+          case s @ S3IvoryLocation(S3Location(b, k), _) => S3.putString(b, k+"/file", "").executeT(conf.s3Client)
           case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.mkdir(h.toHdfsPath).run(conf.configuration)
         }
         dir <- checkDirLocation(loc)
@@ -125,7 +125,7 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
 
   def checkDirLocation(location: IvoryLocation): ResultTIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(p)) => Directories.exists(l.dirPath)
-    case S3IvoryLocation(S3Location(b, k), _)     => S3.exists(b, k).executeT(conf.s3Client)
+    case S3IvoryLocation(S3Location(b, k), _)     => S3.existsPrefix(b, k).executeT(conf.s3Client)
     case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.exists(h.toHdfsPath).run(conf.configuration)
   }
 }
