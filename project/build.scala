@@ -201,7 +201,9 @@ object build extends Build {
   , base = file("ivory-storage")
   , settings = standardSettings ++ lib("storage") ++ Seq[Settings](
       name := "ivory-storage"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.specs2++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.scoobi(version.value) ++
+                                               depend.argonaut ++ depend.poacher(version.value) ++ depend.specs2 ++
+                                               depend.saws)
   )
   .dependsOn(core, data, scoobi, mr, core % "test->test",  scoobi % "test->test", data % "test->test")
 

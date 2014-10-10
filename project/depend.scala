@@ -14,6 +14,8 @@ object depend {
   val specs2    = Seq("specs2-core", "specs2-junit", "specs2-html", "specs2-matcher-extra", "specs2-scalacheck").map(c =>
                       "org.specs2"           %% c                 % "2.4.8" % "test" excludeAll ExclusionRule(organization = "org.scalamacros"))
 
+  val argonaut  = Seq("io.argonaut" %% "argonaut" % "6.0.4")
+
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
