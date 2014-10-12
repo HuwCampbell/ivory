@@ -143,7 +143,7 @@ object build extends Build {
   , settings = standardSettings ++ lib("core") ++ Seq[Settings](
       name := "ivory-core"
     , libraryDependencies ++= (if (scalaVersion.value.contains("2.10")) Seq(compilerPlugin("org.scalamacros" %% "paradise" % "2.0.0" cross CrossVersion.full)) else Nil)
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++ depend.argonaut ++
                                                depend.thrift ++ depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value) ++
                                                depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.saws ++ depend.notion(version.value))
   )
@@ -155,7 +155,7 @@ object build extends Build {
   , settings = standardSettings ++ lib("data") ++ Seq[Settings](
       name := "ivory-data"
     , libraryDependencies ++= (if (scalaVersion.value.contains("2.10")) Seq(compilerPlugin("org.scalamacros" %% "paradise" % "2.0.0" cross CrossVersion.full)) else Nil)
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.specs2 ++
+    ) ++ Seq[Settings](libraryDependencies ++= depend.argonaut ++ depend.scalaz ++ depend.mundane ++ depend.specs2 ++
                                                depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value) ++ depend.notion(version.value))
   )
 
