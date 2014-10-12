@@ -58,6 +58,8 @@ object DictionaryImportValidate {
       case Concrete(_, _)    => OK
       case Virtual(fid, vd)  => dict.byFeatureId.get(vd.source).cata({
         case Concrete(_, cd) =>
+          Expression.validate(vd.query.expression, cd.encoding)
+            .leftMap(InvalidExpression(_, ValidationPath(fid))).validation.toValidationNel +++
           vd.query.filter.traverseU(FilterTextV0.encode(_, cd.encoding)
             .leftMap(InvalidFilter(_, ValidationPath(fid))).validation.toValidationNel).void
         case Virtual(_, _)   => InvalidVirtualSource(vd.source, ValidationPath(fid)).failureNel
@@ -91,5 +93,8 @@ object DictionaryImportValidate {
   }
   case class InvalidFilter(error: String, path: ValidationPath) extends DictionaryValidateFailure {
     override def toString = s"Invalid filter at $path: $error"
+  }
+  case class InvalidExpression(error: String, path: ValidationPath) extends DictionaryValidateFailure {
+    override def toString = s"Invalid expression at $path: $error"
   }
 }

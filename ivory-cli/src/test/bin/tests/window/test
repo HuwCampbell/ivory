@@ -9,8 +9,8 @@ $IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts"
 
 snapshot() {
   $IVORY snapshot -d ${1}
-  $IVORY cat-facts "${REPOSITORY}/snapshots/0000000${2}" | sort > "${TARGET}/snapshot.psv"
-  diff_test "${DIR}/expected/snapshot${2}.psv" "${TARGET}/snapshot.psv"
+  $IVORY cat-facts "${REPOSITORY}/snapshots/0000000${2}" | sort > "${TARGET}/snapshot${2}.psv"
+  diff_test "${DIR}/expected/snapshot${2}.psv" "${TARGET}/snapshot${2}.psv"
 }
 
 snapshot 2014-05-02 0

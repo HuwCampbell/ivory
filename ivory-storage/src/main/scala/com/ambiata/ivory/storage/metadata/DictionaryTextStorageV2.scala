@@ -95,8 +95,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
                s"Invalid duration format $s".left
            }
         }
-        val expression = m.get("expression").toRightDisjunction("Missing expression")
-          .flatMap(e => Expression.parse(e).toRightDisjunction("Invalid expression: " + e))
+        val expression = m.get("expression").toRightDisjunction("Missing expression").flatMap(Expression.parse)
         val filter = m.get("filter").map(Filter.apply).right
         DictionaryTextStorageV2(source, DELIMITER).featureId.run().fold(formatError(_).failureNel,
           fid => (fid |@| (expression |@| filter)(Query.apply) |@| window)(Definition.virtual(featureId, _, _, _)).validation.toValidationNel)

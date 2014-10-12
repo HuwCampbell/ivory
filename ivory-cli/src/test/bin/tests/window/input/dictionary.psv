@@ -1,5 +1,26 @@
 halibut:swiss_cheese|encoding=double|tombstone=T
 halibut:cooldown|source=halibut:swiss_cheese|window=1 month|expression=count
 halibut:latte|source=halibut:swiss_cheese|window=2 months|expression=count
+halibut:days_since_latest|source=halibut:swiss_cheese|window=2 months|expression=days_since_latest
+halibut:days_since_earliest|source=halibut:swiss_cheese|window=2 months|expression=days_since_earliest
+halibut:mean_in_days|source=halibut:swiss_cheese|window=2 months|expression=mean_in_days
+halibut:mean_in_weeks|source=halibut:swiss_cheese|window=2 months|expression=mean_in_weeks
+halibut:maximum_in_days|source=halibut:swiss_cheese|window=2 months|expression=maximum_in_days
+halibut:maximum_in_weeks|source=halibut:swiss_cheese|window=2 months|expression=maximum_in_weeks
+halibut:minimum_in_days|source=halibut:swiss_cheese|window=2 months|expression=minimum_in_days
+halibut:minimum_in_weeks|source=halibut:swiss_cheese|window=2 months|expression=minimum_in_weeks
+halibut:quantile_in_days|source=halibut:swiss_cheese|window=2 months|expression=quantile_in_days,1,10
+halibut:quantile_in_weeks|source=halibut:swiss_cheese|window=2 months|expression=quantile_in_weeks,1,8
+halibut:sum|source=halibut:swiss_cheese|window=2 months|expression=sum
+halibut:gradient|source=halibut:swiss_cheese|window=2 months|expression=gradient
+halibut:std_dev|source=halibut:swiss_cheese|window=2 months|expression=std_dev
+halibut:mean|source=halibut:swiss_cheese|window=2 months|expression=mean
+expression:string|encoding=string|tombstone=T
+expression:num_flips|source=expression:string|window=2 months|expression=num_flips
+expression:count_by|source=expression:string|window=2 months|expression=count_by
+expression:days_since_earliest_by|source=expression:string|window=2 months|expression=days_since_earliest_by
+expression:days_since_latest_by|source=expression:string|window=2 months|expression=days_since_latest_by
+expression:count_unique|source=expression:string|window=2 months|expression=count_unique
+expression:proportion|source=expression:string|window=2 months|expression=proportion,a
 filter:age|encoding=int
 filter:adult|source=filter:age|expression=count|window=2 months|filter=or,(and,18),19,(and,20)|tombstone=T

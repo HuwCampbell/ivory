@@ -29,22 +29,22 @@ object FilterReducer {
   def compileExpression(filter: FilterEncoded): FilterReductionExpression =
     new FilterReductionIgnoreTombstone(filter.fold(identity)({
       case FilterEquals(value) => value match {
-        case StringValue(v)   => new FilterValueReducerString(new FilterReducerEquals(v))
-        case BooleanValue(v)  => new FilterValueReducerBoolean(new FilterReducerEquals(v))
-        case IntValue(v)      => new FilterValueReducerInt(new FilterReducerEquals(v))
-        case LongValue(v)     => new FilterValueReducerLong(new FilterReducerEquals(v))
-        case DoubleValue(v)   => new FilterValueReducerDouble(new FilterReducerEquals(v))
-        case DateValue(v)     => new FilterValueReducerDate(new FilterReducerEquals(v))
+        case StringValue(v)   => new FilterValueReducer(new FilterReducerEquals(v), ReductionValueString)
+        case BooleanValue(v)  => new FilterValueReducer(new FilterReducerEquals(v), ReductionValueBoolean)
+        case IntValue(v)      => new FilterValueReducer(new FilterReducerEquals(v), ReductionValueInt)
+        case LongValue(v)     => new FilterValueReducer(new FilterReducerEquals(v), ReductionValueLong)
+        case DoubleValue(v)   => new FilterValueReducer(new FilterReducerEquals(v), ReductionValueDouble)
+        case DateValue(v)     => new FilterValueReducer(new FilterReducerEquals(v.int), ReductionValueDate)
       }
     }, {
       (name, exp) => exp match {
         case FilterEquals(value) => value match {
-          case StringValue(v)   => new FilterStructReducerString(name, new FilterReducerEquals(v))
-          case BooleanValue(v)  => new FilterStructReducerBoolean(name, new FilterReducerEquals(v))
-          case IntValue(v)      => new FilterStructReducerInt(name, new FilterReducerEquals(v))
-          case LongValue(v)     => new FilterStructReducerLong(name, new FilterReducerEquals(v))
-          case DoubleValue(v)   => new FilterStructReducerDouble(name, new FilterReducerEquals(v))
-          case DateValue(v)     => new FilterStructReducerDate(name, new FilterReducerEquals(v))
+          case StringValue(v)   => new FilterStructReducer(name, new FilterReducerEquals(v), ReductionValueString)
+          case BooleanValue(v)  => new FilterStructReducer(name, new FilterReducerEquals(v), ReductionValueBoolean)
+          case IntValue(v)      => new FilterStructReducer(name, new FilterReducerEquals(v), ReductionValueInt)
+          case LongValue(v)     => new FilterStructReducer(name, new FilterReducerEquals(v), ReductionValueLong)
+          case DoubleValue(v)   => new FilterStructReducer(name, new FilterReducerEquals(v), ReductionValueDouble)
+          case DateValue(v)     => new FilterStructReducer(name, new FilterReducerEquals(v.int), ReductionValueDate)
         }
       }
     }) {
@@ -93,29 +93,9 @@ class FilterReductionIgnoreTombstone(p: FilterReductionExpression) extends Filte
 
 /* Values */
 
-class FilterValueReducerString(pred: FilterReducerPredicate[String]) extends FilterReductionExpression {
+class FilterValueReducer[A](pred: FilterReducerPredicate[A], from: ReductionValueFrom[A]) extends FilterReductionExpression {
   def eval(fact: Fact): Boolean =
-    pred.eval(fact.toThrift.getValue.getS)
-}
-
-class FilterValueReducerBoolean(pred: FilterReducerPredicate[Boolean]) extends FilterReductionExpression {
-  def eval(fact: Fact): Boolean =
-    pred.eval(fact.toThrift.getValue.getB)
-}
-
-class FilterValueReducerInt(pred: FilterReducerPredicate[Int]) extends FilterReductionExpression {
-  def eval(fact: Fact): Boolean =
-    pred.eval(fact.toThrift.getValue.getI)
-}
-
-class FilterValueReducerLong(pred: FilterReducerPredicate[Long]) extends FilterReductionExpression {
-  def eval(fact: Fact): Boolean =
-    pred.eval(fact.toThrift.getValue.getL)
-}
-
-class FilterValueReducerDouble(pred: FilterReducerPredicate[Double]) extends FilterReductionExpression {
-  def eval(fact: Fact): Boolean =
-    pred.eval(fact.toThrift.getValue.getD)
+    pred.eval(from.from(fact.toThrift.getValue))
 }
 
 class FilterValueReducerDate(pred: FilterReducerPredicate[Date]) extends FilterReductionExpression {
@@ -125,47 +105,13 @@ class FilterValueReducerDate(pred: FilterReducerPredicate[Date]) extends FilterR
 
 /* Structs */
 
-class FilterStructReducerString(field: String, pred: FilterReducerPredicate[String]) extends FilterReductionExpression {
+class FilterStructReducer[A](field: String, pred: FilterReducerPredicate[A], from: ReductionValueFromPrim[A]) extends FilterReductionExpression {
   def eval(fact: Fact): Boolean = {
     val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
-    value != null && value.isSetS && pred.eval(value.getS)
+    value != null && pred.eval(from.fromPrim(value))
   }
 }
 
-class FilterStructReducerBoolean(field: String, pred: FilterReducerPredicate[Boolean]) extends FilterReductionExpression {
-  def eval(fact: Fact): Boolean = {
-    val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
-    value != null && value.isSetB && pred.eval(value.getB)
-  }
-}
-
-class FilterStructReducerInt(field: String, pred: FilterReducerPredicate[Int]) extends FilterReductionExpression {
-  def eval(fact: Fact): Boolean = {
-    val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
-    value != null && value.isSetI && pred.eval(value.getI)
-  }
-}
-
-class FilterStructReducerLong(field: String, pred: FilterReducerPredicate[Long]) extends FilterReductionExpression {
-  def eval(fact: Fact): Boolean = {
-    val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
-    value != null && value.isSetL && pred.eval(value.getL)
-  }
-}
-
-class FilterStructReducerDouble(field: String, pred: FilterReducerPredicate[Double]) extends FilterReductionExpression {
-  def eval(fact: Fact): Boolean = {
-    val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
-    value != null && value.isSetD && pred.eval(value.getD)
-  }
-}
-
-class FilterStructReducerDate(field: String, pred: FilterReducerPredicate[Date]) extends FilterReductionExpression {
-  def eval(fact: Fact): Boolean = {
-    val value = fact.toThrift.getValue.getStructSparse.getV.get(field)
-    value != null && value.isSetDate && pred.eval(Date.unsafeFromInt(value.getDate))
-  }
-}
 /* Predicates */
 
 trait FilterReducerPredicate[@specialized(Boolean, Int, Long, Double) A] {

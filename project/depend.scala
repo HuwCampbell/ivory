@@ -8,6 +8,7 @@ object depend {
 
   val scopt     = Seq("com.github.scopt"     %% "scopt"           % "3.2.0")
   val joda      = Seq("joda-time"            %  "joda-time"       % "2.1")
+  val spire     = Seq("org.spire-math"       %% "spire"           % "0.8.2")
 
   val specs2    = Seq("specs2-core", "specs2-junit", "specs2-html", "specs2-matcher-extra", "specs2-scalacheck").map(c =>
                       "org.specs2"           %% c                 % "2.4.4-scalaz-7.0.6" % "test" excludeAll ExclusionRule(organization = "org.scalamacros"))

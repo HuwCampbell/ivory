@@ -48,13 +48,14 @@ class SquashReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, 
   val lookup = new FeatureReductionLookup()
   val fact = createMutableFact
   val emitFact = createMutableFact
+  var date = Date.minValue
   var state: SquashReducerState = null
 
   override def setup(context: ReducerContext): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
 
     val strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
-    val date = Date.fromInt(strDate.toInt).getOrElse(Crash.error(Crash.DataIntegrity, s"Invalid snapshot date '$strDate'"))
+    date = Date.fromInt(strDate.toInt).getOrElse(Crash.error(Crash.DataIntegrity, s"Invalid snapshot date '$strDate'"))
     state = new SquashReducerState(date)
 
     ctx.thriftCache.pop(context.getConfiguration, SquashJob.Keys.ExpressionLookup, lookup)
@@ -65,15 +66,16 @@ class SquashReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, 
 
     // Compiling an expression is (eventually) going to get more expensive, and so we only want to do it on demand
     // For this reason we sort by featureId and compile once here, and process all the entities
-    val reducers = SquashReducer.compileAll(lookup.getReductions.get(SquashWritable.GroupingByFeatureId.getFeatureId(key)).asScala.toList)
+    val reducers = SquashReducer.compileAll(
+      lookup.getReductions.get(SquashWritable.GroupingByFeatureId.getFeatureId(key)).asScala.toList, date)
     state.reduceAll(fact, emitFact, reducers, factEmitter, iterable.iterator, emitter, vout)
   }
 }
 
 object SquashReducer {
 
-  def compileAll(reductions: List[FeatureReduction]): List[(FeatureReduction, Reduction)] =
+  def compileAll(reductions: List[FeatureReduction], end: Date): List[(FeatureReduction, Reduction)] =
     reductions.flatMap {
-      fr => Reduction.compile(fr).map(fr ->)
+      fr => Reduction.compile(fr, end).map(fr ->)
     }
 }

@@ -100,7 +100,7 @@ object DictionaryThriftConversion {
     }
 
     def from(expression: ThriftDictionaryExpression): Option[Query] = for {
-      exp <- Expression.parse(expression.getExpression)
+      exp <- Expression.parse(expression.getExpression).toOption
       fil  = Option(expression.getFilter).map(Filter.apply)
     } yield Query(exp, fil)
 

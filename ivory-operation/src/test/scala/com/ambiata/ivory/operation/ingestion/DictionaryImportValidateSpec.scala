@@ -15,6 +15,7 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
    is invalid with a hanging virtual definition                    $virtualMissingSource
    is invalid with a virtual definition with a virtual source      $virtualVirtualSource
    is invalid with a virtual definition with an invalid filter     $virtualInvalidFilter
+   is invalid with a virtual definition with an invalid expression $virtualInvalidExpression
 
 """
 
@@ -68,6 +69,14 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
     ).dictionary
     validateSelf(dict).toEither.left.map(_.head) must beLeft ((f: DictionaryValidateFailure) => f must beLike {
       case InvalidFilter(_, ValidationPath(p, Nil)) => p ==== vdict1.fid
+    })
+  })
+
+  def virtualInvalidExpression = prop((vdict1: VirtualDictionary) => {
+    // The actual validation of different bad filters is handled in ExpressionSpec
+    val dict = vdict1.copy(vd = vdict1.vd.copy(query = vdict1.vd.query.copy(expression = SumBy("missing", "missing")))).dictionary
+    validateSelf(dict).toEither.left.map(_.head) must beLeft((f: DictionaryValidateFailure) => f must beLike {
+      case InvalidExpression(_, ValidationPath(p, Nil)) => p ==== vdict1.fid
     })
   })
 

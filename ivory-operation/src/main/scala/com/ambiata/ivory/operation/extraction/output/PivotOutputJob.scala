@@ -192,7 +192,8 @@ class PivotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, T
 
       buffer.append(delimiter)
       if (i <= features.length) {
-        val s = Value.toStringOr(fact.value, missing).getOrElse(sys.error(s"Could not render fact ${fact.toString}"))
+        // Values can now be structs due to expressions
+        val s = Value.toStringWithStruct(fact.value, missing)
         buffer.append(s)
       }
       first = false
