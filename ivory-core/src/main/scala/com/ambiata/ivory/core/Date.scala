@@ -1,6 +1,7 @@
 package com.ambiata.ivory.core
 
 import scalaz._, Scalaz._
+import argonaut._, Argonaut._
 import org.joda.time.LocalDate
 import com.ambiata.mundane.parse.ListParser
 
@@ -37,10 +38,10 @@ class Date private(val underlying: Int) extends AnyVal {
     int <= other.int
 
   def isAfter(other: Date): Boolean =
-  int > other.int
+    int > other.int
 
   def isAfterOrEqual(other: Date): Boolean =
-  int >= other.int
+    int >= other.int
 
   def addTime(t: Time): DateTime =
     DateTime.unsafeFromLong(int.toLong << 32 | t.seconds)
