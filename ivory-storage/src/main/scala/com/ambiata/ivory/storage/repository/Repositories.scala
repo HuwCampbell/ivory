@@ -2,7 +2,6 @@ package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.control._
-import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import com.ambiata.ivory.core._
@@ -11,7 +10,7 @@ import scalaz.Scalaz._
 
 object Repositories {
 
-  def initialKeys(repository: Repository): List[Key] = List(
+  val initialKeys: List[Key] = List(
     Repository.root,
     Repository.dictionaries,
     Repository.featureStores,
@@ -28,7 +27,7 @@ object Repositories {
   def create(repo: Repository): ResultTIO[Unit] = for {
     e <- repo.store.exists(Key(".allocated"))
     r <- ResultT.unless(e, for {
-      _     <- initialKeys(repo).traverse(key => repo.store.utf8.write(key / ".allocated", "")).void
+      _     <- initialKeys.traverse(key => repo.store.utf8.write(key / ".allocated", "")).void
       // Set the initial commit
       dict  <- DictionaryThriftStorage(repo).store(Dictionary.empty)
       store <- FeatureStoreTextStorage.increment(repo, Nil)
