@@ -38,7 +38,6 @@ object Reduction {
 
   def fromExpression(exp: Expression, encoding: Encoding, dates: DateOffsetsLazy): Option[Reduction] = exp match {
     case Count                        => Some(new CountReducer())
-    case Latest                       => Some(new LatestReducer())
     case IntervalMean                 => Some(new IntervalReducer(dates.dates, new MeanReducer, ReductionValueDouble))
     case IntervalSD                   => Some(new IntervalReducer(dates.dates, new StandardDeviationReducer, ReductionValueDouble))
     case IntervalGradient             => Some(new IntervalReducer(dates.dates, new GradientReducer(dates.dates), ReductionValueDouble))
@@ -63,6 +62,7 @@ object Reduction {
       }
       case _ => None
     }
+    case BasicExpression(Latest)      => Some(new LatestReducer)
     case BasicExpression(sexp)        => encoding match {
       case pe: PrimitiveEncoding      => fromSubExpression(sexp, pe, dates, new EncodedReduction {
         def s[A, B](f: ReductionFoldWithDate[A, String, B], to: ReductionValueTo[B]): Reduction =
@@ -100,6 +100,14 @@ object Reduction {
   }
 
   def fromSubExpression(exp: SubExpression, encoding: PrimitiveEncoding, dates: DateOffsetsLazy, f: EncodedReduction): Option[Reduction] = exp match {
+    case Latest => encoding match {
+      case StringEncoding  => Some(f.s(new LatestStructReducer[String](""), new ReductionValueOrTombstone(ReductionValueString)))
+      case BooleanEncoding => Some(f.b(new LatestStructReducer[Boolean](false), new ReductionValueOrTombstone(ReductionValueBoolean)))
+      case IntEncoding     => Some(f.i(new LatestStructReducer[Int](0), new ReductionValueOrTombstone(ReductionValueInt)))
+      case LongEncoding    => Some(f.l(new LatestStructReducer[Long](0), new ReductionValueOrTombstone(ReductionValueLong)))
+      case DoubleEncoding  => Some(f.d(new LatestStructReducer[Double](0), new ReductionValueOrTombstone(ReductionValueDouble)))
+      case DateEncoding    => Some(f.date(new LatestStructReducer[Int](0), new ReductionValueOrTombstone(ReductionValueDate)))
+    }
     case Sum => condOpt(encoding) {
       case IntEncoding    => f.i(new ReductionFoldIntToLong(new SumReducer[Long]), ReductionValueLong)
       case LongEncoding   => f.l(new SumReducer[Long], ReductionValueLong)

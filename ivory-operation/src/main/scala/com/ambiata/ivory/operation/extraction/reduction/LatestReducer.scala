@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
 import com.ambiata.ivory.core.Fact
-import com.ambiata.ivory.core.thrift.ThriftFactValue
+import com.ambiata.ivory.core.thrift._
 
 class LatestReducer extends Reduction {
 
@@ -21,4 +21,28 @@ class LatestReducer extends Reduction {
 
   def save: ThriftFactValue =
     if (!tombstone) value else null
+}
+
+/** Handle the latest of a single struct value */
+class LatestStructReducer[@specialized(Int, Float, Double, Boolean) A](seed: A) extends ReductionFold[ValueOrTombstone[A], A, ValueOrTombstone[A]] {
+
+  val start = ValueOrTombstone[A](seed, true)
+
+  def initial: ValueOrTombstone[A] = {
+    start.tombstone = true
+    start
+  }
+
+  def fold(a: ValueOrTombstone[A], value: A): ValueOrTombstone[A] = {
+    a.value = value
+    a
+  }
+
+  def tombstone(a: ValueOrTombstone[A]): ValueOrTombstone[A] = {
+    a.tombstone = true
+    a
+  }
+
+  def aggregate(value: ValueOrTombstone[A]): ValueOrTombstone[A] =
+    value
 }
