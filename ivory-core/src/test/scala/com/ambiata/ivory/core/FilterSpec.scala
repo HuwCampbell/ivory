@@ -21,12 +21,12 @@ class FilterSpec extends Specification with ScalaCheck { def is = s2"""
   )
 
   def invalidEncodedValue = {
-    val values = FilterValues(FilterOpAnd, List(FilterEquals(IntValue(1))))
+    val values = FilterValues(FilterValuesOp(FilterOpAnd, List(FilterEquals(IntValue(1))), Nil))
     FilterTextV0.encode(FilterTextV0.asString(values), BooleanEncoding).toEither must beLeft
   }
 
   def invalidStructName = {
-    val struct = FilterStruct(FilterOpAnd, List("a" -> FilterEquals(StringValue("b"))))
+    val struct = FilterStruct(FilterStructOp(FilterOpAnd, List("a" -> FilterEquals(StringValue("b"))), Nil))
     FilterTextV0.encode(FilterTextV0.asString(struct), StructEncoding(Map())).toEither must beLeft
   }
 
@@ -37,21 +37,14 @@ class FilterSpec extends Specification with ScalaCheck { def is = s2"""
 object FilterTester {
 
   /** Simple but unoptimised version of FilterReducer for specs validation */
-  def eval(filter: FilterEncoded, fact: Fact): Boolean = {
-    def evalValue(exp: FilterExpression, value: Value): Boolean = exp match {
-      case FilterEquals(e) => value == e
-    }
-    (filter match {
-      case FilterValues(op, fields) => op -> fields.map(_ -> fact.value)
-      case FilterStruct(op, fields) => op -> {
-        fact.value match {
-          case StructValue(values) => fields.flatMap(f => values.get(f._1).map(f._2 ->))
-          case _                   => Nil
-        }
+  def eval(filter: FilterEncoded, fact: Fact): Boolean =
+    filter.fold({
+      case FilterEquals(e) => (value: Value) => value == e
+    })(
+      _(fact.value),
+      (name, fe) => fact.value match {
+        case StructValue(values) => values.get(name).exists(fe)
+        case _                   => false
       }
-    }) match {
-      case (FilterOpAnd, fields) => fields.forall((evalValue _).tupled)
-      case (FilterOpOr, fields)  => fields.exists((evalValue _).tupled)
-    }
-  }
+    )((op, values) => op.fold(values.forall(identity), values.exists(identity)))
 }
