@@ -196,7 +196,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
         Gen.oneOf(numeric, all)
       case StringEncoding => Gen.oneOf(
         Gen.oneOf(DaysSinceLatestBy, DaysSinceEarliestBy, CountBy, CountUnique),
-        arbitrary[String].map(Proportion.apply),
+        Gen.identifier.map(Proportion.apply),
         all
       )
       case BooleanEncoding => Gen.oneOf(all, arbitrary[Boolean].map(b => Proportion(b.toString)))
