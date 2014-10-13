@@ -32,8 +32,8 @@ object depend {
 
   def notion(version: String) =
     if (version.contains("cdh4"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141013080250-8650e01") ++
-      Seq("com.ambiata" %% "notion-testing"  % "0.0.1-cdh4-20141013080250-8650e01" % "test") ++
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141013220612-a77b0b6") ++
+      Seq("com.ambiata" %% "notion-testing"  % "0.0.1-cdh4-20141013220612-a77b0b6" % "test") ++
       hadoop(version)
     else if (version.contains("cdh5"))
       Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141013082938-a77b0b6") ++
