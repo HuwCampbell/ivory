@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.version
 
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.specs2.Specification
 import com.ambiata.ivory.core.TemporaryLocations._

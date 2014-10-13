@@ -2,7 +2,7 @@ package com.ambiata.ivory.core
 
 import com.ambiata.mundane.control.{ResultTIO, ResultT}
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.mundane.parse.ListParser
 
 import scalaz.Scalaz._

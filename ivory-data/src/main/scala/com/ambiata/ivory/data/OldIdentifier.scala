@@ -1,7 +1,7 @@
 package com.ambiata.ivory.data
 
 import com.ambiata.ivory.reflect.MacrosCompat
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.mundane.parse.ListParser
 import scalaz._, Scalaz._
 

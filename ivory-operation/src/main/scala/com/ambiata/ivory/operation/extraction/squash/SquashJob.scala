@@ -9,7 +9,7 @@ import com.ambiata.ivory.storage.legacy.SnapshotMeta
 import com.ambiata.ivory.storage.lookup.ReducerSize
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodec

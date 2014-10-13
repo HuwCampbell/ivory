@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.sync
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.plan._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 
 object Sync {
    val ChunkSize = 1024000

@@ -2,10 +2,8 @@ package com.ambiata.ivory.core
 
 import scalaz.{Name=>_,Store => _, _}
 import com.ambiata.mundane.control.{ResultTIO, ResultT}
-import com.ambiata.mundane.io._
-import com.ambiata.mundane.store._
-import com.ambiata.poacher.hdfs.HdfsStore
-import com.ambiata.saws.s3._
+import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
+import com.ambiata.notion.core._
 
 import scalaz.\&/.This
 import scalaz.effect.IO

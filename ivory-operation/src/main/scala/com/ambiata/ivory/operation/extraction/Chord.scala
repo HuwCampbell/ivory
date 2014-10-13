@@ -9,7 +9,7 @@ import org.apache.commons.logging.LogFactory
 import scalaz.{DList => _, Store => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._

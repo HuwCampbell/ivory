@@ -5,7 +5,7 @@ import com.ambiata.ivory.storage.fact.{FactsetVersionTwo, FactsetVersion, Factse
 import scalaz.{Name => _, DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.compress.CompressionCodec
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._

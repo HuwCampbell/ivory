@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import ResultT._
 import com.ambiata.mundane.data.Lists
 

@@ -1,6 +1,6 @@
 package com.ambiata.ivory
 
-import com.ambiata.mundane.store.{KeyName, Key}
+import com.ambiata.notion.core.{KeyName, Key}
 
 package object storage {
 

@@ -6,7 +6,7 @@ import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import com.nicta.scoobi.Scoobi._

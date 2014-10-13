@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.version
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control.ResultTIO
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 
 case class Version(override val toString: String)
 

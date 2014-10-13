@@ -6,7 +6,7 @@ import com.ambiata.ivory.core.{TemporaryLocations => T, _}
 import com.ambiata.ivory.storage.Arbitraries._
 import com.ambiata.ivory.storage.plan.{Datasets, FactsetDataset}
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.impl.ScoobiConfiguration
 import org.specs2.{ScalaCheck, Specification}

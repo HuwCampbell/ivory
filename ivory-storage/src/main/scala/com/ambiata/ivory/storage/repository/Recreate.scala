@@ -2,7 +2,7 @@ package com.ambiata.ivory
 package storage
 package repository
 
-import com.ambiata.mundane.store.Key
+import com.ambiata.notion.core.Key
 import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.core._

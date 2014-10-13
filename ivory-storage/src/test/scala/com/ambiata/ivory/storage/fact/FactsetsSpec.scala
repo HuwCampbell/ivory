@@ -4,7 +4,7 @@ import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.TestConfigurations._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
@@ -31,7 +31,7 @@ class FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
     }
   }
 
-  def allocate = prop { factsetId: FactsetId => 
+  def allocate = prop { factsetId: FactsetId =>
     withRepository { repo =>
       val nextId = factsetId.next.get
 
@@ -45,7 +45,7 @@ class FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
     }
   }
 
-  def factsets = prop { factsets: FactsetList => 
+  def factsets = prop { factsets: FactsetList =>
     withRepository { repo =>
       val expected = factsets.factsets.map(fs => fs.copy(partitions = fs.partitions.sorted)).sortBy(_.id)
 

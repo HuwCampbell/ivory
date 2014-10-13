@@ -3,7 +3,7 @@ package com.ambiata.ivory.storage.metadata
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.ScalaCheckManagedProperties
 import com.ambiata.mundane.io.{LocalLocation, Temporary}
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.mundane.control._
 
 import org.specs2._
@@ -67,4 +67,3 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
   def writeLines(repository: Repository, key: Key, lines: List[String]): ResultTIO[Unit] =
     repository.store.linesUtf8.write(key, lines)
 }
-

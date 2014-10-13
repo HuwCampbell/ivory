@@ -7,7 +7,7 @@ import metadata._
 
 import scalaz._, Scalaz._, \&/._, effect.IO
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.mundane.parse.ListParser
 
 import scalaz._, Scalaz._, \&/._, effect.IO
@@ -125,7 +125,7 @@ object SnapshotMeta {
     filtered =  metas.flatten.flatten.filter(_.date isBeforeOrEqual date)
   } yield filtered.sorted.lastOption
 
-  /** 
+  /**
    * A snapshot is up to date if:
    *
    */

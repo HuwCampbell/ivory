@@ -9,7 +9,7 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
@@ -35,7 +35,7 @@ import scalaz.{DList => _, _}, Scalaz._, effect._
 object Snapshot {
   private implicit val logger = LogFactory.getLog("ivory.operation.Snapshot")
 
-  /** 
+  /**
    * Take a new snapshot
    * If incremental is true, take a incremental snapshot (based off the previous one), unless the previous one is up to date
    */
