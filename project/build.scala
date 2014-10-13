@@ -164,7 +164,8 @@ object build extends Build {
   , base = file("ivory-operation")
   , settings = standardSettings ++ lib("operation") ++ Seq[Settings](
       name := "ivory-operation"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoop(version.value) ++ depend.specs2 ++ depend.mundane ++ depend.poacher(version.value))
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoop(version.value) ++
+      depend.specs2 ++ depend.mundane ++ depend.poacher(version.value) ++ depend.spire)
   )
   .dependsOn(core, scoobi, storage, mr % "test->test", core % "test->test", scoobi % "test->test", storage % "test->test")
 

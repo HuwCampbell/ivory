@@ -12,11 +12,11 @@ class FilterSpec extends Specification with ScalaCheck { def is = s2"""
   Validates missing struct value                           $missingStructValue
 """
 
-  def parse = prop((f: DefinitionWithFilter) =>
+  def parse = prop((f: DefinitionWithQuery) =>
     FilterTextV0.encode(FilterTextV0.asString(f.filter), f.cd.encoding).toEither must beRight(f.filter)
   )
 
-  def testEval = prop((f: FactsWithFilter) =>
+  def testEval = prop((f: FactsWithQuery) =>
     f.facts.forall(FilterTester.eval(f.filter.filter, _)) && !f.other.exists(FilterTester.eval(f.filter.filter, _))
   )
 

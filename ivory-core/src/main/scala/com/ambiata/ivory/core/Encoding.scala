@@ -23,6 +23,15 @@ case class StructEncodedValue(encoding: PrimitiveEncoding, optional: Boolean = f
     if (optional) this else copy(optional = true)
 }
 
+object StructEncodedValue {
+
+  def optional(encoding: PrimitiveEncoding): StructEncodedValue =
+    StructEncodedValue(encoding, optional = true)
+
+  def mandatory(encoding: PrimitiveEncoding): StructEncodedValue =
+    StructEncodedValue(encoding, optional = false)
+}
+
 object Encoding {
 
   def render(enc: Encoding): String = enc match {

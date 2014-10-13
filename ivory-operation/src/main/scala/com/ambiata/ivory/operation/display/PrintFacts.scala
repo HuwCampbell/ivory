@@ -46,7 +46,7 @@ object PrintFacts {
        Seq(f.entity,
          f.namespace.name,
          f.feature,
-         if(f.isTombstone) tombstone else Value.toStringWithStruct(f.value),
+         Value.toStringWithStruct(f.value, tombstone),
          f.date.hyphenated+delim+f.time.hhmmss).mkString(delim)
 
      logger(logged).unsafePerformIO

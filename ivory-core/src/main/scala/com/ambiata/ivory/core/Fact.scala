@@ -240,10 +240,10 @@ object Value {
     toString(v, Some(tombstoneValue))
 
   /** This is _not_ for general consumption - should only be use for testing or diffing */
-  def toStringWithStruct(v: Value): String = v match {
-    case TombstoneValue      => ""
+  def toStringWithStruct(v: Value, tombstone: String): String = v match {
+    case TombstoneValue      => tombstone
     case p: PrimitiveValue   => toStringPrimitive(p)
-    case ListValue(values)   => "[" + values.map(toStringWithStruct).mkString(",") + "]"
+    case ListValue(values)   => "[" + values.map(toStringWithStruct(_, tombstone)).mkString(",") + "]"
     case StructValue(values) =>
       "(" + values.map { case (k, p) => k + ":" + toStringPrimitive(p)}.mkString(",") + ")"
   }

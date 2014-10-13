@@ -128,19 +128,18 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
       tombs <- Gen.listOf(arbitrary[DictTomb].map(_.s))
     } yield ConcreteDefinition(enc, ty, desc, tombs)
 
-  implicit def ExpressionArbitrary: Arbitrary[Expression] =
-    Arbitrary(Gen.oneOf(Count, Latest))
 
-  case class DefinitionWithFilter(cd: ConcreteDefinition, filter: FilterEncoded)
-  case class FactsWithFilter(filter: DefinitionWithFilter, facts: List[Fact], other: List[Fact])
+  case class DefinitionWithQuery(cd: ConcreteDefinition, expression: Expression, filter: FilterEncoded)
+  case class FactsWithQuery(filter: DefinitionWithQuery, facts: List[Fact], other: List[Fact])
 
-  implicit def DefinitionWithFilterArb: Arbitrary[DefinitionWithFilter] = Arbitrary(for {
+  implicit def DefinitionWithFilterArb: Arbitrary[DefinitionWithQuery] = Arbitrary(for {
     cd <- featureMetaGen(Gen.oneOf(arbitrary[PrimitiveEncoding], arbitrary[StructEncoding]))
+    e  <- expressionArbitrary(cd)
     f  <- arbitraryFilter(cd)
-  } yield DefinitionWithFilter(cd, f.get))
+  } yield DefinitionWithQuery(cd, e, f.get))
 
-  implicit def FactsWithFilterArb: Arbitrary[FactsWithFilter] = Arbitrary(for {
-    d <- arbitrary[DefinitionWithFilter]
+  implicit def FactsWithFilterArb: Arbitrary[FactsWithQuery] = Arbitrary(for {
+    d <- arbitrary[DefinitionWithQuery]
     n <- Gen.choose(0, 10)
     entities = Gen.choose(0, 1000).map(testEntityId)
     f <- Gen.listOfN(n, for {
@@ -160,7 +159,50 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
       // Filter out facts that would otherwise match
       fact => FilterTester.eval(d.filter, fact)
     }))
-  } yield FactsWithFilter(d, f, o))
+  } yield FactsWithQuery(d, f, o))
+
+  def expressionArbitrary(cd: ConcreteDefinition): Gen[Expression] = {
+    val fallback = Gen.frequency(
+      15 -> Gen.oneOf(Count, Latest, DaysSinceLatest, DaysSinceEarliest, MeanInDays, MaximumInDays, MinimumInDays,
+        MeanInWeeks, MaximumInWeeks, MinimumInWeeks, CountDays),
+      1 -> (for {
+        q <- Gen.choose(10, 100)
+        k <- Gen.choose(1, q)
+        e <- Gen.oneOf(QuantileInDays(k, q), QuantileInWeeks(k, q))
+      } yield e)
+    )
+    Gen.oneOf(fallback, cd.encoding match {
+      case StructEncoding(values) =>
+        val subexpGen = Gen.oneOf(values.toList).flatMap {
+          case (name, sve) => subExpressionArbitrary(sve.encoding).map(se => StructExpression(name, se))
+        }
+        // SumBy is a little more complicated
+        (for {
+          se <- values.find(_._2.encoding == StringEncoding)
+          ie <- values.find(v => List(IntEncoding, LongEncoding, DoubleEncoding).contains(v._2.encoding))
+        } yield SumBy(se._1, ie._1)).cata(sumBy => Gen.frequency(5 -> Gen.const(sumBy), 5 -> subexpGen), subexpGen)
+      case p: PrimitiveEncoding   => subExpressionArbitrary(p).map(BasicExpression)
+      case l: ListEncoding        => fallback
+    })
+  }
+
+  def subExpressionArbitrary(pe: PrimitiveEncoding): Gen[SubExpression] = {
+    val all = Gen.const(NumFlips)
+    val numeric = Gen.oneOf(Sum, Mean, Gradient, StandardDeviation)
+    pe match {
+      case IntEncoding =>
+        Gen.oneOf(Gen.const(CountBy), numeric, all)
+      case LongEncoding | DoubleEncoding =>
+        Gen.oneOf(numeric, all)
+      case StringEncoding => Gen.oneOf(
+        Gen.oneOf(DaysSinceLatestBy, DaysSinceEarliestBy, CountBy, CountUnique),
+        arbitrary[String].map(Proportion.apply),
+        all
+      )
+      case BooleanEncoding => Gen.oneOf(all, arbitrary[Boolean].map(b => Proportion(b.toString)))
+      case DateEncoding => all
+    }
+  }
 
   /** You can't generate a filter without first knowing what fields exist for this feature */
   def arbitraryFilter(cd: ConcreteDefinition): Gen[Option[FilterEncoded]] = {
@@ -214,7 +256,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
 
   def virtualDefGen(gen: (FeatureId, ConcreteDefinition)): Gen[(FeatureId, VirtualDefinition)] = for {
     fid        <- arbitrary[FeatureId]
-    exp        <- arbitrary[Expression]
+    exp        <- expressionArbitrary(gen._2)
     filter     <- arbitraryFilter(gen._2)
     window     <- arbitrary[Option[Window]]
     query       = Query(exp, filter.map(FilterTextV0.asString).map(_.render).map(Filter.apply))

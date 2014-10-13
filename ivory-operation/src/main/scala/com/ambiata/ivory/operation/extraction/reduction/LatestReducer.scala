@@ -3,7 +3,10 @@ package com.ambiata.ivory.operation.extraction.reduction
 import com.ambiata.ivory.core.Fact
 import com.ambiata.ivory.core.thrift.ThriftFactValue
 
-class LatestReducer(var value: ThriftFactValue = null, var tombstone: Boolean = true) extends Reduction {
+class LatestReducer extends Reduction {
+
+  var value: ThriftFactValue = null
+  var tombstone = true
 
   def clear(): Unit = {
     value = null

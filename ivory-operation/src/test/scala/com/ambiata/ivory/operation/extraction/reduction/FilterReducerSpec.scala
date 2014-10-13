@@ -9,14 +9,14 @@ class FilterReducerSpec extends Specification with ScalaCheck { def is = s2"""
   Eval all facts                              $eval
 """
 
-  def count = prop((f: FactsWithFilter) => {
+  def count = prop((f: FactsWithQuery) => {
     val counter = new CountReducer
     val r = FilterReducer.compileEncoded(f.filter.filter, counter)
     (f.facts ++ f.other).foreach(r.update)
     r.save ==== ThriftFactValue.l(f.facts.size)
   })
 
-  def eval = prop((f: FactsWithFilter) => {
+  def eval = prop((f: FactsWithQuery) => {
     val r = FilterReducer.compileExpression(f.filter.filter)
     f.facts.forall(r.eval) && !f.other.exists(r.eval)
   })
