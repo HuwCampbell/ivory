@@ -22,7 +22,7 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
   import CommitTextStorage._
 
   def stringsCommit = prop { commit: Commit =>
-    fromLines(toList(commit).map(toLine)) must_== commit.right
+    fromLines.run(toLines(commit)).toEither must beRight(commit)
   }
 
   def readCommit = prop { (commit: Commit, commitId: CommitId) =>
@@ -38,8 +38,8 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
     TemporaryDirPath.withDirPath { dir =>
       val repo = LocalRepository.create(dir)
       storeCommitToId(repo, commitId, commit) >>
-      repo.store.utf8.read(Repository.commitById(commitId))
-    } must beOkLike(_ must_== delimitedString(commit))
+      repo.store.linesUtf8.read(Repository.commitById(commitId))
+    } must beOkLike(_ must_== toLines(commit))
   }
 
   def listCommitIds = prop { ids: CommitIds =>
