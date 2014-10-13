@@ -64,12 +64,25 @@ object DateTime {
         case (Expr(Literal(Constant(y: Short))), Expr(Literal(Constant(m: Byte))), Expr(Literal(Constant(d: Byte))), Expr(Literal(Constant(s: Int)))) =>
           create(y, m, d, s) match {
             case None =>
-              c.abort(c.enclosingPosition, s"This is not a valid date literal Date($y, $m, $d, $s).")
+              c.abort(c.enclosingPosition, s"This is not a valid datetime literal DateTime($y, $m, $d, $s).")
             case Some(date) =>
               c.Expr(q"com.ambiata.ivory.core.DateTime.unsafe($y, $m, $d, $s)")
           }
-        case _ =>
+        /**
+         * scaladoc magically manages to pass java.lang.Integer when compiling code so we need to deal with that case
+         * Note that the code is still safe and it is not possible to create a Date with 10000000 for the month for example
+         * and this case will only be used when running scaladoc
+         */
+        case (Expr(Literal(Constant(y: Integer))), Expr(Literal(Constant(m: Integer))), Expr(Literal(Constant(d: Integer))), Expr(Literal(Constant(s: Integer)))) =>
+          create(y.toShort, m.toByte, d.toByte, s) match {
+            case None =>
+              c.abort(c.enclosingPosition, s"This is not a valid datetime literal DateTime($y, $m, $d, $s).")
+            case Some(date) =>
+              c.Expr(q"com.ambiata.ivory.core.DateTime.unsafe(${y.toShort}, ${m.toByte}, ${d.toByte}, ${s.toInt})")
+          }
+        case _ => {
           c.abort(c.enclosingPosition, s"Not a literal ${showRaw(year)}, ${showRaw(month)}, ${showRaw(day)}, ${showRaw(seconds)}")
+        }
       }
     }
   }
