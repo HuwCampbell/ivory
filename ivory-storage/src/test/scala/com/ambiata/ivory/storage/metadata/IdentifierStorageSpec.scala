@@ -2,6 +2,7 @@ package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core.Identifier
 import com.ambiata.ivory.core.TemporaryRepositories._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
@@ -11,7 +12,7 @@ import scodec.bits.ByteVector
 import scalaz.Scalaz._
 import scalaz.{Store=>_,_}
 
-class IdentifierStorageSpec extends Specification { def is = s2"""
+class IdentifierStorageSpec extends Specification with ScalaCheck { def is = s2"""
 
 Identifier Storage Spec
 -----------------------
@@ -20,6 +21,9 @@ Identifier Storage Spec
   Get empty fail                             $getEmptyFail
   Write and then get                         $writeAndGet
   Write multiple times and then get          $writeMultiple
+  List Ids                                   $listIds          ${tag("store")}
+  Next or fail                               $nextIdOrFailOk   ${tag("store")}
+  Next or fail when it fails                 $nextIdOrFailFail ${tag("store")}
 
 """
 
@@ -48,5 +52,28 @@ Identifier Storage Spec
     } yield (i1, i2, i3)
   } must beOkValue((Identifier("00000000"), Identifier("00000001"), Identifier("00000001")))
 
+  def listIds = prop { (n: Byte) =>
+    val root = Key.Root / "subdir"
+    val max = Math.abs(n) % 10
+    withRepository(Posix) { repository =>
+      (0 until max).toList.traverseU(_ => IdentifierStorage.write(repository, root, keyName, ByteVector.empty)) >>
+        IdentifierStorage.listIds(repository, root)
+    } must beOkValue(
+      (0 until max).foldLeft(List(Identifier.initial))((i, _) => i.headOption.flatMap(_.next).toList ++ i).tail.reverse
+    )
+  }
 
+  def nextIdOrFailOk = prop { (identifier: Identifier) =>
+    withRepository(Posix) { repository =>
+      repository.store.utf8.write(Key.Root / identifier.asKeyName, "") >>
+        IdentifierStorage.nextIdOrFail(repository, Key.Root)
+    } must beOkValue(identifier.next.get)
+  }
+
+  def nextIdOrFailFail = {
+    withRepository(Posix) { repository =>
+      repository.store.utf8.write(Key.Root / Identifier.unsafe(0xffffffff).asKeyName, "") >>
+        IdentifierStorage.nextIdOrFail(repository, Key.Root)
+    } must beFail
+  }
 }

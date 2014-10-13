@@ -6,7 +6,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import scodec.bits.ByteVector
 
-import scalaz.effect._
+import scalaz._, Scalaz._, scalaz.effect._
 
 object IdentifierStorage {
 
@@ -40,4 +40,22 @@ object IdentifierStorage {
       id        <- writeToNextIdentifierFile(temporary)
     } yield id
   }
+
+  def latestId(repository: Repository, key: Key): ResultTIO[Option[Identifier]] =
+    listIds(repository, key).map(_.lastOption)
+
+  def latestIdOrInitial(repository: Repository, key: Key): ResultTIO[Identifier] =
+    latestId(repository, key).map(_.getOrElse(Identifier.initial))
+
+  def nextIdOrFail(repository: Repository, key: Key): ResultTIO[Identifier] =
+    latestIdOrInitial(repository, key).map(_.next) >>= (id =>
+      ResultT.fromOption[IO, Identifier](id, s"No more identifiers left at ${key.name}!"))
+
+  def listIds(repository: Repository, key: Key): ResultTIO[List[Identifier]] = for {
+    keys <- repository.store.listHeads(key).map(_.filterHidden)
+    ids  <- {
+      keys.traverseU(key => ResultT.fromOption[IO, Identifier](Identifier.parse(key.name),
+        s"""Can not parse id '${key.name}'"""))
+    }
+  } yield ids.sorted
 }
