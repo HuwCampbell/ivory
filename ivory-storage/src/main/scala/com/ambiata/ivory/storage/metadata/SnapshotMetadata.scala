@@ -17,7 +17,22 @@ sealed trait SnapshotMetadata
     case SnapshotMetaLegacy(lm) => {
       lm.snapshotId
     }
-    case SnapshotMetaJSON(jm) => jm.snapshotId
+    case SnapshotMetaJSON(jm)   => jm.snapshotId
+  }
+
+  def formatVersion(x: SnapshotMetadata): Long = this match {
+    case SnapshotMetaLegacy(_)  => 1
+    case SnapshotMetaJSON(jm)   => jm.formatVersion
+  }
+
+  def date(x: SnapshotMetadata): Date = this match {
+    case SnapshotMetaLegacy(lm) => lm.date
+    case SnapshotMetaJSON(jm)   => jm.date
+  }
+
+  def commitId(x: SnapshotMetadata): Option[CommitId] = this match {
+    case SnapshotMetaLegacy(lm) => lm.commitId
+    case SnapshotMetaJSON(jm)   => jm.commitId.pure[Option]
   }
 }
 
@@ -26,11 +41,43 @@ case class SnapshotMetaJSON(jsonMeta: JSONSnapshotMeta) extends SnapshotMetadata
 
 object SnapshotMetadata
 {
+  // data constructors
+
   def snapshotMetaLegacy(legacyMeta: legacy.SnapshotMeta): SnapshotMetadata =
     new SnapshotMetaLegacy(legacyMeta)
 
   def snapshotMetaJSON(jsonMeta: JSONSnapshotMeta): SnapshotMetadata =
     new SnapshotMetaJSON(jsonMeta)
+
+  def fromIdentifier(repo: Repository, id: SnapshotId): OptionT[ResultTIO, legacy.SnapshotMeta] = for {
+    // try reading the JSON one first:
+    jsonLines <- repository.store.linesUtf8.read(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName).liftM[OptionT]
+    // FIXME: Finish this
+  } yield jsonLines
+
+  /**
+   * get the latest snapshot which is just before a given date
+   *
+   * If there are 2 snapshots at the same date:
+   *
+   *   - take the snapshot having the greatest store id
+   *   - if this results in 2 snapshots having the same store id, take the one having the greatest snapshot id
+   *
+   * This is implemented by defining an order on snapshots where we order based on the triple of
+   *  (snapshotId, commitStoreId, date)
+   *
+   */
+  def latestSnapshot(repository: Repository, date: Date): OptionT[ResultTIO, SnapshotMetadata] = for {
+    // ids :: [Key]
+    ids <- repository.store.listHeads(Repository.snapshots).liftM[OptionT]
+    // sids :: [SnapshotId]
+    sids <- OptionT.optionT[ResultTIO](ids.traverseU((sid: Key) => SnapshotId.parse(sid.name)).pure[ResultTIO])
+    // metas :: [SnapshotMetadata]
+    // fromIdentifier repository :: SnapshotId -> ResultTIO SnapshotMetadata
+    metas <- sids.traverseU((sid: SnapshotId) => fromIdentifier(repository, sid)).liftM[OptionT]
+    filtered = metas.filter(_.date isBeforeOrEqual date)
+    meta <- OptionT.optionT[ResultTIO](filtered.sorted.lastOption.pure[ResultTIO])
+  } yield meta
 }
 
 // NOTE (Dom): formatting?
@@ -50,7 +97,6 @@ case class JSONSnapshotMeta(
     (snapshotId, date, commitId).?|?((other.snapshotId, other.date, other.commitId))
 
 }
-
 
 object JSONSnapshotMeta {
 

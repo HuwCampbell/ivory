@@ -34,6 +34,7 @@ object SnapshotMeta {
 
   def fromIdentifier(repository: Repository, id: SnapshotId): ResultTIO[Option[SnapshotMeta]] = {
     val path = Repository.snapshot(id) / metaKeyName
+
     for {
       exists      <- repository.store.exists(path)
       sm          <- if (exists) for {
