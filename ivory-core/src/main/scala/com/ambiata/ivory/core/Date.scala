@@ -134,15 +134,9 @@ object Date {
   implicit def DateOrdering =
     DateOrder.toScalaOrdering
 
-  implicit def DataJsonCodec: CodecJson[Date] = CodecJson(
-    (_.int.asJson),
-    ((c: HCursor) => for {
-        underlying <- c.as[Int]
-        d <- fromInt(underlying) match {
-          case Some(x)  => x.pure[DecodeResult]
-          case None     => DecodeResult.fail("Invalid Value for Date: " + underlying.toString, c.history)
-        }
-    } yield d))
+  implicit def DataJsonCodec: CodecJson[Date] = CodecJson.derived(
+    EncodeJson(_.int.asJson),
+    DecodeJson.optionDecoder(_.as[Int].toOption.flatMap(fromInt), "Date"))
 
   /**
    * This is not epoch! It will take a long which was created from Date.addSeconds and
