@@ -4,4 +4,4 @@ set -x
 
 source $(dirname $0)/config
 
-./sbt -Dsbt.log.noformat=true "; clean ; project cli ;  set mappings  in S3.upload <<=  (S3DistKeys.path, AssemblyKeys.assembly, name, version).map((p, a, n, v) => Seq((a, s\"\${p}\${n}-canary/\${v}/\${n}-canary-\${v}.jar\"))); set credentials := Seq(Credentials(realm=\"Amazon S3\", host=\"ambiata-dist.s3.amazonaws.com\", userName=\"$AWS_ACCESS_KEY\", passwd=\"$AWS_SECRET_KEY\")) ; s3Upload"
+./sbt -ivy ~/.ivy-ivory.canary -Dsbt.log.noformat=true "; clean ; project cli ;  set mappings  in S3.upload <<=  (S3DistKeys.path, AssemblyKeys.assembly, name, version).map((p, a, n, v) => Seq((a, s\"\${p}\${n}-canary/\${v}/\${n}-canary-\${v}.jar\"))); set credentials := Seq(Credentials(realm=\"Amazon S3\", host=\"ambiata-dist.s3.amazonaws.com\", userName=\"$AWS_ACCESS_KEY\", passwd=\"$AWS_SECRET_KEY\")) ; s3Upload"

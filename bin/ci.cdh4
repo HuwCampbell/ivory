@@ -3,4 +3,4 @@
 HADOOP_VERSION=cdh4 
 source $(dirname $0)/config
 
-./sbt -Dsbt.log.noformat=true "; clean; test-only -- console junitxml; +publish; echo-version"
+./sbt -ivy ~/.ivy-ivory.cdh4 -Dsbt.log.noformat=true "; clean; test-only -- console junitxml; +publish; echo-version"

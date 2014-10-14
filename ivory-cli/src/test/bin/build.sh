@@ -6,7 +6,7 @@ if [ ! -n "$IVORY" ]; then
 
     TARGET="${PROJECT}/target/ivory-cli"
     mkdir -p "${TARGET}"
-    ${PROJECT}/sbt -Dsbt.log.noformat=true ";project cli; clean; universal:package-zip-tarball"
+    ${PROJECT}/sbt -ivy ~/.ivy-ivory.cli -Dsbt.log.noformat=true ";project cli; clean; universal:package-zip-tarball"
     tar xvf ${PROJECT}/ivory-cli/target/universal/ivory-cli*.tgz --strip-components 1 -C ${TARGET}
     export IVORY="${PROJECT}/bin/hadoop-dev ${TARGET}/lib/ivory.jar com.ambiata.ivory.cli.main"
 fi
