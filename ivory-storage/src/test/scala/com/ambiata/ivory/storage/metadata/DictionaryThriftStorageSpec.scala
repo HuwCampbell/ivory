@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._, Arbitraries._
 import com.ambiata.ivory.data.Identifier
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.mundane.testing.ResultMatcher._
 import org.scalacheck.Arbitrary, Arbitrary._
 import org.specs2.{ScalaCheck, Specification}

@@ -1,8 +1,8 @@
 package com.ambiata.ivory.storage.control
 
 import com.ambiata.ivory.core._
-import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.Laws._
+import com.ambiata.notion.core._
 import org.scalacheck._, Arbitrary._
 import org.specs2.{ScalaCheck, Specification}
 import scalaz._, Scalaz._

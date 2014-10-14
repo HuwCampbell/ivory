@@ -5,8 +5,8 @@ import com.ambiata.ivory.core._
 
 import com.ambiata.ivory.storage.ScalaCheckManagedProperties
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.store._
-import com.ambiata.mundane.io._
+import com.ambiata.notion.core._
+import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
 import com.ambiata.poacher.hdfs._
 import com.nicta.scoobi.impl.ScoobiConfiguration
 import org.apache.hadoop.conf.Configuration

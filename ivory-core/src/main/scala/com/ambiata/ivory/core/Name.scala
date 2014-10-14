@@ -3,7 +3,7 @@ package com.ambiata.ivory.core
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.reflect.MacrosCompat
 import com.ambiata.mundane.parse.ListParser
-import com.ambiata.mundane.store.KeyName
+import com.ambiata.notion.core.KeyName
 import org.apache.hadoop.fs.Path
 
 import scalaz.{Name => _,_}, Scalaz._

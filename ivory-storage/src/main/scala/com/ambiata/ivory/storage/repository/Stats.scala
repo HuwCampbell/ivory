@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.io.BytesQuantity
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.mundane.control._
 import com.ambiata.poacher.hdfs.Hdfs.{numberOfFilesRecursively, totalSize}
 import com.ambiata.poacher.hdfs._

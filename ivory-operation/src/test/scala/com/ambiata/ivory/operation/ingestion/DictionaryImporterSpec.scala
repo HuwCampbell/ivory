@@ -9,7 +9,7 @@ import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.store.{Key, PosixStore}
+import com.ambiata.notion.core.{Key, PosixStore}
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.specs2.{ScalaCheck, Specification}
 import org.specs2.matcher.ThrownExpectations

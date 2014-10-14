@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control.ResultTIO
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.impl.ScoobiConfiguration
 import org.specs2.{ScalaCheck, Specification}

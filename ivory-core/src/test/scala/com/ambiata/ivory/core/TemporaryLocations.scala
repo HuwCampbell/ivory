@@ -3,10 +3,10 @@ package com.ambiata.ivory.core
 import java.io.File
 import java.util.UUID
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
-import com.ambiata.mundane.store._
-import com.ambiata.poacher.hdfs.{Hdfs => PoacherHdfs, HdfsStore}
-import com.ambiata.saws.s3.{S3 => SawsS3, S3Store}
+import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
+import com.ambiata.notion.core._
+import com.ambiata.poacher.hdfs.{Hdfs => PoacherHdfs}
+import com.ambiata.saws.s3.{S3 => SawsS3, S3Address}
 import org.apache.hadoop.fs.Path
 
 import scalaz.{Store =>_,_}, Scalaz._, effect._
@@ -155,7 +155,7 @@ object TemporaryLocations {
 
   def createLocationDir(location: IvoryLocation): ResultTIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))                 => Directories.mkdirs(DirPath.unsafe(path))
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client)      => SawsS3.storeObject(bucket, key+"/file", new File(key+"/file")).executeT(s3Client).void
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client)      => SawsS3.storeObject(S3Address(bucket, key+"/file"), new File(key+"/file")).executeT(s3Client).void
     case h @ HdfsIvoryLocation(HdfsLocation(p), configuration, _, _) => PoacherHdfs.mkdir(new Path(p)).void.run(configuration)
   }
 

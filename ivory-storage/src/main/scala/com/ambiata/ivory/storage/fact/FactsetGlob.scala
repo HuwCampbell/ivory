@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 
 import scalaz._, effect.IO
 

@@ -7,7 +7,8 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.sync.Sync._
 import com.ambiata.ivory.storage.plan._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
+import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
+import com.ambiata.notion.core._
 import scalaz._, Scalaz._, effect.IO
 
 object SyncIngest {

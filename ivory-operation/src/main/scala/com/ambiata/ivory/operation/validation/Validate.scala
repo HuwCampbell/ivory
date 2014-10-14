@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.validation
 
 import com.ambiata.ivory.core._
-import com.ambiata.mundane.io.HdfsLocation
+import com.ambiata.notion.core.HdfsLocation
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, Value => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path

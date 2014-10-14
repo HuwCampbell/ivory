@@ -13,8 +13,8 @@ import com.ambiata.ivory.scoobi.TestConfigurations._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
 import com.nicta.scoobi.Scoobi.ScoobiConfiguration
-import com.ambiata.mundane.io._
-import com.ambiata.mundane.store._
+import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
+import com.ambiata.notion.core._
 import com.ambiata.mundane.control._
 import org.specs2.execute.AsResult
 import org.specs2.matcher.{Matcher, ThrownExpectations}

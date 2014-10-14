@@ -7,7 +7,8 @@ import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.{HdfsLocation, Temporary}
+import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
+import com.ambiata.notion.core._
 import com.nicta.scoobi.Scoobi._
 
 import scalaz._, Scalaz._

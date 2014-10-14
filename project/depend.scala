@@ -17,17 +17,30 @@ object depend {
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141009000044-ba80411" excludeAll(
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141013060029-6b42321" excludeAll(
     ExclusionRule(organization = "org.specs2"),
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec"),
-    ExclusionRule(organization = "com.ambiata", name = "mundane-testing_2.10")
+    ExclusionRule(organization = "com.ambiata", name = "mundane-testing_2.10"),
+    ExclusionRule(organization = "com.ambiata", name = "mundane-testing_2.11")
   ))
 
-  val MUNDANE_VERSION ="1.2.1-20141008235108-d7a881d"
+  val MUNDANE_VERSION ="1.2.1-20141011082118-4f6471b"
   val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-store").map(c =>
                       "com.ambiata"          %% c                 % MUNDANE_VERSION) ++
                   Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")
+
+  def notion(version: String) =
+    if (version.contains("cdh4"))
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141013220612-a77b0b6") ++
+      Seq("com.ambiata" %% "notion-testing"  % "0.0.1-cdh4-20141013220612-a77b0b6" % "test") ++
+      hadoop(version)
+    else if (version.contains("cdh5"))
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141013082938-a77b0b6") ++
+      Seq("com.ambiata" %% "notion-testing"  % "0.0.1-cdh5-20141013082938-a77b0b6" % "test") ++
+       hadoop(version)
+    else
+      sys.error(s"unsupported poacher version, can not build for $version")
 
   val caliper   = Seq("com.google.caliper"   %  "caliper"         % "0.5-rc1",
                       "com.google.guava"     %  "guava"           % "14.0.1" force())
@@ -48,8 +61,8 @@ object depend {
   }
 
   def poacher(version: String) =
-  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141009000532-d26b630")
-  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141009000003-d26b630")
+  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141010000015-2605acf")
+  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141009235022-2605acf")
   else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 
