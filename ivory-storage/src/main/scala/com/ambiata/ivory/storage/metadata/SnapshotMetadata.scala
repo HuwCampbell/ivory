@@ -7,32 +7,40 @@ import com.ambiata.ivory.storage._
 
 //import scalaz._, Scalaz._, \&/._, effect.IO
 import scalaz._, Scalaz._, effect.IO
+import scala.math.{Ordering => SOrdering}
 import argonaut._, Argonaut._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.store._
 
 sealed trait SnapshotMetadata
 {
-  def snapshotId(x: SnapshotMetadata): SnapshotId = this match {
+  def snapshotId: SnapshotId = this match {
     case SnapshotMetaLegacy(lm) => {
       lm.snapshotId
     }
     case SnapshotMetaJSON(jm)   => jm.snapshotId
   }
 
-  def formatVersion(x: SnapshotMetadata): Long = this match {
+  def formatVersion: Long = this match {
     case SnapshotMetaLegacy(_)  => 1
     case SnapshotMetaJSON(jm)   => jm.formatVersion
   }
 
-  def date(x: SnapshotMetadata): Date = this match {
+  def date: Date = this match {
     case SnapshotMetaLegacy(lm) => lm.date
     case SnapshotMetaJSON(jm)   => jm.date
   }
 
-  def commitId(x: SnapshotMetadata): Option[CommitId] = this match {
+  def commitId: Option[CommitId] = this match {
     case SnapshotMetaLegacy(lm) => lm.commitId
     case SnapshotMetaJSON(jm)   => jm.commitId.pure[Option]
+  }
+
+  def order(other: SnapshotMetadata): Ordering = (this, other) match {
+    case (SnapshotMetaLegacy(_), SnapshotMetaJSON(_)) => Ordering.LT
+    case (SnapshotMetaJSON(_), SnapshotMetaLegacy(_)) => Ordering.GT
+    case (SnapshotMetaLegacy(lm1), SnapshotMetaLegacy(lm2)) => lm1 order lm2
+    case (SnapshotMetaJSON(jm1), SnapshotMetaJSON(jm2)) => jm1 order jm2
   }
 }
 
@@ -49,11 +57,17 @@ object SnapshotMetadata
   def snapshotMetaJSON(jsonMeta: JSONSnapshotMeta): SnapshotMetadata =
     new SnapshotMetaJSON(jsonMeta)
 
-  def fromIdentifier(repo: Repository, id: SnapshotId): OptionT[ResultTIO, legacy.SnapshotMeta] = for {
+  def fromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[SnapshotMetadata] = for {
     // try reading the JSON one first:
-    jsonLines <- repository.store.linesUtf8.read(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName).liftM[OptionT]
-    // FIXME: Finish this
-  } yield jsonLines
+    jsonExists <- repo.store.exists(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName)
+
+    x <- {
+      if (jsonExists)
+        jsonMetaFromIdentifier(repo, id).map(snapshotMetaJSON(_))
+      else
+        legacy.SnapshotMeta.fromIdentifier(repo, id).map(snapshotMetaLegacy(_))
+    }
+  } yield x
 
   /**
    * get the latest snapshot which is just before a given date
@@ -68,16 +82,32 @@ object SnapshotMetadata
    *
    */
   def latestSnapshot(repository: Repository, date: Date): OptionT[ResultTIO, SnapshotMetadata] = for {
-    // ids :: [Key]
     ids <- repository.store.listHeads(Repository.snapshots).liftM[OptionT]
-    // sids :: [SnapshotId]
     sids <- OptionT.optionT[ResultTIO](ids.traverseU((sid: Key) => SnapshotId.parse(sid.name)).pure[ResultTIO])
-    // metas :: [SnapshotMetadata]
-    // fromIdentifier repository :: SnapshotId -> ResultTIO SnapshotMetadata
     metas <- sids.traverseU((sid: SnapshotId) => fromIdentifier(repository, sid)).liftM[OptionT]
     filtered = metas.filter(_.date isBeforeOrEqual date)
     meta <- OptionT.optionT[ResultTIO](filtered.sorted.lastOption.pure[ResultTIO])
   } yield meta
+
+  // instances
+
+  implicit def SnapshotMetadataOrder: Order[SnapshotMetadata] = Order.order(_ order _)
+
+  implicit def SnapshotMetaOrdering: SOrdering[SnapshotMetadata] =
+    SnapshotMetadataOrder.toScalaOrdering
+
+  // helpers
+
+  private def jsonMetaFromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[JSONSnapshotMeta] = for {
+    jsonLines <- repo.store.linesUtf8.read(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName)
+    x <- fromJson(jsonLines.foldRight("")(_ + _)) match {
+      case -\/(msg)       => ResultT.fail[IO, JSONSnapshotMeta]("failed to parse Snapshot metadata: " ++ msg)
+      case \/-(jsonmeta)  => jsonmeta.pure[ResultTIO]
+    }
+  } yield x
+
+
+  private def fromJson(json: String): (String \/ JSONSnapshotMeta) = Parse.decodeEither[JSONSnapshotMeta](json)
 }
 
 // NOTE (Dom): formatting?
@@ -101,6 +131,12 @@ case class JSONSnapshotMeta(
 object JSONSnapshotMeta {
 
   val metaKeyName = KeyName.unsafe(".metadata.json")
+
+  implicit def JSONSnapshotMetaOrder: Order[JSONSnapshotMeta] =
+    Order.order(_ order _)
+
+  implicit def JSONSnapshotMetaOrdering: SOrdering[JSONSnapshotMeta] =
+    JSONSnapshotMetaOrder.toScalaOrdering
 
   implicit def SnapshotMetaJSONCodec : CodecJson[JSONSnapshotMeta] =
     casecodec4(JSONSnapshotMeta.apply, JSONSnapshotMeta.unapply)("id", "format_version", "date", "commit_id")
