@@ -45,7 +45,7 @@ object build extends Build {
   , version in ThisBuild := s"""1.0.0-${Option(System.getenv("HADOOP_VERSION")).getOrElse("cdh5")}"""
   , organization := "com.ambiata"
   , scalaVersion := "2.11.2"
-  , crossScalaVersions := Seq("2.10.4", scalaVersion.value)
+  , crossScalaVersions := Seq(scalaVersion.value)
   , fork in run  := true
   , publishArtifact in packageDoc := false
   // https://gist.github.com/djspiewak/976cd8ac65e20e136f05
