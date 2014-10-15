@@ -151,6 +151,11 @@ object SnapshotMetadata
     case \/-(cId) => Metadata.commitFromIvory(repo, cId).map(_.featureStoreId)
   }
 
+  def featureStoreSnapshot(repo: Repository, meta: SnapshotMetadata): ResultTIO[legacy.FeatureStoreSnapshot] = for {
+    storeId <- getFeatureStoreId(repo, meta)
+    store <- Metadata.featureStoreFromIvory(repo, storeId)
+  } yield legacy.FeatureStoreSnapshot(meta.snapshotId, meta.date, store)
+
   def save(repo: Repository, snapshotMeta: SnapshotMetadata): ResultTIO[Unit] = snapshotMeta match {
     // unfortunately since the legacy snapshot may or may not have a commit id, can't migrate it to
     // the json format.
