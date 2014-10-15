@@ -63,6 +63,18 @@ object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Com
                                                       s"Can not parse Commit id '$key'"))
   } yield ids
 
+  /**
+   * looks for the latest commit id, if there are no commits, it pushes one and returns
+   * the id for it.  Be aware that its a potential write operation.
+   **/
+  def findOrCreateLatestId(repo: Repository, dictionaryId: DictionaryId, featureStoreId: FeatureStoreId): ResultTIO[CommitId] = for {
+    oCommitId <- latestId(repo)
+    commitId <- oCommitId match {
+      case Some(x)  => x.pure[ResultTIO]
+      case None     => increment(repo, Commit(dictionaryId, featureStoreId))
+    }
+  } yield commitId
+
   def latestId(repo: Repository): ResultTIO[Option[CommitId]] =
     listIds(repo).map(_.sorted.lastOption)
 
