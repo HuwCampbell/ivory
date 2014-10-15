@@ -42,6 +42,11 @@ sealed trait SnapshotMetadata
     case SnapshotMetaJSON(jm)   => (\/-)(jm.commitId)
   }
 
+  def byKey[A](key: String)(implicit e: DecodeJson[A]): Option[A] = this match {
+    case SnapshotMetaLegacy(_)  => none
+    case SnapshotMetaJSON(jm)   => jm.others.as[A].toOption
+  }
+
   def order(other: SnapshotMetadata): Ordering = (this, other) match {
     case (SnapshotMetaLegacy(_), SnapshotMetaJSON(_)) => Ordering.LT
     case (SnapshotMetaJSON(_), SnapshotMetaLegacy(_)) => Ordering.GT
@@ -164,7 +169,7 @@ object SnapshotMetadata
   private def newSnapshotMeta(
     snapshotId: SnapshotId,
     date: Date,
-    commitId: CommitId) = snapshotMetaJSON(JSONSnapshotMeta(snapshotId, currentVersion, date, commitId))
+    commitId: CommitId) = snapshotMetaJSON(JSONSnapshotMeta(snapshotId, currentVersion, date, commitId, baseJsonObject(snapshotId, currentVersion, date, commitId)))
 
   private def jsonMetaFromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[JSONSnapshotMeta] = for {
     jsonLines <- repo.store.linesUtf8.read(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName)
@@ -197,13 +202,17 @@ object SnapshotMetadata
    */
   private def allocateId(repo: Repository): ResultTIO[SnapshotId] =
     IdentifierStorage.write(repo, Repository.snapshots, allocated, scodec.bits.ByteVector.empty).map(SnapshotId.apply)
+
+  private def baseJsonObject(snapshotId: SnapshotId, currentVersion: Long, date: Date, commitId: CommitId): Json=
+    ("id" := snapshotId) ->: ("format_version" := currentVersion) ->: ("date" := date) ->: ("commit_id" := commitId) ->: jEmptyObject
 }
 
 private case class JSONSnapshotMeta(
   snapshotId: SnapshotId,
   formatVersion: Long,
   date: Date,
-  commitId: CommitId) {
+  commitId: CommitId,
+  others: Json) {
 
   // version shouldn't be relevent to ordering.
   // NOTE (Dom): I'm guessing this is used to figure out the latest snapshot.
@@ -226,8 +235,15 @@ private object JSONSnapshotMeta {
   implicit def JSONSnapshotMetaOrdering: SOrdering[JSONSnapshotMeta] =
     JSONSnapshotMetaOrder.toScalaOrdering
 
-  implicit def SnapshotMetaJSONCodec : CodecJson[JSONSnapshotMeta] =
-    casecodec4(JSONSnapshotMeta.apply, JSONSnapshotMeta.unapply)("id", "format_version", "date", "commit_id")
+  implicit def SnapshotMetaJSONCodec : CodecJson[JSONSnapshotMeta] = CodecJson(
+    (_.others),
+    ((c: HCursor) => for {
+      id <- (c --\ "id").as[SnapshotId]
+      version <- (c --\ "format_version").as[Long]
+      date <- (c --\ "date").as[Date]
+      commitId <- (c --\ "commit_id").as[CommitId]
+      json <- c.as[Json]
+    } yield JSONSnapshotMeta(id, version, date, commitId, json)))
 
   def save(repository: Repository, snapshotMeta: JSONSnapshotMeta): ResultTIO[Unit] =
     repository.store.linesUtf8.write(
