@@ -89,6 +89,15 @@ object SnapshotMetadata
     meta <- OptionT.optionT[ResultTIO](filtered.sorted.lastOption.pure[ResultTIO])
   } yield meta
 
+  def save(repo: Repository, snapshotMeta: SnapshotMetadata): ResultTIO[Unit] = snapshotMeta match {
+    // unfortunately since the legacy snapshot may or may not have a commit id, can't migrate it to
+    // the json format.
+    // since the existing snapshots are immutable however, i can't think of a reason why we would want to do this
+    // anyway.
+    case SnapshotMetaLegacy(lm) => legacy.SnapshotMeta.save(repo, lm)
+    case SnapshotMetaJSON(jm)   => JSONSnapshotMeta.save(repo, jm)
+  }
+
   // instances
 
   implicit def SnapshotMetadataOrder: Order[SnapshotMetadata] = Order.order(_ order _)
@@ -100,6 +109,7 @@ object SnapshotMetadata
 
   private def jsonMetaFromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[JSONSnapshotMeta] = for {
     jsonLines <- repo.store.linesUtf8.read(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName)
+    // NOTE: (Dom) Better + neater way to do this?
     x <- fromJson(jsonLines.foldRight("")(_ + _)) match {
       case -\/(msg)       => ResultT.fail[IO, JSONSnapshotMeta]("failed to parse Snapshot metadata: " ++ msg)
       case \/-(jsonmeta)  => jsonmeta.pure[ResultTIO]
@@ -144,6 +154,9 @@ object JSONSnapshotMeta {
   def save(repository: Repository, snapshotMeta: JSONSnapshotMeta): ResultTIO[Unit] =
     repository.store.linesUtf8.write(
       Repository.snapshot(snapshotMeta.snapshotId) / JSONSnapshotMeta.metaKeyName,
+      // NOTE: (Dom) I'm assuming here that the list of strings is a list of lines to write to the file,
+      // I've been burned by this assumption with the way i assumed the ListParser worked before,
+      // I need to double check this case to.
       snapshotMeta.asJson.nospaces.pure[List])
 
 }
