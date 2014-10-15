@@ -4,8 +4,8 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
 import com.ambiata.ivory.operation.extraction.SnapshotJob
 import com.ambiata.ivory.operation.extraction.snapshot._
-import com.ambiata.ivory.storage.legacy.SnapshotMeta
 import com.ambiata.ivory.storage.lookup.{ReducerLookups, ReducerSize}
+import com.ambiata.ivory.storage.metadata.SnapshotManifest
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FileName
 import com.ambiata.mundane.io.MemoryConversions._
@@ -24,7 +24,7 @@ import scalaz._, Scalaz._
 
 object SquashJob {
 
-  def squashFromSnapshotWith[A](repository: Repository, dictionary: Dictionary, snapmeta: SnapshotMeta,
+  def squashFromSnapshotWith[A](repository: Repository, dictionary: Dictionary, snapmeta: SnapshotMetadata,
                                 output: IvoryLocation, conf: SquashConfig)(f: Key => ResultTIO[A]): ResultTIO[A] = for {
     toSquash        <- squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date, conf)
     (profile, key, doSquash) =  toSquash
