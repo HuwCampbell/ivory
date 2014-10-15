@@ -68,4 +68,5 @@ object IvoryRetire {
    */
   val countFacts = com.ambiata.ivory.operation.statistics.FactCount.flatFacts _
   val diffFacts = com.ambiata.ivory.operation.diff.FactDiff.flatFacts _
+  val statsFacts = com.ambiata.ivory.operation.diff.FactStats.statisticsForFactSet _
 }

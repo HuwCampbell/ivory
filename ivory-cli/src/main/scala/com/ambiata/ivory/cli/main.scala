@@ -19,7 +19,8 @@ object main {
     ingest,
     recompress,
     recreate,
-    snapshot
+    snapshot,
+    statsFactset
   )
 
   def main(args: Array[String]): Unit = {
