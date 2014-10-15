@@ -5,7 +5,6 @@ import com.ambiata.ivory.storage.fact.FeatureStoreGlob
 import com.ambiata.ivory.storage._
 //import metadata._
 
-//import scalaz._, Scalaz._, \&/._, effect.IO
 import scalaz._, Scalaz._, effect.IO
 import scala.math.{Ordering => SOrdering}
 import argonaut._, Argonaut._
@@ -69,10 +68,11 @@ object SnapshotMetadata
 
   // exported functions:
 
-  def newSnapshotMeta(
-    snapshotId: SnapshotId,
-    date: Date,
-    commitId: CommitId) = snapshotMetaJSON(JSONSnapshotMeta(snapshotId, currentVersion, date, commitId))
+  def createSnapshotMetadata(repo: Repository, date: Date): ResultTIO[SnapshotMetadata] = for {
+    snapshotId <- allocateId(repo)
+    dictionaryId <- Metadata.latestDictionaryIdFromIvory(repo)
+    commitId <- Metadata.findOrCreateLatestCommitId(repo)
+  } yield newSnapshotMeta(snapshotId, date, commitId)
 
   def fromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[SnapshotMetadata] = for {
     // try reading the JSON one first:
@@ -121,9 +121,9 @@ object SnapshotMetadata
     metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
     x <- {
       if (metaFeatureId == featureStoreId)
-        OptionT.optionT(Some(meta).pure[ResultTIO])
+        OptionT.optionT(meta.some.pure[ResultTIO])
       else
-        OptionT.optionT(None.pure[ResultTIO])
+        OptionT.optionT(none.pure[ResultTIO])
     }
   } yield x
 
@@ -164,6 +164,11 @@ object SnapshotMetadata
     SnapshotMetadataOrder.toScalaOrdering
 
   // helpers
+
+  private def newSnapshotMeta(
+    snapshotId: SnapshotId,
+    date: Date,
+    commitId: CommitId) = snapshotMetaJSON(JSONSnapshotMeta(snapshotId, currentVersion, date, commitId))
 
   private def jsonMetaFromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[JSONSnapshotMeta] = for {
     jsonLines <- repo.store.linesUtf8.read(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName)
