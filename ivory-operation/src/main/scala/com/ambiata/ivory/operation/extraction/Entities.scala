@@ -1,9 +1,7 @@
 package com.ambiata.ivory.operation.extraction
 
-import java.util.HashMap
-
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.lookup.{ChordEntities, ChordEntity}
+import com.ambiata.ivory.lookup.ChordEntities
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import scala.collection.JavaConverters._
@@ -22,10 +20,15 @@ case class Entities(entities: Mappings) {
   private case class DateRange(earliest: Date, latest: Date)
 
   /** get the earliest date and the latest date across all entities */
-  private val dateRange: DateRange = entities.values.asScala.foldLeft(DateRange(Date.maxValue, Date.minValue)) { case (DateRange(lmin, lmax), ds) =>
-    val min = Date.unsafeFromInt(ds.last) // last is the minimum date because the array is sorted
-    val max = Date.unsafeFromInt(ds.head) // head is the maximum date because the array is sorted
-    DateRange(Date.min(min, lmin), Date.max(max, lmax))
+  private val dateRange: DateRange = {
+    // Going full-mutable to avoid creating GC pressure on Hadoop
+    var lmin = Date.maxValue.underlying
+    var lmax = Date.minValue.underlying
+    entities.values.asScala.foreach { ds =>
+      lmin = Math.min(lmin, ds.last) // last is the minimum date because the array is sorted
+      lmax = Math.max(lmax, ds.head) // head is the maximum date because the array is sorted
+    }
+    DateRange(Date.unsafeFromInt(lmin), Date.unsafeFromInt(lmax))
   }
 
   def earliestDate = dateRange.earliest
@@ -72,7 +75,7 @@ object Entities {
    * Map of entity name to a sorted non-empty array of Dates, represented as Ints.
    * The dates array is sorted from latest to earliest
    */
-  type Mappings = HashMap[String, Array[Int]]
+  type Mappings = java.util.Map[String, Array[Int]]
 
   def serialiseEntities(repository: Repository, entities: Entities, key: Key): ResultTIO[Unit] = {
     import java.io.ObjectOutputStream
@@ -97,7 +100,7 @@ object Entities {
     val DatePattern = """(\d{4})-(\d{2})-(\d{2})""".r
 
     IvoryLocation.readLines(location).map { lines =>
-      val mappings = new HashMap[String, Array[Int]](lines.length)
+      val mappings = new java.util.HashMap[String, Array[Int]](lines.length)
       lines.map(parseLine(DatePattern)).groupBy(_._1).foreach { case (k, v) =>
         mappings.put(k, v.map(_._2).toArray.sorted.reverse)
       }
@@ -105,20 +108,13 @@ object Entities {
     }
   }
 
-  def fromChordEntities(chordEntities: ChordEntities): Entities = {
-    val mappings = new HashMap[String, Array[Int]](chordEntities.entities.size)
-    chordEntities.entities.asScala.foreach(entity =>
-      mappings.put(entity.entity, entity.dates.asScala.map(_.toInt).toArray.sorted.reverse))
-    Entities(mappings)
-  }
+  /** WARNING: This shares the _same_ mutable entities map as [[ChordEntities]] for performance */
+  def fromChordEntities(chordEntities: ChordEntities): Entities =
+    Entities(chordEntities.entities)
 
-  def toChordEntities(entities: Entities): ChordEntities = {
-    val chordEntities = new ChordEntities
-    entities.entities.asScala.foreach({ case (k, vs) =>
-      chordEntities.addToEntities(new ChordEntity(k, vs.toList.map(Int.box).asJava))
-    })
-    chordEntities
-  }
+  /** WARNING: This shares the _same_ internal mutable entities map with [[ChordEntities]] for performance */
+  def toChordEntities(entities: Entities): ChordEntities =
+    new ChordEntities(entities.entities)
 
   def empty = Entities(new java.util.HashMap[String, Array[Int]])
 

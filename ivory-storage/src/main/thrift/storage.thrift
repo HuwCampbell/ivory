@@ -47,11 +47,9 @@ struct FeatureReductionLookup {
     1: map<i32, list<FeatureReduction>> reductions;
 }
 
-struct ChordEntity {
-    1: string entity;
-    2: list<i32> dates;
-}
-
+// The following has been hacked to convert the list to an array for performance reasons
+/*
 struct ChordEntities {
-    1: list<ChordEntity> entities;
+    1: map<string, list<i32>> entities;
 }
+*/
