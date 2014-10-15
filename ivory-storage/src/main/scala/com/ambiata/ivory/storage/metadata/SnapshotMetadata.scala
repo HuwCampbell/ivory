@@ -16,9 +16,7 @@ sealed trait SnapshotMetadata
   private val legacyVersion : Long = 1
 
   def snapshotId: SnapshotId = this match {
-    case SnapshotMetaLegacy(lm) => {
-      lm.snapshotId
-    }
+    case SnapshotMetaLegacy(lm) => lm.snapshotId
     case SnapshotMetaJSON(jm)   => jm.snapshotId
   }
 
@@ -148,6 +146,11 @@ object SnapshotMetadata
     meta <- OptionT.optionT[ResultTIO](filtered.sorted.lastOption.pure[ResultTIO])
   } yield meta
 
+  def getFeatureStoreId(repo: Repository, meta: SnapshotMetadata): ResultTIO[FeatureStoreId] = meta.featureIdOrCommitId match {
+    case -\/(fId) => fId.pure[ResultTIO]
+    case \/-(cId) => Metadata.commitFromIvory(repo, cId).map(_.featureStoreId)
+  }
+
   def save(repo: Repository, snapshotMeta: SnapshotMetadata): ResultTIO[Unit] = snapshotMeta match {
     // unfortunately since the legacy snapshot may or may not have a commit id, can't migrate it to
     // the json format.
@@ -181,11 +184,6 @@ object SnapshotMetadata
   } yield x
 
   private def fromJson(json: String): (String \/ JSONSnapshotMeta) = Parse.decodeEither[JSONSnapshotMeta](json)
-
-  private def getFeatureStoreId(repo: Repository, meta: SnapshotMetadata): ResultTIO[FeatureStoreId] = meta.featureIdOrCommitId match {
-    case -\/(fId) => fId.pure[ResultTIO]
-    case \/-(cId) => Metadata.commitFromIvory(repo, cId).map(_.featureStoreId)
-  }
 
   private def checkForNewerFeatures(repo: Repository, metaFeatureId: FeatureStoreId, store: FeatureStore, beginDate: Date, endDate: Date): ResultTIO[Boolean] = {
     if (metaFeatureId == store.id) {
@@ -250,7 +248,7 @@ private object JSONSnapshotMeta {
       Repository.snapshot(snapshotMeta.snapshotId) / JSONSnapshotMeta.metaKeyName,
       // NOTE: (Dom) I'm assuming here that the list of strings is a list of lines to write to the file,
       // I've been burned by this assumption with the way i assumed the ListParser worked before,
-      // I need to double check this case to.
+      // I need to double check this case too.
       snapshotMeta.asJson.nospaces.pure[List])
 
 }
