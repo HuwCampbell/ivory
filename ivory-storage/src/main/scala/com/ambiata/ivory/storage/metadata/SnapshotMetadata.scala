@@ -97,13 +97,9 @@ object SnapshotMetadata
    *        but there are no partitions between the snapshot date and date for factsets in the latest feature store
    */
   def latestUpToDateSnapshot(repo: Repository, date: Date): OptionT[ResultTIO, SnapshotMetadata] = for {
-    // meta :: SnapshotMetadata
     meta <- latestSnapshot(repo, date)
-    // featureStore :: FeatureStore
     store <- Metadata.latestFeatureStoreOrFail(repo).liftM[OptionT]
-
     metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
-
     thereAreNoNewer <- checkForNewerFeatures(repo, metaFeatureId, store, meta.date, date).liftM[OptionT]
 
     x <- {
