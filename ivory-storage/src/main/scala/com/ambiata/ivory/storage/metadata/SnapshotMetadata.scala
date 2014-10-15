@@ -14,6 +14,8 @@ import com.ambiata.mundane.store._
 
 sealed trait SnapshotMetadata
 {
+  private val legacyVersion : Long = 1
+
   def snapshotId: SnapshotId = this match {
     case SnapshotMetaLegacy(lm) => {
       lm.snapshotId
@@ -22,7 +24,7 @@ sealed trait SnapshotMetadata
   }
 
   def formatVersion: Long = this match {
-    case SnapshotMetaLegacy(_)  => 1
+    case SnapshotMetaLegacy(_)  => legacyVersion
     case SnapshotMetaJSON(jm)   => jm.formatVersion
   }
 
@@ -36,6 +38,11 @@ sealed trait SnapshotMetadata
     case SnapshotMetaJSON(jm)   => jm.commitId.pure[Option]
   }
 
+  def featureIdOrCommitId: (FeatureStoreId \/ CommitId) = this match {
+    case SnapshotMetaLegacy(lm) => (-\/)(lm.featureStoreId)
+    case SnapshotMetaJSON(jm)   => (\/-)(jm.commitId)
+  }
+
   def order(other: SnapshotMetadata): Ordering = (this, other) match {
     case (SnapshotMetaLegacy(_), SnapshotMetaJSON(_)) => Ordering.LT
     case (SnapshotMetaJSON(_), SnapshotMetaLegacy(_)) => Ordering.GT
@@ -44,18 +51,28 @@ sealed trait SnapshotMetadata
   }
 }
 
-case class SnapshotMetaLegacy(legacyMeta: legacy.SnapshotMeta) extends SnapshotMetadata
-case class SnapshotMetaJSON(jsonMeta: JSONSnapshotMeta) extends SnapshotMetadata
+private case class SnapshotMetaLegacy(legacyMeta: legacy.SnapshotMeta) extends SnapshotMetadata
+private case class SnapshotMetaJSON(jsonMeta: JSONSnapshotMeta) extends SnapshotMetadata
 
 object SnapshotMetadata
 {
   // data constructors
 
-  def snapshotMetaLegacy(legacyMeta: legacy.SnapshotMeta): SnapshotMetadata =
+  private def snapshotMetaLegacy(legacyMeta: legacy.SnapshotMeta): SnapshotMetadata =
     new SnapshotMetaLegacy(legacyMeta)
 
-  def snapshotMetaJSON(jsonMeta: JSONSnapshotMeta): SnapshotMetadata =
+  private def snapshotMetaJSON(jsonMeta: JSONSnapshotMeta): SnapshotMetadata =
     new SnapshotMetaJSON(jsonMeta)
+
+  private val currentVersion : Long = 2
+  private val allocated = KeyName.unsafe(".allocated")
+
+  // exported functions:
+
+  def newSnapshotMeta(
+    snapshotId: SnapshotId,
+    date: Date,
+    commitId: CommitId) = snapshotMetaJSON(JSONSnapshotMeta(snapshotId, currentVersion, date, commitId))
 
   def fromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[SnapshotMetadata] = for {
     // try reading the JSON one first:
@@ -70,12 +87,53 @@ object SnapshotMetadata
   } yield x
 
   /**
+   * Get the latest snapshot which is just before a given date
+   * and return it if it is up to date. The latest snapshot is up to date if
+   *
+   *  latestSnapshot.featureStore == latestFeatureStore
+   *     and the snapshot.date == date
+   *
+   *     OR the snapshot.date <= date
+   *        but there are no partitions between the snapshot date and date for factsets in the latest feature store
+   */
+  def latestUpToDateSnapshot(repo: Repository, date: Date): OptionT[ResultTIO, SnapshotMetadata] = for {
+    // meta :: SnapshotMetadata
+    meta <- latestSnapshot(repo, date)
+    // featureStore :: FeatureStore
+    store <- Metadata.latestFeatureStoreOrFail(repo).liftM[OptionT]
+
+    metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
+
+    thereAreNoNewer <- checkForNewerFeatures(repo, metaFeatureId, store, meta.date, date).liftM[OptionT]
+
+    x <- {
+      type OptionResultTIO[A] = OptionT[ResultTIO, A]
+      if (thereAreNoNewer)
+        meta.pure[OptionResultTIO]
+      else
+        OptionT.optionT(none.pure[ResultTIO])
+    }
+
+  } yield x
+
+  def latestWithStoreId(repo: Repository, date: Date, featureStoreId: FeatureStoreId): OptionT[ResultTIO, SnapshotMetadata] = for {
+    meta <- latestSnapshot(repo, date)
+    metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
+    x <- {
+      if (metaFeatureId == featureStoreId)
+        OptionT.optionT(Some(meta).pure[ResultTIO])
+      else
+        OptionT.optionT(None.pure[ResultTIO])
+    }
+  } yield x
+
+  /**
    * get the latest snapshot which is just before a given date
    *
    * If there are 2 snapshots at the same date:
    *
-   *   - take the snapshot having the greatest store id
-   *   - if this results in 2 snapshots having the same store id, take the one having the greatest snapshot id
+   *   - take the snapshot having the greatest commit id
+   *   - if this results in 2 snapshots having the same commit id, take the one having the greatest snapshot id
    *
    * This is implemented by defining an order on snapshots where we order based on the triple of
    *  (snapshotId, commitStoreId, date)
@@ -116,16 +174,35 @@ object SnapshotMetadata
     }
   } yield x
 
-
   private def fromJson(json: String): (String \/ JSONSnapshotMeta) = Parse.decodeEither[JSONSnapshotMeta](json)
+
+  private def getFeatureStoreId(repo: Repository, meta: SnapshotMetadata): ResultTIO[FeatureStoreId] = meta.featureIdOrCommitId match {
+    case -\/(fId) => fId.pure[ResultTIO]
+    case \/-(cId) => Metadata.commitFromIvory(repo, cId).map(_.featureStoreId)
+  }
+
+  private def checkForNewerFeatures(repo: Repository, metaFeatureId: FeatureStoreId, store: FeatureStore, beginDate: Date, endDate: Date): ResultTIO[Boolean] = {
+    if (metaFeatureId == store.id) {
+      if (beginDate == endDate)
+        true.pure[ResultTIO]
+      else
+        FeatureStoreGlob.between(repo, store, beginDate, endDate).map(_.partitions.isEmpty)
+    } else false.pure[ResultTIO]
+  }
+
+  /**
+   * create a new Snapshot id by create a new .allocated sub-directory
+   * with the latest available identifier + 1
+   */
+  private def allocateId(repo: Repository): ResultTIO[SnapshotId] =
+    IdentifierStorage.write(repo, Repository.snapshots, allocated, scodec.bits.ByteVector.empty).map(SnapshotId.apply)
 }
 
-// NOTE (Dom): formatting?
-case class JSONSnapshotMeta(
-    snapshotId: SnapshotId
-  , formatVersion: Long
-  , date: Date
-  , commitId: CommitId) {
+private case class JSONSnapshotMeta(
+  snapshotId: SnapshotId,
+  formatVersion: Long,
+  date: Date,
+  commitId: CommitId) {
 
   // version shouldn't be relevent to ordering.
   // NOTE (Dom): I'm guessing this is used to figure out the latest snapshot.
@@ -138,7 +215,7 @@ case class JSONSnapshotMeta(
 
 }
 
-object JSONSnapshotMeta {
+private object JSONSnapshotMeta {
 
   val metaKeyName = KeyName.unsafe(".metadata.json")
 
