@@ -4,7 +4,7 @@ import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.data.Arbitraries._
 import com.ambiata.ivory.data._
 
-import org.joda.time.DateTimeZone
+import org.joda.time.{DateTimeZone, Days => JodaDays}
 import scala.collection.JavaConverters._
 import Gen._
 
@@ -29,12 +29,9 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
     Arbitrary(Gen.choose(Priority.Min.toShort, Priority.Max.toShort).map(Priority.unsafe))
 
   def genDate(from: Date, to: Date): Gen[Date] = for {
-    y <- Gen.choose(from.year, to.year)
-    m <- Gen.choose(from.month, to.month)
-    d <- Gen.choose(from.day, to.day)
-    r = Stream.tabulate(4)(i => Date.create(y.toShort, m.toByte, (d - i).toByte)).dropWhile(!_.isDefined).headOption.flatten
-    if r.isDefined
-  } yield r.get
+    // Should we use DateTimeUtils for performance?
+    y <- Gen.choose(0, JodaDays.daysBetween(from.localDate, to.localDate).getDays)
+  } yield Date.fromLocalDate(from.localDate.plusDays(y))
 
   implicit def DateArbitrary: Arbitrary[Date] =
     Arbitrary(genDate(Date(1970, 1, 1), Date(3000, 12, 31)))
