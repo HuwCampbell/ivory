@@ -179,8 +179,8 @@ object SnapshotMetadata
     commitId: CommitId) = snapshotMetaJSON(JSONSnapshotMeta(snapshotId, currentVersion, date, commitId, baseJsonObject(snapshotId, currentVersion, date, commitId)))
 
   private def jsonMetaFromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[JSONSnapshotMeta] = for {
-    jsonLines <- repo.store.linesUtf8.read(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName)
-    x <- fromJson(jsonLines.foldRight("")(_ + _)) match {
+    json <- repo.store.utf.read(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName)
+    x <- fromJson(json) match {
       case -\/(msg)       => ResultT.fail[IO, JSONSnapshotMeta]("failed to parse Snapshot metadata: " ++ msg)
       case \/-(jsonmeta)  => jsonmeta.pure[ResultTIO]
     }
