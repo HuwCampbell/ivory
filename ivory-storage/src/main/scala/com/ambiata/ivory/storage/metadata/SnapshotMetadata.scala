@@ -3,7 +3,6 @@ package com.ambiata.ivory.storage.metadata
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.fact.FeatureStoreGlob
 import com.ambiata.ivory.storage._
-//import metadata._
 
 import scalaz._, Scalaz._, effect.IO
 import scala.math.{Ordering => SOrdering}
