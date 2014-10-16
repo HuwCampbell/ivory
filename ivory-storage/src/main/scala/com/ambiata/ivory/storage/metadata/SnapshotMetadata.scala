@@ -242,8 +242,8 @@ private object JSONSnapshotMeta {
     } yield JSONSnapshotMeta(id, version, date, commitId, json)))
 
   def save(repository: Repository, snapshotMeta: JSONSnapshotMeta): ResultTIO[Unit] =
-    repository.store.linesUtf8.write(
+    repository.store.utf8.write(
       Repository.snapshot(snapshotMeta.snapshotId) / JSONSnapshotMeta.metaKeyName,
-      snapshotMeta.asJson.nospaces.pure[List])
+      snapshotMeta.asJson.nospaces)
 
 }
