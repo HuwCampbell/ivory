@@ -232,7 +232,7 @@ private object JSONSnapshotMeta {
   implicit def JSONSnapshotMetaOrdering: SOrdering[JSONSnapshotMeta] =
     JSONSnapshotMetaOrder.toScalaOrdering
 
-  implicit def SnapshotMetaJSONCodec : CodecJson[JSONSnapshotMeta] = CodecJson(
+  implicit def SnapshotMetaCodecJson : CodecJson[JSONSnapshotMeta] = CodecJson(
     (_.others),
     ((c: HCursor) => for {
       id <- (c --\ "id").as[SnapshotId]

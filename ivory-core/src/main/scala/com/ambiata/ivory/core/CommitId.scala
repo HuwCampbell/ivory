@@ -20,7 +20,7 @@ object CommitId {
   implicit def CommitIdOrdering =
     CommitIdOrder.toScalaOrdering
 
-  implicit def CommitIdJSONCodec: CodecJson[CommitId] = CodecJson(
+  implicit def CommitIdCodecJson: CodecJson[CommitId] = CodecJson(
     (_.id.asJson),
     (_.as[Identifier].map(CommitId.apply)))
 

@@ -46,14 +46,10 @@ object Identifier extends MacrosCompat {
   implicit def IdentifierOrdering =
     IdentifierOrder.toScalaOrdering
 
-  implicit def IdentifierJSONCodec: CodecJson[Identifier] =
-    CodecJson(
-      (_.toString.asJson),
-      ((c : HCursor) => c.as[String].flatMap((s: String) =>
-        parse(s) match {
-          case Some(x) => x.pure[DecodeResult]
-          case None => DecodeResult.fail("Identifier", c.history)
-        })))
+  implicit def IdentifierCodecJson: CodecJson[Identifier] =
+    CodecJson.derived(
+      EncodeJson(_.toString.asJson),
+      DecodeJson.optionDecoder((_.as[String].toOption.flatMap(parse(_))), "Identifier"))
 
   def apply(string: String): Identifier =
     macro identifierMacro

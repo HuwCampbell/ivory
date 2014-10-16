@@ -134,7 +134,7 @@ object Date {
   implicit def DateOrdering =
     DateOrder.toScalaOrdering
 
-  implicit def DateJsonCodec: CodecJson[Date] = CodecJson.derived(
+  implicit def DateCodecJson: CodecJson[Date] = CodecJson.derived(
     EncodeJson(_.int.asJson),
     DecodeJson.optionDecoder(_.as[Int].toOption.flatMap(fromInt), "Date"))
 

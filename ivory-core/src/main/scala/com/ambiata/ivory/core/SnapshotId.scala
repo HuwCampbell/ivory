@@ -14,7 +14,7 @@ case class SnapshotId(id: Identifier) {
 }
 
 object SnapshotId {
-  implicit def SnapshotIdJSONCodec: CodecJson[SnapshotId] =
+  implicit def SnapshotIdCodecJson: CodecJson[SnapshotId] =
     CodecJson(
       ((sid: SnapshotId) =>
         sid.id.asJson),
