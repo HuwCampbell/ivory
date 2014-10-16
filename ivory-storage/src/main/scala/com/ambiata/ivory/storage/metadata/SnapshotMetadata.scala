@@ -181,7 +181,6 @@ object SnapshotMetadata
 
   private def jsonMetaFromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[JSONSnapshotMeta] = for {
     jsonLines <- repo.store.linesUtf8.read(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName)
-    // NOTE: (Dom) Better + neater way to do this?
     x <- fromJson(jsonLines.foldRight("")(_ + _)) match {
       case -\/(msg)       => ResultT.fail[IO, JSONSnapshotMeta]("failed to parse Snapshot metadata: " ++ msg)
       case \/-(jsonmeta)  => jsonmeta.pure[ResultTIO]
@@ -218,11 +217,6 @@ private case class JSONSnapshotMeta(
   others: Json) {
 
   // version shouldn't be relevent to ordering.
-  // NOTE (Dom): I'm guessing this is used to figure out the latest snapshot.
-  // This seems "OK" right now since it doesnt seem to be used for much else.
-  // But in time after more and more stuff gets added to it, will it still be appropriate
-  // to be encoding this into the "semantics" of the metadata with Order[JSONSnapshotMeta]?
-  //
   def order(other: JSONSnapshotMeta): Ordering =
     (snapshotId, date, commitId).?|?((other.snapshotId, other.date, other.commitId))
 
@@ -251,9 +245,6 @@ private object JSONSnapshotMeta {
   def save(repository: Repository, snapshotMeta: JSONSnapshotMeta): ResultTIO[Unit] =
     repository.store.linesUtf8.write(
       Repository.snapshot(snapshotMeta.snapshotId) / JSONSnapshotMeta.metaKeyName,
-      // NOTE: (Dom) I'm assuming here that the list of strings is a list of lines to write to the file,
-      // I've been burned by this assumption with the way i assumed the ListParser worked before,
-      // I need to double check this case too.
       snapshotMeta.asJson.nospaces.pure[List])
 
 }
