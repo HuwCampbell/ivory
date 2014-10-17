@@ -25,7 +25,7 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
   }
 
   def readCommit = prop { (commit: Commit, commitId: CommitId) =>
-    Temporary.using { dir =>
+    TemporaryDirPath.withDirPath { dir =>
       val repo = LocalRepository.create(dir)
 
       storeCommitToId(repo, commitId, commit) >>
@@ -34,7 +34,7 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
   }
 
   def writeCommit = prop { (commit: Commit, commitId: CommitId) =>
-    Temporary.using { dir =>
+    TemporaryDirPath.withDirPath { dir =>
       val repo = LocalRepository.create(dir)
       storeCommitToId(repo, commitId, commit) >>
       repo.store.utf8.read(Repository.commitById(commitId))
@@ -42,7 +42,7 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
   }
 
   def listCommitIds = prop { ids: SmallCommitIdList =>
-    Temporary.using { dir =>
+    TemporaryDirPath.withDirPath { dir =>
       val repo = LocalRepository.create(dir)
       writeCommitIds(repo, ids.ids) >>
       Metadata.listCommitIds(repo).map(_.toSet)
@@ -50,7 +50,7 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
   }
 
   def latestCommitId = prop { ids: SmallCommitIdList =>
-    Temporary.using { dir =>
+    TemporaryDirPath.withDirPath { dir =>
       val repo = LocalRepository.create(dir)
       writeCommitIds(repo, ids.ids) >>
       Metadata.latestCommitId(repo)

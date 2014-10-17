@@ -6,7 +6,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.ScalaCheckManagedProperties
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
-import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
+import com.ambiata.mundane.io._
 import com.ambiata.poacher.hdfs._
 import com.nicta.scoobi.impl.ScoobiConfiguration
 import org.apache.hadoop.conf.Configuration
@@ -36,7 +36,7 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
     namespaceSizesSingle(new Path(factsetPath, "ns1"), Name("namespace")).run(new Configuration)
   } must beOkValue((Name("namespace"), 4.bytes))
 
-  def e3 = managed { temp: Temporary => (nsInc: Set[FeatureNamespace], nsExc: Set[FeatureNamespace], fsInc: FactsetIdList, fsExc: FactsetIdList) =>
+  def e3 = managed { temp: TemporaryDirPath => (nsInc: Set[FeatureNamespace], nsExc: Set[FeatureNamespace], fsInc: FactsetIdList, fsExc: FactsetIdList) =>
     !nsInc.exists(nsExc.contains) ==> {
       val sc = ScoobiConfiguration()
       val repo = HdfsRepository(HdfsLocation(temp.dir.path), IvoryConfiguration.fromScoobiConfiguration(sc))
@@ -53,7 +53,7 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
     }
   }.set(maxSize = 5, minTestsOk = 5)
 
-  def prepare[A](f: Path => ResultTIO[A]): ResultTIO[A] = Temporary.using { dir =>
+  def prepare[A](f: Path => ResultTIO[A]): ResultTIO[A] = TemporaryDirPath.withDirPath { dir =>
     val ns1 = KeyName.unsafe("ns1")
     val ns2 = KeyName.unsafe("ns2")
     for {

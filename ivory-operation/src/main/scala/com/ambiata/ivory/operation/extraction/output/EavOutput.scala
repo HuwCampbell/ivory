@@ -6,7 +6,6 @@ import com.ambiata.ivory.operation.extraction.Snapshot
 import com.ambiata.ivory.operation.extraction.squash.SquashJob
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.HdfsLocation
 
 /**
  * Takes a snapshot and stores as EAV text

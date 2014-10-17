@@ -4,5 +4,5 @@ import com.ambiata.mundane.control._
 
 package object control {
 
-  type IvoryTIO[+A] = IvoryT[ResultTIO, A]
+  type IvoryTIO[A] = IvoryT[ResultTIO, A]
 }

@@ -49,7 +49,7 @@ class EavtTextImporterSpec extends Specification with ThrownExpectations with Fi
   }
 
   def fixture[R : AsResult](f: Setup => R): Result =
-    Temporary.using { dir =>
+    TemporaryDirPath.withDirPath { dir =>
       ResultT.ok[IO, Result](AsResult(f(new Setup(dir))))
     } must beOkLike(r => r.isSuccess aka r.message must beTrue)
 }

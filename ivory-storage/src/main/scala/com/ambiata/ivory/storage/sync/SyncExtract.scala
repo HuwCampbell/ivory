@@ -5,7 +5,7 @@ import com.ambiata.ivory.core.NotImplemented._
 import com.ambiata.ivory.storage.plan._
 import com.ambiata.ivory.storage.sync.Sync._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
+import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 
 import org.apache.hadoop.fs.{Path, Hdfs}

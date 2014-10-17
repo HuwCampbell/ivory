@@ -21,7 +21,7 @@ ChordSpec
 
 """
 
-  def e1 = Temporary.using { directory =>
+  def e1 = TemporaryDirPath.withDirPath { directory =>
     RepositoryBuilder.using { repo =>
       val entities = List("eid1|2012-09-15", "eid2|2012-12-01", "eid1|2012-11-01")
       implicit val sc = repo.scoobiConfiguration

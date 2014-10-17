@@ -7,7 +7,6 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.operation.extraction.Snapshot
-import com.nicta.scoobi.core.ScoobiConfiguration
 import org.joda.time.LocalDate
 import org.specs2.matcher.ThrownExpectations
 import org.specs2._
@@ -53,7 +52,7 @@ class PivotOutputSpec extends Specification with SampleFacts with ThrownExpectat
   )
 
   def createPivot(facts: List[List[Fact]])(repo: HdfsRepository): ResultTIO[(String, List[String])] =
-    Temporary.using { dir =>
+    TemporaryDirPath.withDirPath { dir =>
       for {
         _     <- RepositoryBuilder.createRepo(repo, sampleDictionary, facts)
         pivot <- IvoryLocation.fromUri((dir </> "pivot").path, IvoryConfiguration.Empty)

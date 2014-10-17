@@ -15,7 +15,7 @@ IvoryT Laws
   monad laws                     ${monad.laws[({type l[a] = IvoryT[Option, a]})#l]}
 """
 
-  implicit def IvoryTEqual[M[+_]](implicit M: Equal[M[Int]]): Equal[IvoryT[M, Int]] = new Equal[IvoryT[M, Int]] {
+  implicit def IvoryTEqual[M[_]](implicit M: Equal[M[Int]]): Equal[IvoryT[M, Int]] = new Equal[IvoryT[M, Int]] {
     def equal(a1: IvoryT[M, Int], a2: IvoryT[M, Int]): Boolean = {
       val read = IvoryRead.testing(LocalRepository(LocalLocation("/")))
       val mb1: M[Int] = a1.run(read)
@@ -24,7 +24,7 @@ IvoryT Laws
     }
   }
 
-  implicit def IvoryTArbitrary[F[+ _], A](implicit F: Functor[F], A: Arbitrary[F[A]]): Arbitrary[IvoryT[F, A]] = {
+  implicit def IvoryTArbitrary[F[ _], A](implicit F: Functor[F], A: Arbitrary[F[A]]): Arbitrary[IvoryT[F, A]] = {
     Arbitrary(A.arbitrary.map(f => IvoryT(Kleisli(_ => f))))
   }
 }

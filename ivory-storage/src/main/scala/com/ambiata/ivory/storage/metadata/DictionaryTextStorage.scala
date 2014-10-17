@@ -1,7 +1,7 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.mundane.control.{ResultTIO, ResultT}
-import com.ambiata.mundane.io.Location
+import com.ambiata.notion.core.Location
 
 import scalaz.effect.IO
 import scalaz.{Name => _, Value => _, _}, Scalaz._

@@ -4,10 +4,10 @@ import java.io.File
 
 import com.amazonaws.services.s3.AmazonS3Client
 import com.ambiata.mundane.control.{ResultT, ResultTIO}
-import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
+import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.poacher.hdfs.Hdfs
-import com.ambiata.saws.s3.{S3Store => _, _}
+import com.ambiata.saws.s3._
 import com.nicta.scoobi.core.ScoobiConfiguration
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
@@ -92,7 +92,7 @@ object LocalIvoryLocation {
 object IvoryLocation {
   def deleteAll(location: IvoryLocation): ResultTIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Directories.delete(l.dirPath).void
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3.deleteAll(S3Address(bucket, key)).executeT(s3Client)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3.deleteAllx(S3Address(bucket, key)).executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.deleteAll(new Path(path)).run(conf)
   }
 
@@ -120,14 +120,14 @@ object IvoryLocation {
       Directories.list(l.dirPath).map(fs => fs.map(f => l.copy(location = LocalLocation(f.path))))
 
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
-      S3.listKeys(S3Address(bucket, key)).map(_.map { k =>
+      S3.listKeysx(S3Address(bucket, key)).executeT(s3Client).map(_.map { k =>
         s.copy(location = S3Location(bucket,  k))
-      }).executeT(s3Client)
+      })
 
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
-      Hdfs.globFilesRecursively(new Path(path)).map(_.map { p =>
+      Hdfs.globFilesRecursively(new Path(path)).run(conf).map(_.map { p =>
         h.copy(location = HdfsLocation(p.toString))
-      }).run(conf)
+      })
   }
 
   def exists(location: IvoryLocation): ResultTIO[Boolean] = location match {
@@ -148,7 +148,7 @@ object IvoryLocation {
 
   def isDirectory(location: IvoryLocation): ResultTIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => ResultT.safe[IO, Boolean](new File(path).isDirectory)
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3.listSummary(S3Address(bucket, key)).map(_.nonEmpty).executeT(s3Client)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3.listSummaryx(S3Address(bucket, key + "/")).map(_.nonEmpty).executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.isDirectory(new Path(path)).run(conf)
   }
 

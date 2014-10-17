@@ -57,7 +57,7 @@ Rename
     renameWithFacts(RenameMapping(List(mapping)), dictionary,
       List(facts.toList.map(_.withFeatureId(mapping._1)))
     ).map(r => r._1 -> r._2.toSet) must beOkValue (
-      RenameStats(facts.length) -> facts.map(_.withFeatureId(mapping._2)).toSet
+      RenameStats(facts.size) -> facts.map(_.withFeatureId(mapping._2)).toSet
     )
   }) set(minTestsOk = 1, minSize = 1, maxSize = 5)
 

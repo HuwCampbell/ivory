@@ -13,7 +13,7 @@ import com.ambiata.ivory.scoobi.TestConfigurations._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
 import com.nicta.scoobi.Scoobi.ScoobiConfiguration
-import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
+import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.mundane.control._
 import org.specs2.execute.AsResult
@@ -191,7 +191,7 @@ object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpecta
 
   def createRepository[R : AsResult](f: Repository => R): org.specs2.execute.Result = {
     val sc: ScoobiConfiguration = scoobiConfiguration
-    Temporary.using { dir =>
+    TemporaryDirPath.withDirPath { dir =>
       val repo = HdfsRepository(HdfsLocation((dir </> FileName.unsafe("repo")).path), IvoryConfiguration.fromScoobiConfiguration(sc))
       ResultT.ok[IO, org.specs2.execute.Result](AsResult(f(repo)))
     } must beOkLike(_.isSuccess)

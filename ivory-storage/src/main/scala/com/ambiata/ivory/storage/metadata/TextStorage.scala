@@ -51,6 +51,7 @@ trait TextStorage[L, T] {
 
   def fromLinesAll(lines: List[String]): ValidationNel[String, T] = {
     val numbered = lines.zipWithIndex.map({ case (l, n) => (l, n + 1) })
+    import scalaz.Validation.FlatMap._
     numbered.traverseU({ case (l, n) => parseLine(n, l).leftMap(_.map(s"Line $n: " +))}).flatMap(fromList)
   }
 
