@@ -10,43 +10,43 @@ import argonaut._, Argonaut._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.store._
 
-sealed trait SnapshotMetadataVersion
+sealed trait SnapshotManifestVersion
 {
   val long: Long
 }
 
-object SnapshotMetadataVersionLegacy extends SnapshotMetadataVersion
+object SnapshotManifestVersionLegacy extends SnapshotManifestVersion
 {
   val long: Long = 0
 }
 
-object SnapshotMetadataVersionV1 extends SnapshotMetadataVersion
+object SnapshotManifestVersionV1 extends SnapshotManifestVersion
 {
   val long: Long = 1
 }
 
-object SnapshotMetadataVersion
+object SnapshotManifestVersion
 {
-  implicit def SnapshotMetadataVersionCodecJson: CodecJson[SnapshotMetadataVersion] = CodecJson.derived(
+  implicit def SnapshotManifestVersionCodecJson: CodecJson[SnapshotManifestVersion] = CodecJson.derived(
     EncodeJson(_.long.asJson),
-    DecodeJson.optionDecoder(_.as[Long].toOption.flatMap(fromLong), "SnapshotMetadataVersion"))
+    DecodeJson.optionDecoder(_.as[Long].toOption.flatMap(fromLong), "SnapshotManifestVersion"))
 
-  def fromLong(longVersion: Long): Option[SnapshotMetadataVersion] = longVersion match {
-    case SnapshotMetadataVersionLegacy.long => SnapshotMetadataVersionLegacy.some
-    case SnapshotMetadataVersionV1.long     => SnapshotMetadataVersionV1.some
+  def fromLong(longVersion: Long): Option[SnapshotManifestVersion] = longVersion match {
+    case SnapshotManifestVersionLegacy.long => SnapshotManifestVersionLegacy.some
+    case SnapshotManifestVersionV1.long     => SnapshotManifestVersionV1.some
     case _                                  => none
   }
 }
 
-sealed trait SnapshotMetadata
+sealed trait SnapshotManifest
 {
   def snapshotId: SnapshotId = this match {
     case SnapshotMetaLegacy(lm) => lm.snapshotId
     case SnapshotMetaJSON(jm)   => jm.snapshotId
   }
 
-  def formatVersion: SnapshotMetadataVersion = this match {
-    case SnapshotMetaLegacy(_)  => SnapshotMetadataVersionLegacy
+  def formatVersion: SnapshotManifestVersion = this match {
+    case SnapshotMetaLegacy(_)  => SnapshotManifestVersionLegacy
     case SnapshotMetaJSON(jm)   => jm.formatVersion
   }
 
@@ -70,7 +70,7 @@ sealed trait SnapshotMetadata
     case SnapshotMetaJSON(jm)   => jm.others.field(key).flatMap(_.as[A].toOption)
   }
 
-  def order(other: SnapshotMetadata): Ordering = (this, other) match {
+  def order(other: SnapshotManifest): Ordering = (this, other) match {
     case (SnapshotMetaLegacy(_), SnapshotMetaJSON(_)) => Ordering.LT
     case (SnapshotMetaJSON(_), SnapshotMetaLegacy(_)) => Ordering.GT
     case (SnapshotMetaLegacy(lm1), SnapshotMetaLegacy(lm2)) => lm1 order lm2
@@ -78,33 +78,33 @@ sealed trait SnapshotMetadata
   }
 }
 
-private case class SnapshotMetaLegacy(legacyMeta: legacy.SnapshotMeta) extends SnapshotMetadata
-private case class SnapshotMetaJSON(jsonMeta: JSONSnapshotMeta) extends SnapshotMetadata
+private case class SnapshotMetaLegacy(legacyMeta: legacy.SnapshotMeta) extends SnapshotManifest
+private case class SnapshotMetaJSON(jsonMeta: JSONSnapshotManifest) extends SnapshotManifest
 
-object SnapshotMetadata
+object SnapshotManifest
 {
   // data constructors
 
-  private def snapshotMetaLegacy(legacyMeta: legacy.SnapshotMeta): SnapshotMetadata =
+  private def snapshotMetaLegacy(legacyMeta: legacy.SnapshotMeta): SnapshotManifest =
     new SnapshotMetaLegacy(legacyMeta)
 
-  private def snapshotMetaJSON(jsonMeta: JSONSnapshotMeta): SnapshotMetadata =
+  private def snapshotMetaJSON(jsonMeta: JSONSnapshotManifest): SnapshotManifest =
     new SnapshotMetaJSON(jsonMeta)
 
   private val currentVersion : Long = 2
-  private val allocated = KeyName(".allocated")
+  private val allocated = KeyName.unsafe(".allocated")
 
   // exported functions:
 
-  def createSnapshotMetadata(repo: Repository, date: Date): ResultTIO[SnapshotMetadata] = for {
+  def createSnapshotManifest(repo: Repository, date: Date): ResultTIO[SnapshotManifest] = for {
     snapshotId <- allocateId(repo)
     dictionaryId <- Metadata.latestDictionaryIdFromIvory(repo)
     commitId <- Metadata.findOrCreateLatestCommitId(repo)
   } yield newSnapshotMeta(snapshotId, date, commitId)
 
-  def fromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[SnapshotMetadata] = for {
+  def fromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[SnapshotManifest] = for {
     // try reading the JSON one first:
-    jsonExists <- repo.store.exists(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName)
+    jsonExists <- repo.store.exists(Repository.snapshot(id) / JSONSnapshotManifest.metaKeyName)
 
     x <- {
       if (jsonExists)
@@ -124,7 +124,7 @@ object SnapshotMetadata
    *     OR the snapshot.date <= date
    *        but there are no partitions between the snapshot date and date for factsets in the latest feature store
    */
-  def latestUpToDateSnapshot(repo: Repository, date: Date): OptionT[ResultTIO, SnapshotMetadata] = for {
+  def latestUpToDateSnapshot(repo: Repository, date: Date): OptionT[ResultTIO, SnapshotManifest] = for {
     meta <- latestSnapshot(repo, date)
     store <- Metadata.latestFeatureStoreOrFail(repo).liftM[OptionT]
     metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
@@ -140,7 +140,7 @@ object SnapshotMetadata
 
   } yield x
 
-  def latestWithStoreId(repo: Repository, date: Date, featureStoreId: FeatureStoreId): OptionT[ResultTIO, SnapshotMetadata] = for {
+  def latestWithStoreId(repo: Repository, date: Date, featureStoreId: FeatureStoreId): OptionT[ResultTIO, SnapshotManifest] = for {
     meta <- latestSnapshot(repo, date)
     metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
     x <- {
@@ -163,7 +163,7 @@ object SnapshotMetadata
    *  (snapshotId, commitStoreId, date)
    *
    */
-  def latestSnapshot(repository: Repository, date: Date): OptionT[ResultTIO, SnapshotMetadata] = for {
+  def latestSnapshot(repository: Repository, date: Date): OptionT[ResultTIO, SnapshotManifest] = for {
     ids <- repository.store.listHeads(Repository.snapshots).liftM[OptionT]
     sids <- OptionT.optionT[ResultTIO](ids.traverseU((sid: Key) => SnapshotId.parse(sid.name)).pure[ResultTIO])
     metas <- sids.traverseU((sid: SnapshotId) => fromIdentifier(repository, sid)).liftM[OptionT]
@@ -171,48 +171,48 @@ object SnapshotMetadata
     meta <- OptionT.optionT[ResultTIO](filtered.sorted.lastOption.pure[ResultTIO])
   } yield meta
 
-  def getFeatureStoreId(repo: Repository, meta: SnapshotMetadata): ResultTIO[FeatureStoreId] = meta.featureIdOrCommitId match {
+  def getFeatureStoreId(repo: Repository, meta: SnapshotManifest): ResultTIO[FeatureStoreId] = meta.featureIdOrCommitId match {
     case -\/(fId) => fId.pure[ResultTIO]
     case \/-(cId) => Metadata.commitFromIvory(repo, cId).map(_.featureStoreId)
   }
 
-  def featureStoreSnapshot(repo: Repository, meta: SnapshotMetadata): ResultTIO[legacy.FeatureStoreSnapshot] = for {
+  def featureStoreSnapshot(repo: Repository, meta: SnapshotManifest): ResultTIO[legacy.FeatureStoreSnapshot] = for {
     storeId <- getFeatureStoreId(repo, meta)
     store <- Metadata.featureStoreFromIvory(repo, storeId)
   } yield legacy.FeatureStoreSnapshot(meta.snapshotId, meta.date, store)
 
-  def save(repo: Repository, snapshotMeta: SnapshotMetadata): ResultTIO[Unit] = snapshotMeta match {
+  def save(repo: Repository, snapshotMeta: SnapshotManifest): ResultTIO[Unit] = snapshotMeta match {
     // unfortunately since the legacy snapshot may or may not have a commit id, can't migrate it to
     // the json format.
     // since the existing snapshots are immutable however, i can't think of a reason why we would want to do this
     // anyway.
     case SnapshotMetaLegacy(lm) => legacy.SnapshotMeta.save(repo, lm)
-    case SnapshotMetaJSON(jm)   => JSONSnapshotMeta.save(repo, jm)
+    case SnapshotMetaJSON(jm)   => JSONSnapshotManifest.save(repo, jm)
   }
 
   // instances
 
-  implicit def SnapshotMetadataOrder: Order[SnapshotMetadata] = Order.order(_ order _)
+  implicit def SnapshotManifestOrder: Order[SnapshotManifest] = Order.order(_ order _)
 
-  implicit def SnapshotMetaOrdering: SOrdering[SnapshotMetadata] =
-    SnapshotMetadataOrder.toScalaOrdering
+  implicit def SnapshotManifestSOrdering: SOrdering[SnapshotManifest] =
+    SnapshotManifestOrder.toScalaOrdering
 
   // helpers
 
   private def newSnapshotMeta(
     snapshotId: SnapshotId,
     date: Date,
-    commitId: CommitId) = snapshotMetaJSON(JSONSnapshotMeta(snapshotId, SnapshotMetadataVersionV1, date, commitId, baseJsonObject(snapshotId, currentVersion, date, commitId)))
+    commitId: CommitId) = snapshotMetaJSON(JSONSnapshotManifest(snapshotId, SnapshotManifestVersionV1, date, commitId, baseJsonObject(snapshotId, currentVersion, date, commitId)))
 
-  private def jsonMetaFromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[JSONSnapshotMeta] = for {
-    json <- repo.store.utf8.read(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName)
+  private def jsonMetaFromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[JSONSnapshotManifest] = for {
+    json <- repo.store.utf8.read(Repository.snapshot(id) / JSONSnapshotManifest.metaKeyName)
     x <- fromJson(json) match {
-      case -\/(msg)       => ResultT.fail[IO, JSONSnapshotMeta]("failed to parse Snapshot metadata: " ++ msg)
+      case -\/(msg)       => ResultT.fail[IO, JSONSnapshotManifest]("failed to parse Snapshot metadata: " ++ msg)
       case \/-(jsonmeta)  => jsonmeta.pure[ResultTIO]
     }
   } yield x
 
-  private def fromJson(json: String): (String \/ JSONSnapshotMeta) = Parse.decodeEither[JSONSnapshotMeta](json)
+  private def fromJson(json: String): (String \/ JSONSnapshotManifest) = Parse.decodeEither[JSONSnapshotManifest](json)
 
   private def checkForNewerFeatures(repo: Repository, metaFeatureId: FeatureStoreId, store: FeatureStore, beginDate: Date, endDate: Date): ResultTIO[Boolean] = {
     if (metaFeatureId == store.id) {
@@ -234,42 +234,42 @@ object SnapshotMetadata
     ("id" := snapshotId) ->: ("format_version" := currentVersion) ->: ("date" := date) ->: ("commit_id" := commitId) ->: jEmptyObject
 }
 
-private case class JSONSnapshotMeta(
+private case class JSONSnapshotManifest(
   snapshotId: SnapshotId,
-  formatVersion: SnapshotMetadataVersion,
+  formatVersion: SnapshotManifestVersion,
   date: Date,
   commitId: CommitId,
   others: Json) {
 
   // version shouldn't be relevent to ordering.
-  def order(other: JSONSnapshotMeta): Ordering =
+  def order(other: JSONSnapshotManifest): Ordering =
     (snapshotId, date, commitId).?|?((other.snapshotId, other.date, other.commitId))
 
 }
 
-private object JSONSnapshotMeta {
+private object JSONSnapshotManifest {
 
   val metaKeyName = KeyName.unsafe(".metadata.json")
 
-  implicit def JSONSnapshotMetaOrder: Order[JSONSnapshotMeta] =
+  implicit def JSONSnapshotManifestOrder: Order[JSONSnapshotManifest] =
     Order.order(_ order _)
 
-  implicit def JSONSnapshotMetaOrdering: SOrdering[JSONSnapshotMeta] =
-    JSONSnapshotMetaOrder.toScalaOrdering
+  implicit def JSONSnapshotManifestSOrdering: SOrdering[JSONSnapshotManifest] =
+    JSONSnapshotManifestOrder.toScalaOrdering
 
-  implicit def SnapshotMetaCodecJson : CodecJson[JSONSnapshotMeta] = CodecJson(
+  implicit def JSONSnapshotManifestCodecJson : CodecJson[JSONSnapshotManifest] = CodecJson(
     (_.others),
     ((c: HCursor) => for {
       id <- (c --\ "id").as[SnapshotId]
-      version <- (c --\ "format_version").as[SnapshotMetadataVersion]
+      version <- (c --\ "format_version").as[SnapshotManifestVersion]
       date <- (c --\ "date").as[Date]
       commitId <- (c --\ "commit_id").as[CommitId]
       json <- c.as[Json]
-    } yield JSONSnapshotMeta(id, version, date, commitId, json)))
+    } yield JSONSnapshotManifest(id, version, date, commitId, json)))
 
-  def save(repository: Repository, snapshotMeta: JSONSnapshotMeta): ResultTIO[Unit] =
+  def save(repository: Repository, snapshotMeta: JSONSnapshotManifest): ResultTIO[Unit] =
     repository.store.utf8.write(
-      Repository.snapshot(snapshotMeta.snapshotId) / JSONSnapshotMeta.metaKeyName,
+      Repository.snapshot(snapshotMeta.snapshotId) / JSONSnapshotManifest.metaKeyName,
       snapshotMeta.asJson.nospaces)
 
 }

@@ -24,7 +24,7 @@ import scalaz._, Scalaz._
 
 object SquashJob {
 
-  def squashFromSnapshotWith[A](repository: Repository, dictionary: Dictionary, snapmeta: SnapshotMetadata,
+  def squashFromSnapshotWith[A](repository: Repository, dictionary: Dictionary, snapmeta: SnapshotManifest,
                                 output: IvoryLocation, conf: SquashConfig)(f: Key => ResultTIO[A]): ResultTIO[A] = for {
     toSquash        <- squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date, conf)
     (profile, key, doSquash) =  toSquash

@@ -3,7 +3,7 @@ package com.ambiata.ivory.operation.extraction
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.extraction.squash.SquashConfig
 import com.ambiata.ivory.storage.control._
-import com.ambiata.ivory.storage.metadata.SnapshotMetadata
+import com.ambiata.ivory.storage.metadata.SnapshotManifest
 import com.ambiata.ivory.operation.extraction.output._
 
 import scalaz.Scalaz._
@@ -17,7 +17,7 @@ import scalaz.Scalaz._
  * 2. Squash data from snapshot before pivoting
  */
 trait ExtractionInput
-case class SnapshotExtract(meta: SnapshotMetadata, squash: SquashConfig) extends ExtractionInput
+case class SnapshotExtract(meta: SnapshotManifest, squash: SquashConfig) extends ExtractionInput
 case class ChordExtract(input: IvoryLocation) extends ExtractionInput
 
 object Extraction {
