@@ -240,7 +240,7 @@ class ReductionFold2StructWrapper[A, @specialized(Int, Float, Double, Boolean) B
   def update(fact: Fact): Unit =
     if (!fact.isTombstone) {
       val value1 = fact.toThrift.getValue.getStructSparse.getV.get(field1)
-      val value2 = fact.toThrift.getValue.getStructSparse.getV.get(field1)
+      val value2 = fact.toThrift.getValue.getStructSparse.getV.get(field2)
       if (value1 != null && value2 != null) a = foldSpecialized(fact, value1, value2, f, from1, from2)
     } else a = f.tombstone(a, fact.date)
   // DO NOT INLINE - this is required to force scala to specialise on B
