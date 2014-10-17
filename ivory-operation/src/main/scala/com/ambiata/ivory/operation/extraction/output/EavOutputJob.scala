@@ -4,8 +4,6 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.mr._
 
-import java.lang.{Iterable => JIterable}
-
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf._
 import org.apache.hadoop.io._
@@ -118,7 +116,7 @@ class EavOutputMapper extends Mapper[NullWritable, BytesWritable, NullWritable, 
     buffer.append(delimiter)
     buffer.append(fact.feature)
     buffer.append(delimiter)
-    buffer.append(Value.toStringOr(fact.value, missing).getOrElse(sys.error(s"Could not render fact ${fact.toString}")))
+    buffer.append(Value.toStringWithStruct(fact.value, missing))
 
     vout.set(buffer.toString())
     context.write(kout, vout)
