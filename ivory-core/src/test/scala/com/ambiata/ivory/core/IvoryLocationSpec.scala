@@ -1,6 +1,6 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
+import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import org.specs2._
 import TemporaryLocations._

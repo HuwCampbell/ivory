@@ -4,7 +4,6 @@ import java.io.{DataInput, DataOutput}
 
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, Value => _, _}, Scalaz._
-import org.apache.hadoop.fs.Path
 import com.ambiata.poacher.scoobi._
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._

@@ -66,7 +66,7 @@ class FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
   }
 
   def withRepository[R : AsResult](f: Repository => R): Result =
-    Temporary.using { dir =>
+    TemporaryDirPath.withDirPath { dir =>
       for {
         repository <- Repository.fromUri((dir </> "repo").path, IvoryConfiguration.fromScoobiConfiguration(scoobiConfiguration))
       } yield AsResult(f(repository))

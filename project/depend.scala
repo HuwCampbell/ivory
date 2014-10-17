@@ -2,22 +2,22 @@ import sbt._
 import Keys._
 
 object depend {
-  val scalaz    = Seq("org.scalaz"           %% "scalaz-core"     % "7.0.6",
-                      "org.scalaz"           %% "scalaz-effect"   % "7.0.6",
-                      "org.scalaz"           %% "scalaz-scalacheck-binding" % "7.0.6" % "test")
+  val scalaz    = Seq("org.scalaz"           %% "scalaz-core"     % "7.1.0",
+                      "org.scalaz"           %% "scalaz-effect"   % "7.1.0",
+                      "org.scalaz"           %% "scalaz-scalacheck-binding" % "7.1.0" % "test")
 
   val scopt     = Seq("com.github.scopt"     %% "scopt"           % "3.2.0")
   val joda      = Seq("joda-time"            %  "joda-time"       % "2.1")
   val spire     = Seq("org.spire-math"       %% "spire"           % "0.8.2")
-  val argonaut  = Seq("io.argonaut"          %% "argonaut"        % "6.0.4")
+  val argonaut  = Seq("io.argonaut"          %% "argonaut"        % "6.1-M4")
 
   val specs2    = Seq("specs2-core", "specs2-junit", "specs2-html", "specs2-matcher-extra", "specs2-scalacheck").map(c =>
-                      "org.specs2"           %% c                 % "2.4.4-scalaz-7.0.6" % "test" excludeAll ExclusionRule(organization = "org.scalamacros"))
+                      "org.specs2"           %% c                 % "2.4.5" % "test" excludeAll ExclusionRule(organization = "org.scalamacros"))
 
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141013060029-6b42321" excludeAll(
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141016223607-d545acf" excludeAll(
     ExclusionRule(organization = "org.specs2"),
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec"),
@@ -25,19 +25,19 @@ object depend {
     ExclusionRule(organization = "com.ambiata", name = "mundane-testing_2.11")
   ))
 
-  val MUNDANE_VERSION ="1.2.1-20141011082118-4f6471b"
-  val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-store").map(c =>
+  val MUNDANE_VERSION ="1.2.1-20141016221505-82db433"
+  val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse").map(c =>
                       "com.ambiata"          %% c                 % MUNDANE_VERSION) ++
                   Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")
 
   def notion(version: String) =
     if (version.contains("cdh4"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141013220612-a77b0b6") ++
-      Seq("com.ambiata" %% "notion-testing"  % "0.0.1-cdh4-20141013220612-a77b0b6" % "test") ++
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141017000930-e968b43") ++
+      Seq("com.ambiata" %% "notion-testing"  % "0.0.1-cdh4-20141017000930-e968b43" % "test") ++
       hadoop(version)
     else if (version.contains("cdh5"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141013082938-a77b0b6") ++
-      Seq("com.ambiata" %% "notion-testing"  % "0.0.1-cdh5-20141013082938-a77b0b6" % "test") ++
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141017000930-e968b43") ++
+      Seq("com.ambiata" %% "notion-testing"  % "0.0.1-cdh5-20141017000930-e968b43" % "test") ++
        hadoop(version)
     else
       sys.error(s"unsupported poacher version, can not build for $version")
@@ -50,10 +50,10 @@ object depend {
 
   def scoobi(version: String) = {
     val jars =
-      if (version.contains("cdh4"))      Seq("com.nicta" %% "scoobi"                    % "0.9.0-cdh4-20140925051744-4b8dbfd",
-                                             "com.nicta" %% "scoobi-compatibility-cdh4" % "1.0.2")
-      else if (version.contains("cdh5")) Seq("com.nicta" %% "scoobi"                    % "0.9.0-cdh5-20140925051050-4b8dbfd",
-                                             "com.nicta" %% "scoobi-compatibility-cdh5" % "1.0.2")
+      if (version.contains("cdh4"))      Seq("com.nicta" %% "scoobi"                    % "0.9.0-cdh4-20141017043441-0c9fb18",
+                                             "com.nicta" %% "scoobi-compatibility-cdh4" % "1.0.3")
+      else if (version.contains("cdh5")) Seq("com.nicta" %% "scoobi"                    % "0.9.0-cdh5-20141017042745-0c9fb18",
+                                             "com.nicta" %% "scoobi-compatibility-cdh5" % "1.0.3")
       else                               sys.error(s"unsupported scoobi version, can not build for $version")
     jars.map(_ intransitive()) ++ Seq(
       "com.thoughtworks.xstream" % "xstream" % "1.4.4" intransitive(),
@@ -61,8 +61,8 @@ object depend {
   }
 
   def poacher(version: String) =
-  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141010000015-2605acf")
-  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141009235022-2605acf")
+  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141016223731-40c7702")
+  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141016223518-40c7702")
   else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 

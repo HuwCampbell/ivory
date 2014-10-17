@@ -54,7 +54,7 @@ Committer
   private def commit(pre: (MrContext, Path) => Hdfs[Unit],
                      mapping: (Path, String) => Path,
                      expected: List[(String, String)]): Result[Unit] =
-    Temporary.using { dir =>
+    TemporaryDirPath.withDirPath { dir =>
       val c = new Configuration
       val ctx = MrContext(ContextId.randomContextId)
       val target = new Path(dir.path)

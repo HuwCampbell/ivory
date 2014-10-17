@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.ScalaCheckManagedProperties
-import com.ambiata.mundane.io.{LocalLocation, Temporary}
+import com.ambiata.mundane.io.TemporaryDirPath
 import com.ambiata.notion.core._
 import com.ambiata.mundane.control._
 
@@ -26,7 +26,7 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
     fromLines(toList(fstore.factsetIds).map(toLine)) must_== fstore.factsetIds.right
   }
 
-  def readFeatureStore = managed { temp: Temporary => fstore: FeatureStore =>
+  def readFeatureStore = managed { temp: TemporaryDirPath => fstore: FeatureStore =>
     val expected = fstore.copy(factsets = fstore.factsets.map(_.map(fs => fs.copy(partitions = fs.partitions.sorted))))
     val repo = LocalRepository.create(temp.dir)
 
@@ -34,20 +34,20 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
     fromId(repo, fstore.id) must beOkValue(expected)
   }
 
-  def writeFeatureStore = managed { temp: Temporary => fstore: FeatureStore =>
+  def writeFeatureStore = managed { temp: TemporaryDirPath => fstore: FeatureStore =>
     val repo = LocalRepository.create(temp.dir)
     toId(repo, fstore) >>
       repo.store.utf8.read(Repository.featureStoreById(fstore.id)) must
       beOkLike(_ must_== delimitedString(fstore.factsetIds))
   }
 
-  def listFeatureStorIds = managed { temp: Temporary => ids: SmallFeatureStoreIdList =>
+  def listFeatureStorIds = managed { temp: TemporaryDirPath => ids: SmallFeatureStoreIdList =>
     val repo = LocalRepository.create(temp.dir)
     writeFeatureStoreIds(repo, ids.ids) >>
     Metadata.listFeatureStoreIds(repo).map(_.toSet) must beOkValue(ids.ids.toSet)
   }
 
-  def latestFeatureStoreIs = managed { temp: Temporary => ids: SmallFeatureStoreIdList =>
+  def latestFeatureStoreIs = managed { temp: TemporaryDirPath => ids: SmallFeatureStoreIdList =>
     val repo = LocalRepository.create(temp.dir)
     writeFeatureStoreIds(repo, ids.ids) >>
     Metadata.latestFeatureStoreId(repo) must beOkValue(ids.ids.sortBy(_.id).lastOption)

@@ -59,10 +59,10 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
   def toList(store: List[Prioritized[FactsetId]]): List[Prioritized[FactsetId]] =
     store.sorted
 
-  def parseLine(i: Int, l: String): ValidationNel[String, Prioritized[FactsetId]] = for {
-    pri <- Priority.parseInt(i).toSuccess(NonEmptyList(s"Can not parse priority '${i}'"))
-    fid <- FactsetId.parse(l).toSuccess(NonEmptyList(s"Can not parse Factset Id '${l}'"))
-  } yield Prioritized[FactsetId](pri, fid)
+  def parseLine(i: Int, l: String): ValidationNel[String, Prioritized[FactsetId]] =
+    (Priority.parseInt(i).toSuccess(NonEmptyList(s"Can not parse priority '${i}'"))
+      |@| FactsetId.parse(l).toSuccess(NonEmptyList(s"Can not parse Factset Id '${l}'"))
+      )(Prioritized[FactsetId](_, _))
 
   def toLine(p: Prioritized[FactsetId]): String =
     p.value.render

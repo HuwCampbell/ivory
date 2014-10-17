@@ -2,8 +2,8 @@ package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core.{ParseError => _, _}
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.Location
 import com.ambiata.mundane.parse._
+import com.ambiata.notion.core.Location
 import org.parboiled2._, Parser.DeliveryScheme.Either
 import scalaz.effect.IO
 import scalaz.{Name =>_,_}, Scalaz._, Validation._

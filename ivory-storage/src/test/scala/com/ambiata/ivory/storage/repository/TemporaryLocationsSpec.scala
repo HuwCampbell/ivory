@@ -3,7 +3,7 @@ package com.ambiata.ivory.storage.repository
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.TemporaryLocations.{S3 => _, Hdfs => _, Posix => _, _}
 import com.ambiata.mundane.control.ResultTIO
-import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
+import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.poacher.hdfs.Hdfs
@@ -125,7 +125,7 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
 
   def checkDirLocation(location: IvoryLocation): ResultTIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(p)) => Directories.exists(l.dirPath)
-    case S3IvoryLocation(S3Location(b, k), _)     => S3.existsPrefix(S3Address(b, k)).executeT(conf.s3Client)
+    case S3IvoryLocation(S3Location(b, k), _)     => S3.existsPrefixx(S3Address(b, k + "/")).executeT(conf.s3Client)
     case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.exists(h.toHdfsPath).run(conf.configuration)
   }
 }

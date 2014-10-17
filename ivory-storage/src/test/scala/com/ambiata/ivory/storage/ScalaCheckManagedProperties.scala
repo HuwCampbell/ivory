@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage
 
-import com.ambiata.mundane.io.{DirPath, FilePath, Temporary}
+import com.ambiata.mundane.io.{TemporaryDirPath, DirPath, Temporary}
 import org.scalacheck.{Shrink, Prop, Gen, Arbitrary}
 import org.specs2.ScalaCheck
 import scalaz.effect.{IO, Resource}
@@ -127,18 +127,17 @@ trait ScalaCheckManagedProperties { this: ScalaCheck =>
    *
    * The generator returns a new directory each time it is invoked
    */
-  implicit def ArbitraryTemporaryDir: Arbitrary[Temporary] =
-    Arbitrary[Temporary](genTemporaryDir)
+  implicit def ArbitraryTemporaryDirPath: Arbitrary[TemporaryDirPath] =
+    Arbitrary[TemporaryDirPath](genTemporaryDir)
 
   def genTemporaryDir =
-    Gen.wrap(Gen.const(Temporary.directory(DirPath.unsafe(System.getProperty("java.io.tmpdir", "/tmp")), "temporary")
-      .run.unsafePerformIO.toOption.get))
+    Gen.wrap(Gen.const(TemporaryDirPath(Temporary.uniqueDirPath)))
 
   /**
    * Resource type instance for a Temporary. Should be moved to mundane
    */
-  implicit def temporaryDirResource: Resource[Temporary] = new Resource[Temporary] {
-    def close(dir: Temporary): IO[Unit] =
+  implicit def temporaryDirResource: Resource[TemporaryDirPath] = new Resource[TemporaryDirPath] {
+    def close(dir: TemporaryDirPath): IO[Unit] =
       dir.clean.run.void
   }
 

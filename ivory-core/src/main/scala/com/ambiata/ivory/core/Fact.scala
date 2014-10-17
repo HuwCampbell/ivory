@@ -252,7 +252,7 @@ object Value {
     case BooleanEncoding                         => raw.parseBoolean.leftMap(_ => s"Value '$raw' is not a boolean").map(v => BooleanValue(v))
     case IntEncoding                             => raw.parseInt.leftMap(_ => s"Value '$raw' is not an integer").map(v => IntValue(v))
     case LongEncoding                            => raw.parseLong.leftMap(_ => s"Value '$raw' is not a long").map(v => LongValue(v))
-    case DoubleEncoding                          => raw.parseDouble.flatMap(d => if(Value.validDouble(d)) d.success else ().failure)
+    case DoubleEncoding                          => raw.parseDouble.ensure(())(Value.validDouble)
       .leftMap(_ => s"Value '$raw' is not a double").map(v => DoubleValue(v))
     case DateEncoding                            => Dates.date(raw).toRightDisjunction(s"Value '$raw' is not a date").validation.map(v => DateValue(v))
     case StringEncoding                          => StringValue(raw).success[String]

@@ -3,7 +3,7 @@ package com.ambiata.ivory.core
 import java.io.File
 import java.util.UUID
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.{Location => _, HdfsLocation => _, S3Location => _, LocalLocation => _, _}
+import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.poacher.hdfs.{Hdfs => PoacherHdfs}
 import com.ambiata.saws.s3.{S3 => SawsS3, S3Address}

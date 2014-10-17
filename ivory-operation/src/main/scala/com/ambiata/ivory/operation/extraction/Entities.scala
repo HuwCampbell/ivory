@@ -4,7 +4,6 @@ import java.util.HashMap
 
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.Location
 import com.ambiata.notion.core._
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex

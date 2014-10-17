@@ -33,7 +33,7 @@ class EavOutputSpec extends Specification with SampleFacts with ThrownExpectatio
   )
 
   def extractEav(facts: List[List[Fact]])(repo: HdfsRepository): ResultTIO[(String, List[String])] =
-    Temporary.using { dir =>
+    TemporaryDirPath.withDirPath { dir =>
       for {
         _               <- RepositoryBuilder.createRepo(repo, sampleDictionary, facts)
         eav             <- IvoryLocation.fromUri((dir </> "eav").path, IvoryConfiguration.Empty)

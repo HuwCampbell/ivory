@@ -3,7 +3,6 @@ package com.ambiata.ivory.operation.extraction
 import java.util
 
 import com.ambiata.ivory.storage.legacy.FlatFactThriftStorageV1.FlatFactThriftLoader
-import com.ambiata.mundane.io.Location
 import com.nicta.scoobi.Scoobi._
 import org.apache.commons.logging.LogFactory
 import scalaz.{DList => _, Store => _, _}, Scalaz._
