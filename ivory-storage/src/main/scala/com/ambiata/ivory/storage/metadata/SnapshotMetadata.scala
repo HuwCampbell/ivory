@@ -10,17 +10,43 @@ import argonaut._, Argonaut._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.store._
 
+sealed trait SnapshotMetadataVersion
+{
+  val long: Long
+}
+
+object SnapshotMetadataVersionLegacy extends SnapshotMetadataVersion
+{
+  val long: Long = 0
+}
+
+object SnapshotMetadataVersionV1 extends SnapshotMetadataVersion
+{
+  val long: Long = 1
+}
+
+object SnapshotMetadataVersion
+{
+  implicit def SnapshotMetadataVersionCodecJson: CodecJson[SnapshotMetadataVersion] = CodecJson.derived(
+    EncodeJson(_.long.asJson),
+    DecodeJson.optionDecoder(_.as[Long].toOption.flatMap(fromLong), "SnapshotMetadataVersion"))
+
+  def fromLong(longVersion: Long): Option[SnapshotMetadataVersion] = longVersion match {
+    case SnapshotMetadataVersionLegacy.long => SnapshotMetadataVersionLegacy.some
+    case SnapshotMetadataVersionV1.long     => SnapshotMetadataVersionV1.some
+    case _                                  => none
+  }
+}
+
 sealed trait SnapshotMetadata
 {
-  private val legacyVersion : Long = 1
-
   def snapshotId: SnapshotId = this match {
     case SnapshotMetaLegacy(lm) => lm.snapshotId
     case SnapshotMetaJSON(jm)   => jm.snapshotId
   }
 
-  def formatVersion: Long = this match {
-    case SnapshotMetaLegacy(_)  => legacyVersion
+  def formatVersion: SnapshotMetadataVersion = this match {
+    case SnapshotMetaLegacy(_)  => SnapshotMetadataVersionLegacy
     case SnapshotMetaJSON(jm)   => jm.formatVersion
   }
 
@@ -35,13 +61,13 @@ sealed trait SnapshotMetadata
   }
 
   def featureIdOrCommitId: (FeatureStoreId \/ CommitId) = this match {
-    case SnapshotMetaLegacy(lm) => (-\/)(lm.featureStoreId)
-    case SnapshotMetaJSON(jm)   => (\/-)(jm.commitId)
+    case SnapshotMetaLegacy(lm) => lm.featureStoreId.left
+    case SnapshotMetaJSON(jm)   => jm.commitId.right
   }
 
-  def byKey[A](key: String)(implicit e: DecodeJson[A]): Option[A] = this match {
+  def byKey[A: DecodeJson](key: String): Option[A] = this match {
     case SnapshotMetaLegacy(_)  => none
-    case SnapshotMetaJSON(jm)   => jm.others.as[A].toOption
+    case SnapshotMetaJSON(jm)   => jm.others.field(key).flatMap(_.as[A].toOption)
   }
 
   def order(other: SnapshotMetadata): Ordering = (this, other) match {
@@ -66,7 +92,7 @@ object SnapshotMetadata
     new SnapshotMetaJSON(jsonMeta)
 
   private val currentVersion : Long = 2
-  private val allocated = KeyName.unsafe(".allocated")
+  private val allocated = KeyName(".allocated")
 
   // exported functions:
 
@@ -176,7 +202,7 @@ object SnapshotMetadata
   private def newSnapshotMeta(
     snapshotId: SnapshotId,
     date: Date,
-    commitId: CommitId) = snapshotMetaJSON(JSONSnapshotMeta(snapshotId, currentVersion, date, commitId, baseJsonObject(snapshotId, currentVersion, date, commitId)))
+    commitId: CommitId) = snapshotMetaJSON(JSONSnapshotMeta(snapshotId, SnapshotMetadataVersionV1, date, commitId, baseJsonObject(snapshotId, currentVersion, date, commitId)))
 
   private def jsonMetaFromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[JSONSnapshotMeta] = for {
     json <- repo.store.utf8.read(Repository.snapshot(id) / JSONSnapshotMeta.metaKeyName)
@@ -210,7 +236,7 @@ object SnapshotMetadata
 
 private case class JSONSnapshotMeta(
   snapshotId: SnapshotId,
-  formatVersion: Long,
+  formatVersion: SnapshotMetadataVersion,
   date: Date,
   commitId: CommitId,
   others: Json) {
@@ -235,7 +261,7 @@ private object JSONSnapshotMeta {
     (_.others),
     ((c: HCursor) => for {
       id <- (c --\ "id").as[SnapshotId]
-      version <- (c --\ "format_version").as[Long]
+      version <- (c --\ "format_version").as[SnapshotMetadataVersion]
       date <- (c --\ "date").as[Date]
       commitId <- (c --\ "commit_id").as[CommitId]
       json <- c.as[Json]
