@@ -32,12 +32,12 @@ object depend {
 
   def notion(version: String) =
     if (version.contains("cdh4"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141017000930-e968b43") ++
-      Seq("com.ambiata" %% "notion-testing"  % "0.0.1-cdh4-20141017000930-e968b43" % "test") ++
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141017060914-0528549") ++
+      Seq("com.ambiata" %% "notion-testing"  % "0.0.1-cdh4-20141017060914-0528549" % "test") ++
       hadoop(version)
     else if (version.contains("cdh5"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141017000930-e968b43") ++
-      Seq("com.ambiata" %% "notion-testing"  % "0.0.1-cdh5-20141017000930-e968b43" % "test") ++
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141017060914-0528549") ++
+      Seq("com.ambiata" %% "notion-testing"  % "0.0.1-cdh5-20141017060914-0528549" % "test") ++
        hadoop(version)
     else
       sys.error(s"unsupported poacher version, can not build for $version")
@@ -61,8 +61,8 @@ object depend {
   }
 
   def poacher(version: String) =
-  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141016223731-40c7702")
-  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141016223518-40c7702")
+  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141017044350-9fcbaf6")
+  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141017044116-9fcbaf6")
   else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 
