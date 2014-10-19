@@ -210,7 +210,6 @@ class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {
       case -\/(e)  => e.getMessage.failure
       case \/-(_)  => Conversion.thrift2fact(namespace.name, thrift, ingestZone, ivoryZone)
         .fold(_.failure, Validate.validateFact(_, dict))
-    // TODO Use ByteView.view() when it has length
-    }).leftMap(ParseError(_, ThriftError(ThriftErrorDataVersionV1, ByteVector(value.getBytes))))
+    }).leftMap(ParseError(_, ThriftError(ThriftErrorDataVersionV1, ByteVector.view(value.getBytes).take(value.getLength))))
   }
 }
