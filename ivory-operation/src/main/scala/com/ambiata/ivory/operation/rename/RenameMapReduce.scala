@@ -9,6 +9,7 @@ import com.ambiata.ivory.mr.{Counter => _, _}
 import com.ambiata.ivory.operation.extraction._
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.task.FactsetJobKeys
+import com.ambiata.ivory.storage.fact._
 import org.apache.hadoop.io._
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs
 import org.apache.hadoop.mapreduce.{Counter, Mapper, Reducer}
@@ -39,10 +40,10 @@ class RenameMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, By
 
   override def setup(context: MapperContext): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    val (_, vfc, p) = SnapshotFactsetMapper.setupVersionAndPriority(ctx.thriftCache, context.getConfiguration,
-      context.getInputSplit)
-    converter = vfc
-    priority = p
+    val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, SnapshotJob.Keys.FactsetLookup,
+      SnapshotJob.Keys.FactsetVersionLookup, context.getConfiguration, context.getInputSplit)
+    converter = factsetInfo.factConverter
+    priority = factsetInfo.priority
     ctx.thriftCache.pop(context.getConfiguration, RenameJob.Keys.Mapping, mapping)
     counter = context.getCounter("ivory", RenameJob.Keys.MapCounter)
   }

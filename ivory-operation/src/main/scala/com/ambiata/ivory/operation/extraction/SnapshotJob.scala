@@ -2,12 +2,11 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.lookup.{FeatureIdLookup, FactsetLookup, FactsetVersionLookup, SnapshotWindowLookup}
+import com.ambiata.ivory.lookup.{FeatureIdLookup, SnapshotWindowLookup}
 import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
 import com.ambiata.ivory.storage.fact._
-import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.mr._
-import com.ambiata.mundane.io.FilePath
 
 import java.lang.{Iterable => JIterable}
 import java.util.{Iterator => JIterator}
@@ -80,8 +79,8 @@ object SnapshotJob {
 
     // cache / config initializtion
     job.getConfiguration.set(Keys.SnapshotDate, date.int.toString)
-    ctx.thriftCache.push(job, Keys.FactsetLookup, priorityTable(inputs))
-    ctx.thriftCache.push(job, Keys.FactsetVersionLookup, versionTable(inputs.map(_.value)))
+    ctx.thriftCache.push(job, Keys.FactsetLookup, FactsetLookups.priorityTable(inputs))
+    ctx.thriftCache.push(job, Keys.FactsetVersionLookup, FactsetLookups.versionTable(inputs.map(_.value)))
     val (featureIdLookup, windowLookup) = windowTable(windows)
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup)
     ctx.thriftCache.push(job, Keys.WindowLookup, windowLookup)
@@ -95,18 +94,6 @@ object SnapshotJob {
       case "snap" => output
     }, true).run(conf).run.unsafePerformIO
     ()
-  }
-
-  def priorityTable(globs: List[Prioritized[FactsetGlob]]): FactsetLookup = {
-    val lookup = new FactsetLookup
-    globs.foreach(p => lookup.putToPriorities(p.value.factset.render, p.priority.toShort))
-    lookup
-  }
-
-  def versionTable(globs: List[FactsetGlob]): FactsetVersionLookup = {
-    val lookup = new FactsetVersionLookup
-    globs.foreach(g => lookup.putToVersions(g.factset.render, g.version.toByte))
-    lookup
   }
 
   def windowTable(windows: SnapshotWindows): (FeatureIdLookup, SnapshotWindowLookup) = {
@@ -133,19 +120,6 @@ object SnapshotJob {
 
 object SnapshotMapper {
   type MapperContext = Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context
-}
-
-/** Version specific thrift converter */
-sealed trait VersionedFactConverter {
-  def convert(tfact: ThriftFact): Fact
-}
-case class VersionOneFactConverter(partition: Partition) extends VersionedFactConverter {
-  def convert(tfact: ThriftFact): Fact =
-    PartitionFactThriftStorageV1.createFact(partition, tfact)
-}
-case class VersionTwoFactConverter(partition: Partition) extends VersionedFactConverter {
-  def convert(tfact: ThriftFact): Fact =
-    PartitionFactThriftStorageV2.createFact(partition, tfact)
 }
 
 /**
@@ -201,12 +175,12 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     date = Date.fromInt(strDate.toInt).getOrElse(Crash.error(Crash.DataIntegrity, s"Invalid snapshot date '${strDate}'"))
-    val (factsetVersion, vfc, p) = SnapshotFactsetMapper.setupVersionAndPriority(ctx.thriftCache,
-      context.getConfiguration, context.getInputSplit)
-    converter = vfc
-    priority = p
-    okCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.ok")
-    skipCounter = MrCounter("ivory", s"snapshot.v${factsetVersion}.skip")
+    val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, SnapshotJob.Keys.FactsetLookup,
+      SnapshotJob.Keys.FactsetVersionLookup, context.getConfiguration, context.getInputSplit)
+    converter = factsetInfo.factConverter
+    priority = factsetInfo.priority
+    okCounter = MrCounter("ivory", s"snapshot.v${factsetInfo.version}.ok")
+    skipCounter = MrCounter("ivory", s"snapshot.v${factsetInfo.version}.skip")
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
   }
 
@@ -243,25 +217,6 @@ object SnapshotFactsetMapper {
       vout.set(bytes, 0, bytes.length)
       emitter.emit(kout, vout)
     }
-  }
-
-  def setupVersionAndPriority(thriftCache: ThriftCache, configuration: Configuration, inputSplit: InputSplit): (FactsetVersion, VersionedFactConverter, Priority) = {
-    val versionLookup = new FactsetVersionLookup <| (fvl => thriftCache.pop(configuration, SnapshotJob.Keys.FactsetVersionLookup, fvl))
-    val path = FilePath.unsafe(MrContext.getSplitPath(inputSplit).toString)
-    val (factsetId, partition) = Factset.parseFile(path) match {
-      case Success(r) => r
-      case Failure(e) => Crash.error(Crash.DataIntegrity, s"Can not parse factset path ${e}")
-    }
-    val rawVersion = versionLookup.versions.get(factsetId.render)
-    val factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(Crash.error(Crash.DataIntegrity, s"Can not parse factset version '${rawVersion}'"))
-
-    val converter = factsetVersion match {
-      case FactsetVersionOne => VersionOneFactConverter(partition)
-      case FactsetVersionTwo => VersionTwoFactConverter(partition)
-    }
-    val priorityLookup = new FactsetLookup <| (fl => thriftCache.pop(configuration, SnapshotJob.Keys.FactsetLookup, fl))
-    val priority = priorityLookup.priorities.get(factsetId.render)
-    (factsetVersion, converter, Priority.unsafe(priority))
   }
 }
 

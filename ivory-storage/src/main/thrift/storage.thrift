@@ -46,3 +46,10 @@ struct FeatureReduction {
 struct FeatureReductionLookup {
     1: map<i32, list<FeatureReduction>> reductions;
 }
+
+// The following has been hacked to convert the list to an array for performance reasons
+/*
+struct ChordEntities {
+    1: map<string, list<i32>> entities;
+}
+*/

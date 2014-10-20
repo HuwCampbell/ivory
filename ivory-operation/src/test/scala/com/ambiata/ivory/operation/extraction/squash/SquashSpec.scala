@@ -43,5 +43,5 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
       postProcess(expectedFacts),
       true
     ))
-  }).set(minTestsOk = 1)
+  }).set(minTestsOk = 1, maxDiscardRatio = 10)
 }
