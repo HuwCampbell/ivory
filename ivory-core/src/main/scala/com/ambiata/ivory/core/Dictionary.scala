@@ -65,13 +65,6 @@ case class Dictionary(definitions: List[Definition]) {
       case Concrete(_, _) => true
       case Virtual(_, _)  => false
     }))
-
-  /** Remove struct definitions */
-  def removeStructs: Dictionary =
-    Dictionary(definitions.filter({
-      case Concrete(_, fm) => Encoding.isPrimitive(fm.encoding)
-      case Virtual(_, _)   => true
-    }))
 }
 
 object Dictionary {
