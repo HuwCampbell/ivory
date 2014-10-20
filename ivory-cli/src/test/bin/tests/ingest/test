@@ -3,7 +3,7 @@
 DIR=$(dirname $0)
 . "${DIR}/../../setup.sh"
 
-$IVORY create-repository -p "${REPOSITORY}"
+$IVORY create-repository "${REPOSITORY}"
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 
 ### Ingest a factset directory with several namespaces

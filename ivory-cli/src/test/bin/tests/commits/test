@@ -7,7 +7,7 @@ commit_test(){
   diff_test ${REPOSITORY}/metadata/commits/${1} ${DIR}/expected/${1}
 }
 
-$IVORY create-repository -p "${REPOSITORY}"
+$IVORY create-repository "${REPOSITORY}"
 commit_test 00000000
 
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"

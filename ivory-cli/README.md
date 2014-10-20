@@ -6,7 +6,7 @@
 
 ```
 
-ivory create-repository [-r|--repository REPOSITORY_URI]
+ivory create-repository REPOSITORY_URI
 
 ivory import-dictionary [-r|--repository REPOSITORY_URI] DICTIONARY_PATH
 
