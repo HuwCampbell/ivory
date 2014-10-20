@@ -447,7 +447,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
 
   implicit def EncodingAndValueArbitrary: Arbitrary[EncodingAndValue] = Arbitrary(for {
     enc   <- arbitrary[Encoding]
-    value <- valueOf(enc, List())
+    value <- Gen.frequency(19 -> valueOf(enc, List()), 1 -> Gen.const(TombstoneValue))
   } yield EncodingAndValue(enc, value))
 
   implicit def FactsetIdArbitrary: Arbitrary[FactsetId] =
