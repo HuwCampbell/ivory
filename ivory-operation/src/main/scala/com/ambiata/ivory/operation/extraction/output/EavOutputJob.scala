@@ -36,6 +36,9 @@ object EavOutputJob {
     job.setMapOutputKeyClass(classOf[NullWritable])
     job.setMapOutputValueClass(classOf[Text])
 
+    // reduce
+    job.setNumReduceTasks(0)
+
     // output
     val tmpout = new Path(ctx.output, "eav")
     job.setOutputFormatClass(classOf[TextOutputFormat[_, _]])
