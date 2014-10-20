@@ -4,7 +4,7 @@ DIR=$(dirname $0)
 . "${DIR}/../../setup.sh"
 
 V2="ivory_run $IVORY_V2"
-$V2 create-repository -p "${REPOSITORY}"
+$V2 create-repository "${REPOSITORY}"
 $V2 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
 $V2 ingest -r "${REPOSITORY}" -i "${INPUT}/facts" -z "Australia/Sydney" -f "thrift"
 

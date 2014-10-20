@@ -7,7 +7,7 @@ DICT_NAME="dict_regression"
 ### V0 ###
 
 V0="ivory_run ${IVORY_V0}"
-$V0 create-repository -p "${REPOSITORY}"
+$V0 create-repository "${REPOSITORY}"
 $V0 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv" -n "${DICT_NAME}"
 $V0 ingest-bulk -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts" -d "${DICT_NAME}"
 

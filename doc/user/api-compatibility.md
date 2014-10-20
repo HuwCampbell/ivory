@@ -3,6 +3,12 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-1c85f36
+
+- `create-repository` now takes the repository path as an argument, and no longer requires `-p`/`--path`. eg.
+
+    ivory create-repository /path/to/repo
+
 ## 1.0.0-*-811f2fb
 
 - Removed `--delim` from `extract-chord` and `extract-snapshot`, use `--format` instead

@@ -16,7 +16,7 @@ object createRepository extends IvoryApp {
 |""".stripMargin)
 
     help("help") text "shows this usage text"
-    opt[String]('p', "path") action { (x, c) => c.copy(path = x) } required() text
+    arg[String]("PATH") action { (x, c) => c.copy(path = x) } required() text
       s"Ivory repository to create."
 
   }
