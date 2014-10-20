@@ -93,7 +93,9 @@ object Snapshot {
       _               <- job(hr, previousSnapshot, newFactsetGlobs, date, output.toHdfsPath, windows, hr.codec).run(hr.configuration)
       _               <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(newSnapshot.snapshotId) / ".dictionary", dictionary)
       // This will push a new commit if one doesnt exist, however it should already exist if the snapshot is new, it would have been pushed
-      commitId        <- Metadata.findOrCreateLatestCommitId(repository)
+      commitId        <- newSnapshot.storeOrCommitId.b.cata(
+        _.pure[ResultTIO],
+        Metadata.findOrCreateLatestCommitId(repository))
       _               <- SnapshotManifest.save(repository, newSnapshot, commitId)
     } yield ()
 
