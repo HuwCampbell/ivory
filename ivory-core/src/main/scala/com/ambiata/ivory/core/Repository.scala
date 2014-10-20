@@ -119,4 +119,7 @@ object Repository {
     case l: S3IvoryLocation    => S3Repository(l, repositoryConfiguration.s3TmpDirectory)
   }
 
+  /** Creates a unique [[Key]] that can be used as a temporary directory (but doesn't actually create it) */
+  def tmpDir(repository: Repository): ResultTIO[Key] =
+    ResultT.safe(Repository.root / "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID))
 }
