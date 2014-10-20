@@ -1,7 +1,6 @@
 package com.ambiata.ivory.core
 
 import scalaz._, Scalaz._
-import scala.math.{Ordering => SOrdering}
 
 /** The feature dictionary is simply a look up of metadata for a given identifier/name. */
 case class Dictionary(definitions: List[Definition]) {
@@ -65,13 +64,6 @@ case class Dictionary(definitions: List[Definition]) {
     Dictionary(definitions.filter({
       case Concrete(_, _) => true
       case Virtual(_, _)  => false
-    }))
-
-  /** Remove struct definitions */
-  def removeStructs: Dictionary =
-    Dictionary(definitions.filter({
-      case Concrete(_, fm) => Encoding.isPrimitive(fm.encoding)
-      case Virtual(_, _)   => true
     }))
 }
 
