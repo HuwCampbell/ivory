@@ -8,25 +8,22 @@ import scalaz._, Scalaz._, \&/._, effect.IO
 import scala.math.{Ordering => SOrdering}
 import argonaut._, Argonaut._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.store._
+import com.ambiata.notion.core._
 
-sealed trait SnapshotManifestVersion
-{
+sealed trait SnapshotManifestVersion {
   val long: Long
 }
 
-object SnapshotManifestVersionLegacy extends SnapshotManifestVersion
-{
+object SnapshotManifestVersionLegacy extends SnapshotManifestVersion {
   val long: Long = 0
 }
 
-object SnapshotManifestVersionV1 extends SnapshotManifestVersion
-{
+object SnapshotManifestVersionV1 extends SnapshotManifestVersion {
   val long: Long = 1
 }
 
-object SnapshotManifestVersion
-{
+object SnapshotManifestVersion {
+
   implicit def SnapshotManifestVersionCodecJson: CodecJson[SnapshotManifestVersion] = CodecJson.derived(
     EncodeJson(_.long.asJson),
     DecodeJson.optionDecoder(_.as[Long].toOption.flatMap(fromLong), "SnapshotManifestVersion"))
@@ -59,8 +56,8 @@ case class SnapshotManifest(
   }
 }
 
-object SnapshotManifest
-{
+object SnapshotManifest {
+
   val metaKeyName = KeyName.unsafe(".metadata.json")
 
   private val allocated = KeyName.unsafe(".allocated")
@@ -98,15 +95,15 @@ object SnapshotManifest
     storeOrCommitId <- Metadata.findOrCreateLatestCommitId(repo)
   } yield newSnapshotMeta(snapshotId, date, storeOrCommitId)
 
-  def fromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[SnapshotManifest] = for {
+  def fromIdentifier(repo: Repository, id: SnapshotId): OptionT[ResultTIO, SnapshotManifest] = for {
     // try reading the JSON one first:
-    jsonExists <- repo.store.exists(Repository.snapshot(id) / SnapshotManifest.metaKeyName)
+    jsonExists <- repo.store.exists(Repository.snapshot(id) / SnapshotManifest.metaKeyName).liftM[OptionT]
 
     x <- {
       if (jsonExists)
-        jsonMetaFromIdentifier(repo, id)
+        jsonMetaFromIdentifier(repo, id).liftM[OptionT]
       else
-        legacy.SnapshotMeta.fromIdentifier(repo, id).map(fromSnapshotMetaLegacy(_))
+        OptionT.optionT(legacy.SnapshotMeta.fromIdentifier(repo, id)).map(fromSnapshotMetaLegacy(_))
     }
   } yield x
 
@@ -131,7 +128,7 @@ object SnapshotManifest
       if (thereAreNoNewer)
         meta.pure[OptionResultTIO]
       else
-        OptionT.optionT(none.pure[ResultTIO])
+        OptionT.none[ResultTIO, SnapshotManifest]
     }
 
   } yield x
@@ -141,9 +138,9 @@ object SnapshotManifest
     metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
     x <- {
       if (metaFeatureId == featureStoreId)
-        OptionT.optionT(meta.some.pure[ResultTIO])
+        OptionT.some[ResultTIO, SnapshotManifest](meta)
       else
-        OptionT.optionT(none.pure[ResultTIO])
+        OptionT.none[ResultTIO, SnapshotManifest]
     }
   } yield x
 
@@ -162,7 +159,7 @@ object SnapshotManifest
   def latestSnapshot(repository: Repository, date: Date): OptionT[ResultTIO, SnapshotManifest] = for {
     ids <- repository.store.listHeads(Repository.snapshots).liftM[OptionT]
     sids <- OptionT.optionT[ResultTIO](ids.traverseU((sid: Key) => SnapshotId.parse(sid.name)).pure[ResultTIO])
-    metas <- sids.traverseU((sid: SnapshotId) => fromIdentifier(repository, sid)).liftM[OptionT]
+    metas <- sids.traverseU((sid: SnapshotId) => fromIdentifier(repository, sid))
     filtered = metas.filter(_.date isBeforeOrEqual date)
     meta <- OptionT.optionT[ResultTIO](filtered.sorted.lastOption.pure[ResultTIO])
   } yield meta

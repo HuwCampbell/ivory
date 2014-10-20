@@ -32,20 +32,19 @@ object SnapshotMeta {
   implicit def SnapshotMetaOrdering =
     SnapshotMetaOrder.toScalaOrdering
 
-  def fromIdentifier(repository: Repository, id: SnapshotId): OptionT[ResultTIO, SnapshotMeta] = {
+  def fromIdentifier(repository: Repository, id: SnapshotId): ResultTIO[Option[SnapshotMeta]] = {
     val path = Repository.snapshot(id) / metaKeyName
-
     for {
       exists      <- repository.store.exists(path)
       sm          <- if (exists) for {
-        lines       <- repository.store.linesUtf8.read(path).liftM[OptionT]
+        lines       <- repository.store.linesUtf8.read(path)
         // Ensure we have at least 3 lines (to include new commitId)
         safeLines    = if (lines.length == 2) lines ++ List("") else lines
-        sm          <- ResultT.fromDisjunction[IO, SnapshotMeta](parser(id).run(safeLines).disjunction.leftMap(This.apply)).liftM[OptionT]
-        } yield sm else {
+        sm          <- ResultT.fromDisjunction[IO, SnapshotMeta](parser(id).run(safeLines).disjunction.leftMap(This.apply))
+      } yield some(sm) else {
         // It's possible for snapshots to be allocated but either not deleted or still in progress
         println(s"WARNING: No $path found for ${id.render}")
-        OptionT.none
+        none.point[ResultTIO]
       }
     } yield sm
   }
