@@ -58,6 +58,7 @@ case class SnapshotManifest(
 
 object SnapshotManifest {
 
+  // FIXME: Remove the `unsafe` after the KeyName macros accessibility has been fixed.
   val metaKeyName = KeyName.unsafe(".metadata.json")
 
   private val allocated = KeyName.unsafe(".allocated")
