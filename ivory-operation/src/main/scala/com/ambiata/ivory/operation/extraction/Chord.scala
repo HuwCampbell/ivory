@@ -5,7 +5,7 @@ import java.util
 import com.ambiata.ivory.storage.legacy.FlatFactThriftStorageV1.FlatFactThriftLoader
 import com.nicta.scoobi.Scoobi._
 import org.apache.commons.logging.LogFactory
-import scalaz.{DList => _, Store => _, _}, Scalaz._
+import scalaz.{DList => _, Store => _, Value => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
 import com.ambiata.notion.core._
@@ -17,7 +17,6 @@ import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.metadata._, Metadata._
-import com.ambiata.ivory.operation.validation._
 import Entities._
 import com.ambiata.ivory.scoobi._
 import scala.collection.JavaConversions._
@@ -141,7 +140,7 @@ object Chord {
         store.factsetIds.map(fs => (fs.priority,  s"Factset  '${fs.value.render}'"))).toMap.withDefault(p => s"Unknown, priority $p"))
 
     facts.map { case (priority, fact) =>
-      Validate.validateFact(fact, dictionary).disjunction match {
+      Value.validateFact(fact, dictionary).disjunction match {
         case -\/(e) => Crash.error(Crash.DataIntegrity, s"A critical error has occurred, a value in ivory no longer matches the dictionary: $e ${priorities.get(priority)}")
         case \/-(v) => (priority, v)
       }

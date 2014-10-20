@@ -257,4 +257,43 @@ object Value {
     case DateEncoding                            => Dates.date(raw).toRightDisjunction(s"Value '$raw' is not a date").validation.map(v => DateValue(v))
     case StringEncoding                          => StringValue(raw).success[String]
   }
+
+  def validateFact(fact: Fact, dict: Dictionary): Validation[String, Fact] =
+    dict.byFeatureId.get(fact.featureId)
+      .map {
+      case Concrete(_, fm) => validateEncoding(fact.value, fm.encoding).as(fact).leftMap(_ + s" '${fact.toString}'")
+      case _: Virtual      => s"Cannot have virtual facts for ${fact.featureId}".failure
+    }
+      .getOrElse(s"Dictionary entry '${fact.featureId}' doesn't exist!".failure)
+
+  def validateEncoding(value: Value, encoding: Encoding): Validation[String, Unit] = {
+    def fail: Validation[String, Unit] =
+      s"Not a valid ${Encoding.render(encoding)}!".failure
+    (value, encoding) match {
+      case (TombstoneValue,  _)                 => Success(())
+      case (BooleanValue(_), BooleanEncoding)   => Success(())
+      case (BooleanValue(_), _)                 => fail
+      case (IntValue(_),     IntEncoding)       => Success(())
+      case (IntValue(_),     _)                 => fail
+      case (LongValue(_),    LongEncoding)      => Success(())
+      case (LongValue(_),    _)                 => fail
+      case (DoubleValue(_),  DoubleEncoding)    => Success(())
+      case (DoubleValue(_),  _)                 => fail
+      case (StringValue(_),  StringEncoding)    => Success(())
+      case (StringValue(_),  _)                 => fail
+      case (DateValue(_),    DateEncoding)      => Success(())
+      case (DateValue(_),    _)                 => fail
+      case (StructValue(v),  e: StructEncoding) => validateStruct(v, e)
+      case (StructValue(_),  _)                 => fail
+      case (ListValue(v),    e: ListEncoding)   => v.foldMap(validateEncoding(_, e.encoding))
+      case (ListValue(_),    _)                 => fail
+    }
+  }
+
+  def validateStruct(values: Map[String, PrimitiveValue], encoding: StructEncoding): Validation[String, Unit] =
+    Maps.outerJoin(encoding.values, values).toStream.foldMap {
+      case (n, \&/.This(enc))        => if (!enc.optional) s"Missing struct $n".failure else ().success
+      case (n, \&/.That(value))      => s"Undeclared struct value $n".failure
+      case (n, \&/.Both(enc, value)) => validateEncoding(value, enc.encoding).leftMap(_ + s" for $n")
+    }
 }

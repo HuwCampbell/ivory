@@ -1,5 +1,7 @@
 package com.ambiata.ivory.core
 
+import java.nio.ByteBuffer
+
 import com.ambiata.ivory.core.thrift._
 import scodec.bits.ByteVector
 
@@ -11,7 +13,8 @@ case class ParseError(message: String, data: ErrorData) {
   def toThrift = {
     new ThriftParseError(message, data match {
       case TextError(line)                          => ParseErrorData.text(new TextErrorData(line))
-      case ThriftError(ThriftErrorDataVersionV1, b) => ParseErrorData.thriftV1(new ThriftV1ErrorData(b.toByteBuffer))
+      // NOTE: Calling ByteVector.toByteBuffer makes it read-only, which means it can't be serialized later
+      case ThriftError(ThriftErrorDataVersionV1, b) => ParseErrorData.thriftV1(new ThriftV1ErrorData(ByteBuffer.wrap(b.toArray)))
     })
   }
   def appendToMessage(msg: String) = copy(message = message + msg)

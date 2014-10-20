@@ -343,22 +343,38 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
    }
 
   def factWithZoneGen(entity: Gen[String], mgen: Gen[ConcreteDefinition]): Gen[(ConcreteDefinition, Fact, DateTimeZone)] = for {
-    e      <- entity
     f      <- arbitrary[FeatureId]
     m      <- mgen
     dtz    <- arbitrary[DateTimeWithZone]
+    f      <- factGen(entity, f, m, dtz.datetime)
+  } yield (m, f, dtz.zone)
+
+  def factGen(entity: Gen[String], f: FeatureId, m: ConcreteDefinition, dt: DateTime): Gen[Fact] = for {
+    e      <- entity
     // Don't generate a Tombstone if it's not possible
     v      <- Gen.frequency((if (m.tombstoneValue.nonEmpty) 1 else 0) -> Gen.const(TombstoneValue), 99 -> valueOf(m.encoding, m.tombstoneValue))
-  } yield (m, Fact.newFact(e, f.namespace.name, f.name, dtz.datetime.date, dtz.datetime.time, v), dtz.zone)
+  } yield Fact.newFact(e, f.namespace.name, f.name, dt.date, dt.time, v)
 
   /** All generated SparseEntities will have a large range of possible entity id's */
   case class SparseEntities(meta: ConcreteDefinition, fact: Fact, zone: DateTimeZone)
+
+  case class FactsWithDictionary(fid: FeatureId, cd: ConcreteDefinition, facts: List[Fact]) {
+    def dictionary: Dictionary = Dictionary(List(Concrete(fid, cd)))
+  }
 
   /**
    * Create an arbitrary fact and timezone such that the time in the fact is valid given the timezone
    */
   implicit def SparseEntitiesArbitrary: Arbitrary[SparseEntities] =
    Arbitrary(factWithZoneGen(Gen.choose(0, 1000).map(testEntityId), arbitrary[ConcreteDefinition]).map(SparseEntities.tupled))
+
+  implicit def FactsWithDictionaryArbitrary: Arbitrary[FactsWithDictionary] = Arbitrary(for {
+    fid   <- arbitrary[FeatureId]
+    cd    <- arbitrary[ConcreteDefinition]
+    n     <- Gen.choose(2, 10)
+    dt    <- arbitrary[DateTime]
+    facts <- Gen.listOfN(n, factGen(Gen.choose(0, 1000).map(testEntityId), fid, cd, dt))
+  } yield FactsWithDictionary(fid, cd, facts))
 
   implicit def FactArbitrary: Arbitrary[Fact] =
     Arbitrary(arbitrary[SparseEntities].map(_.fact))
@@ -447,7 +463,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
 
   implicit def EncodingAndValueArbitrary: Arbitrary[EncodingAndValue] = Arbitrary(for {
     enc   <- arbitrary[Encoding]
-    value <- valueOf(enc, List())
+    value <- Gen.frequency(19 -> valueOf(enc, List()), 1 -> Gen.const(TombstoneValue))
   } yield EncodingAndValue(enc, value))
 
   implicit def FactsetIdArbitrary: Arbitrary[FactsetId] =
