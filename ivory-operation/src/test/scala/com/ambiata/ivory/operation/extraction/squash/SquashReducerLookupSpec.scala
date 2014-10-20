@@ -14,12 +14,14 @@ class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s
   Offset and count are encoded and decoded from an int            $intEncoding
 """
 
-  def lookup = prop((d: VirtualDictionaryWindow, s: Short) => {
+  def lookup = prop((d: VirtualDictionaryWindow, d2: Dictionary, s: Short, e: Int) => {
     val reducers = Math.abs(s) + 1
-    val dict = d.vd.dictionary.byConcrete
+    val dict = (d.vd.dictionary append d2).byConcrete
     val (lookup, _) = SquashJob.dictToLookup(dict, Date.minValue)
     val create = SquashReducerLookup.create(dict, lookup, reducers)
-    create.reducers.get(lookup.ids.get(d.vdict.vd.source.toString)) ==== SquashReducerLookup.toLookup(0, reducers.toShort)
+    val lookupV = create.reducers.get(lookup.ids.get(d.vdict.vd.source.toString))
+    // Just a santity test - we should do better though
+    SquashReducerLookup.getReducer(lookupV, e & Int.MaxValue) must beGreaterThanOrEqualTo(0)
   })
 
   def partitionNoWindow = prop((f: Fact, fids: Short, partitions: Short) => partitions != 0 ==> {
