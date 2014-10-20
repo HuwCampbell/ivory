@@ -3,14 +3,13 @@ package com.ambiata.ivory.operation.ingestion
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.FeatureIdLookup
-import com.ambiata.ivory.operation.validation.Validate
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.parse._
 import com.ambiata.ivory.mr._
 
 import com.ambiata.ivory.storage.task.FactsetJob
 
-import scalaz.{Name =>_, Reducer => _, _}, Scalaz._
+import scalaz.{Name =>_, Reducer => _, Value => _, _}, Scalaz._
 
 import org.apache.hadoop.fs.{Path, FileSystem}
 import org.apache.hadoop.conf._
@@ -209,7 +208,7 @@ class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {
     }) match {
       case -\/(e)  => e.getMessage.failure
       case \/-(_)  => Conversion.thrift2fact(namespace.name, thrift, ingestZone, ivoryZone)
-        .fold(_.failure, Validate.validateFact(_, dict))
+        .fold(_.failure, Value.validateFact(_, dict))
     }).leftMap(ParseError(_, ThriftError(ThriftErrorDataVersionV1, ByteVector.view(value.getBytes).take(value.getLength))))
   }
 }

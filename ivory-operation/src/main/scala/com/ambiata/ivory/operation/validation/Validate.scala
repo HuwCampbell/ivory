@@ -61,7 +61,7 @@ case class ValidateStoreHdfs(repo: HdfsRepository, store: FeatureStore, dict: Di
       val validated: DList[Validation[String, Fact]] =
         reduced.map({ case (fs, f) =>
           dict.byFeatureId.get(f.featureId).map(fm =>
-            Validate.validateFact(f, dict).leftMap(e => s"${e} - Fact set '${fs}'")
+            Value.validateFact(f, dict).leftMap(e => s"${e} - Fact set '${fs}'")
           ).getOrElse(s"Dictionary entry '${f.featureId}' doesn't exist!".failure)
         })
 
@@ -85,7 +85,7 @@ case class ValidateFactSetHdfs(repo: HdfsRepository, factset: FactsetId, dict: D
         case \/-(s) => s
       }
 
-      val validated: DList[Validation[String, Fact]] = facts.map(f => Validate.validateFact(f, dict))
+      val validated: DList[Validation[String, Fact]] = facts.map(f => Value.validateFact(f, dict))
 
       val validationErrors: DList[String] = countRecords(validated.collect {
         case Failure(e) => e
@@ -109,44 +109,4 @@ object Validate {
     d <- ScoobiAction.fromResultTIO(latestDictionaryFromIvory(r))
     c <- ValidateFactSetHdfs(r, factset, d).exec(output)
   } yield c
-
-  def validateFact(fact: Fact, dict: Dictionary): Validation[String, Fact] =
-    dict.byFeatureId.get(fact.featureId)
-      .map {
-        case Concrete(_, fm) => validateEncoding(fact.value, fm.encoding).as(fact).leftMap(_ + s" '${fact.toString}'")
-        case _: Virtual      => s"Cannot have virtual facts for ${fact.featureId}".failure
-      }
-      .getOrElse(s"Dictionary entry '${fact.featureId}' doesn't exist!".failure)
-
-  def validateEncoding(value: Value, encoding: Encoding): Validation[String, Unit] = {
-    def fail: Validation[String, Unit] =
-      s"Not a valid ${Encoding.render(encoding)}!".failure
-    (value, encoding) match {
-      case (TombstoneValue,  _)                 => Success(())
-      case (BooleanValue(_), BooleanEncoding)   => Success(())
-      case (BooleanValue(_), _)                 => fail
-      case (IntValue(_),     IntEncoding)       => Success(())
-      case (IntValue(_),     _)                 => fail
-      case (LongValue(_),    LongEncoding)      => Success(())
-      case (LongValue(_),    _)                 => fail
-      case (DoubleValue(_),  DoubleEncoding)    => Success(())
-      case (DoubleValue(_),  _)                 => fail
-      case (StringValue(_),  StringEncoding)    => Success(())
-      case (StringValue(_),  _)                 => fail
-      case (DateValue(_),    DateEncoding)      => Success(())
-      case (DateValue(_),    _)                 => fail
-      case (s:StructValue,   e: StructEncoding) => validateStruct(s, e)
-      case (s:StructValue,   _)                 => fail
-      case (l:ListValue,     e: ListEncoding)   => l.values.foldMap(validateEncoding(_, e.encoding))
-      case (l:ListValue,     _)                 => fail
-    }
-  }
-
-  def validateStruct(fact: StructValue, encoding: StructEncoding): Validation[String, Unit] =
-    Maps.outerJoin(encoding.values, fact.values).toStream.foldMap {
-      case (n, \&/.This(enc))        => if (!enc.optional) s"Missing struct $n".failure else ().success
-      case (n, \&/.That(value))      => s"Undeclared struct value $n".failure
-      case (n, \&/.Both(enc, value)) => validateEncoding(value, enc.encoding).leftMap(_ + s" for $n")
-    }
-
 }
