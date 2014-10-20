@@ -1,7 +1,5 @@
 package com.ambiata.ivory.cli
 
-import org.apache.hadoop.fs.Path
-import com.ambiata.ivory.api.Ivory
 import com.ambiata.ivory.api.IvoryRetire
 import com.ambiata.ivory.core.HdfsRepository
 import com.ambiata.ivory.core.FactsetId
@@ -33,6 +31,6 @@ object statsFactset extends IvoryApp {
       factsetId     <- ResultT.fromOption[IO, FactsetId](FactsetId.parse(c.factSet), s"Could not parse FactsetId ${c.factSet}")
       res            = IvoryRetire.statsFacts(repo, factsetId)
       _             <- res.run(configuration.scoobiConfiguration)
-    } yield (List("🎹 "))
+    } yield List("🎹 ")
   })
 }
