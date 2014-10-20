@@ -25,7 +25,7 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
     Validate.validateEncoding(e.value, e.enc).toEither must beRight
   )
 
-  def invalid = prop((e: EncodingAndValue, e2: Encoding) => (e.enc != e2 && !isCompatible(e, e2)) ==> {
+  def invalid = prop((e: EncodingAndValue, e2: Encoding) => (e.enc != e2 && e.value != TombstoneValue && !isCompatible(e, e2)) ==> {
     Validate.validateEncoding(e.value, e2).toEither must beLeft
   })
 

@@ -1,6 +1,5 @@
 package com.ambiata.ivory.operation.validation
 
-import com.ambiata.ivory.core._
 import com.ambiata.notion.core.HdfsLocation
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, Value => _, _}, Scalaz._
@@ -119,18 +118,29 @@ object Validate {
       }
       .getOrElse(s"Dictionary entry '${fact.featureId}' doesn't exist!".failure)
 
-  def validateEncoding(value: Value, encoding: Encoding): Validation[String, Unit] =
+  def validateEncoding(value: Value, encoding: Encoding): Validation[String, Unit] = {
+    def fail: Validation[String, Unit] =
+      s"Not a valid ${Encoding.render(encoding)}!".failure
     (value, encoding) match {
+      case (TombstoneValue,  _)                 => Success(())
       case (BooleanValue(_), BooleanEncoding)   => Success(())
+      case (BooleanValue(_), _)                 => fail
       case (IntValue(_),     IntEncoding)       => Success(())
+      case (IntValue(_),     _)                 => fail
       case (LongValue(_),    LongEncoding)      => Success(())
+      case (LongValue(_),    _)                 => fail
       case (DoubleValue(_),  DoubleEncoding)    => Success(())
+      case (DoubleValue(_),  _)                 => fail
       case (StringValue(_),  StringEncoding)    => Success(())
+      case (StringValue(_),  _)                 => fail
       case (DateValue(_),    DateEncoding)      => Success(())
+      case (DateValue(_),    _)                 => fail
       case (s:StructValue,   e: StructEncoding) => validateStruct(s, e)
+      case (s:StructValue,   _)                 => fail
       case (l:ListValue,     e: ListEncoding)   => l.values.foldMap(validateEncoding(_, e.encoding))
-      case _                                    => s"Not a valid ${Encoding.render(encoding)}!".failure
+      case (l:ListValue,     _)                 => fail
     }
+  }
 
   def validateStruct(fact: StructValue, encoding: StructEncoding): Validation[String, Unit] =
     Maps.outerJoin(encoding.values, fact.values).toStream.foldMap {
