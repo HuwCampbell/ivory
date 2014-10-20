@@ -6,9 +6,8 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 
 import java.net.URI
-import java.util.UUID
 
-import scalaz._, Scalaz._, effect.IO
+import scalaz._, Scalaz._
 
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf.Configuration

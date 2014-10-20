@@ -2,10 +2,7 @@ package com.ambiata.ivory.mr
 
 import com.ambiata.ivory.core.thrift._
 
-import java.net.URI
-import java.util.UUID
-
-import scalaz._, effect.IO
+import scalaz._
 
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf.Configuration
