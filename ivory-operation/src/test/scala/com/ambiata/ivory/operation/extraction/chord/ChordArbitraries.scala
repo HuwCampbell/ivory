@@ -74,12 +74,12 @@ object ChordArbitraries {
           // NOTE: We're possibly generating an empty set of fact dates for _all_ chord dates,
           // which is technically impossible but is gracefully handled in ChordJob.reduce to make this simpler
           i  <- Gen.choose(0, 3)
-          df <- Gen.listOfN(i, genDate(d1, d2))
-        } yield d2 -> df
+          df <- Gen.listOfN(i, genDate(Date.fromLocalDate(d1.localDate.plusDays(1)), d2))
+        } yield d2 -> df.distinct
       }.toList)
     }
     // Generate a few dates above the highest chord date, only needed by ChordSpec but easier to do here
     last   = dates.map(_._1).last
-    above <- Gen.choose(1, 3).flatMap(i => Gen.listOfN(i, genDate(last, Date.maxValue)))
+    above <- Gen.choose(1, 3).flatMap(i => Gen.listOfN(i, genDate(Date.fromLocalDate(last.localDate.plusDays(1)), Date.maxValue)))
   } yield ChordEntity(e, dates, above))
 }
