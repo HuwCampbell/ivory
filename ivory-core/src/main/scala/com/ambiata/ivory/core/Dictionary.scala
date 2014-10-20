@@ -1,7 +1,6 @@
 package com.ambiata.ivory.core
 
 import scalaz._, Scalaz._
-import scala.math.{Ordering => SOrdering}
 
 /** The feature dictionary is simply a look up of metadata for a given identifier/name. */
 case class Dictionary(definitions: List[Definition]) {
