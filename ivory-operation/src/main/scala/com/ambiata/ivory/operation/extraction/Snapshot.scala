@@ -92,7 +92,9 @@ object Snapshot {
       newFactsetGlobs <- calculateGlobs(repository, dictionary, windows, newSnapshot, previousSnapshot, date)
       _               <- job(hr, previousSnapshot, newFactsetGlobs, date, output.toHdfsPath, windows, hr.codec).run(hr.configuration)
       _               <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(newSnapshot.snapshotId) / ".dictionary", dictionary)
-      _               <- SnapshotManifest.save(repository, newSnapshot)
+      // This will push a new commit if one doesnt exist, however it should already exist if the snapshot is new, it would have been pushed
+      commitId        <- Metadata.findOrCreateLatestCommitId(repository)
+      _               <- SnapshotManifest.save(repository, newSnapshot, commitId)
     } yield ()
 
   def calculateGlobs(repo: Repository, dictionary: Dictionary, windows: SnapshotWindows, newSnapshot: SnapshotManifest,
@@ -135,7 +137,7 @@ object Snapshot {
   } yield snap
 
   def dictionaryForSnapshot(repository: Repository, meta: SnapshotManifest): ResultTIO[Dictionary] =
-    meta.commitId.cata(
+    meta.storeOrCommitId.b.cata(
       commitId => for {
         commit <- commitFromIvory(repository, commitId)
         dict   <- dictionaryFromIvory(repository, commit.dictionaryId)
