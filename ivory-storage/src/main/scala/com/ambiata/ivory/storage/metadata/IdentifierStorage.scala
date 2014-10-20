@@ -6,10 +6,8 @@ import com.ambiata.ivory.data.Identifier
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import scodec.bits.ByteVector
-import java.util.UUID._
 
 import scalaz.effect._
-import scalaz.{Store => _, _}, Scalaz._
 
 object IdentifierStorage { outer =>
 
@@ -29,17 +27,18 @@ object IdentifierStorage { outer =>
    *  key / new identifier / keyName
    */
   def write(repository: Repository, key: Key, keyName: KeyName, value: ByteVector): ResultTIO[Identifier] = {
-    val temporary = "tmp" / KeyName.unsafe(randomUUID.toString)
     // TODO This is currently not threadsafe - need to deal with concurrent moves!
-    def writeToNextIdentifierFile: ResultTIO[Identifier] = for {
+    def writeToNextIdentifierFile(temporary: Key): ResultTIO[Identifier] = for {
       current <- get(repository, key)
       next    =  current.flatMap(_.next).getOrElse(Identifier.initial)
       newKey  =  key / next.asKeyName
       _       <- repository.store.move(temporary, newKey / keyName)
     } yield next
 
-    repository.store.bytes.write(temporary, value) >>
-    writeToNextIdentifierFile
+    for {
+      temporary <- Repository.tmpDir(repository)
+      _         <- repository.store.bytes.write(temporary, value)
+      id        <- writeToNextIdentifierFile(temporary)
+    } yield id
   }
-
 }

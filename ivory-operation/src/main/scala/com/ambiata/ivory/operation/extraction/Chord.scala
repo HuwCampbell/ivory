@@ -48,7 +48,7 @@ object Chord {
       featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotMeta(repository)(meta))
       dictionary           <- latestDictionaryFromIvory(repository)
       factsetGlobs         <- calculateGlobs(repository, store, entities.latestDate, featureStoreSnapshot)
-      outputPath           <- (Repository.root / "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID)).pure[ResultTIO]
+      outputPath           <- Repository.tmpDir(repository)
       _                    <- job(hr, dictionary, factsetGlobs, outputPath, entities, featureStoreSnapshot, hr.codec).run(hr.configuration)
     } yield outputPath
   }

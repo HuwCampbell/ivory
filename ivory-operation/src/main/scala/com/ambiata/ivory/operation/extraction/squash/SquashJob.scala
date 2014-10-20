@@ -51,8 +51,8 @@ object SquashJob {
    */
   def squash(repository: Repository, dictionary: Dictionary, input: Key, date: Date, conf: SquashConfig): ResultTIO[(Option[SquashStats], Key, Boolean)] = {
     if (dictionary.hasVirtual) {
-      val key = "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID)
       for {
+        key    <- Repository.tmpDir(repository)
         hr     <- downcast[Repository, HdfsRepository](repository, s"Squash only works with Hdfs repositories currently, got '$repository'")
         inPath =  hr.toIvoryLocation(input).toHdfsPath
         ns     =  dictionary.byFeatureId.groupBy(_._1.namespace).keys.toList

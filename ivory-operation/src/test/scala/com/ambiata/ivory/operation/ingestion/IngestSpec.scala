@@ -55,17 +55,17 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
 
   def thrift = prop {(facts: FactsWithDictionary, fact: Fact) =>
     val serialiser = ThriftSerialiser()
-    val location = Key.Root / KeyName.unsafe("tmp")
     val ns = facts.fid.namespace
     //  Lazy, but guaranteed to be bad so we always have at least one error
     val badFacts = List(fact.withFeatureId(facts.fid).withValue(StructValue(Map("" -> StringValue("")))))
     withHdfsRepository { repository: HdfsRepository => for {
       _   <- Repositories.create(repository)
+      loc <- Repository.tmpDir(repository)
       _   <- DictionaryThriftStorage(repository).store(facts.dictionary)
-      _   <- SequenceUtil.writeBytes(repository.toIvoryLocation(location) </> "part-r-00000", None) {
+      _   <- SequenceUtil.writeBytes(repository.toIvoryLocation(loc) </> "part-r-00000", None) {
         write => ResultT.safe((facts.facts ++ badFacts).foreach(fact => write(serialiser.toBytes(Conversion.fact2thrift(fact)))))
       }.run(repository.scoobiConfiguration)
-      fid <- Ingest.ingestFacts(repository, repository.toIvoryLocation(location), Some(ns), DateTimeZone.forID("Australia/Sydney"), 100.mb, ThriftFormat)
+      fid <- Ingest.ingestFacts(repository, repository.toIvoryLocation(loc), Some(ns), DateTimeZone.forID("Australia/Sydney"), 100.mb, ThriftFormat)
       } yield (
         valueFromSequenceFile[ThriftFact](repository.toIvoryLocation(Repository.namespace(fid, ns)).toHdfs + "/*/*/*/*").run(repository.scoobiConfiguration).toSet,
         valueFromSequenceFile[ThriftFact](repository.toIvoryLocation(Repository.errors).toHdfs + "/*/*").run(repository.scoobiConfiguration).size
