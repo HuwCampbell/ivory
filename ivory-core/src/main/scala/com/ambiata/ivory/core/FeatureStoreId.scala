@@ -4,6 +4,7 @@ import com.ambiata.ivory.data.OldIdentifier
 import com.ambiata.mundane.parse.ListParser
 
 import scalaz._, Scalaz._
+import argonaut._, Argonaut._
 
 case class FeatureStoreId(id: OldIdentifier) {
   def render = id.render
@@ -19,6 +20,11 @@ object FeatureStoreId {
 
   implicit def FeatureStoreIdOrdering =
     FeatureStoreIdOrder.toScalaOrdering
+
+  implicit def FeatureStoreIdCodecJson: CodecJson[FeatureStoreId] = CodecJson(
+    (_.id.asJson),
+    (_.as[OldIdentifier].map(FeatureStoreId.apply))
+    )
 
   def initial: FeatureStoreId =
     FeatureStoreId(OldIdentifier.initial)
