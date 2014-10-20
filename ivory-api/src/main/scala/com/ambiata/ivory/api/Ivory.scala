@@ -85,6 +85,9 @@ object Ivory
   type OutputFormats = com.ambiata.ivory.operation.extraction.output.OutputFormats
   val OutputFormats = com.ambiata.ivory.operation.extraction.output.OutputFormats
 
+  type SquashConfig = com.ambiata.ivory.operation.extraction.squash.SquashConfig
+  val SquashConfig = com.ambiata.ivory.operation.extraction.squash.SquashConfig
+
   /**
    * Debug
    */

@@ -422,7 +422,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
     Arbitrary(arbitrary[DictDesc].map(_.s).retryUntil(s => !s.contains(",") && !s.contains("\"")).map(DictTomb))
 
   implicit def DictDescArbitrary: Arbitrary[DictDesc] =
-    Arbitrary(arbitrary[String].map(_.trim).retryUntil(s => !s.contains("|") && !s.contains("\uFFFF") && s.forall(_ > 31)).map(DictDesc))
+    Arbitrary(Gen.identifier.map(_.trim).retryUntil(s => !s.contains("|") && !s.contains("\uFFFF") && s.forall(_ > 31)).map(DictDesc))
 
   implicit def FeatureStoreIdArbitrary: Arbitrary[FeatureStoreId] =
     Arbitrary(arbitrary[OldIdentifier].map(FeatureStoreId.apply))

@@ -1,5 +1,6 @@
 package com.ambiata.ivory.operation.extraction.output
 
+import com.ambiata.ivory.operation.extraction.squash.SquashConfig
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
@@ -39,7 +40,7 @@ class EavOutputSpec extends Specification with SampleFacts with ThrownExpectatio
         eav             <- IvoryLocation.fromUri((dir </> "eav").path, IvoryConfiguration.Empty)
         meta            <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), incremental = false)
         input            = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
-        _               <- EavOutput.extractFromSnapshot(repo, eav, '|', "NA", meta)
+        _               <- EavOutput.extractFromSnapshot(repo, eav, '|', "NA", meta, SquashConfig.testing)
         dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, IvoryConfiguration.Empty)
         dictionaryLines <- IvoryLocation.readLines(dictLocation)
         eavLines        <- IvoryLocation.readLines(eav).map(_.sorted)
