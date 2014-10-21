@@ -22,9 +22,10 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat
  * This is a hand-coded MR job to squeeze the most out of pivot performance.
  */
 object PivotOutputJob {
-  def run(conf: Configuration, dictionary: Dictionary, input: Path, output: Path, missing: String,
+  def run(conf: Configuration, dictionaryAll: Dictionary, input: Path, output: Path, missing: String,
           delimiter: Char, reducers: Int, codec: Option[CompressionCodec]): Unit = {
 
+    val dictionary = dictionaryAll.removeStructs
     val job = Job.getInstance(conf)
     val ctx = MrContext.newContext("ivory-pivot", job)
 
@@ -75,7 +76,7 @@ object PivotOutputJob {
       case "pivot" => output
     }, true).run(conf).run.unsafePerformIO()
 
-    DictionaryOutput.writeToHdfs(output, dictionary.removeStructs, missing, delimiter).run(conf).run.unsafePerformIO()
+    DictionaryOutput.writeToHdfs(output, dictionary, missing, delimiter).run(conf).run.unsafePerformIO()
     ()
   }
 
