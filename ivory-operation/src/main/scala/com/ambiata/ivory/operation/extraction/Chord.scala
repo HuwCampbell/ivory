@@ -43,8 +43,6 @@ object Chord {
    * Run the chord extraction on Hdfs, returning the [[Key]] where the chord was written to.
    */
   def runChord(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotManifest]): ResultTIO[Key] = {
-    val chordKey = Repository.root / "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID)
-    val outputKey = Repository.root / "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID)
     for {
       hr                   <- downcast[Repository, HdfsRepository](repository, "Chord only works on HDFS repositories at this stage.")
       featureStoreSnapshot <- incremental.traverseU(SnapshotManifest.featureStoreSnapshot(repository, _))
