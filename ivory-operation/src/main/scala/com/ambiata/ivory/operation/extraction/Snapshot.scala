@@ -40,7 +40,7 @@ object Snapshot {
    */
   def takeSnapshot(repository: Repository, date: Date, incremental: Boolean): ResultTIO[SnapshotManifest] =
     if (incremental) takeIncrementalSnapshot(repository, date)
-    else             takeNewSnapshot(repository, date)
+    else             takeNewSnapshot(repository, date).map(SnapshotManifest.snapshotManifestNew)
 
   /**
    * We need to create a new incremental snapshot if the previous one is not up to date any more
@@ -53,23 +53,23 @@ object Snapshot {
       latest  <- SnapshotManifest.latestUpToDateSnapshot(repo, date).run
       meta    <- latest match {
         case Some(m) => SnapshotManifest.getFeatureStoreId(repo, m).flatMap((featureStoreId: FeatureStoreId) => ResultT.safe[IO, SnapshotManifest](m).info(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${featureStoreId}'"))
-        case None    => SnapshotManifest.latestSnapshot(repo, date).run >>= createSnapshot(repo, date)
+        case None    => (SnapshotManifest.latestSnapshot(repo, date).run >>= createSnapshot(repo, date)).map(SnapshotManifest.snapshotManifestNew)
       }
     } yield meta
 
   /**
    * take a new snapshot, without considering any previous incremental snapshot
    */
-  def takeNewSnapshot(repository: Repository, date: Date): ResultTIO[SnapshotManifest] =
+  def takeNewSnapshot(repository: Repository, date: Date): ResultTIO[NewSnapshotManifest] =
     createSnapshot(repository, date)(None)
 
   /**
    * create a new snapshot at a given date, using the previous snapshot data if present
    */
-  def createSnapshot(repo: Repository, date: Date): Option[SnapshotManifest] => ResultTIO[SnapshotManifest] = (previousSnapshot: Option[SnapshotManifest]) =>
+  def createSnapshot(repo: Repository, date: Date): Option[SnapshotManifest] => ResultTIO[NewSnapshotManifest] = (previousSnapshot: Option[SnapshotManifest]) =>
     for {
-      newSnapshot <- SnapshotManifest.createSnapshotManifest(repo, date)
-      _           <- SnapshotManifest.getFeatureStoreId(repo, newSnapshot).flatMap((featureStoreId: FeatureStoreId) => runSnapshot(repo, newSnapshot, previousSnapshot, date, newSnapshot.snapshotId).info(s"""
+      newSnapshot <- NewSnapshotManifest.createSnapshotManifest(repo, date)
+      _           <- NewSnapshotManifest.getFeatureStoreId(repo, newSnapshot).flatMap((featureStoreId: FeatureStoreId) => runSnapshot(repo, newSnapshot, previousSnapshot, date, newSnapshot.snapshotId).info(s"""
                                  | Running extractor on:
                                  |
                                  | Repository     : ${repo}
@@ -83,7 +83,7 @@ object Snapshot {
   /**
    * Run a snapshot on a given repository using the previous snapshot in case of an incremental snapshot
    */
-  def runSnapshot(repository: Repository, newSnapshot: SnapshotManifest, previousSnapshot: Option[SnapshotManifest], date: Date, newSnapshotId: SnapshotId): ResultTIO[Unit] =
+  def runSnapshot(repository: Repository, newSnapshot: NewSnapshotManifest, previousSnapshot: Option[SnapshotManifest], date: Date, newSnapshotId: SnapshotId): ResultTIO[Unit] =
     for {
       hr              <- downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'")
       output          =  hr.toIvoryLocation(Repository.snapshot(newSnapshot.snapshotId))
@@ -92,14 +92,10 @@ object Snapshot {
       newFactsetGlobs <- calculateGlobs(repository, dictionary, windows, newSnapshot, previousSnapshot, date)
       _               <- job(hr, previousSnapshot, newFactsetGlobs, date, output.toHdfsPath, windows, hr.codec).run(hr.configuration)
       _               <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(newSnapshot.snapshotId) / ".dictionary", dictionary)
-      // This will push a new commit if one doesnt exist, however it should already exist if the snapshot is new, it would have been pushed
-      commitId        <- newSnapshot.storeOrCommitId.b.cata(
-        _.pure[ResultTIO],
-        Metadata.findOrCreateLatestCommitId(repository))
-      _               <- SnapshotManifest.save(repository, newSnapshot, commitId)
+      _               <- NewSnapshotManifest.save(repository, newSnapshot)
     } yield ()
 
-  def calculateGlobs(repo: Repository, dictionary: Dictionary, windows: SnapshotWindows, newSnapshot: SnapshotManifest,
+  def calculateGlobs(repo: Repository, dictionary: Dictionary, windows: SnapshotWindows, newSnapshot: NewSnapshotManifest,
                      previousSnapshot: Option[SnapshotManifest], date: Date): ResultTIO[List[Prioritized[FactsetGlob]]] =
     for {
       currentFeatureStore <- Metadata.latestFeatureStoreOrFail(repo)

@@ -35,76 +35,104 @@ object SnapshotManifestVersion {
   }
 }
 
-/**
- * Representation of Snapshot metadata stored on disk
- **/
-case class SnapshotManifest(
-  snapshotId: SnapshotId,
-  formatVersion: SnapshotManifestVersion,
-  date: Date,
-  storeOrCommitId: (FeatureStoreId \&/ CommitId),
-  others: Json) {
+sealed trait SnapshotManifest {
 
-  def byKey[A: DecodeJson](key: String): Option[A] = others.field(key).flatMap(_.as[A].toOption)
-
-  // version shouldn't be relevent to ordering.
-  def order(other: SnapshotManifest): Ordering = (SnapshotManifest.eitherThat(storeOrCommitId), SnapshotManifest.eitherThat(other.storeOrCommitId)) match {
-    case (-\/(_), \/-(_))   => Ordering.LT
-    case (\/-(_), -\/(_))   => Ordering.GT
-    case (-\/(f1), -\/(f2)) => (snapshotId, date, f1).?|?((other.snapshotId, other.date, f2))
-    case (\/-(c1), \/-(c2)) => (snapshotId, date, c1).?|?((other.snapshotId, other.date, c2))
+  def fold[X](f: (legacy.SnapshotMeta => X), g: (NewSnapshotManifest => X)) : X = this match {
+    case SnapshotManifestLegacy(lm) => f(lm)
+    case SnapshotManifestNew(meta)  => g(meta)
   }
+
+  def snapshotId: SnapshotId = fold(_.snapshotId, _.snapshotId)
+
+  def formatVersion: SnapshotManifestVersion = fold(_ => SnapshotManifestVersionLegacy, _.formatVersion)
+
+  def date: Date = fold(_.date, _.date)
+
+  def storeOrCommitId : (FeatureStoreId \&/ CommitId) = fold(
+    (lm: legacy.SnapshotMeta) => lm.commitId.cata(
+      wrapBoth(lm.featureStoreId, _),
+      wrapThis(lm.featureStoreId)),
+    (meta: NewSnapshotManifest) => wrapThat(meta.commitId))
+
+  def byKey[A: DecodeJson](key: String): Option[A] = fold(
+    _ => none,
+    _.others.field(key).flatMap(_.as[A].toOption))
+
+  def order(other: SnapshotManifest): Ordering = (this, other) match {
+    case (SnapshotManifestLegacy(_), SnapshotManifestNew(_)) => Ordering.LT
+    case (SnapshotManifestNew(_), SnapshotManifestLegacy(_)) => Ordering.GT
+    case (SnapshotManifestLegacy(lm1), SnapshotManifestLegacy(lm2)) => lm1 order lm2
+    case (SnapshotManifestNew(jm1), SnapshotManifestNew(jm2)) => jm1 order jm2
+  }
+
+  // These are in series/7.2.x
+
+  private def wrapThis[A, B](x: A): (A \&/ B) = This(x)
+
+  private def wrapThat[A, B](x: B): (A \&/ B) = That(x)
+
+  private def wrapBoth[A, B](x: A, y: B): (A \&/ B) = Both(x, y)
+
 }
+
+case class SnapshotManifestLegacy(lm: legacy.SnapshotMeta) extends SnapshotManifest
+case class SnapshotManifestNew(meta: NewSnapshotManifest) extends SnapshotManifest
 
 object SnapshotManifest {
 
-  // FIXME: Remove the `unsafe` after the KeyName macros accessibility has been fixed.
-  val metaKeyName = KeyName.unsafe(".metadata.json")
+  def snapshotManifestLegacy(lm: legacy.SnapshotMeta): SnapshotManifest = new SnapshotManifestLegacy(lm)
 
-  private val allocated = KeyName.unsafe(".allocated")
-
-  // exported functions:
-
-  def fromSnapshotMetaLegacy(lm: legacy.SnapshotMeta): SnapshotManifest = {
-    val cId: (FeatureStoreId \&/ CommitId) = lm.commitId.cata(Both(lm.featureStoreId, _), This(lm.featureStoreId))
-
-    SnapshotManifest(
-      lm.snapshotId,
-      SnapshotManifestVersionLegacy,
-      lm.date,
-      cId,
-      baseJsonObject(
-        lm.snapshotId,
-        SnapshotManifestVersionLegacy,
-        lm.date,
-        cId))
-  }
-
-  def snapshotManifest(
-    snapshotId: SnapshotId,
-    date: Date,
-    storeOrCommitId: (FeatureStoreId \&/ CommitId),
-    others: Json): SnapshotManifest = SnapshotManifest(
-      snapshotId,
-      SnapshotManifestVersionV1,
-      date,
-      storeOrCommitId,
-      others)
-
-  def createSnapshotManifest(repo: Repository, date: Date): ResultTIO[SnapshotManifest] = for {
-    snapshotId <- allocateId(repo)
-    storeOrCommitId <- Metadata.findOrCreateLatestCommitId(repo)
-  } yield newSnapshotMeta(snapshotId, date, storeOrCommitId)
+  def snapshotManifestNew(meta: NewSnapshotManifest): SnapshotManifest = new SnapshotManifestNew(meta)
 
   def fromIdentifier(repo: Repository, id: SnapshotId): OptionT[ResultTIO, SnapshotManifest] = for {
     // try reading the JSON one first:
-    jsonExists <- repo.store.exists(Repository.snapshot(id) / SnapshotManifest.metaKeyName).liftM[OptionT]
+    jsonExists <- repo.store.exists(Repository.snapshot(id) / NewSnapshotManifest.metaKeyName).liftM[OptionT]
 
     x <- {
       if (jsonExists)
-        jsonMetaFromIdentifier(repo, id).liftM[OptionT]
+        NewSnapshotManifest.newManifestFromIdentifier(repo, id).map(snapshotManifestNew).liftM[OptionT]
       else
-        OptionT.optionT(legacy.SnapshotMeta.fromIdentifier(repo, id)).map(fromSnapshotMetaLegacy(_))
+        OptionT.optionT(legacy.SnapshotMeta.fromIdentifier(repo, id)).map(snapshotManifestLegacy)
+    }
+  } yield x
+
+  def getFeatureStoreId(repo: Repository, meta: SnapshotManifest): ResultTIO[FeatureStoreId] = meta.fold(
+    (lm: legacy.SnapshotMeta) => lm.featureStoreId.pure[ResultTIO],
+    (nm: NewSnapshotManifest) => NewSnapshotManifest.getFeatureStoreId(repo, nm))
+
+  def featureStoreSnapshot(repo: Repository, meta: SnapshotManifest): ResultTIO[legacy.FeatureStoreSnapshot] = for {
+    storeId <- getFeatureStoreId(repo, meta)
+    store <- Metadata.featureStoreFromIvory(repo, storeId)
+  } yield legacy.FeatureStoreSnapshot(meta.snapshotId, meta.date, store)
+
+  /**
+   * get the latest snapshot which is just before a given date
+   *
+   * If there are 2 snapshots at the same date:
+   *
+   *   - take the snapshot having the greatest commit id
+   *   - if this results in 2 snapshots having the same commit id, take the one having the greatest snapshot id
+   *
+   * This is implemented by defining an order on snapshots where we order based on the triple of
+   *  (snapshotId, commitStoreId, date)
+   *
+   */
+  def latestSnapshot(repository: Repository, date: Date): OptionT[ResultTIO, SnapshotManifest] = for {
+    ids <- repository.store.listHeads(Repository.snapshots).liftM[OptionT]
+    sids <- OptionT.optionT[ResultTIO](ids.traverseU((sid: Key) => SnapshotId.parse(sid.name)).pure[ResultTIO])
+    metas <- sids.traverseU((sid: SnapshotId) => fromIdentifier(repository, sid))
+    filtered = metas.filter(_.date isBeforeOrEqual date)
+    meta <- OptionT.optionT[ResultTIO](filtered.sorted.lastOption.pure[ResultTIO])
+  } yield meta
+
+  def latestWithStoreId(repo: Repository, date: Date, featureStoreId: FeatureStoreId): OptionT[ResultTIO, SnapshotManifest] = for {
+    meta <- latestSnapshot(repo, date)
+    metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
+    x <- {
+      if (metaFeatureId == featureStoreId)
+        OptionT.some[ResultTIO, SnapshotManifest](meta)
+      else
+        OptionT.none[ResultTIO, SnapshotManifest]
     }
   } yield x
 
@@ -134,90 +162,15 @@ object SnapshotManifest {
 
   } yield x
 
-  def latestWithStoreId(repo: Repository, date: Date, featureStoreId: FeatureStoreId): OptionT[ResultTIO, SnapshotManifest] = for {
-    meta <- latestSnapshot(repo, date)
-    metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
-    x <- {
-      if (metaFeatureId == featureStoreId)
-        OptionT.some[ResultTIO, SnapshotManifest](meta)
-      else
-        OptionT.none[ResultTIO, SnapshotManifest]
-    }
-  } yield x
+  // Instances
 
-  /**
-   * get the latest snapshot which is just before a given date
-   *
-   * If there are 2 snapshots at the same date:
-   *
-   *   - take the snapshot having the greatest commit id
-   *   - if this results in 2 snapshots having the same commit id, take the one having the greatest snapshot id
-   *
-   * This is implemented by defining an order on snapshots where we order based on the triple of
-   *  (snapshotId, commitStoreId, date)
-   *
-   */
-  def latestSnapshot(repository: Repository, date: Date): OptionT[ResultTIO, SnapshotManifest] = for {
-    ids <- repository.store.listHeads(Repository.snapshots).liftM[OptionT]
-    sids <- OptionT.optionT[ResultTIO](ids.traverseU((sid: Key) => SnapshotId.parse(sid.name)).pure[ResultTIO])
-    metas <- sids.traverseU((sid: SnapshotId) => fromIdentifier(repository, sid))
-    filtered = metas.filter(_.date isBeforeOrEqual date)
-    meta <- OptionT.optionT[ResultTIO](filtered.sorted.lastOption.pure[ResultTIO])
-  } yield meta
-
-  def getFeatureStoreId(repo: Repository, meta: SnapshotManifest): ResultTIO[FeatureStoreId] = eitherThis(meta.storeOrCommitId).fold(
-    _.pure[ResultTIO],
-    Metadata.commitFromIvory(repo, _).map(_.featureStoreId))
-
-  def featureStoreSnapshot(repo: Repository, meta: SnapshotManifest): ResultTIO[legacy.FeatureStoreSnapshot] = for {
-    storeId <- getFeatureStoreId(repo, meta)
-    store <- Metadata.featureStoreFromIvory(repo, storeId)
-  } yield legacy.FeatureStoreSnapshot(meta.snapshotId, meta.date, store)
-
-  def save(repository: Repository, snapshotMeta: SnapshotManifest, cId: CommitId): ResultTIO[Unit] = {
-    // option is set to none if the metadata already has a Commit ID
-    val commit: Option[CommitId] = snapshotMeta.storeOrCommitId.b.cata(_ => none, cId.pure[Option])
-    val json = commit.map("commit_id":= _) ->?: snapshotMeta.asJson
-
-    repository.store.utf8.write(
-      Repository.snapshot(snapshotMeta.snapshotId) / SnapshotManifest.metaKeyName,
-      json.nospaces)
-  }
-
-  // instances
-
-  implicit def SnapshotManifestOrder: Order[SnapshotManifest] = Order.order(_ order _)
+  implicit def SnapshotManifestOrder: Order[SnapshotManifest] =
+    Order.order(_ order _)
 
   implicit def SnapshotManifestSOrdering: SOrdering[SnapshotManifest] =
     SnapshotManifestOrder.toScalaOrdering
 
-  implicit def SnapshotManifestCodecJson : CodecJson[SnapshotManifest] = CodecJson(
-    (_.others),
-    ((c: HCursor) => for {
-      id <- (c --\ "id").as[SnapshotId]
-      version <- (c --\ "format_version").as[SnapshotManifestVersion]
-      date <- (c --\ "date").as[Date]
-      commitId <- (c --\ "commit_id").as[CommitId]
-      json <- c.as[Json]
-    } yield SnapshotManifest(id, version, date, That(commitId), json)))
-
   // helpers
-
-  private def newSnapshotMeta(
-    snapshotId: SnapshotId,
-    date: Date,
-    commitId: CommitId) = SnapshotManifest(snapshotId, SnapshotManifestVersionV1, date, wrapThat(commitId), baseJsonObject(snapshotId, SnapshotManifestVersionV1, date, That(commitId)))
-
-  private def jsonMetaFromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[SnapshotManifest] = for {
-    json <- repo.store.utf8.read(Repository.snapshot(id) / SnapshotManifest.metaKeyName)
-    x <- fromJson(json) match {
-      case -\/(msg)       => ResultT.fail[IO, SnapshotManifest]("failed to parse Snapshot manifest: " ++ msg)
-      case \/-(jsonmeta)  => jsonmeta.pure[ResultTIO]
-    }
-  } yield x
-
-  private def fromJson(json: String): (String \/ SnapshotManifest) = Parse.decodeEither[SnapshotManifest](json)
-
   private def checkForNewerFeatures(repo: Repository, metaFeatureId: FeatureStoreId, store: FeatureStore, beginDate: Date, endDate: Date): ResultTIO[Boolean] = {
     if (metaFeatureId == store.id) {
       if (beginDate == endDate)
@@ -227,6 +180,85 @@ object SnapshotManifest {
     } else false.pure[ResultTIO]
   }
 
+
+}
+
+/**
+ * Representation of Snapshot metadata stored on disk
+ **/
+case class NewSnapshotManifest(
+  snapshotId: SnapshotId,
+  formatVersion: SnapshotManifestVersion,
+  date: Date,
+  commitId: CommitId,
+  others: Json) {
+
+  def byKey[A: DecodeJson](key: String): Option[A] = others.field(key).flatMap(_.as[A].toOption)
+
+  // version shouldn't be relevent to ordering.
+  def order(other: NewSnapshotManifest): Ordering = (snapshotId, date, commitId).?|?((other.snapshotId, other.date, other.commitId))
+
+}
+
+object NewSnapshotManifest {
+
+  // FIXME: Remove the `unsafe` after the KeyName macros accessibility has been fixed.
+  val metaKeyName = KeyName.unsafe(".metadata.json")
+
+  private val allocated = KeyName.unsafe(".allocated")
+
+  // exported functions:
+
+  def newSnapshotMeta(
+    snapshotId: SnapshotId,
+    date: Date,
+    commitId: CommitId) = NewSnapshotManifest(snapshotId, SnapshotManifestVersionV1, date, commitId, baseJsonObject(snapshotId, SnapshotManifestVersionV1, date, commitId))
+
+  def createSnapshotManifest(repo: Repository, date: Date): ResultTIO[NewSnapshotManifest] = for {
+    snapshotId <- allocateId(repo)
+    commitId <- Metadata.findOrCreateLatestCommitId(repo)
+  } yield newSnapshotMeta(snapshotId, date, commitId)
+
+  def getFeatureStoreId(repo: Repository, meta: NewSnapshotManifest): ResultTIO[FeatureStoreId] = Metadata.commitFromIvory(repo, meta.commitId).map(_.featureStoreId)
+
+  def featureStoreSnapshot(repo: Repository, meta: NewSnapshotManifest): ResultTIO[legacy.FeatureStoreSnapshot] = for {
+    storeId <- getFeatureStoreId(repo, meta)
+    store <- Metadata.featureStoreFromIvory(repo, storeId)
+  } yield legacy.FeatureStoreSnapshot(meta.snapshotId, meta.date, store)
+
+  def newManifestFromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[NewSnapshotManifest] = for {
+    json <- repo.store.utf8.read(Repository.snapshot(id) / NewSnapshotManifest.metaKeyName)
+    x <- fromJson(json) match {
+      case -\/(msg)       => ResultT.fail[IO, NewSnapshotManifest]("failed to parse Snapshot manifest: " ++ msg)
+      case \/-(jsonmeta)  => jsonmeta.pure[ResultTIO]
+    }
+  } yield x
+
+  def save(repository: Repository, meta: NewSnapshotManifest): ResultTIO[Unit] = repository.store.utf8.write(
+    Repository.snapshot(meta.snapshotId) / NewSnapshotManifest.metaKeyName,
+    meta.asJson.nospaces)
+
+  // instances
+
+  implicit def NewSnapshotManifestOrder: Order[NewSnapshotManifest] = Order.order(_ order _)
+
+  implicit def NewSnapshotManifestSOrdering: SOrdering[NewSnapshotManifest] =
+    NewSnapshotManifestOrder.toScalaOrdering
+
+  implicit def NewSnapshotManifestCodecJson : CodecJson[NewSnapshotManifest] = CodecJson(
+    (_.others),
+    ((c: HCursor) => for {
+      id <- (c --\ "id").as[SnapshotId]
+      version <- (c --\ "format_version").as[SnapshotManifestVersion]
+      date <- (c --\ "date").as[Date]
+      commitId <- (c --\ "commit_id").as[CommitId]
+      json <- c.as[Json]
+    } yield NewSnapshotManifest(id, version, date, commitId, json)))
+
+  // helpers
+
+  private def fromJson(json: String): (String \/ NewSnapshotManifest) = Parse.decodeEither[NewSnapshotManifest](json)
+
   /**
    * create a new Snapshot id by create a new .allocated sub-directory
    * with the latest available identifier + 1
@@ -234,21 +266,10 @@ object SnapshotManifest {
   private def allocateId(repo: Repository): ResultTIO[SnapshotId] =
     IdentifierStorage.write(repo, Repository.snapshots, allocated, scodec.bits.ByteVector.empty).map(SnapshotId.apply)
 
-  private def baseJsonObject(snapshotId: SnapshotId, currentVersion: SnapshotManifestVersion, date: Date, storeOrCommitId: (FeatureStoreId \&/ CommitId)): Json = {
-
-    val f: Option[FeatureStoreId] = storeOrCommitId.a
-    val c: Option[CommitId] = storeOrCommitId.b
-
-    ("id" := snapshotId) ->: ("format_version" := currentVersion) ->: ("date" := date) ->: f.map("store_id" := _) ->?: c.map("commit_id" := _) ->?: jEmptyObject
+  private def baseJsonObject(snapshotId: SnapshotId, currentVersion: SnapshotManifestVersion, date: Date, commitId: CommitId): Json = {
+    ("id" := snapshotId) ->: ("format_version" := currentVersion) ->: ("date" := date) ->: ("commit_id" := commitId) ->: jEmptyObject
   }
 
-  // These are in series/7.1.x
-
-  private def wrapThis[A, B](x: A): (A \&/ B) = This(x)
-
-  private def wrapThat[A, B](x: B): (A \&/ B) = That(x)
-
-  private def wrapBoth[A, B](x: A, y: B): (A \&/ B) = Both(x, y)
 
   // These dont seem to be in scalaz at all
 
