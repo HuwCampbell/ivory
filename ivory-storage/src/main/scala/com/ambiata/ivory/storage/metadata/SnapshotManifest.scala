@@ -54,10 +54,6 @@ sealed trait SnapshotManifest {
       wrapThis(lm.featureStoreId)),
     (meta: NewSnapshotManifest) => wrapThat(meta.commitId))
 
-  def byKey[A: DecodeJson](key: String): Option[A] = fold(
-    _ => none,
-    _.others.field(key).flatMap(_.as[A].toOption))
-
   def order(other: SnapshotManifest): Ordering = (this, other) match {
     case (SnapshotManifestLegacy(_), SnapshotManifestNew(_)) => Ordering.LT
     case (SnapshotManifestNew(_), SnapshotManifestLegacy(_)) => Ordering.GT
@@ -65,7 +61,7 @@ sealed trait SnapshotManifest {
     case (SnapshotManifestNew(jm1), SnapshotManifestNew(jm2)) => jm1 order jm2
   }
 
-  // These are in series/7.2.x
+  // These are in scalaz series/7.2.x
 
   private def wrapThis[A, B](x: A): (A \&/ B) = This(x)
 
@@ -190,10 +186,7 @@ case class NewSnapshotManifest(
   snapshotId: SnapshotId,
   formatVersion: SnapshotManifestVersion,
   date: Date,
-  commitId: CommitId,
-  others: Json) {
-
-  def byKey[A: DecodeJson](key: String): Option[A] = others.field(key).flatMap(_.as[A].toOption)
+  commitId: CommitId) {
 
   // version shouldn't be relevent to ordering.
   def order(other: NewSnapshotManifest): Ordering = (snapshotId, date, commitId).?|?((other.snapshotId, other.date, other.commitId))
@@ -212,7 +205,7 @@ object NewSnapshotManifest {
   def newSnapshotMeta(
     snapshotId: SnapshotId,
     date: Date,
-    commitId: CommitId) = NewSnapshotManifest(snapshotId, SnapshotManifestVersionV1, date, commitId, baseJsonObject(snapshotId, SnapshotManifestVersionV1, date, commitId))
+    commitId: CommitId) = NewSnapshotManifest(snapshotId, SnapshotManifestVersionV1, date, commitId)
 
   def createSnapshotManifest(repo: Repository, date: Date): ResultTIO[NewSnapshotManifest] = for {
     snapshotId <- allocateId(repo)
@@ -246,14 +239,13 @@ object NewSnapshotManifest {
     NewSnapshotManifestOrder.toScalaOrdering
 
   implicit def NewSnapshotManifestCodecJson : CodecJson[NewSnapshotManifest] = CodecJson(
-    (_.others),
+    toJsonObject,
     ((c: HCursor) => for {
       id <- (c --\ "id").as[SnapshotId]
       version <- (c --\ "format_version").as[SnapshotManifestVersion]
       date <- (c --\ "date").as[Date]
       commitId <- (c --\ "commit_id").as[CommitId]
-      json <- c.as[Json]
-    } yield NewSnapshotManifest(id, version, date, commitId, json)))
+    } yield NewSnapshotManifest(id, version, date, commitId)))
 
   // helpers
 
@@ -266,8 +258,8 @@ object NewSnapshotManifest {
   private def allocateId(repo: Repository): ResultTIO[SnapshotId] =
     IdentifierStorage.write(repo, Repository.snapshots, allocated, scodec.bits.ByteVector.empty).map(SnapshotId.apply)
 
-  private def baseJsonObject(snapshotId: SnapshotId, currentVersion: SnapshotManifestVersion, date: Date, commitId: CommitId): Json = {
-    ("id" := snapshotId) ->: ("format_version" := currentVersion) ->: ("date" := date) ->: ("commit_id" := commitId) ->: jEmptyObject
+  private def toJsonObject(meta: NewSnapshotManifest): Json = {
+    ("id" := meta.snapshotId) ->: ("format_version" := meta.formatVersion) ->: ("date" := meta.date) ->: ("commit_id" := meta.commitId) ->: jEmptyObject
   }
 
 }
