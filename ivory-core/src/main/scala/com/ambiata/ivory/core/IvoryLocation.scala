@@ -93,19 +93,19 @@ object LocalIvoryLocation {
 object IvoryLocation {
   def deleteAll(location: IvoryLocation): ResultTIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Directories.delete(l.dirPath).void
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3.deleteAllx(S3Address(bucket, key)).executeT(s3Client)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Prefix(bucket, key).delete.executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.deleteAll(new Path(path)).run(conf)
   }
 
   def delete(location: IvoryLocation): ResultTIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Files.delete(l.filePath).void
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3.deleteObject(S3Address(bucket, key)).executeT(s3Client)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).delete.executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.delete(new Path(path)).run(conf)
   }
 
   def readLines(location: IvoryLocation): ResultTIO[List[String]] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Files.readLines(l.filePath).map(_.toList)
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3.readLines(S3Address(bucket, key)).executeT(s3Client)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).getLines.executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
       Hdfs.isDirectory(new Path(path)).flatMap { isDirectory =>
         if (isDirectory)
@@ -121,7 +121,7 @@ object IvoryLocation {
       Directories.list(l.dirPath).map(fs => fs.map(f => l.copy(location = LocalLocation(f.path))))
 
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
-      S3.listKeysx(S3Address(bucket, key)).executeT(s3Client).map(_.map { k =>
+      S3Prefix(bucket, key).listKeys.executeT(s3Client).map(_.map { k =>
         s.copy(location = S3Location(bucket,  k))
       })
 
@@ -132,9 +132,9 @@ object IvoryLocation {
   }
 
   def exists(location: IvoryLocation): ResultTIO[Boolean] = location match {
-    case l @ LocalIvoryLocation(LocalLocation(path)) =>
+    case l @ LocalIvoryLocation(LocalLocation(path))            =>
       Files.exists(FilePath.unsafe(path)).flatMap(e => if (e) ResultT.ok[IO, Boolean](e) else Directories.exists(l.dirPath))
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3.exists(S3Address(bucket, key)).executeT(s3Client)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).exists.executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.exists(new Path(path)).run(conf)
   }
 
@@ -143,13 +143,13 @@ object IvoryLocation {
   
   def writeUtf8(location: IvoryLocation, string: String): ResultTIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Files.write(l.filePath, string)
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3.writeLines(S3Address(bucket, key), string.split("\n")).executeT(s3Client).void
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).put(string).executeT(s3Client).void
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.writeWith(new Path(path), out => Streams.write(out, string)).run(conf)
   }
 
   def isDirectory(location: IvoryLocation): ResultTIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => ResultT.safe[IO, Boolean](new File(path).isDirectory)
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3.listSummaryx(S3Address(bucket, key + "/")).map(_.nonEmpty).executeT(s3Client)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Prefix(bucket, key + "/").listSummary.map(_.nonEmpty).executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.isDirectory(new Path(path)).run(conf)
   }
 

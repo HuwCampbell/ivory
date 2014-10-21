@@ -1,9 +1,10 @@
 package com.ambiata.ivory.storage.version
 
-import com.ambiata.notion.core._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
-import org.specs2.Specification
 import com.ambiata.ivory.core.TemporaryLocations._
+import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.notion.core._
+import com.ambiata.notion.core.TemporaryType._
+import org.specs2.Specification
 import scalaz._, Scalaz._
 
 class VersionSpec extends Specification { def is = s2"""

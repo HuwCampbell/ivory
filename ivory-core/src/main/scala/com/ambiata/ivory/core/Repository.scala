@@ -1,5 +1,7 @@
 package com.ambiata.ivory.core
 
+import com.ambiata.saws.s3.S3Prefix
+
 import scalaz.{Name=>_,Store => _, _}
 import com.ambiata.mundane.control.{ResultTIO, ResultT}
 import com.ambiata.mundane.io._
@@ -71,7 +73,7 @@ object LocalRepository {
  * convert them to the ivory format before pushing them to S3
  */
 case class S3Repository(root: S3IvoryLocation, s3TmpDirectory: DirPath) extends Repository {
-  def store = S3Store(root.location.bucket, DirPath.unsafe(root.location.key), root.s3Client, s3TmpDirectory)
+  def store = S3Store(S3Prefix(root.location.bucket, root.location.key), root.s3Client, s3TmpDirectory)
 
   def toIvoryLocation(key: Key): S3IvoryLocation =
     root </> DirPath.unsafe(key.name)

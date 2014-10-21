@@ -58,7 +58,7 @@ object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Com
   }
 
   def listIds(repo: Repository): ResultTIO[List[CommitId]] = for {
-    keys <- repo.store.list(Repository.commits).map(_.filterHidden)
+    keys <- repo.store.listHeads(Repository.commits).map(_.filterHidden)
     ids  <- keys.traverseU(key => ResultT.fromOption[IO, CommitId](CommitId.parse(key.name),
                                                       s"Can not parse Commit id '$key'"))
   } yield ids

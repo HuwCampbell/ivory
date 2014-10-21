@@ -12,7 +12,7 @@ import com.ambiata.ivory.storage.repository.Repositories
 import com.ambiata.mundane.control.ResultT
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
-import com.ambiata.notion.core.{Key, KeyName}
+import com.ambiata.notion.core.TemporaryType.Hdfs
 import com.nicta.scoobi.Scoobi._
 import org.joda.time.DateTimeZone
 import org.specs2.{ScalaCheck, Specification}
