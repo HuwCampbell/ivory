@@ -15,16 +15,21 @@ object Skew {
    *  @return the number of reducers
    *          a list of (namespace, feature id,
    */
-  def calculate(dictionary: Dictionary, namespaces: List[(Name, BytesQuantity)], optimal: BytesQuantity): (Int, List[(Name, String, Int)]) =
-    namespaces.foldLeft(0 -> List[(Name, String, Int)]()) { case ((allocated, acc), (namespace, size)) =>
-      val features = dictionary.forNamespace(namespace).byFeatureId.keys.map(_.name).toList
-      val count = features.size
+  def calculate(dictionary: Dictionary, namespaces: List[(Name, BytesQuantity)], optimal: BytesQuantity): (Int, List[(Name, String, FeatureReducerOffset)]) =
+    namespaces.foldLeft(0 -> List[(Name, String, FeatureReducerOffset)]()) { case ((allocated, acc), (namespace, size)) =>
+      // Only consider the concrete features
+      val features = dictionary.forNamespace(namespace).byConcrete.sources.keys.map(_.name).toList
       val potential = (size.toBytes.value / optimal.toBytes.value).toInt + 1
+      // For this namespace, what is the proportion of the reducers that _each_ feature gets (rounding up to 1)
+      val proportion = Math.max(1, potential / features.size)
+      // Remove any used excess count if we have more reducers than features and they don't divide evenly
+      // Alternatively we could give it (arbitrarily) to one of the features
+      val excessCount = if (potential <= features.size) 0 else potential % features.size
 
       val x = features.zipWithIndex.map { case (feature, idx) =>
-        (namespace, feature, allocated + (idx % potential))
+        (namespace, feature, FeatureReducerOffset((allocated + (idx * proportion % potential)).toShort, proportion.toShort))
       }
-      (allocated + math.min(potential, count) , x ::: acc)
+      (allocated + potential - excessCount, x ::: acc)
     }
 
 }

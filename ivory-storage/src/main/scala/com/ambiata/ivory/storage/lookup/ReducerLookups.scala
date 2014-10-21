@@ -31,13 +31,10 @@ object ReducerLookups {
     val (namespaces, features) = index(dictionary)
     val reducers = new ReducerLookup
     allocations.foreach { case (n, f, r) =>
-      reducers.putToReducers(features.ids.get(FeatureId(n, f).toString), r)
+      reducers.putToReducers(features.ids.get(FeatureId(n, f).toString), r.toInt)
     }
     ReducerLookups(reducersNb, reducers, namespaces, features)
   }
-
-  def factsetPartitionFor(lookup: NamespaceLookup, key: LongWritable): String =
-    factsetPartitionForInt(lookup, (key.get >>> 32).toInt, Date.unsafeFromInt((key.get & 0xffffffff).toInt))
 
   def factsetPartitionForInt(lookup: NamespaceLookup, featureId: Int, date: Date): String =
     "factset" + "/" + lookup.namespaces.get(featureId) + "/" + date.slashed + "/part"

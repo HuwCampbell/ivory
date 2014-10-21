@@ -6,6 +6,7 @@ import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.rename.RenameWritable._
 import com.ambiata.poacher.mr.Writables
+import org.apache.hadoop.io.WritableComparator
 import org.specs2.execute.Result
 import org.specs2.{ScalaCheck, Specification}
 
@@ -15,6 +16,7 @@ class RenameWritableSpec extends Specification with ScalaCheck { def is = s2"""
   Sorting by featureId and date, then entity, time and priority   $sortingFeatureDate
   Get featureId from group                                        $featureId
   Get date from group                                             $getDate
+  Get entity hash from key                                        $getEntityHash
 """
 
   def groupFeatureDate = prop((f1: FactAndPriority, f2: FactAndPriority) => {
@@ -39,6 +41,15 @@ class RenameWritableSpec extends Specification with ScalaCheck { def is = s2"""
     val bw = Writables.bytesWritable(4096)
     KeyState.set(f1.f, f1.p, bw, i)
     GroupingByFeatureIdDate.getDate(bw) ==== f1.f.date
+  })
+
+  def getEntityHash = prop((f1: FactAndPriority, i: Int) => {
+    val bw = Writables.bytesWritable(4096)
+    KeyState.set(f1.f, f1.p, bw, i)
+    val bw2 = Writables.bytesWritable(4096)
+    val e = f1.f.entity.getBytes("UTF-8")
+    bw2.set(e, 0, e.length)
+    GroupingByFeatureIdDate.getEntityHash(bw) ==== WritableComparator.hashBytes(e, 0, e.length)
   })
 
   def check(f1: FactAndPriority, f2: FactAndPriority)(f: (FactAndPriority, Array[Byte], Array[Byte]) => (Int, Int)): Result =

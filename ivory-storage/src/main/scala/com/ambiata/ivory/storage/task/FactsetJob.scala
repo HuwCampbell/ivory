@@ -46,13 +46,13 @@ object FactsetJob {
 
     /** map */
     // job.setMapperClass(....) must be done by the caller method
-    job.setMapOutputKeyClass(classOf[LongWritable])
+    job.setMapOutputKeyClass(classOf[BytesWritable])
     job.setMapOutputValueClass(classOf[BytesWritable])
 
     /** partition & sort */
     job.setPartitionerClass(classOf[FactsPartitioner])
-    job.setGroupingComparatorClass(classOf[LongWritable.Comparator])
-    job.setSortComparatorClass(classOf[LongWritable.Comparator])
+    job.setGroupingComparatorClass(classOf[FactsetWritable.Comparator])
+    job.setSortComparatorClass(classOf[FactsetWritable.Comparator])
 
     /** reducer */
     job.setNumReduceTasks(reducerLookups.reducersNb)

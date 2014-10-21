@@ -2,8 +2,6 @@ package com.ambiata.ivory
 package storage
 package repository
 
-import java.lang.{Iterable => JIterable}
-
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
@@ -12,7 +10,7 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.repository.RecreateFactsetJob.Keys
 import com.ambiata.ivory.storage.repository.RecreateFactsetMapper._
-import com.ambiata.ivory.storage.task.FactsetJob
+import com.ambiata.ivory.storage.task.{FactsetWritable, FactsetJob}
 import com.ambiata.mundane.io.{BytesQuantity, FilePath}
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.conf._
@@ -20,8 +18,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce._
-import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat, SequenceFileInputFormat}
-import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, LazyOutputFormat, MultipleOutputs, SequenceFileOutputFormat}
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat
 
 import scalaz.{Name => _, Reducer => _, _}
 
@@ -70,7 +67,7 @@ object RecreateFactsetJob {
   }
 }
 
-class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, LongWritable, BytesWritable] {
+class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
   /** Factset version */
   var version = "2"
 
@@ -78,7 +75,7 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, LongWrit
   var ctx: MrContext = null
 
   /** The output key, only create once per mapper. */
-  val kout = new LongWritable
+  val kout = FactsetWritable.create
 
   /** The output value, only create once per mapper. */
   val vout = Writables.bytesWritable(4096)
@@ -119,7 +116,7 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, LongWrit
     val fact = createFact(thrift)
     val k = featureIdLookup.ids.get(fact.featureId.toString).toInt
 
-    kout.set((k.toLong << 32) | fact.date.int.toLong)
+    FactsetWritable.set(fact, kout, k)
 
     val v = serializer.toBytes(fact.toThrift)
     vout.set(v, 0, v.length)
@@ -130,5 +127,5 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, LongWrit
 }
 
 object RecreateFactsetMapper {
-  type MapperContext = Mapper[NullWritable, BytesWritable, LongWritable, BytesWritable]#Context
+  type MapperContext = Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context
 }

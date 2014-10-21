@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.extraction.squash
 
-import com.ambiata.ivory.core.{DictionaryConcrete, Date}
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, ReducerLookup}
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
 import com.ambiata.ivory.storage.lookup.ReducerLookups
@@ -60,23 +60,8 @@ object SquashReducerLookup {
     // Create a sub-index for all of the window features so they don't overlap on the reducers
     new ReducerLookup(windowSizes.zipWithIndex.map {
       case ((fid, days), i) =>
-        lookup.ids.get(fid.toString) -> Int.box(toLookup(i.toShort, Math.max(1, days / totalDays * reducers).toShort))
+        lookup.ids.get(fid.toString) -> Int.box(FeatureReducerOffset(i.toShort, Math.max(1, days / totalDays * reducers).toShort).toInt)
     }.asJava)
-  }
-
-  /**
-   * Store the feature index (different from the featureId) and number of reducers.
-   * The reason for a single [[Int]] is largely to avoid having to generate yet-another bespoke thrift lookup class.
-   * We're assuming that the number of features or reducers is < [[Short.MaxValue]].
-   */
-  def toLookup(offset: Short, count: Short): Int =
-    (offset.toShort << 16) | count
-
-  /** Calculate the reducer for a given entity based on the encoded [[Int]] (see [[toLookup()]]) */
-  def getReducer(lookup: Int, entity: Int): Int = {
-    val offset = lookup >> 16
-    val count = lookup & 0xffff
-    (entity % count) + offset
   }
 }
 
@@ -107,8 +92,8 @@ object SquashPartitioner {
       featureId % partitions
     } else {
       // Otherwise hash the entity, pick a bucket in the number of reducers for this feature
-      val entity = SquashWritable.GroupingByFeatureId.hashEntity(k) & Int.MaxValue
-      SquashReducerLookup.getReducer(value, entity) % partitions
+      val entity = SquashWritable.GroupingByFeatureId.hashEntity(k)
+      FeatureReducerOffset.getReducer(value, entity) % partitions
     }
   }
 }
