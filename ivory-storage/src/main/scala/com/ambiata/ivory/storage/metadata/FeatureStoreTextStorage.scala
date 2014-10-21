@@ -68,9 +68,8 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
     p.value.render
 
   def listIds(repository: Repository): ResultTIO[List[FeatureStoreId]] = for {
-    paths <- repository.store.list(Repository.featureStores).map(_.filterHidden)
+    paths <- repository.store.listHeads(Repository.featureStores).map(_.filterHidden)
     ids   <- {
-    val p = paths
     paths.traverseU(p =>
                ResultT.fromOption[IO, FeatureStoreId](FeatureStoreId.parse(p.name),
                                                       s"Can not parse Feature Store id '${p.name}'"))

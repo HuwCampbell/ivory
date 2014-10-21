@@ -5,16 +5,12 @@ import java.util.UUID
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
+import com.ambiata.notion.core.TemporaryType._
 import com.ambiata.poacher.hdfs.{Hdfs => PoacherHdfs}
 import com.ambiata.saws.s3.{S3 => SawsS3, S3Address}
 import org.apache.hadoop.fs.Path
 
 import scalaz.{Store =>_,_}, Scalaz._, effect._
-
-case class TemporaryStore(store: Store[ResultTIO]) {
-  def clean: ResultT[IO, Unit] =
-    store.deleteAll(Key.Root)
-}
 
 case class TemporaryRepository[R <: Repository](repo: R) {
   def clean: ResultT[IO, Unit] =
@@ -34,15 +30,6 @@ case class TemporaryCluster(cluster: Cluster) {
 }
 
 object TemporaryLocations {
-  sealed trait TemporaryType
-  case object Posix extends TemporaryType
-  case object S3    extends TemporaryType
-  case object Hdfs  extends TemporaryType
-
-  implicit val TemporaryStoreResource: Resource[TemporaryStore] = new Resource[TemporaryStore] {
-    def close(temp: TemporaryStore) = temp.clean.run.void // Squelch errors
-  }
-
   implicit def TemporaryRepositoryResource[R <: Repository]: Resource[TemporaryRepository[R]] = new Resource[TemporaryRepository[R]] {
     def close(temp: TemporaryRepository[R]) = temp.clean.run.void // Squelch errors
   }
@@ -64,36 +51,24 @@ object TemporaryLocations {
   def testBucket: String = Option(System.getenv("AWS_TEST_BUCKET")).getOrElse("ambiata-dev-view")
   def testBucketDir: DirPath = DirPath.unsafe(testBucket)
 
-  def withIvoryLocationDir[A](storeType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] = {
-    runWithIvoryLocationDir(createLocation(storeType))(f)
+  def withIvoryLocationDir[A](temporaryType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] = {
+    runWithIvoryLocationDir(createLocation(temporaryType))(f)
   }
 
-  def createLocation(storeType: TemporaryType): IvoryLocation = {
+  def createLocation(temporaryType: TemporaryType): IvoryLocation = {
     val uniquePath = createUniquePath.path
-    storeType match {
+    temporaryType match {
       case Posix  => LocalIvoryLocation(LocalLocation(uniquePath))
       case S3     => S3IvoryLocation(S3Location(testBucket, uniquePath), conf.s3Client)
       case Hdfs   => HdfsIvoryLocation(HdfsLocation(uniquePath), conf.configuration, conf.scoobiConfiguration, conf.codec)
     }
   }
 
-  def withIvoryLocationFile[A](storeType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] =
-    runWithIvoryLocationFile(createLocation(storeType))(f)
+  def withIvoryLocationFile[A](temporaryType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] =
+    runWithIvoryLocationFile(createLocation(temporaryType))(f)
 
-  def withStore[A](storeType: TemporaryType)(f: Store[ResultTIO] => ResultTIO[A]): ResultTIO[A] = {
-    val store = storeType match {
-      case Posix =>
-        PosixStore(createUniquePath)
-      case S3    =>
-        S3Store(testBucket, s3TempPathDir, conf.s3Client, conf.s3TmpDirectory)
-      case Hdfs  =>
-        HdfsStore(conf.configuration, createUniquePath)
-    }
-    runWithStore(store)(f)
-  }
-
-  def withRepository[A](storeType: TemporaryType)(f: Repository => ResultTIO[A]): ResultTIO[A] = {
-    val repo = storeType match {
+  def withRepository[A](temporaryType: TemporaryType)(f: Repository => ResultTIO[A]): ResultTIO[A] = {
+    val repo = temporaryType match {
       case Posix =>
         LocalRepository(createUniqueLocalLocation)
       case S3 =>
@@ -113,9 +88,6 @@ object TemporaryLocations {
 
   def runWithRepository[A, R <: Repository](repository: R)(f: R => ResultTIO[A]): ResultTIO[A] =
     ResultT.using(TemporaryRepository(repository).pure[ResultTIO])(tmp => f(tmp.repo))
-
-  def runWithStore[A](store: Store[ResultTIO])(f: Store[ResultTIO] => ResultTIO[A]): ResultTIO[A] =
-    ResultT.using(TemporaryStore(store).pure[ResultTIO])(tmp => f(tmp.store))
 
   def runWithIvoryLocationFile[A](location: IvoryLocation)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] =
     ResultT.using(TemporaryLocationFile(location).pure[ResultTIO])(tmp => f(tmp.location))
@@ -155,15 +127,12 @@ object TemporaryLocations {
 
   def createLocationDir(location: IvoryLocation): ResultTIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))                 => Directories.mkdirs(DirPath.unsafe(path))
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client)      => SawsS3.storeObject(S3Address(bucket, key+"/file"), new File(key+"/file")).executeT(s3Client).void
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client)      => (S3Address(bucket, key) / ".location").put("").executeT(s3Client).void
     case h @ HdfsIvoryLocation(HdfsLocation(p), configuration, _, _) => PoacherHdfs.mkdir(new Path(p)).void.run(configuration)
   }
 
   def s3TempPath: String =
-    s3TempPathDir.path
-
-  def s3TempPathDir: DirPath=
-    DirPath("tests") </> tempUniquePath
+    s"tests/temporary-${UUID.randomUUID()}"
 
   def tempUniquePath: DirPath =
     DirPath.unsafe(s"temporary-${UUID.randomUUID()}")

@@ -37,11 +37,6 @@ trait TextStorage[L, T] {
   def fromKeyStore(repository: Repository, key: Key): ResultTIO[T] =
     repository.store.linesUtf8.read(key).flatMap(lines => ResultT.fromDisjunctionString[IO, T](fromLines(lines)))
 
-  def fromKeysStore(repository: Repository, key: Key): ResultTIO[List[T]] = for {
-    keys <- repository.store.list(key)
-    ts   <- keys.traverseU(k => fromKeyStore(repository, key / k))
-  } yield ts
-
   def fromString(s: String): ValidationNel[String, T] =
     fromLinesAll(s.lines.toList)
 

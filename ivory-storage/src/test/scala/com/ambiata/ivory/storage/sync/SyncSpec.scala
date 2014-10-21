@@ -2,11 +2,13 @@ package com.ambiata.ivory.storage.sync
 
 import java.util.UUID
 
-import com.ambiata.ivory.core.{TemporaryLocations => T, _}
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.TemporaryLocations._
 import com.ambiata.ivory.storage.Arbitraries._
 import com.ambiata.ivory.storage.plan.{Datasets, FactsetDataset}
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
+import com.ambiata.notion.core.TemporaryType._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.impl.ScoobiConfiguration
 import org.specs2.{ScalaCheck, Specification}
@@ -40,11 +42,11 @@ Helper functions
   val conf = IvoryConfiguration.fromScoobiConfiguration(ScoobiConfiguration())
 
   def singleFileToCluster = {
-    T.withCluster(cluster => {
-      T.withIvoryLocationFile(T.Posix)(location => {
+    withCluster(cluster => {
+      withIvoryLocationFile(Posix)(location => {
         val dataset = InputDataset(location)
         for {
-          _      <- T.createLocationDir(dataset.location)
+          _      <- createLocationDir(dataset.location)
           shadow <- SyncIngest.inputDataSet(dataset, cluster)
           exists <- IvoryLocation.exists(shadow.location)
         } yield exists})
@@ -52,11 +54,11 @@ Helper functions
   }
 
   def relativeFileToCluster = {
-    T.withCluster(cluster => {
-      T.runWithIvoryLocationFile(cluster.root </> "foo")(location => {
+    withCluster(cluster => {
+      runWithIvoryLocationFile(cluster.root </> "foo")(location => {
         val dataset = InputDataset(location)
         for {
-          _      <- T.createLocationDir(location)
+          _      <- createLocationDir(location)
           shadow <- SyncIngest.inputDataSet(dataset, cluster)
           exists <- IvoryLocation.exists(shadow.location)
         } yield exists})
@@ -64,12 +66,12 @@ Helper functions
   }
 
   def directoryToCluster = {
-    T.withCluster(cluster => {
-      T.withIvoryLocationDir(T.Posix)(location => {
+    withCluster(cluster => {
+      withIvoryLocationDir(Posix)(location => {
         val dataset = InputDataset(location)
         for {
-          _      <- T.createLocationFile(location </> "foo")
-          _      <- T.createLocationFile(location </> "foos" </> "bar")
+          _      <- createLocationFile(location </> "foo")
+          _      <- createLocationFile(location </> "foos" </> "bar")
           shadow <- SyncIngest.inputDataSet(dataset, cluster)
           exists <- IvoryLocation.exists(shadow.location)
           foo    <- IvoryLocation.exists(shadow.location </> "foo")
@@ -79,8 +81,8 @@ Helper functions
   }
 
   def repositoryToCluster = prop((one: FactsetDataset, two: FactsetDataset) => {
-    T.withRepository(T.Posix)(repo => {
-      T.withCluster(cluster => {
+    withRepository(Posix)(repo => {
+      withCluster(cluster => {
         val datasets = Datasets(List(Prioritized(Priority.Min, one), Prioritized(Priority.Min, two)))
         for {
           _ <- one.partitions.map(Repository.factset(one.factset) / _.key / "file").traverseU(key => IvoryLocation.writeUtf8(repo.toIvoryLocation(key), ""))
@@ -93,8 +95,8 @@ Helper functions
   }).set(minTestsOk = 10)
 
   def repositoryFromCluster = prop((dataset: FactsetDataset) => {
-    T.withRepository(T.Posix)(repo => {
-      T.withCluster(cluster => {
+    withRepository(Posix)(repo => {
+      withCluster(cluster => {
         val datasets = Datasets(List(Prioritized(Priority.Min, dataset)))
         val shadowRepository = ShadowRepository.fromCluster(cluster)
         for {
@@ -107,8 +109,8 @@ Helper functions
   }).set(minTestsOk = 10)
 
   def fileFromCluster = {
-    T.withIvoryLocationFile(T.Posix)(location => {
-      T.withCluster(cluster => {
+    withIvoryLocationFile(Posix)(location => {
+      withCluster(cluster => {
         val shadowRepository = ShadowRepository.fromCluster(cluster)
         val relativePath: FilePath = DirPath("shadowOutputDataset") </> DirPath(UUID.randomUUID) <|> "file"
         val shadowFile = shadowRepository.root </> relativePath
@@ -121,8 +123,8 @@ Helper functions
   }
 
   def directoryFromCluster = {
-    T.withCluster(cluster => {
-      T.withIvoryLocationDir(T.Posix)(location => {
+    withCluster(cluster => {
+      withIvoryLocationDir(Posix)(location => {
         val shadowRepository = ShadowRepository.fromCluster(cluster)
         val relativePath: DirPath = DirPath("shadowOutputDataset") </> DirPath(UUID.randomUUID)
         val path = shadowRepository.root </> relativePath

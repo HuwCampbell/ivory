@@ -1,15 +1,15 @@
 package com.ambiata.ivory.operation.ingestion
 
-import com.ambiata.ivory.core.TemporaryLocations.Posix
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.operation.ingestion.DictionaryImporter._
 import com.ambiata.ivory.core.Arbitraries.DictionaryArbitrary
+import com.ambiata.ivory.operation.ingestion.DictionaryImporter._
 import com.ambiata.ivory.storage.Arbitraries.StoreTypeArbitrary
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
-import com.ambiata.notion.core.{Key, PosixStore}
+import com.ambiata.notion.core._
+import com.ambiata.notion.core.TemporaryType.Posix
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.specs2.{ScalaCheck, Specification}
 import org.specs2.matcher.ThrownExpectations
@@ -78,7 +78,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
   def invalidDictForced =
     invalidUpgrade(true) must beOkLike(r => r._1.isFailure && r._2.isDefined)
 
-  def differentStoreDict = prop((ivoryType: TemporaryLocations.TemporaryType, dictType: TemporaryLocations.TemporaryType, dict: Dictionary) => {
+  def differentStoreDict = prop((ivoryType: TemporaryType, dictType: TemporaryType, dict: Dictionary) => {
     TemporaryLocations.withRepository(ivoryType) { ivory => for {
       _   <- Repositories.create(ivory)
       _   <- TemporaryLocations.withIvoryLocationFile(dictType) { location =>
