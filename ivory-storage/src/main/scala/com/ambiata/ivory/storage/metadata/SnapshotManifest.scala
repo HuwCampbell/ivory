@@ -270,20 +270,4 @@ object NewSnapshotManifest {
     ("id" := snapshotId) ->: ("format_version" := currentVersion) ->: ("date" := date) ->: ("commit_id" := commitId) ->: jEmptyObject
   }
 
-
-  // These dont seem to be in scalaz at all
-
-  /**
-   * Convert \&/ into a \/, in the Both case, the B (That) value is dropped
-   * for cases where you need the A value but will need to make do with the B value if there
-   * isn't one
-   **/
-  private def eitherThis[A, B](x: (A \&/ B)): (A \/ B) = x.fold(_.left, _.right, (x, _) => x.left[B])
-
-  /**
-   * Convert \&/ into a \/, in the Both case, the A (This) value is dropped
-   * for cases where you need the B value but will need to make do with the A value if there
-   * isn't one
-   **/
-  private def eitherThat[A, B](x: (A \&/ B)): (A \/ B) = x.fold(_.left, _.right, (_, y) => y.right[A])
 }
