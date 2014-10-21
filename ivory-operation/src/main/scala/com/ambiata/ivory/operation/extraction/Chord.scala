@@ -3,9 +3,7 @@ package com.ambiata.ivory.operation.extraction
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.fact._
-import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.storage.legacy.FeatureStoreSnapshot
-import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
