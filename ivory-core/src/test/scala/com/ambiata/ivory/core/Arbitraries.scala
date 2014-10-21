@@ -333,7 +333,9 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
     case DoubleEncoding =>
       arbitrary[Double].retryUntil(Value.validDouble).map(DoubleValue)
     case StringEncoding =>
-      arbitrary[String].map(StringValue)
+      // We shouldn't be stripping these out but we need to encode our output first...
+      // https://github.com/ambiata/ivory/issues/353
+      arbitrary[String].map(_.replace("|", "").replace("\n", "")).map(StringValue)
     case DateEncoding =>
       arbitrary[Date].map(DateValue)
    }
