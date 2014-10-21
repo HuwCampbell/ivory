@@ -356,8 +356,9 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   /** All generated SparseEntities will have a large range of possible entity id's */
   case class SparseEntities(meta: ConcreteDefinition, fact: Fact, zone: DateTimeZone)
 
-  case class FactsWithDictionary(fid: FeatureId, cd: ConcreteDefinition, facts: List[Fact]) {
-    def dictionary: Dictionary = Dictionary(List(Concrete(fid, cd)))
+  /** Facts for a _single_ [[ConcreteDefinition]] (feel free to generate a [[List]] of them if you need more) */
+  case class FactsWithDictionary(cg: ConcreteGroupFeature, facts: List[Fact]) {
+    def dictionary: Dictionary = cg.dictionary
   }
 
   /**
@@ -367,12 +368,11 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
    Arbitrary(factWithZoneGen(Gen.choose(0, 1000).map(testEntityId), arbitrary[ConcreteDefinition]).map(SparseEntities.tupled))
 
   implicit def FactsWithDictionaryArbitrary: Arbitrary[FactsWithDictionary] = Arbitrary(for {
-    fid   <- arbitrary[FeatureId]
-    cd    <- arbitrary[ConcreteDefinition]
+    cg    <- arbitrary[ConcreteGroupFeature]
     n     <- Gen.choose(2, 10)
     dt    <- arbitrary[DateTime]
-    facts <- Gen.listOfN(n, factGen(Gen.choose(0, 1000).map(testEntityId), fid, cd, dt))
-  } yield FactsWithDictionary(fid, cd, facts))
+    facts <- Gen.listOfN(n, factGen(Gen.choose(0, 1000).map(testEntityId), cg.fid, cg.cg.definition, dt))
+  } yield FactsWithDictionary(cg, facts))
 
   implicit def FactArbitrary: Arbitrary[Fact] =
     Arbitrary(arbitrary[SparseEntities].map(_.fact))

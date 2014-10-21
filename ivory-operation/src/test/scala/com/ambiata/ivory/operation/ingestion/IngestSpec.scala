@@ -55,9 +55,9 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
 
   def thrift = prop {(facts: FactsWithDictionary, fact: Fact) =>
     val serialiser = ThriftSerialiser()
-    val ns = facts.fid.namespace
+    val ns = facts.cg.fid.namespace
     //  Lazy, but guaranteed to be bad so we always have at least one error
-    val badFacts = List(fact.withFeatureId(facts.fid).withValue(StructValue(Map("" -> StringValue("")))))
+    val badFacts = List(fact.withFeatureId(facts.cg.fid).withValue(StructValue(Map("" -> StringValue("")))))
     withHdfsRepository { repository: HdfsRepository => for {
       _   <- Repositories.create(repository)
       loc <- Repository.tmpDir(repository)
