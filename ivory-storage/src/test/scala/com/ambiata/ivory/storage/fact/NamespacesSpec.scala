@@ -29,8 +29,8 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
 """
 
   def e1 = prepare { factsetPath =>
-    namespaceSizes(factsetPath).run(new Configuration)
-  } must beOkLike((_: List[(Name, BytesQuantity)]) must contain ((Name("ns1"), 4.bytes), (Name("ns2"), 4.bytes)))
+    namespaceSizes(factsetPath).run(new Configuration).map(_.toMap)
+  } must beOkValue(Map(Name("ns1") -> 4.bytes, Name("ns2") -> 4.bytes))
 
   def e2 = prepare { factsetPath =>
     namespaceSizesSingle(new Path(factsetPath, "ns1"), Name("namespace")).run(new Configuration)
@@ -58,7 +58,7 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
     val ns2 = KeyName.unsafe("ns2")
     for {
       repository <- Repository.fromUri(dir.path, IvoryConfiguration.Empty)
-      _          <- List(ns1 / "f1", ns2 / "f2").traverse(createFile(repository))
+      _          <- List(ns1 / "f1", ns2 / "f2", Key.Root / ".ignore").traverse(createFile(repository))
       result     <- f(new Path(dir.path))
     } yield result
   }
