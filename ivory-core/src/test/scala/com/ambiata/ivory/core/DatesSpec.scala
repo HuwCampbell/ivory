@@ -4,7 +4,8 @@ import com.ambiata.ivory.core.Arbitraries._
 import org.specs2._
 import org.scalacheck._, Arbitrary._
 import org.joda.time._, format.DateTimeFormat
-import scalaz._
+import scalaz._, Scalaz._
+import argonaut._, Argonaut._
 
 class DatesSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -19,6 +20,10 @@ Date Parsing
   Exceptional - non numeric values                $exceptional
   Round-trip with joda                            $joda
   Parses same as joda                             $jodaparse
+  Encode/Decode Json are symmetric                $encodeDecodeJson
+  Decode with bad year fails                      $encodeBadYear
+  Decode with bad month fails                     $encodeBadMonth
+  Decode with bad day fails                       $encodeBadDay
 
 Date Time Parsing
 -----------------
@@ -39,6 +44,33 @@ Generic Time Format Parsing
   Everything else fails                           $parsefail
 
 """
+  case class GoodYear(y: Short)
+  implicit def GoodYearArbitrary: Arbitrary[GoodYear] =
+    Arbitrary(Gen.choose(1000, Short.MaxValue).map(i => GoodYear(i.toShort)))
+
+  case class GoodMonth(m: Byte)
+  implicit def GoodMonthArbitrary: Arbitrary[GoodMonth] =
+    Arbitrary(Gen.choose(1, 12).map(i => GoodMonth(i.toByte)))
+
+  // Doesnt check the edge cases, just ranges to the really safe values,
+  // [1, 28]
+  case class GoodDay(d: Byte)
+  implicit def GoodDayArbitrary: Arbitrary[GoodDay] =
+    Arbitrary(Gen.choose(1, 28).map(i => GoodDay(i.toByte)))
+
+
+  case class BadYear(y: Short)
+  implicit def BadYearArbitrary: Arbitrary[BadYear] =
+    Arbitrary(Gen.choose(0, 999).map(i => BadYear(i.toShort)))
+
+  case class BadMonth(m: Byte)
+  implicit def BadMonthArbitrary: Arbitrary[BadMonth] =
+    Arbitrary(Gen.choose(13, Byte.MaxValue).map(i => BadMonth(i.toByte)))
+
+  // Doesnt check all the bad month/day/leapyear combos, just > 31
+  case class BadDay(d: Byte)
+  implicit def BadDayArbitrary: Arbitrary[BadDay] =
+    Arbitrary(Gen.choose(32, Byte.MaxValue).map(i => BadDay(i.toByte)))
 
   def datesymmetric = prop((d: Date) =>
     Dates.date(d.hyphenated) must beSome(d))
@@ -61,6 +93,18 @@ Generic Time Format Parsing
   def jodaparse = prop((d: Date) => {
     val j = DateTimeFormat.forPattern("yyyy-MM-dd").parseLocalDate(d.hyphenated)
     (j.getYear, j.getMonthOfYear, j.getDayOfMonth) must_== ((d.year.toInt, d.month.toInt, d.day.toInt)) })
+
+  def encodeDecodeJson = prop((d: Date) =>
+    Parse.decodeEither[Date](d.asJson.nospaces) must_== d.right)
+
+  def encodeBadYear = prop((y: BadYear, m: GoodMonth, d: GoodDay) =>
+    Parse.decodeEither[Date](Date.unsafeYmdToInt(y.y, m.m, d.d).asJson.nospaces) must_== "Date: []".left)
+
+  def encodeBadMonth = prop((y: GoodYear, m: BadMonth, d: GoodDay) =>
+    Parse.decodeEither[Date](Date.unsafeYmdToInt(y.y, m.m, d.d).asJson.nospaces) must_== "Date: []".left)
+
+  def encodeBadDay = prop((y: GoodYear, m: GoodMonth, d: BadDay) =>
+    Parse.decodeEither[Date](Date.unsafeYmdToInt(y.y, m.m, d.d).asJson.nospaces) must_== "Date: []".left)
 
   def edge = {
     (Dates.date("2000-02-29") must beSome(Date(2000, 2, 29))) and
