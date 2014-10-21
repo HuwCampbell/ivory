@@ -335,7 +335,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
     case StringEncoding =>
       // We shouldn't be stripping these out but we need to encode our output first...
       // https://github.com/ambiata/ivory/issues/353
-      arbitrary[String].map(_.replace("|", "").replace("\n", "")).map(StringValue)
+      arbitrary[String].map(_.filter(c => c > 31 && c != '|')).map(StringValue)
     case DateEncoding =>
       arbitrary[Date].map(DateValue)
    }
