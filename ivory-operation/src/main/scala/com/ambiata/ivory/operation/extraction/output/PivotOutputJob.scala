@@ -63,7 +63,6 @@ object PivotOutputJob {
     // cache / config initializtion
     job.getConfiguration.set(Keys.Missing, missing)
     job.getConfiguration.set(Keys.Delimiter, delimiter.toString)
-    ctx.thriftCache.push(job, Keys.Dictionary, DictionaryThriftConversion.dictionaryToThrift(dictionary))
     val (_, lookup) = ReducerLookups.indexDefinitions(dictionary.sortedByFeatureId)
     ctx.thriftCache.push(job, Keys.FeatureIds, lookup)
 
@@ -82,7 +81,6 @@ object PivotOutputJob {
   object Keys {
     val Missing = "ivory.pivot.missing"
     val Delimiter = "ivory.pivot.delimiter"
-    val Dictionary = ThriftCache.Key("ivory.pivot.lookup.dictionary")
     val FeatureIds = ThriftCache.Key("ivory.pivot.lookup.featureid")
   }
 }
