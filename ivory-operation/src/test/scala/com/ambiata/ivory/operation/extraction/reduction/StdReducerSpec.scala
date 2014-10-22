@@ -3,7 +3,6 @@ package com.ambiata.ivory.operation.extraction.reduction
 import org.scalacheck.{Arbitrary, Gen}
 import org.specs2.matcher.MatchResult
 import org.specs2.{ScalaCheck, Specification}
-import SignificantFigures._
 import spire.math._
 import spire.implicits._
 
@@ -32,11 +31,11 @@ class StdReducerSpec extends Specification with ScalaCheck { def is = s2"""
   )
 
   def stdDev[A: Numeric](ds: List[A]): MatchResult[Double] = {
-    ReducerUtil.run(new StandardDeviationReducer[A](), ds) must SignificantFigures.beCloseTo(
+    ReducerUtil.run(new StandardDeviationReducer[A](), ds) must beCloseTo(
       if (ds.length < 1) 0.0 else {
         val mean   = ds.map(_.toDouble()).sum / ds.length
         val moment = ds.map(_.toDouble()).map(n => Math.pow(n - mean, 2)).sum / ds.length
         Math.sqrt(moment)
-      }, 7.significantfigures)
+      }, 7.significantFigures)
   }
 }
