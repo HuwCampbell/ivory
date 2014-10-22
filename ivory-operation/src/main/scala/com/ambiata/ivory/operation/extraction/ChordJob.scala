@@ -302,6 +302,7 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
 
   /** Class to emit the key/value bytes, created once per mapper */
   val emitter: MrEmitter[BytesWritable, BytesWritable, NullWritable, BytesWritable] = MrEmitter()
+  val chordEmitter = new ChordNormalEmitter[BytesWritable](emitter)
 
   val mutator = new FactByteMutator
 
@@ -317,7 +318,7 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
     emitter.context = context
     val entity = SnapshotWritable.GroupingEntityFeatureId.getEntity(key)
-    ChordReducer.reduce(fact, iter.iterator, mutator, emitter, vout, entities.entities.get(entity), buffer)
+    ChordReducer.reduce(fact, iter.iterator, mutator, chordEmitter, vout, entities.entities.get(entity), buffer)
   }
 }
 
@@ -331,47 +332,91 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
 object ChordReducer {
   type ReducerContext = Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context
 
-  val delim = ':'
   val sentinelDateTime = DateTime.unsafeFromLong(-1)
 
-  def newEntityId(entity: String, date: Date, buffer: StringBuilder): String = {
-    buffer.setLength(0)
-    buffer.append(entity)
-    buffer.append(delim)
-    buffer.append(date.hyphenated)
-    buffer.toString()
+  trait ChordEmitter[A] {
+    val kout = NullWritable.get()
+
+    def emit(fact: MutableFact, mutator: PipeFactMutator[A, A], out: A, dates: Array[Int], buffer: StringBuilder,
+             previousDatetime: DateTime, date: Date, offset: Int): Int
+  }
+
+  class ChordNormalEmitter[A](emitter: Emitter[NullWritable, A]) extends ChordEmitter[A] {
+
+    val delim = ':'
+
+    def newEntityId(entity: String, date: Date, buffer: StringBuilder): String = {
+      buffer.setLength(0)
+      buffer.append(entity)
+      buffer.append(delim)
+      buffer.append(date.hyphenated)
+      buffer.toString()
+    }
+
+    def emit(fact: MutableFact, mutator: PipeFactMutator[A, A], out: A, dates: Array[Int], buffer: StringBuilder,
+             previousDatetime: DateTime, date: Date, offset: Int): Int = {
+      var i = offset
+      // Load the fact once from the cache
+      mutator.from(out, fact)
+      // Keep the original entity here because we're about to mutate the fact version
+      val entity = fact.entity
+      while (i >= 0 && date.underlying > dates(i)) {
+        fact.fact.setEntity(newEntityId(entity, Date.unsafeFromInt(dates(i)), buffer))
+        mutator.mutate(fact, out)
+        emitter.emit(kout, out)
+        i = i - 1
+      }
+      i
+    }
+  }
+
+  /**
+   * Currently "dead code", but will become the only implementation once squash has been extended to chord.
+   * Unfortunately chord + window is impossible without squash (unlike snapshot) because of the entity rewriting.
+   *
+   * [[windowStarts]] will be the same length as `dates`, or `null` if no window is set for the current feature.
+   */
+  class ChordWindowEmitter[A](emitter: Emitter[NullWritable, A], windowStarts: Array[Int]) extends ChordEmitter[A] {
+
+    def emit(fact: MutableFact, mutator: PipeFactMutator[A, A], out: A, dates: Array[Int], buffer: StringBuilder,
+             previousDatetime: DateTime, date: Date, offset: Int): Int = {
+      var i = offset
+      // For window features _only_ we emit facts within a window (even if it's not the last one)
+      var canEmit = windowStarts != null && windowStarts(i) <= previousDatetime.date.underlying
+      while (i >= 0 && date.underlying > dates(i)) {
+        // For both types of features we _always_ want to emit the last fact for a given chord (it may be the only one)
+        canEmit = true
+        i = i - 1
+      }
+      if (canEmit) {
+        // Because we're not messing with the entity ids any more we only need to emit the fact once
+        // We can also emit directly what's currently stored in 'out' - no need to hydrate back into 'fact'
+        emitter.emit(kout, out)
+      }
+      i
+    }
   }
 
   def reduce[A](fact: MutableFact, iter: JIterator[A], mutator: PipeFactMutator[A, A],
-                emitter: Emitter[NullWritable, A], out: A, dates: Array[Int], buffer: StringBuilder): Unit = {
-    val kout = NullWritable.get()
+                emitter: ChordEmitter[A], out: A, dates: Array[Int], buffer: StringBuilder): Unit = {
 
     /**
      * Entity ids need to be appended with the date in the chord file as its possible to have the same entity
      * id with multiple dates in the chord file.
      */
     def emitEntity(previousDatetime: DateTime, date: Date, offset: Int): Int = {
-      var i = offset
       // If the first chord has no matches there won't be anything to emit
       // It also covers the (otherwise impossible) case that the iterator is empty
       if (previousDatetime != sentinelDateTime) {
-        // Load the fact once from the cache
-        mutator.from(out, fact)
-        // Keep the original entity here because we're about to mutate the fact version
-        val entity = fact.entity
-        while (i >= 0 && date.underlying > dates(i)) {
-          fact.fact.setEntity(newEntityId(entity, Date.unsafeFromInt(dates(i)), buffer))
-          mutator.mutate(fact, out)
-          emitter.emit(kout, out)
-          i = i - 1
-        }
+        emitter.emit(fact, mutator, out, dates, buffer, previousDatetime, date, offset)
       } else {
+        var i = offset
         // Ignore any old chords that don't have a matching fact
         while (i >= 0 && date.underlying > dates(i)) {
           i = i - 1
         }
+        i
       }
-      i
     }
     // dates are ordered latest to earliest, but we want it the other way around
     var i = dates.length - 1
