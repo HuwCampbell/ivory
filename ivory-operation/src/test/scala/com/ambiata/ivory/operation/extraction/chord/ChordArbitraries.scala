@@ -66,7 +66,7 @@ object ChordArbitraries {
   }
  
   implicit def ChordFactArbitrary: Arbitrary[ChordFact] = Arbitrary(for {
-    e     <- Arbitrary.arbitrary[ChordEntity]
+    e     <- chordEntityGen(0)
     // Just generate one stub fact - we only care about the entity and date
     fact  <- Arbitrary.arbitrary[Fact]
     win   <- Arbitrary.arbitrary[Option[Window]]
@@ -74,7 +74,7 @@ object ChordArbitraries {
 
   implicit def ChordFactsArbitrary: Arbitrary[ChordFacts] = Arbitrary(for {
     n     <- Gen.choose(1, 20)
-    dates <- Gen.listOfN(n, Arbitrary.arbitrary[ChordEntity])
+    dates <- Gen.sequence[List, ChordEntity]((0 until n).map(chordEntityGen))
     // Just generate one stub fact - we only care about the entity and date
     fact  <- Arbitrary.arbitrary[SparseEntities]
     fid   <- Arbitrary.arbitrary[FeatureId]
@@ -82,8 +82,8 @@ object ChordArbitraries {
     o     <- Gen.choose(1, 3).flatMap(i => Gen.listOfN(i, Arbitrary.arbitrary[Fact]))
   } yield ChordFacts(dates, fid, fact, o))
 
-  implicit def ChordEntityArbitrary: Arbitrary[ChordEntity] = Arbitrary(for {
-    e     <- Gen.identifier
+  /** Use an increasing number to represent the entity to avoid name clashes */
+  def chordEntityGen(e: Int): Gen[ChordEntity] = for {
     m     <- Gen.choose(2, 5)
     dates <- Gen.listOfN(m, Arbitrary.arbitrary[Date]).flatMap {
       ds => Gen.sequence[List, (Date, List[Date])](ds.sorted.sliding(2).filter(_.length == 2).zipWithIndex.map {
@@ -98,5 +98,5 @@ object ChordArbitraries {
     // Generate a few dates above the highest chord date, only needed by ChordSpec but easier to do here
     last   = dates.map(_._1).last
     above <- Gen.choose(1, 3).flatMap(i => Gen.listOfN(i, genDate(Date.fromLocalDate(last.localDate.plusDays(1)), Date.maxValue)))
-  } yield ChordEntity(e, dates, above))
+  } yield ChordEntity(e.toString, dates, above)
 }
