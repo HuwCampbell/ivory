@@ -381,8 +381,9 @@ object ChordReducer {
     def emit(fact: MutableFact, mutator: PipeFactMutator[A, A], out: A, dates: Array[Int], buffer: StringBuilder,
              previousDatetime: DateTime, date: Date, offset: Int): Int = {
       var i = offset
-      // For window features _only_ we emit facts within a window (even if it's not the last one)
-      var canEmit = windowStarts != null && windowStarts(i) <= previousDatetime.date.underlying
+      // For window features _always_ emit the last fact before the window (for state-based features)
+      // Keep in mind that this will _also_ handily emit the previous fact when it _is_ in the window
+      var canEmit = windowStarts != null && windowStarts(i) <= date.underlying
       while (i >= 0 && date.underlying > dates(i)) {
         // For both types of features we _always_ want to emit the last fact for a given chord (it may be the only one)
         canEmit = true

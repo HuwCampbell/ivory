@@ -32,10 +32,13 @@ object ChordArbitraries {
       toFacts(fact)((d, fs, prev) => (prev ++ fs).lastOption.map(_.withEntity(entity + ":" + d.hyphenated)).toList)
     def expectedWindow(fact: Fact, window: Option[Window]): List[Fact] =
       toFacts(fact) {(d, fs, prev) =>
-        val inWindow = window.map(SnapshotWindows.startingDate(_, d)).toList.flatMap {
-          sd => fs.filter(_.date.int >= sd.int)
-        }
-        (if (inWindow.isEmpty) (prev ++ fs).lastOption.toList else inWindow).map(_.withEntity(entity))
+        window.map(SnapshotWindows.startingDate(_, d)).map {
+          sd =>
+            // _Always_ emit the last fact before the window (for state-based features)
+            (prev ++ fs).filter(_.date.int < sd.int).lastOption.toList ++
+              // All the facts from the window
+              fs.filter(_.date.int >= sd.int)
+        }.getOrElse((prev ++ fs).lastOption.toList).map(_.withEntity(entity))
       }.distinct
   }
 
