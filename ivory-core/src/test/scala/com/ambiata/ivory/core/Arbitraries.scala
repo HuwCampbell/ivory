@@ -1,6 +1,7 @@
 package com.ambiata.ivory.core
 
 import org.scalacheck._, Arbitrary._
+import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.data.Arbitraries._
 import com.ambiata.ivory.data._
 
@@ -246,7 +247,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   }
 
   implicit def WindowArbitrary: Arbitrary[Window] = Arbitrary(for {
-    length <- Gen.posNum[Int]
+    length <- GenPlus.posNum[Int]
     unit   <- Gen.oneOf(Days, Weeks, Months, Years)
   } yield Window(length, unit))
 
@@ -392,7 +393,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   implicit def NameArbitrary: Arbitrary[Name] = Arbitrary(
     for {
       firstCharacter  <- frequency(4 -> const('-'), 96 -> alphaNumChar)
-      otherCharacters <- nonEmptyListOf(frequency(2 -> const('_'), 2  -> const('-'), 96 -> alphaNumChar))
+      otherCharacters <- GenPlus.nonEmptyListOf(frequency(2 -> const('_'), 2  -> const('-'), 96 -> alphaNumChar))
     } yield Name.reviewed((firstCharacter +: otherCharacters).mkString)
   )
 
@@ -410,7 +411,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   }
 
   implicit def DictIdArbitrary: Arbitrary[DictId] = Arbitrary(
-    Gen.nonEmptyListOf(Gen.frequency(
+    GenPlus.nonEmptyListOf(Gen.frequency(
       1 -> Gen.const("_"),
       99 -> Gen.alphaNumChar
     )).map(_.mkString).map(DictId)
