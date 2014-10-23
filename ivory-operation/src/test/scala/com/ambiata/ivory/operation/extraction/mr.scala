@@ -6,9 +6,10 @@ import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.FeatureIdLookup
 import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable.KeyState
+import com.ambiata.ivory.mr._
 import com.ambiata.ivory.storage.Arbitraries._
 import com.ambiata.ivory.storage.fact._
-import com.ambiata.ivory.mr._
+import com.ambiata.poacher.mr._
 
 import org.apache.hadoop.io.BytesWritable
 import org.specs2._

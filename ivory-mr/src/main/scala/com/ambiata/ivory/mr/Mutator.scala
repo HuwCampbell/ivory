@@ -1,5 +1,6 @@
 package com.ambiata.ivory.mr
 
+import com.ambiata.poacher.mr.ThriftSerialiser
 import org.apache.hadoop.io.BytesWritable
 
 /**

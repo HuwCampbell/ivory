@@ -1,8 +1,8 @@
 package com.ambiata.ivory.storage.task
 
 import com.ambiata.ivory.lookup.NamespaceLookup
-import com.ambiata.ivory.mr.{ThriftCache, MrContext}
 import com.ambiata.ivory.storage.lookup.ReducerLookups
+import com.ambiata.poacher.mr.MrContext
 import org.apache.hadoop.io.{NullWritable, BytesWritable, LongWritable}
 import org.apache.hadoop.mapreduce.Reducer
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs

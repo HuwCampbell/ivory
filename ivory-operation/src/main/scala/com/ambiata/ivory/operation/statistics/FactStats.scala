@@ -3,7 +3,7 @@ package com.ambiata.ivory.operation.statistics
 import java.io.{DataInput, DataOutput}
 
 import com.nicta.scoobi.Scoobi._
-import scalaz.{DList => _, Value => _, _}, Scalaz._
+import scalaz.{DList => _, Value => _, _}
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._

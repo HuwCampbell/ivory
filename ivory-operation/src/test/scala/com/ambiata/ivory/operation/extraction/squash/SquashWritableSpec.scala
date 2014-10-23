@@ -4,8 +4,8 @@ import java.io.{ByteArrayOutputStream, DataOutputStream}
 
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.mr.Writables
 import com.ambiata.ivory.operation.extraction.squash.SquashWritable._
+import com.ambiata.poacher.mr.Writables
 import org.apache.hadoop.io.WritableComparator
 import org.specs2.execute.Result
 import org.specs2.{ScalaCheck, Specification}

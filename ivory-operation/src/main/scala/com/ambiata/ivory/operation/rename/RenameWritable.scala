@@ -1,8 +1,8 @@
 package com.ambiata.ivory.operation.rename
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.mr.{RawBytesComparator, ByteWriter}
 import com.ambiata.ivory.storage.task.BaseFactsPartitioner
+import com.ambiata.poacher.mr._
 import org.apache.hadoop.io.{BytesWritable, WritableComparator}
 
 /**

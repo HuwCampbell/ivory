@@ -7,7 +7,6 @@ import java.lang.{Iterable => JIterable}
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
-import com.ambiata.ivory.mr._
 import com.ambiata.ivory.storage.fact.{FactsetVersion, FactsetVersionTwo}
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.lookup.ReducerLookups
@@ -15,6 +14,7 @@ import com.ambiata.ivory.storage.repository.RecreateFactsetJob.Keys
 import com.ambiata.ivory.storage.repository.RecreateFactsetMapper._
 import com.ambiata.ivory.storage.task.FactsetJob
 import com.ambiata.mundane.io.{BytesQuantity, FilePath}
+import com.ambiata.poacher.mr._
 import org.apache.hadoop.conf._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io._

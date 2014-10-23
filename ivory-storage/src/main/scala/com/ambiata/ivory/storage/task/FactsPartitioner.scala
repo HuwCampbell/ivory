@@ -1,8 +1,8 @@
 package com.ambiata.ivory.storage.task
 
 import com.ambiata.ivory.lookup.ReducerLookup
-import com.ambiata.ivory.mr.MrContext
 import com.ambiata.ivory.storage.lookup.ReducerLookups
+import com.ambiata.poacher.mr.MrContext
 import org.apache.hadoop.conf.{Configuration, Configurable}
 import org.apache.hadoop.io.{BytesWritable, LongWritable}
 import org.apache.hadoop.mapreduce.Partitioner

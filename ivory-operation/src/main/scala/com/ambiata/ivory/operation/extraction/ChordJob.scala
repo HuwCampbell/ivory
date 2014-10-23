@@ -8,6 +8,7 @@ import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.mr._
 import com.ambiata.mundane.control._
+import com.ambiata.poacher.mr._
 
 import java.lang.{Iterable => JIterable}
 import java.util.{Iterator => JIterator}

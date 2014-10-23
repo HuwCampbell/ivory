@@ -1,19 +1,14 @@
 package com.ambiata.ivory.storage.task
 
-import com.ambiata.ivory.core.{Date, Dictionary, Crash}
+import com.ambiata.ivory.core.Dictionary
 import com.ambiata.ivory.core.thrift.DictionaryThriftConversion
-import com.ambiata.ivory.lookup.NamespaceLookup
-import com.ambiata.ivory.mr.{ThriftCache, Committer, Compress, MrContext}
-import com.ambiata.ivory.storage.fact.FactsetVersion
 import com.ambiata.ivory.storage.lookup.ReducerLookups
-import com.ambiata.ivory.storage.repository.RecreateFactsetMapper
-import com.ambiata.mundane.io.BytesQuantity
-import org.apache.hadoop.conf.Configuration
+import com.ambiata.poacher.mr._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.{NullWritable, BytesWritable, LongWritable}
 import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.hadoop.mapreduce.Job
-import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat, SequenceFileInputFormat}
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
 import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, MultipleOutputs, SequenceFileOutputFormat, LazyOutputFormat}
 
 import scalaz.{\/-, -\/}

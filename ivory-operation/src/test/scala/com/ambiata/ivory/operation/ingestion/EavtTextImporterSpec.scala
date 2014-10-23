@@ -1,7 +1,6 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._, Arbitraries._
-import com.ambiata.ivory.core.thrift.ThriftSerialiser
 import com.ambiata.ivory.scoobi.{FactFormats, SequenceUtil, TestConfigurations}
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import FactFormats._
@@ -9,6 +8,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.poacher.mr.ThriftSerialiser
 import com.nicta.scoobi.Scoobi._
 import org.joda.time.DateTimeZone
 import org.specs2._

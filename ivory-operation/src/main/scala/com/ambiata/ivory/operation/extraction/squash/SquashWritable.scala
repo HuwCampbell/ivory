@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.mr.{RawBytesComparator, ByteWriter}
+import com.ambiata.poacher.mr._
 import org.apache.hadoop.io.{BytesWritable, WritableComparator}
 
 /**

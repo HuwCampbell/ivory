@@ -3,11 +3,12 @@ package com.ambiata.ivory.operation.extraction.squash
 import java.lang.{Iterable => JIterable}
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.thrift.{NamespacedThriftFact, ThriftSerialiser}
+import com.ambiata.ivory.core.thrift.NamespacedThriftFact
 import com.ambiata.ivory.lookup.{FeatureReduction, FeatureIdLookup, FeatureReductionLookup}
 import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.reduction.Reduction
 import com.ambiata.ivory.operation.extraction.SnapshotJob
+import com.ambiata.poacher.mr._
 import org.apache.hadoop.io.{BytesWritable, NullWritable}
 import org.apache.hadoop.mapreduce.{Mapper, Reducer}
 

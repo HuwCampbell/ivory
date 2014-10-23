@@ -2,7 +2,7 @@ package com.ambiata.ivory.scoobi
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.core.thrift.ThriftSerialiser
+import com.ambiata.poacher.mr.ThriftSerialiser
 import com.nicta.scoobi.Scoobi._
 
 import org.apache.hadoop.io.BytesWritable

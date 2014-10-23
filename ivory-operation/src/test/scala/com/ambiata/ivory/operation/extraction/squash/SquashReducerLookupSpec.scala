@@ -3,7 +3,7 @@ package com.ambiata.ivory.operation.extraction.squash
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.ReducerLookup
-import com.ambiata.ivory.mr.Writables
+import com.ambiata.poacher.mr.Writables
 import org.specs2.{ScalaCheck, Specification}
 
 class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s2"""

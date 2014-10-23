@@ -2,6 +2,7 @@ package com.ambiata.ivory.mr
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
+import com.ambiata.poacher.mr._
 import org.apache.hadoop.io.NullWritable
 
 class MockFactMutator extends MutableStream[MutableFact, Fact] with PipeMutator[Fact, Fact] with Mutator[MutableFact, Fact]

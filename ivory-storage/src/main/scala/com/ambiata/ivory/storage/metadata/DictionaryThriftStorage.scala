@@ -6,6 +6,7 @@ import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.storage.version._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
+import com.ambiata.poacher.mr.ThriftSerialiser
 import scodec.bits.ByteVector
 
 import scalaz.Scalaz._

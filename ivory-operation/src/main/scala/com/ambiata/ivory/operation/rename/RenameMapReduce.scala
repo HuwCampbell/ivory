@@ -3,13 +3,13 @@ package com.ambiata.ivory.operation.rename
 import java.lang.{Iterable => JIterable}
 
 import com.ambiata.ivory.core.Priority
-import com.ambiata.ivory.core.thrift.{ThriftFact, ThriftSerialiser}
+import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.ivory.lookup._
-import com.ambiata.ivory.mr.{Counter => _, _}
 import com.ambiata.ivory.operation.extraction._
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.task.FactsetJobKeys
 import com.ambiata.ivory.storage.fact._
+import com.ambiata.poacher.mr._
 import org.apache.hadoop.io._
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs
 import org.apache.hadoop.mapreduce.{Counter, Mapper, Reducer}
