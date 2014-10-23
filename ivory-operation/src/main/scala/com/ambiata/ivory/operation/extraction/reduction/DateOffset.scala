@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.extraction.reduction
 
 import com.ambiata.ivory.core.Date
 
-class DateOffsets(start: Int, end: Date, val count: Int, val offsets: Array[Int], f: DateOffsetLookup) {
+case class DateOffsets(start: Int, end: Date, val count: Int, val offsets: Array[Int], f: DateOffsetLookup) {
 
   def get(d: Date): DateOffset =
     new DateOffset(offsets(f(d) - start))

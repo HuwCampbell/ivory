@@ -160,7 +160,9 @@ object SquashJob {
     query.filter.map(_.render).foreach(fr.setFilter)
     fr.setDate((query.expression match {
       // For latest (and latest only) we need to match all facts (to catch them before the window)
-      case Latest => Date.minValue
+      case Latest                         => Date.minValue
+      case BasicExpression(DaysSince)     => Date.minValue
+      case StructExpression(_, DaysSince) => Date.minValue
       // If no window is specified the only functions we should be applying will deal with a single value,
       // and should _always_ apply; hence the min date
       case _      => window.cata(window => SnapshotWindows.startingDate(window, date), Date.minValue)

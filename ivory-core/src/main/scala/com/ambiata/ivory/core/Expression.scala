@@ -19,6 +19,7 @@ object Expression {
       case CountUnique                  => List("count_unique")
       case NumFlips                     => List("num_flips")
       case CountBy                      => List("count_by")
+      case DaysSince                    => List("days_since")
       case DaysSinceEarliestBy          => List("days_since_earliest_by")
       case DaysSinceLatestBy            => List("days_since_latest_by")
       case Proportion(value)            => List("proportion", value)
@@ -72,6 +73,7 @@ object Expression {
       case "num_flips" :: tail              => parseSub(NumFlips, tail)
       case "count_by" :: tail               => parseSub(CountBy, tail)
       case "proportion" :: value :: tail    => parseSub(Proportion(value), tail)
+      case "days_since" :: tail             => parseSub(DaysSince, tail)
       case "days_since_latest_by" :: tail   => parseSub(DaysSinceLatestBy, tail)
       case "days_since_earliest_by" :: tail => parseSub(DaysSinceEarliestBy, tail)
     }.map(_.right).getOrElse {
@@ -94,6 +96,10 @@ object Expression {
         case LongEncoding   => ok
         case DoubleEncoding => ok
         case _              => s"Non-numeric encoding not supported".left
+      }
+      case DaysSince => subenc match {
+        case DateEncoding   => ok
+        case _              => s"Non-date encoding not supported".left
       }
       case (CountUnique | DaysSinceLatestBy | DaysSinceEarliestBy) => subenc match {
         case StringEncoding => ok
@@ -181,6 +187,7 @@ case object StandardDeviation extends SubExpression
 case object CountUnique extends SubExpression
 case object NumFlips extends SubExpression
 case object CountBy extends SubExpression
+case object DaysSince extends SubExpression
 case object DaysSinceLatestBy extends SubExpression
 case object DaysSinceEarliestBy extends SubExpression
 case class Proportion(value: String) extends SubExpression

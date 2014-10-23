@@ -126,11 +126,14 @@ object Reduction {
       case IntEncoding     => Some(f.i(new NumFlipsReducer[Int](0), ReductionValueLong))
       case LongEncoding    => Some(f.l(new NumFlipsReducer[Long](0), ReductionValueLong))
       case DoubleEncoding  => Some(f.d(new NumFlipsReducer[Double](0), ReductionValueLong))
-      case DateEncoding    => Some(f.d(new NumFlipsReducer[Double](0), ReductionValueLong))
+      case DateEncoding    => Some(f.date(new NumFlipsReducer[Int](0), ReductionValueLong))
     }
     case CountBy => condOpt(encoding) {
       case StringEncoding  => f.s(new CountByReducer, ReductionValueStruct[String, Long](ReductionValueLong))
       case IntEncoding     => f.i(new CountByReducer, ReductionValueStruct[Int, Long](ReductionValueLong))
+    }
+    case DaysSince => condOpt(encoding) {
+      case DateEncoding    => new DaysSinceReducer(dates.dates)
     }
     case DaysSinceEarliestBy => condOpt(encoding) {
       case StringEncoding  => f.s(new DaysSinceEarliestByReducer(dates.dates), ReductionValueStruct[String, Int](ReductionValueInt))
