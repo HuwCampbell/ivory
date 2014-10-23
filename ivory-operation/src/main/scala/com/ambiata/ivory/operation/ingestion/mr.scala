@@ -5,9 +5,8 @@ import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.FeatureIdLookup
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.parse._
-import com.ambiata.ivory.mr._
-
 import com.ambiata.ivory.storage.task.FactsetJob
+import com.ambiata.poacher.mr._
 
 import scalaz.{Name =>_, Reducer => _, Value => _, _}, Scalaz._
 

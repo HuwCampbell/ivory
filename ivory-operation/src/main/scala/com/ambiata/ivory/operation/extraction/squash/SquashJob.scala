@@ -2,7 +2,6 @@ package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
-import com.ambiata.ivory.mr.{Committer, Compress, MrContext, ThriftCache}
 import com.ambiata.ivory.operation.extraction.SnapshotJob
 import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.legacy.SnapshotMeta
@@ -11,6 +10,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FileName
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.notion.core._
+import com.ambiata.poacher.mr._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodec

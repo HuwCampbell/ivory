@@ -1,11 +1,11 @@
 package com.ambiata.ivory.operation.rename
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.SnapshotJob
 import com.ambiata.ivory.storage.fact.FactsetGlob
 import com.ambiata.ivory.storage.lookup.{ReducerLookups, FactsetLookups}
 import com.ambiata.ivory.storage.task.FactsetJobKeys
+import com.ambiata.poacher.mr._
 import com.ambiata.poacher.scoobi.ScoobiAction
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodec

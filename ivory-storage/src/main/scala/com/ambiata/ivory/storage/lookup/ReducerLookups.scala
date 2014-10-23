@@ -2,8 +2,8 @@ package com.ambiata.ivory.storage.lookup
 
 import com.ambiata.ivory.core.{Name, Date, FeatureId, Skew, Dictionary, Definition}
 import com.ambiata.ivory.lookup.{ReducerLookup, FeatureIdLookup, NamespaceLookup}
-import com.ambiata.ivory.mr.ThriftCache
 import com.ambiata.mundane.io.BytesQuantity
+import com.ambiata.poacher.mr.ThriftCache
 import org.apache.hadoop.io.LongWritable
 
 /**

@@ -1,10 +1,11 @@
 package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.mr._
 import com.ambiata.ivory.lookup.{FactsetLookup, FactsetVersionLookup}
 
 import com.ambiata.mundane.io.FilePath
+
+import com.ambiata.poacher.mr._
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.InputSplit

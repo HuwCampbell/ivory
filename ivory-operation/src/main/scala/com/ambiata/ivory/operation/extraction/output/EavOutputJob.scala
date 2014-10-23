@@ -1,8 +1,7 @@
 package com.ambiata.ivory.operation.extraction.output
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.mr._
+import com.ambiata.poacher.mr._
 
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf._

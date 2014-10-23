@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._, Arbitraries._
 import com.ambiata.ivory.core.TemporaryLocations._
-import com.ambiata.ivory.core.thrift.{ThriftFact, ThriftSerialiser}
+import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.ivory.operation.ingestion.thrift.Conversion
 import com.ambiata.ivory.scoobi.SequenceUtil
 import com.ambiata.ivory.scoobi.FactFormats._
@@ -13,6 +13,7 @@ import com.ambiata.mundane.control.ResultT
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.notion.core.TemporaryType.Hdfs
+import com.ambiata.poacher.mr.ThriftSerialiser
 import com.nicta.scoobi.Scoobi._
 import org.joda.time.DateTimeZone
 import org.specs2.{ScalaCheck, Specification}

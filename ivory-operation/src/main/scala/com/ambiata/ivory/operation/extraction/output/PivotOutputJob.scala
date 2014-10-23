@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.storage.lookup._
-import com.ambiata.ivory.mr._
+import com.ambiata.poacher.mr._
 
 import java.lang.{Iterable => JIterable}
 

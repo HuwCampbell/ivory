@@ -1,11 +1,12 @@
 package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.thrift.{NamespacedThriftFact, ThriftSerialiser}
+import com.ambiata.ivory.core.thrift.NamespacedThriftFact
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.metadata.Metadata
+import com.ambiata.poacher.mr.ThriftSerialiser
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._

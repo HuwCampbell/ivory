@@ -1,11 +1,11 @@
 package com.ambiata.ivory.scoobi
 
 import com.ambiata.mundane.io.{MemoryConversions, BytesQuantity}
+import com.ambiata.poacher.mr.ThriftSerialiser
 import com.nicta.scoobi.Scoobi.WireFormat
 import com.nicta.scoobi.Scoobi._
 import scalaz.{Name => _, DList => _, Value => _, _}, Scalaz._
 import java.io._
-import org.joda.time.LocalDate
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
