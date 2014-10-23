@@ -133,7 +133,7 @@ object Reduction {
       case IntEncoding     => f.i(new CountByReducer, ReductionValueStruct[Int, Long](ReductionValueLong))
     }
     case DaysSince => condOpt(encoding) {
-      case DateEncoding    => new DaysSinceReducer(dates.dates)
+      case DateEncoding    => f.date(new DaysSinceReducer(dates.dates), new ReductionValueOrTombstone[Int](ReductionValueInt))
     }
     case DaysSinceEarliestBy => condOpt(encoding) {
       case StringEncoding  => f.s(new DaysSinceEarliestByReducer(dates.dates), ReductionValueStruct[String, Int](ReductionValueInt))

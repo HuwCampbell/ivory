@@ -234,7 +234,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
         all
       )
       case BooleanEncoding => Gen.oneOf(all, arbitrary[Boolean].map(b => Proportion(b.toString)))
-      case DateEncoding => all
+      case DateEncoding => Gen.oneOf(all, Gen.const(DaysSince))
     }
   }
 
