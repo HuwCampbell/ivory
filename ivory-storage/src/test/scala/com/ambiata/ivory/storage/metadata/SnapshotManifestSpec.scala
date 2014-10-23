@@ -7,7 +7,7 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.Arbitraries._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.mundane.control.ResultTIO
+import com.ambiata.mundane.control._
 import com.ambiata.notion.core.{KeyName, Key}
 
 
@@ -17,7 +17,7 @@ import org.specs2.execute.AsResult
 import org.specs2.matcher.{Matcher, ThrownExpectations}
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
-import scalaz._, Scalaz._
+import scalaz._, Scalaz._, effect.IO
 import argonaut._, Argonaut._
 
 class SnapshotManifestSpec extends Specification with ScalaCheck { def is = s2"""
@@ -129,23 +129,32 @@ SnapshotManifest Properties
 
   def storeSnapshotManifest(repo: Repository, meta: SnapshotManifest): ResultTIO[Unit] = meta.fold(SnapshotMeta.save(repo, _), NewSnapshotManifest.save(repo, _))
 
-  def beUpToDate(repository: Repository, date1: Date): Matcher[Option[SnapshotManifest]] = { snapshot: Option[SnapshotManifest] =>
-    snapshot must beSome { meta: SnapshotManifest =>
+  def beUpToDate(repo: Repository, date1: Date): Matcher[Option[SnapshotManifest]] = { snapshot: Option[SnapshotManifest] =>
+    snapshot must beSome(
+      (meta: SnapshotManifest) => {
 
-      "the snapshot feature store is the latest feature store if it is up to date" ==> {
-        Metadata.latestFeatureStoreOrFail(repository) map { store => meta.featureStoreId ==== store.id } must beOk
+        meta.fold(
+          (lm: SnapshotMeta) =>
+            "the snapshot feature store is the latest feature store if it is up to date" ==> {
+              Metadata.latestFeatureStoreOrFail(repo) map { store => lm.featureStoreId ==== store.id } must beOk
+            },
+          (nm: NewSnapshotManifest) =>
+            "the snapshot commit is the latest commit if it is upto date" ==> {
+              Metadata.latestCommitId(repo).flatMap(
+                ResultT.fromOption[IO, CommitId](_, s"No commits found in repo")).map((commitId: CommitId) => nm.commitId ==== commitId) must beOk
+            })
+
+        "there are no new facts after the snapshot date" ==> {
+          val newFacts =
+            for {
+              store      <- Metadata.latestFeatureStoreOrFail(repo)
+              partitions <- FeatureStoreGlob.strictlyAfterAndBefore(repo, store, meta.date, date1).map(_.partitions)
+            } yield partitions
+
+          newFacts must beOkLike(_ must beEmpty)
+        }
       }
-
-      "there are no new facts after the snapshot date" ==> {
-        val newFacts =
-          for {
-            store      <- Metadata.latestFeatureStoreOrFail(repository)
-            partitions <- FeatureStoreGlob.strictlyAfterAndBefore(repository, store, meta.date, date1).map(_.partitions)
-          } yield partitions
-
-        newFacts must beOkLike(_ must beEmpty)
-      }
-    } or { snapshot must beNone }
+    ) or { snapshot must beNone }
   }
 
   def beOkResult[R : AsResult]: Matcher[ResultTIO[R]] = (resultTIO: ResultTIO[R]) =>

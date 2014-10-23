@@ -116,7 +116,7 @@ object SnapshotManifest {
   def latestSnapshot(repository: Repository, date: Date): OptionT[ResultTIO, SnapshotManifest] = for {
     ids <- repository.store.listHeads(Repository.snapshots).liftM[OptionT]
     sids <- OptionT.optionT[ResultTIO](ids.traverseU((sid: Key) => SnapshotId.parse(sid.name)).pure[ResultTIO])
-    metas <- sids.traverseU((sid: SnapshotId) => fromIdentifier(repository, sid))
+    metas <- sids.traverseU(fromIdentifier(repository, _))
     filtered = metas.filter(_.date isBeforeOrEqual date)
     meta <- OptionT.optionT[ResultTIO](filtered.sorted.lastOption.pure[ResultTIO])
   } yield meta
