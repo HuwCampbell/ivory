@@ -130,21 +130,26 @@ SnapshotReducerSpec
     })
   })
 
-  def window = prop((facts: NonEmptyList[Fact], date: Date) => {
+  def window = prop((f: NonEmptyList[Fact], date: Date) => {
+    val facts = SnapshotFacts(f, date)
     val mutator = new MockFactMutator
-    val (oldFacts, newFacts) = facts.list.sortBy(_.date).partition(_.date.int < date.int)
-    SnapshotReducer.reduce(createMutableFact, (oldFacts ++ newFacts).asJava.iterator(), mutator, mutator,
+    SnapshotReducer.reduce(createMutableFact, facts.facts.asJava.iterator(), mutator, mutator,
       createMutableFact, date)
-    mutator.facts.toList ==== (if (newFacts.isEmpty) oldFacts.lastOption.toList else newFacts)
+    mutator.facts.toList ==== facts.expected
   }).set(maxSize = 10)
 
   def windowPriority = prop((f: NonEmptyList[Fact], date: Date) => {
+    val facts = SnapshotFacts(f, date)
     val mutator = new MockFactMutator
-    val (oldFacts, newFacts) = f.list.sortBy(_.date).partition(_.date.int < date.int)
-    val facts = oldFacts ++ newFacts
-    val dupeFacts = facts.zip(facts).flatMap(fs => List(fs._1, fs._2.withEntity("")))
-    SnapshotReducer.reduce(createMutableFact, dupeFacts.asJava.iterator(), mutator, mutator,
+    SnapshotReducer.reduce(createMutableFact, facts.factsDupe.asJava.iterator(), mutator, mutator,
       createMutableFact, date)
-    mutator.facts.toList ==== (if (newFacts.isEmpty) oldFacts.lastOption.toList else newFacts)
+    mutator.facts.toList ==== facts.expected
   }).set(maxSize = 10)
+
+  case class SnapshotFacts(f: NonEmptyList[Fact], date: Date) {
+    val (oldFacts, newFacts) = f.list.sortBy(_.date).partition(_.date.int < date.int)
+    def facts: List[Fact] = oldFacts ++ newFacts
+    def factsDupe: List[Fact] = facts.zip(facts).flatMap(fs => List(fs._1, fs._2.withEntity("")))
+    def expected: List[Fact] = oldFacts.lastOption.toList ++ newFacts
+  }
 }
