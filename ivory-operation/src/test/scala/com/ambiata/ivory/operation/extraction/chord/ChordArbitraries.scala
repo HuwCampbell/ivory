@@ -2,6 +2,7 @@ package com.ambiata.ivory.operation.extraction.chord
 
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
 import org.scalacheck._
 
 object ChordArbitraries {
@@ -29,13 +30,28 @@ object ChordArbitraries {
     def expected(fact: Fact): List[Fact] =
       // Take the latest fact, which may come from a previous chord period if this one is empty
       toFacts(fact)((d, fs, prev) => (prev ++ fs).lastOption.map(_.withEntity(entity + ":" + d.hyphenated)).toList)
+    def expectedWindow(fact: Fact, window: Option[Window]): List[Fact] =
+      toFacts(fact) {(d, fs, prev) =>
+        window.map(SnapshotWindows.startingDate(_, d)).map {
+          sd =>
+            // _Always_ emit the last fact before the window (for state-based features)
+            (prev ++ fs).filter(_.date.int < sd.int).lastOption.toList ++
+              // All the facts from the window
+              fs.filter(_.date.int >= sd.int)
+        }.getOrElse((prev ++ fs).lastOption.toList).map(_.withEntity(entity))
+      }.distinct
   }
 
-  case class ChordFact(ce: ChordEntity, fact: Fact) {
+  /** A single entity, for testing [[com.ambiata.ivory.operation.extraction.ChordReducer]] */
+  case class ChordFact(ce: ChordEntity, fact: Fact, window: Option[Window]) {
     lazy val facts: List[Fact] = ce.facts(fact)
     // Duplicate every fact with priority version but different value
     lazy val factsWithPriority: List[Fact] = facts.zip(facts.map(incValue(_, "p"))).flatMap(f => List(f._1, f._2))
     lazy val expected: List[Fact] = ce.expected(fact)
+    lazy val expectedWindow: List[Fact] = ce.expectedWindow(fact, window)
+    lazy val windowDateArray: Option[Array[Int]] = window.map {
+      win => ce.dates.map(_._1).map(SnapshotWindows.startingDate(win, _).int).sorted.reverse.toArray
+    }
   }
 
   case class ChordFacts(ces: List[ChordEntity], fid: FeatureId, factAndMeta: SparseEntities, other: List[Fact]) {
@@ -53,7 +69,8 @@ object ChordArbitraries {
     e     <- Arbitrary.arbitrary[ChordEntity]
     // Just generate one stub fact - we only care about the entity and date
     fact  <- Arbitrary.arbitrary[Fact]
-  } yield ChordFact(e, fact))
+    win   <- Arbitrary.arbitrary[Option[Window]]
+  } yield ChordFact(e, fact, win))
 
   implicit def ChordFactsArbitrary: Arbitrary[ChordFacts] = Arbitrary(for {
     n     <- Gen.choose(1, 20)
