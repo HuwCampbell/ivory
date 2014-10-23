@@ -1,10 +1,14 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.{Factsets, FeatureStoreGlob}
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.Arbitraries._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.mundane.control.ResultTIO
+import com.ambiata.notion.core.{KeyName, Key}
 
 
 import org.specs2._
@@ -36,6 +40,18 @@ SnapshotManifest Properties
   Legacy SnapshotManifests are ordered before new ones                  $legacyLessThanNew
   Legacy SnapshotManifests are ordered using Legacy Snapshot ordering   $legacysorting
   New SnapshotManifests are ordered using NewSnapshotManifest ordering  $newsorting
+
+  We define the "latest" snapshot before a date1 as the greatest element having a date <= date1 $latest
+
+  The latest snapshot is considered the "latest up to date" snapshot for date1 if:
+    - latestSnapshot.featureStore == latestFeatureStore (for legacy Snapshots)
+    - latestSnapshot.commitId     == latestCommitId (for new snapshot manifests)
+    - and the snapshot.date == date1
+
+    - OR the snapshot.date != date1
+      but there are no partitions between the snapshot date and date1 for factsets in the latest feature store
+
+  then the snapshot is up to date $uptodate
 
 """
 
@@ -83,4 +99,58 @@ SnapshotManifest Properties
   def newsorting = prop((nms: List[NewSnapshotManifest]) =>
     nms.map(SnapshotManifest.snapshotManifestNew).sorted must_== nms.sorted.map(SnapshotManifest.snapshotManifestNew))
 
+  // Replace with better tests when RepositoryScenario is merged in.
+
+  def latest = prop { (snapshots: SnapshotManifestList, date1: Date) =>
+    RepositoryBuilder.using { repo =>
+      for {
+        _                <- snapshots.metas.traverse(storeSnapshotManifest(repo, _))
+        latestBeforeDate =  snapshots.metas.filter(_.date <= date1).sorted.lastOption
+        snapshot         <- SnapshotManifest.latestSnapshot(repo, date1).run
+      } yield snapshot must_== latestBeforeDate
+    } must beOkResult
+  }
+
+  def uptodate = prop { (snapshots: SnapshotManifestList, date1: Date, dateOffset: DateOffset) =>
+    RepositoryBuilder.using { repo =>
+      val factsetDate = dateOffset.offset(date1)
+
+      for {
+        _         <- snapshots.metas.traverse(storeSnapshotManifest(repo, _))
+        factsetId <- Factsets.allocateFactsetId(repo)
+        _         <- repo.store.utf8.write(Repository.factset(factsetId) / "ns" / Key.unsafe(factsetDate.slashed) / "part", "content")
+        store     <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.testing(repo))
+        _         <- writeFactsetVersion(repo, List(factsetId))
+        snapshot  <- SnapshotManifest.latestUpToDateSnapshot(repo, date1).run
+      } yield snapshot must beUpToDate(repo, date1)
+
+    } must beOkResult
+  }.set(minTestsOk = 10)
+
+  def storeSnapshotManifest(repo: Repository, meta: SnapshotManifest): ResultTIO[Unit] = meta.fold(SnapshotMeta.save(repo, _), NewSnapshotManifest.save(repo, _))
+
+  def beUpToDate(repository: Repository, date1: Date): Matcher[Option[SnapshotManifest]] = { snapshot: Option[SnapshotManifest] =>
+    snapshot must beSome { meta: SnapshotManifest =>
+
+      "the snapshot feature store is the latest feature store if it is up to date" ==> {
+        Metadata.latestFeatureStoreOrFail(repository) map { store => meta.featureStoreId ==== store.id } must beOk
+      }
+
+      "there are no new facts after the snapshot date" ==> {
+        val newFacts =
+          for {
+            store      <- Metadata.latestFeatureStoreOrFail(repository)
+            partitions <- FeatureStoreGlob.strictlyAfterAndBefore(repository, store, meta.date, date1).map(_.partitions)
+          } yield partitions
+
+        newFacts must beOkLike(_ must beEmpty)
+      }
+    } or { snapshot must beNone }
+  }
+
+  def beOkResult[R : AsResult]: Matcher[ResultTIO[R]] = (resultTIO: ResultTIO[R]) =>
+    resultTIO must beOkLike { r =>
+      val result = AsResult(r)
+      result.isSuccess aka result.message must beTrue
+    }
 }

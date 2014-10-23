@@ -90,8 +90,50 @@ object Arbitraries {
       commitId <- arbitrary[Option[CommitId]]
     } yield SnapshotMeta(id, date, featureStoreId, commitId))
 
+  case class NewSnapshotManifestList(metas: List[NewSnapshotManifest])
+
+  implicit def NewSnapshotManifestListArbitary: Arbitrary[NewSnapshotManifestList] =
+    Arbitrary(
+      for {
+        ids <- arbitrary[SmallSnapshotIdList]
+        metas <- Gen.oneOf(
+            genSameDateNewManifests(ids)
+          , genSameCommitIdNewManifests(ids)
+          , genSameNewManifests(ids))
+      } yield NewSnapshotManifestList(metas))
+
+  def genSameDateNewManifests(ids: SmallSnapshotIdList): Gen[List[NewSnapshotManifest]] = for {
+    date <- arbitrary[Date]
+    metas <- ids.ids.traverseU(
+      (id: SnapshotId) =>
+        arbitrary[CommitId].map(NewSnapshotManifest.newSnapshotMeta(id, date, _)))
+  } yield metas
+
+  def genSameCommitIdNewManifests(ids: SmallSnapshotIdList): Gen[List[NewSnapshotManifest]] = for {
+    commitId <- arbitrary[CommitId]
+    metas <- ids.ids.traverseU(
+      (id: SnapshotId) =>
+        arbitrary[Date].map(NewSnapshotManifest.newSnapshotMeta(id, _, commitId)))
+  } yield metas
+
+  def genSameNewManifests(ids: SmallSnapshotIdList): Gen[List[NewSnapshotManifest]] = for {
+    date <- arbitrary[Date]
+    commitId <- arbitrary[CommitId]
+  } yield ids.ids.map(NewSnapshotManifest.newSnapshotMeta(_, date, commitId))
+
   implicit def SnapshotManifestArbitrary: Arbitrary[SnapshotManifest] =
     Arbitrary(Gen.oneOf(
       arbitrary[SnapshotMeta].map(SnapshotManifest.snapshotManifestLegacy),
       arbitrary[NewSnapshotManifest].map(SnapshotManifest.snapshotManifestNew)))
+
+  case class SnapshotManifestList(metas: List[SnapshotManifest])
+
+  implicit def SnapshotManifestListArbitrary: Arbitrary[SnapshotManifestList] =
+    Arbitrary(Gen.oneOf(
+      arbitrary[SnapshotMetaList].map(
+        (snaps: SnapshotMetaList) =>
+          SnapshotManifestList(snaps.metas.map(SnapshotManifest.snapshotManifestLegacy))),
+      arbitrary[NewSnapshotManifestList].map(
+        (snaps: NewSnapshotManifestList) =>
+          SnapshotManifestList(snaps.metas.map(SnapshotManifest.snapshotManifestNew)))))
 }
