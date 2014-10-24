@@ -44,8 +44,7 @@ SnapshotManifest Properties
   We define the "latest" snapshot before a date1 as the greatest element having a date <= date1 $latest
 
   The latest snapshot is considered the "latest up to date" snapshot for date1 if:
-    - latestSnapshot.featureStore == latestFeatureStore (for legacy Snapshots)
-    - latestSnapshot.commitId     == latestCommitId (for new snapshot manifests)
+    - latestSnapshot.getFeatureStoreId == latestFeatureStore
     - and the snapshot.date == date1
 
     - OR the snapshot.date != date1
@@ -111,12 +110,14 @@ SnapshotManifest Properties
     } must beOkResult
   }
 
-  def uptodate = prop { (snapshots: SnapshotManifestList, date1: Date, dateOffset: DateOffset) =>
+  // This only checks the legacy snapshot manifests, as the new ones will involve looking up the commit in the metadata,
+  // which wont be in the repo built.
+  def uptodate = prop { (snapshots: SnapshotMetaList, date1: Date, dateOffset: DateOffset) =>
     RepositoryBuilder.using { repo =>
       val factsetDate = dateOffset.offset(date1)
 
       for {
-        _         <- snapshots.metas.traverse(storeSnapshotManifest(repo, _))
+        _         <- snapshots.metas.traverse((lm: SnapshotMeta) => storeSnapshotManifest(repo, SnapshotManifest.snapshotManifestLegacy(lm)))
         factsetId <- Factsets.allocateFactsetId(repo)
         _         <- repo.store.utf8.write(Repository.factset(factsetId) / "ns" / Key.unsafe(factsetDate.slashed) / "part", "content")
         store     <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.testing(repo))
@@ -133,16 +134,9 @@ SnapshotManifest Properties
     snapshot must beSome(
       (meta: SnapshotManifest) => {
 
-        meta.fold(
-          (lm: SnapshotMeta) =>
-            "the snapshot feature store is the latest feature store if it is up to date" ==> {
-              Metadata.latestFeatureStoreOrFail(repo) map { store => lm.featureStoreId ==== store.id } must beOk
-            },
-          (nm: NewSnapshotManifest) =>
-            "the snapshot commit is the latest commit if it is upto date" ==> {
-              Metadata.latestCommitId(repo).flatMap(
-                ResultT.fromOption[IO, CommitId](_, s"No commits found in repo")).map((commitId: CommitId) => nm.commitId ==== commitId) must beOk
-            })
+        "the snapshot feature store is the latest feature store if it is up to date" ==> {
+          Metadata.latestFeatureStoreOrFail(repo).flatMap((store: FeatureStore) => SnapshotManifest.getFeatureStoreId(repo, meta).map(_ ==== store.id)) must beOk
+        }
 
         "there are no new facts after the snapshot date" ==> {
           val newFacts =
