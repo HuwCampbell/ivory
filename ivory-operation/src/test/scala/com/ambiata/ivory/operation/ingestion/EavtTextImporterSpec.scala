@@ -126,7 +126,9 @@ class EavtTextImporterPureSpec extends Specification with ScalaCheck { def is = 
     EavtTextImporter.validateNamespaces(dict, dict.byFeatureId.keys.toList.map(_.namespace)).toEither must beRight
   })
 
-  def validateNamespacesFail = prop((dict: Dictionary, name: Name, names: List[Name]) => {
+  def validateNamespacesFail = prop((dict: Dictionary, names: List[Name]) => {
+    // Lazy way of create at least one name that isn't in the dictionary
+    val name = Name.unsafe(dict.definitions.map(_.featureId.namespace.name).mkString)
     val allNames = (name :: names).filter(dict.forNamespace(_).definitions.isEmpty)
     EavtTextImporter.validateNamespaces(dict, allNames).toEither must beLeft
   })
