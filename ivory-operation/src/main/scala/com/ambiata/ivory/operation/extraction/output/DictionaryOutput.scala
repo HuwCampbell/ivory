@@ -40,6 +40,7 @@ object DictionaryOutput {
       case Gradient            => DoubleEncoding
       case StandardDeviation   => DoubleEncoding
       case NumFlips            => LongEncoding
+      case DaysSince           => IntEncoding
       case CountBy             => StructEncoding(Map())
       case DaysSinceEarliestBy => StructEncoding(Map())
       case DaysSinceLatestBy   => StructEncoding(Map())
@@ -49,6 +50,9 @@ object DictionaryOutput {
       // A short term hack for supporting feature gen based on known functions
       case Count                        => LongEncoding
       case Latest                       => source
+      case IntervalMean                 => DoubleEncoding
+      case IntervalSD                   => DoubleEncoding
+      case IntervalGradient             => DoubleEncoding
       case DaysSinceLatest              => IntEncoding
       case DaysSinceEarliest            => IntEncoding
       case MeanInDays                   => DoubleEncoding

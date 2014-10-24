@@ -39,6 +39,9 @@ object Reduction {
   def fromExpression(exp: Expression, encoding: Encoding, dates: DateOffsetsLazy): Option[Reduction] = exp match {
     case Count                        => Some(new CountReducer())
     case Latest                       => Some(new LatestReducer())
+    case IntervalMean                 => Some(new IntervalMeanReducer(dates.dates))
+    case IntervalSD                   => Some(new IntervalSDReducer(dates.dates))
+    case IntervalGradient             => Some(new IntervalGradientReducer(dates.dates))
     case DaysSinceLatest              => Some(new DaysSinceLatestReducer(dates.dates))
     case MeanInDays                   => Some(new DateReduction(dates.dates, new MeanInDaysReducer, ReductionValueDouble))
     case MeanInWeeks                  => Some(new DateReduction(dates.dates, new MeanInWeeksReducer, ReductionValueDouble))

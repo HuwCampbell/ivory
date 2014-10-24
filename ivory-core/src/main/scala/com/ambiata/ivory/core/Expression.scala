@@ -26,6 +26,9 @@ object Expression {
     }
     (exp match {
       case Count                        => List("count")
+      case IntervalMean                 => List("interval_mean")
+      case IntervalSD                   => List("interval_sd")
+      case IntervalGradient             => List("interval_gradient")
       case Latest                       => List("latest")
       case DaysSinceLatest              => List("days_since_latest")
       case DaysSinceEarliest            => List("days_since_earliest")
@@ -63,6 +66,9 @@ object Expression {
       case "minimum_in_days" :: Nil         => MinimumInDays
       case "minimum_in_weeks" :: Nil        => MinimumInWeeks
       case "count_days" :: Nil              => CountDays
+      case "interval_mean" :: Nil           => IntervalMean
+      case "interval_sd" :: Nil             => IntervalSD
+      case "interval_gradient" :: Nil       => IntervalGradient
       case "sum_by" :: key :: sumBy :: Nil  => SumBy(key, sumBy)
       // Subexpressions
       case "sum" :: tail                    => parseSub(Sum, tail)
@@ -128,6 +134,9 @@ object Expression {
       case QuantileInDays(_, _)          => ok
       case QuantileInWeeks(_, _)         => ok
       case ProportionByTime(_, _)        => ok
+      case IntervalMean                  => ok
+      case IntervalSD                    => ok
+      case IntervalGradient              => ok
       case SumBy(key, field)             => encoding match {
         case StructEncoding(values) => for {
            k <- values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
@@ -171,6 +180,9 @@ case object CountDays extends Expression
 case class QuantileInDays(k: Int, q: Int) extends Expression
 case class QuantileInWeeks(k: Int, q: Int) extends Expression
 case class ProportionByTime(start: Time, end: Time) extends Expression
+case object IntervalMean extends Expression
+case object IntervalSD extends Expression
+case object IntervalGradient extends Expression
 
 /** [[SumBy]] is "special" in that it requires _two_ struct fields */
 case class SumBy(key: String, field: String) extends Expression
