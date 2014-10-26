@@ -3,11 +3,10 @@ package com.ambiata.ivory.operation.extraction.reduction
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
 import org.specs2.{ScalaCheck, Specification}
-import com.ambiata.ivory.core.thrift._
 import spire.math._
 import spire.implicits._
 
-class IntervalReducersSpec extends Specification with ScalaCheck { def is = s2"""
+class IntervalReducerSpec extends Specification with ScalaCheck { def is = s2"""
   Interval mean reducer works with arbitrary facts       $meanInterval
   Interval sd reducer works with arbitrary facts         $sdInterval
   Interval grad reducer works with arbitrary facts       $gradInterval
@@ -18,57 +17,44 @@ class IntervalReducersSpec extends Specification with ScalaCheck { def is = s2""
     val ds = facts.map(td => 0 -> td.date).sortBy(_._2)
     val dateOffsets = ReducerUtil.buildDateOffsets(ds)
 
-    val r = new IntervalMeanReducer(dateOffsets)
+    val r = new IntervalReducer(dateOffsets, new MeanReducer, ReductionValueDouble)
     facts.sortBy(_.date).foreach(r.update)
 
     val filteredfacts = facts.filterNot(_.isTombstone).sortBy(_.date)
-    val res = if (filteredfacts.length > 1)
-        ThriftFactValue.d(filteredfacts.sliding(2, 1).collect { case a :: b :: Nil => DateTimeUtil.toDays(b.date) - DateTimeUtil.toDays(a.date) }.sum.toDouble / (filteredfacts.length - 1))
-      else
-        ThriftFactValue.t(new ThriftTombstone())
-    r.save match {
-      case tv if tv.isSetD => tv.getD must beCloseTo(res.getD, 4.significantFigures)
-      case tv if tv.isSetT => res.isSetT must beTrue
-      case x               => "Badline" ==== x.toString()
-    }
+    val res =
+      if (filteredfacts.length > 1)
+        filteredfacts.sliding(2, 1).collect { case a :: b :: Nil => DateTimeUtil.toDays(b.date) - DateTimeUtil.toDays(a.date) }.sum.toDouble / (filteredfacts.length - 1)
+      else 0.0
+    r.save.getD must beCloseTo(res, 4.significantFigures)
   })
 
   def sdInterval = prop((facts: List[Fact]) => {
     val ds = facts.map(td => 0 -> td.date).sortBy(_._2)
     val dateOffsets = ReducerUtil.buildDateOffsets(ds)
 
-    val r = new IntervalSDReducer(dateOffsets)
+    val r = new IntervalReducer(dateOffsets, new StandardDeviationReducer, ReductionValueDouble)
     facts.sortBy(_.date).foreach(r.update)
 
     val filteredfacts = facts.filterNot(_.isTombstone).sortBy(_.date)
-    val res = if (filteredfacts.length > 2)
-        ThriftFactValue.d(stdDev(filteredfacts.sliding(2, 1).collect { case a :: b :: Nil => DateTimeUtil.toDays(b.date) - DateTimeUtil.toDays(a.date) }.toList))
-      else
-        ThriftFactValue.t(new ThriftTombstone())
-    r.save match {
-      case tv if tv.isSetD => tv.getD must beCloseTo(res.getD, 4.significantFigures)
-      case tv if tv.isSetT => res.isSetT must beTrue
-      case x               => "Badline" ==== x.toString()
-    }
+    val res =
+      if (filteredfacts.length > 2)
+        stdDev(filteredfacts.sliding(2, 1).collect { case a :: b :: Nil => DateTimeUtil.toDays(b.date) - DateTimeUtil.toDays(a.date) }.toList)
+      else 0.0
+    r.save.getD must beCloseTo(res, 4.significantFigures)
   })
 
   def gradInterval = prop((facts: List[Fact]) => {
     val ds = facts.map(td => 0 -> td.date).sortBy(_._2)
     val dateOffsets = ReducerUtil.buildDateOffsets(ds)
 
-    val r = new IntervalGradientReducer(dateOffsets)
+    val r = new IntervalReducer(dateOffsets, new GradientReducer(dateOffsets), ReductionValueDouble)
     facts.sortBy(_.date).foreach(r.update)
 
     val filteredfacts = facts.filterNot(_.isTombstone).sortBy(_.date)
     val res = if (filteredfacts.length > 2)
-        ThriftFactValue.d(gradient(filteredfacts.sliding(2, 1).collect { case a :: b :: Nil => (DateTimeUtil.toDays(b.date) - DateTimeUtil.toDays(a.date), b.date) }.toList))
-      else
-        ThriftFactValue.t(new ThriftTombstone())
-    r.save match {
-      case tv if tv.isSetD => tv.getD must beCloseTo(res.getD, 4.significantFigures)
-      case tv if tv.isSetT => res.isSetT must beTrue
-      case x               => false must beTrue
-    }
+        gradient(filteredfacts.sliding(2, 1).collect { case a :: b :: Nil => (DateTimeUtil.toDays(b.date) - DateTimeUtil.toDays(a.date), b.date) }.toList)
+      else 0.0
+    r.save.getD must beCloseTo(res, 4.significantFigures)
   })
 
   def stdDev[A: Numeric](ds: List[A]): Double = {
