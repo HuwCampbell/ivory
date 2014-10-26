@@ -52,7 +52,12 @@ object Snapshot {
     for {
       latest  <- SnapshotManifest.latestUpToDateSnapshot(repo, date).run
       meta    <- latest match {
-        case Some(m) => SnapshotManifest.getFeatureStoreId(repo, m).flatMap((featureStoreId: FeatureStoreId) => ResultT.safe[IO, SnapshotManifest](m).info(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${featureStoreId}'"))
+        case Some(m) =>
+          for {
+            storeId <- SnapshotManifest.getFeatureStoreId(repo, m)
+            _ <- ResultT.fromIO(IO.putStrLn(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${storeId}'"))
+            x <- ResultT.safe[IO, SnapshotManifest](m)
+          } yield x
         case None    => (SnapshotManifest.latestSnapshot(repo, date).run >>= createSnapshot(repo, date)).map(SnapshotManifest.snapshotManifestNew)
       }
     } yield meta
