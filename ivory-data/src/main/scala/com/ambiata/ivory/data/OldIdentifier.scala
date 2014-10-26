@@ -41,8 +41,7 @@ object OldIdentifier extends MacrosCompat {
   def unsafe(id: Int): OldIdentifier =
     new OldIdentifier(id)
 
-  def fromInt(n: Int): Option[OldIdentifier] =
-    if (n > max.n) none else some(new OldIdentifier(n))
+  def fromInt(n: Int): Option[OldIdentifier] = (n <= max.n).option(new OldIdentifier(n))
 
   def parse(s: String): Option[OldIdentifier] = try {
     val i = java.lang.Integer.parseInt(s)
