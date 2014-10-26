@@ -3,6 +3,7 @@ package com.ambiata.ivory.core
 import com.ambiata.ivory.data.Identifier
 
 import scalaz._, Scalaz._
+import argonaut._, Argonaut._
 
 case class SnapshotId(id: Identifier) {
   def render = id.render
@@ -13,6 +14,12 @@ case class SnapshotId(id: Identifier) {
 }
 
 object SnapshotId {
+  implicit def SnapshotIdCodecJson: CodecJson[SnapshotId] =
+    CodecJson(
+      ((sid: SnapshotId) =>
+        sid.id.asJson),
+      (c => c.as[Identifier].map(SnapshotId(_))))
+
   implicit def SnapshotIdOrder: Order[SnapshotId] =
     Order.order(_ order _)
 

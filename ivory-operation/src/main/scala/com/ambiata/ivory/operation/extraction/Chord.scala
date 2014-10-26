@@ -2,8 +2,8 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.legacy.{SnapshotMeta, FeatureStoreSnapshot}
 import com.ambiata.ivory.storage.fact._
+import com.ambiata.ivory.storage.legacy.FeatureStoreSnapshot
 import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
@@ -35,17 +35,17 @@ object Chord {
     _                    = println(s"Latest date in chord file is '${entities.latestDate}'")
     store               <- Metadata.latestFeatureStoreOrFail(repository)
     snapshot            <- if (takeSnapshot) Snapshot.takeSnapshot(repository, entities.earliestDate, incremental = true).map(Option.apply)
-                           else              SnapshotMeta.latestSnapshot(repository, entities.earliestDate)
+                           else              SnapshotManifest.latestSnapshot(repository, entities.earliestDate).run
     out                 <- runChord(repository, store, entities, snapshot)
   } yield out
 
   /**
    * Run the chord extraction on Hdfs, returning the [[Key]] where the chord was written to.
    */
-  def runChord(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotMeta]): ResultTIO[Key] = {
+  def runChord(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotManifest]): ResultTIO[Key] = {
     for {
       hr                   <- downcast[Repository, HdfsRepository](repository, "Chord only works on HDFS repositories at this stage.")
-      featureStoreSnapshot <- incremental.traverseU(meta => FeatureStoreSnapshot.fromSnapshotMeta(repository)(meta))
+      featureStoreSnapshot <- incremental.traverseU(SnapshotManifest.featureStoreSnapshot(repository, _))
       dictionary           <- latestDictionaryFromIvory(repository)
       factsetGlobs         <- calculateGlobs(repository, store, entities.latestDate, featureStoreSnapshot)
       outputPath           <- Repository.tmpDir(repository)

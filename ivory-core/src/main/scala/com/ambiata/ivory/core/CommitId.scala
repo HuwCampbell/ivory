@@ -3,6 +3,7 @@ package com.ambiata.ivory.core
 import com.ambiata.ivory.data.Identifier
 
 import scalaz._, Scalaz._
+import argonaut._, Argonaut._
 
 case class CommitId(id: Identifier) {
   def render = id.render
@@ -18,6 +19,10 @@ object CommitId {
 
   implicit def CommitIdOrdering =
     CommitIdOrder.toScalaOrdering
+
+  implicit def CommitIdCodecJson: CodecJson[CommitId] = CodecJson(
+    (_.id.asJson),
+    (_.as[Identifier].map(CommitId.apply)))
 
   def initial: CommitId =
     CommitId(Identifier.initial)

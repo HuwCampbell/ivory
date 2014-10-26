@@ -3,7 +3,9 @@ package com.ambiata.ivory.data
 import com.ambiata.ivory.reflect.MacrosCompat
 import com.ambiata.notion.core._
 import com.ambiata.mundane.parse.ListParser
+
 import scalaz._, Scalaz._
+import argonaut._, Argonaut._
 
 /**
  * TODO Delete this as part of the migration to the new Identifier format
@@ -39,9 +41,11 @@ object OldIdentifier extends MacrosCompat {
   def unsafe(id: Int): OldIdentifier =
     new OldIdentifier(id)
 
+  def fromInt(n: Int): Option[OldIdentifier] = (n <= max.n).option(new OldIdentifier(n))
+
   def parse(s: String): Option[OldIdentifier] = try {
     val i = java.lang.Integer.parseInt(s)
-    if (i > max.n) None else Some(new OldIdentifier(i))
+    fromInt(i)
   } catch {
     case e: NumberFormatException => None
   }
@@ -60,6 +64,10 @@ object OldIdentifier extends MacrosCompat {
 
   implicit def OldIdentifierOrdering =
     OldIdentifierOrder.toScalaOrdering
+
+  implicit def OldIdentifierCodecJson: CodecJson[OldIdentifier] = CodecJson.derived(
+    EncodeJson(_.n.asJson),
+    DecodeJson.optionDecoder(_.as[Int].toOption.flatMap(fromInt), "OldIdentifier"))
 
   def apply(string: String): OldIdentifier =
     macro oldIndentifierMacro

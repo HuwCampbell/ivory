@@ -1,10 +1,10 @@
 package com.ambiata.ivory.operation.extraction.output
 
 import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.storage.legacy.SnapshotMeta
 import com.ambiata.ivory.operation.extraction.Snapshot
 import com.ambiata.ivory.operation.extraction.squash.{SquashConfig, SquashJob}
 import com.ambiata.ivory.storage.metadata.Metadata._
+import com.ambiata.ivory.storage.metadata.SnapshotManifest
 import com.ambiata.mundane.control._
 
 /**
@@ -16,7 +16,7 @@ object EavOutput {
    * Take a snapshot first then extract EAV text
    */
   def extractFromSnapshot(repository: Repository, output: IvoryLocation, delim: Char, tombstone: String,
-                          meta: SnapshotMeta, conf: SquashConfig): ResultTIO[Unit] = for {
+                          meta: SnapshotManifest, conf: SquashConfig): ResultTIO[Unit] = for {
     dict <- Snapshot.dictionaryForSnapshot(repository, meta)
     _    <- SquashJob.squashFromSnapshotWith(repository, dict, meta, output, conf)(key =>
               extractWithDictionary(repository, repository.toIvoryLocation(key), output, dict, delim, tombstone))

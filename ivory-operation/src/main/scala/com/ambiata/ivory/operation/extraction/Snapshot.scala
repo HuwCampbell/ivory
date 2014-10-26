@@ -5,7 +5,6 @@ import org.apache.commons.logging.LogFactory
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.fact._
-import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control._
@@ -39,9 +38,9 @@ object Snapshot {
    * Take a new snapshot
    * If incremental is true, take a incremental snapshot (based off the previous one), unless the previous one is up to date
    */
-  def takeSnapshot(repository: Repository, date: Date, incremental: Boolean): ResultTIO[SnapshotMeta] =
+  def takeSnapshot(repository: Repository, date: Date, incremental: Boolean): ResultTIO[SnapshotManifest] =
     if (incremental) takeIncrementalSnapshot(repository, date)
-    else             takeNewSnapshot(repository, date)
+    else             takeNewSnapshot(repository, date).map(SnapshotManifest.snapshotManifestNew)
 
   /**
    * We need to create a new incremental snapshot if the previous one is not up to date any more
@@ -49,42 +48,47 @@ object Snapshot {
    *  - if it corresponds to an old store
    *  - if there were partitions created after the snapshot has been taken
    */
-  def takeIncrementalSnapshot(repository: Repository, date: Date): ResultTIO[SnapshotMeta] =
+  def takeIncrementalSnapshot(repo: Repository, date: Date): ResultTIO[SnapshotManifest] =
     for {
-      latest  <- SnapshotMeta.latestUpToDateSnapshot(repository, date)
+      latest  <- SnapshotManifest.latestUpToDateSnapshot(repo, date).run
       meta    <- latest match {
-        case Some(m) => ResultT.safe[IO, SnapshotMeta](m).info(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${m.featureStoreId}'")
-        case None    => SnapshotMeta.latestSnapshot(repository, date) >>= createSnapshot(repository, date)
+        case Some(m) =>
+          for {
+            storeId <- SnapshotManifest.getFeatureStoreId(repo, m)
+            _ <- ResultT.fromIO(IO.putStrLn(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${storeId}'"))
+            x <- ResultT.safe[IO, SnapshotManifest](m)
+          } yield x
+        case None    => (SnapshotManifest.latestSnapshot(repo, date).run >>= createSnapshot(repo, date)).map(SnapshotManifest.snapshotManifestNew)
       }
     } yield meta
 
   /**
    * take a new snapshot, without considering any previous incremental snapshot
    */
-  def takeNewSnapshot(repository: Repository, date: Date): ResultTIO[SnapshotMeta] =
+  def takeNewSnapshot(repository: Repository, date: Date): ResultTIO[NewSnapshotManifest] =
     createSnapshot(repository, date)(None)
 
   /**
    * create a new snapshot at a given date, using the previous snapshot data if present
    */
-  def createSnapshot(repository: Repository, date: Date): Option[SnapshotMeta] => ResultTIO[SnapshotMeta] = (previousSnapshot: Option[SnapshotMeta]) =>
+  def createSnapshot(repo: Repository, date: Date): Option[SnapshotManifest] => ResultTIO[NewSnapshotManifest] = (previousSnapshot: Option[SnapshotManifest]) =>
     for {
-      newSnapshot <- SnapshotMeta.createSnapshotMeta(repository, date)
-      _           <- runSnapshot(repository, newSnapshot, previousSnapshot, date, newSnapshot.snapshotId).info(s"""
+      newSnapshot <- NewSnapshotManifest.createSnapshotManifest(repo, date)
+      _           <- NewSnapshotManifest.getFeatureStoreId(repo, newSnapshot).flatMap((featureStoreId: FeatureStoreId) => runSnapshot(repo, newSnapshot, previousSnapshot, date, newSnapshot.snapshotId).info(s"""
                                  | Running extractor on:
                                  |
-                                 | Repository     : ${repository}
-                                 | Feature Store  : ${newSnapshot.featureStoreId.render}
+                                 | Repository     : ${repo}
+                                 | Feature Store  : ${featureStoreId.render}
                                  | Date           : ${date.hyphenated}
                                  | Output         : ${Repository.snapshot(newSnapshot.snapshotId).name}
                                  |
-                                 """.stripMargin)
+                                 """.stripMargin))
     } yield newSnapshot
 
   /**
    * Run a snapshot on a given repository using the previous snapshot in case of an incremental snapshot
    */
-  def runSnapshot(repository: Repository, newSnapshot: SnapshotMeta, previousSnapshot: Option[SnapshotMeta], date: Date, newSnapshotId: SnapshotId): ResultTIO[Unit] =
+  def runSnapshot(repository: Repository, newSnapshot: NewSnapshotManifest, previousSnapshot: Option[SnapshotManifest], date: Date, newSnapshotId: SnapshotId): ResultTIO[Unit] =
     for {
       hr              <- downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'")
       output          =  hr.toIvoryLocation(Repository.snapshot(newSnapshot.snapshotId))
@@ -93,26 +97,27 @@ object Snapshot {
       newFactsetGlobs <- calculateGlobs(repository, dictionary, windows, newSnapshot, previousSnapshot, date)
       _               <- job(hr, previousSnapshot, newFactsetGlobs, date, output.toHdfsPath, windows, hr.codec).run(hr.configuration)
       _               <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(newSnapshot.snapshotId) / ".dictionary", dictionary)
-      _               <- SnapshotMeta.save(repository, newSnapshot)
+      _               <- NewSnapshotManifest.save(repository, newSnapshot)
     } yield ()
 
-  def calculateGlobs(repository: Repository, dictionary: Dictionary, windows: SnapshotWindows, newSnapshot: SnapshotMeta,
-                     previousSnapshot: Option[SnapshotMeta], date: Date): ResultTIO[List[Prioritized[FactsetGlob]]] =
+  def calculateGlobs(repo: Repository, dictionary: Dictionary, windows: SnapshotWindows, newSnapshot: NewSnapshotManifest,
+                     previousSnapshot: Option[SnapshotManifest], date: Date): ResultTIO[List[Prioritized[FactsetGlob]]] =
     for {
-      currentFeatureStore <- Metadata.latestFeatureStoreOrFail(repository)
+      currentFeatureStore <- Metadata.latestFeatureStoreOrFail(repo)
       parts           <- previousSnapshot.cata(sm => for {
-        prevStore     <- featureStoreFromIvory(repository, sm.featureStoreId)
+        featureStoreId <- SnapshotManifest.getFeatureStoreId(repo, sm)
+        prevStore     <- featureStoreFromIvory(repo, featureStoreId)
         pw            =  SnapshotWindows.planWindow(dictionary, sm.date)
         sp            =  SnapshotPartition.partitionIncremental(currentFeatureStore, prevStore, date, sm.date)
         spw           =  SnapshotPartition.partitionIncrementalWindowing(prevStore, sm.date, windows, pw)
       } yield sp ++ spw, ResultT.ok[IO, List[SnapshotPartition]](SnapshotPartition.partitionAll(currentFeatureStore, date)))
-      newFactsetGlobs <- newFactsetGlobs(repository, parts)
+      newFactsetGlobs <- newFactsetGlobs(repo, parts)
     } yield newFactsetGlobs
 
   /**
    * create a new snapshot as a Map-Reduce job
    */
-  private def job(repository: HdfsRepository, previousSnapshot: Option[SnapshotMeta],
+  private def job(repository: HdfsRepository, previousSnapshot: Option[SnapshotManifest],
                   factsetsGlobs: List[Prioritized[FactsetGlob]], snapshotDate: Date, outputPath: Path,
                   windows: SnapshotWindows, codec: Option[CompressionCodec]): Hdfs[Unit] =
     for {
@@ -134,8 +139,8 @@ object Snapshot {
     snap       <- ScoobiAction.fromResultTIO(takeSnapshot(hr, date, incremental).map(res => hr.toIvoryLocation(Repository.snapshot(res.snapshotId)).toHdfsPath))
   } yield snap
 
-  def dictionaryForSnapshot(repository: Repository, meta: SnapshotMeta): ResultTIO[Dictionary] =
-    meta.commitId.cata(
+  def dictionaryForSnapshot(repository: Repository, meta: SnapshotManifest): ResultTIO[Dictionary] =
+    meta.storeOrCommitId.b.cata(
       commitId => for {
         commit <- commitFromIvory(repository, commitId)
         dict   <- dictionaryFromIvory(repository, commit.dictionaryId)

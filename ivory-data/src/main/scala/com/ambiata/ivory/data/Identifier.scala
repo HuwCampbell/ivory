@@ -4,6 +4,7 @@ import com.ambiata.ivory.reflect.MacrosCompat
 import com.ambiata.notion.core.KeyName
 import com.ambiata.mundane.parse.ListParser
 import scalaz._, Scalaz._
+import argonaut._, Argonaut._
 
 class Identifier private (val n: Int) extends AnyVal {
   def render: String =
@@ -44,6 +45,11 @@ object Identifier extends MacrosCompat {
 
   implicit def IdentifierOrdering =
     IdentifierOrder.toScalaOrdering
+
+  implicit def IdentifierCodecJson: CodecJson[Identifier] =
+    CodecJson.derived(
+      EncodeJson(_.toString.asJson),
+      DecodeJson.optionDecoder((_.as[String].toOption.flatMap(parse(_))), "Identifier"))
 
   def apply(string: String): Identifier =
     macro identifierMacro

@@ -4,7 +4,6 @@ import java.util.HashMap
 
 import com.ambiata.ivory.core.{Priority, Date, Arbitraries, Fact}
 import com.ambiata.ivory.operation.extraction.Chord.PrioritizedFact
-import com.ambiata.ivory.storage.legacy.SnapshotMetaSpec.DateOffset
 import org.scalacheck.{Arbitrary, Gen}
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.{ScalaCheck, Specification}
