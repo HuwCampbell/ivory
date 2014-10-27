@@ -13,7 +13,9 @@ object Namespaces {
    * @return the list of namespaces for a given factset and their corresponding sizes
    */
   def namespaceSizes(factsetPath: Path): Hdfs[List[(Name, BytesQuantity)]] =
-    Hdfs.childrenSizes(factsetPath).map(_.map { case (n, q) => (Name.fromPathName(n), q) })
+    Hdfs.childrenSizes(factsetPath)
+      .flatMap(_.traverseU { case (n, q) => Hdfs.ok(List(n)).filterHidden.map(_.map(_ -> q))}).map(_.flatten)
+      .map(_.map { case (n, q) => (Name.fromPathName(n), q) })
 
   def namespaceSizesSingle(factsetPath: Path, namespace: Name): Hdfs[(Name, BytesQuantity)] =
     Hdfs.totalSize(factsetPath).map(namespace ->)

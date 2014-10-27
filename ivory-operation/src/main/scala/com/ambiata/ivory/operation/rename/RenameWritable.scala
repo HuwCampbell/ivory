@@ -52,6 +52,9 @@ object RenameWritable {
 
     def getDate(bw: BytesWritable): Date =
       Date.unsafeFromInt(WritableComparator.readInt(bw.getBytes, Offsets.Before.date))
+
+    def getEntityHash(bw: BytesWritable): Int =
+      WritableComparator.hashBytes(bw.getBytes, Offsets.Before.entity, bw.getLength - Offsets.Before.entity - Offsets.After.time)
   }
 
   class ComparatorFeatureIdDateEntityTimePriority extends BytesWritable.Comparator
@@ -65,5 +68,7 @@ object RenameWritable {
   class PartitionerFeatureId extends BaseFactsPartitioner[BytesWritable] {
     def getFeatureId(bw: BytesWritable): Int =
       GroupingByFeatureIdDate.getFeatureId(bw)
+    def getEntityHash(bw: BytesWritable): Int =
+      GroupingByFeatureIdDate.getEntityHash(bw)
   }
 }

@@ -1,5 +1,6 @@
 package com.ambiata.ivory.storage.task
 
+import com.ambiata.ivory.core.FeatureReducerOffset
 import com.ambiata.ivory.lookup.ReducerLookup
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.poacher.mr.MrContext
@@ -14,9 +15,11 @@ import org.apache.hadoop.mapreduce.Partitioner
  * into predetermined buckets. We use the predetermined buckets as upfront knowledge of
  * the input size is used to reduce skew on input data.
  */
-class FactsPartitioner extends BaseFactsPartitioner[LongWritable] {
-  def getFeatureId(k: LongWritable): Int =
-    (k.get >>> 32).toInt
+class FactsPartitioner extends BaseFactsPartitioner[BytesWritable] {
+  def getFeatureId(k: BytesWritable): Int =
+    FactsetWritable.getFeatureId(k)
+  def getEntityHash(k: BytesWritable): Int =
+    FactsetWritable.getEntityHash(k)
 }
 
 trait BaseFactsPartitioner[A] extends Partitioner[A, BytesWritable] with Configurable {
@@ -34,7 +37,8 @@ trait BaseFactsPartitioner[A] extends Partitioner[A, BytesWritable] with Configu
     _conf
 
   def getPartition(k: A, v: BytesWritable, partitions: Int): Int =
-    lookup.reducers.get(getFeatureId(k)) % partitions
+    FeatureReducerOffset.getReducer(lookup.reducers.get(getFeatureId(k)), getEntityHash(k)) % partitions
 
   def getFeatureId(k: A): Int
+  def getEntityHash(k: A): Int
 }

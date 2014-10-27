@@ -11,7 +11,6 @@ class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s
   Can calculate the number of reducers for a virtual feature      $lookup
   Can get the partition for a feature when no window              $partitionNoWindow
   Can get the partition for a feature based on the entity         $partitionEntity
-  Offset and count are encoded and decoded from an int            $intEncoding
 """
 
   def lookup = prop((d: VirtualDictionaryWindow, d2: Dictionary, s: Short, e: Int) => {
@@ -21,7 +20,7 @@ class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s
     val create = SquashReducerLookup.create(dict, lookup, reducers)
     val lookupV = create.reducers.get(lookup.ids.get(d.vdict.vd.source.toString))
     // Just a santity test - we should do better though
-    SquashReducerLookup.getReducer(lookupV, e & Int.MaxValue) must beGreaterThanOrEqualTo(0)
+    FeatureReducerOffset.getReducer(lookupV, e & Int.MaxValue) must beGreaterThanOrEqualTo(0)
   })
 
   def partitionNoWindow = prop((f: Fact, fids: Short, partitions: Short) => partitions != 0 ==> {
@@ -37,18 +36,12 @@ class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s
   def partitionEntity = prop((f: Fact, fids: Short, e1: String, e2: String) => e1 != e2 ==> {
     val fid = Math.abs(fids).toShort
     val lookup = new ReducerLookup
-    lookup.putToReducers(fid, SquashReducerLookup.toLookup(0, Short.MaxValue - 1))
+    lookup.putToReducers(fid, FeatureReducerOffset(0, Short.MaxValue - 1).toInt)
     val bw = Writables.bytesWritable(2048)
     SquashWritable.KeyState.set(f.withEntity(e1), bw, fid)
     val a = SquashPartitioner.getPartition(lookup, bw, Integer.MAX_VALUE)
     SquashWritable.KeyState.set(f.withEntity(e2), bw, fid)
     val b = SquashPartitioner.getPartition(lookup, bw, Integer.MAX_VALUE)
     a !=== b
-  })
-
-  def intEncoding = prop((i: Short, j: Short, entity: Int) => (j > Short.MinValue && j < Short.MaxValue) ==> {
-    val offset = Math.abs(i).toShort
-    val count = Math.abs(j) + 1
-    SquashReducerLookup.getReducer(SquashReducerLookup.toLookup(offset, count.toShort), entity) ==== (entity % count + offset)
   })
 }

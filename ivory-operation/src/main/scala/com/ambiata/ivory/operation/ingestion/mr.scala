@@ -5,7 +5,7 @@ import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.FeatureIdLookup
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.parse._
-import com.ambiata.ivory.storage.task.FactsetJob
+import com.ambiata.ivory.storage.task.{FactsetWritable, FactsetJob}
 import com.ambiata.poacher.mr._
 
 import scalaz.{Name =>_, Reducer => _, Value => _, _}, Scalaz._
@@ -85,7 +85,7 @@ object IngestJob {
  *
  * The output value is the already serialized bytes of the fact ready to write.
  */
-trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
+trait IngestMapper[K, I] extends Mapper[K, I, BytesWritable, BytesWritable] {
   /** Context object contains tmp paths and dist cache */
   var ctx: MrContext = null
 
@@ -116,7 +116,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
   var base: String = null
 
   /** The output key, only create once per mapper. */
-  val kout = new LongWritable
+  val kout = FactsetWritable.create
 
   /** The output value, only create once per mapper. */
   val vout = Writables.bytesWritable(4096)
@@ -127,9 +127,9 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
   /** name of the namespace being processed if there's only one */
   var singleNamespace: Option[String] = None
 
-  override def setup(context: Mapper[K, I, LongWritable, BytesWritable]#Context): Unit = {
+  override def setup(context: Mapper[K, I, BytesWritable, BytesWritable]#Context): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
-    out = new MultipleOutputs(context.asInstanceOf[Mapper[LongWritable, I, NullWritable, BytesWritable]#Context])
+    out = new MultipleOutputs(context.asInstanceOf[Mapper[K, I, NullWritable, BytesWritable]#Context])
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.FeatureIdLookup, lookup)
     val dictThrift = new ThriftDictionary
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.Dictionary, dictThrift)
@@ -144,10 +144,10 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
     singleNamespace = Option(context.getConfiguration.get(IngestJob.Keys.SingleNamespace))
   }
 
-  override def cleanup(context: Mapper[K, I, LongWritable, BytesWritable]#Context): Unit =
+  override def cleanup(context: Mapper[K, I, BytesWritable, BytesWritable]#Context): Unit =
     out.close()
 
-  override def map(key: K, value: I, context: Mapper[K, I, LongWritable, BytesWritable]#Context): Unit = {
+  override def map(key: K, value: I, context: Mapper[K, I, BytesWritable, BytesWritable]#Context): Unit = {
     val namespace = singleNamespace.fold(namespaces.getOrElseUpdate(splitPath.getParent.toString, findIt(splitPath)))(identity)
 
     parse(Name.unsafe(namespace), value) match {
@@ -157,7 +157,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, LongWritable, BytesWritable] {
         context.getCounter("ivory", "ingest.ok").increment(1)
 
         val k = lookup.ids.get(f.featureId.toString).toInt
-        kout.set((k.toLong << 32) | f.date.int.toLong)
+        FactsetWritable.set(f, kout, k)
 
         val v = serializer.toBytes(f.toThrift)
         vout.set(v, 0, v.length)
