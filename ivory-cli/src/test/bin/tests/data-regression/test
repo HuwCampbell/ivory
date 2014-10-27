@@ -39,6 +39,12 @@ diff_test_mr() {
 
 [ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "0" ]
 
+$V0 extract-snapshot -r "${REPOSITORY}"
+$V0 cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
+diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
+
+[ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "0" ]
+
 
 $IVORY snapshot -o "dense:psv=${TARGET}/snap-dense" -o "sparse:psv=${TARGET}/snap-sparse"
 $IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
