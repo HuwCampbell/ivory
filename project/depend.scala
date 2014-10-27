@@ -17,7 +17,7 @@ object depend {
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141020033730-b75d13a" excludeAll(
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141027030643-3092827" excludeAll(
     ExclusionRule(organization = "org.specs2"),
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec"),
@@ -32,10 +32,10 @@ object depend {
 
   def notion(version: String) =
     if (version.contains("cdh4"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141023002533-57b8f77") ++
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141027042212-a6a007c") ++
       hadoop(version)
     else if (version.contains("cdh5"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141023002550-57b8f77") ++
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141027042212-a6a007c") ++
        hadoop(version)
     else
       sys.error(s"unsupported poacher version, can not build for $version")
@@ -59,8 +59,8 @@ object depend {
   }
 
   def poacher(version: String) =
-  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141023001442-83f2bbc")
-  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141023001116-83f2bbc")
+  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141027025850-d167b6b")
+  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141027025312-d167b6b")
   else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 
