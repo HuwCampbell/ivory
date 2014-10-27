@@ -34,7 +34,7 @@ ChordSpec
         val entities = facts.ces.flatMap(ce => ce.dates.map(ce.entity + "|" + _._1.hyphenated))
         implicit val sc = repo.scoobiConfiguration
         for {
-          _                <- RepositoryBuilder.createRepo(repo, facts.dictionary, facts.facts)
+          _                <- RepositoryBuilder.createRepo(repo, facts.dictionary, facts.allFacts)
           entitiesLocation =  IvoryLocation.fromDirPath(directory </> "entities")
           _                <- IvoryLocation.writeUtf8Lines(entitiesLocation, entities)
           outPath          <- Chord.createChord(repo, entitiesLocation, takeSnapshot = facts.takeSnapshot, windowing)

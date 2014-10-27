@@ -2,8 +2,10 @@ package com.ambiata.ivory.operation.extraction.chord
 
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
+import com.ambiata.ivory.lookup.ChordEntities
+import com.ambiata.ivory.operation.extraction.Entities
 import org.scalacheck._
+import scala.collection.JavaConverters._
 
 object ChordArbitraries {
 
@@ -22,6 +24,8 @@ object ChordArbitraries {
             fact.withValue(StringValue(List(entity, date.hyphenated, index).mkString(" ")))
         })
       })
+
+    lazy val isEmpty: Boolean = dates.forall(_._2.isEmpty)
 
     /** Creates facts but ensures each have a unique value to confirm priority actually works */
     def fromFactWithPriority(fact: Fact): List[(Date, List[Fact])] =
@@ -79,13 +83,13 @@ object ChordArbitraries {
 
   case class ChordFacts(ces: List[ChordEntity], fid: FeatureId, factAndMeta: SparseEntities, window: Option[Window],
                         other: List[Fact]) {
-    lazy val facts: List[List[Fact]] = {
-      val innerFacts = ces.flatMap(_.facts(factAndMeta.fact, Mode.State))
+    lazy val facts: List[Fact] = ces.flatMap(_.facts(factAndMeta.fact, Mode.State))
+    lazy val allFacts: List[List[Fact]] = {
       List(
         // The first factset, with the exact same commits but with a different value
         // Depending on the mode, different facts will be expected
-        innerFacts.map(incValue(_, "p")),
-        innerFacts ++ above ++ other.map(_.withFeatureId(factAndMeta.fact.featureId))
+        facts.map(incValue(_, "p")),
+        facts ++ above ++ other.map(_.withFeatureId(factAndMeta.fact.featureId))
       )
     }
     lazy val above: List[Fact] = ces.flatMap(_.above.map(factAndMeta.fact.withDate))
@@ -105,6 +109,21 @@ object ChordArbitraries {
       case Mode.State => ces.sortBy(_.dates.headOption.map(_._1).getOrElse(Date.maxValue)).headOption
         .flatMap(_.dates.headOption).flatMap(_._2.headOption).isDefined
     }
+    lazy val expectedSquash: List[Fact] = ces.sortBy(_.entity).flatMap {
+      ce => ce.toFacts(factAndMeta.fact, Mode.State) { (d, fs, prev) =>
+        val sd = window.map(Window.startingDate(_)(d)).getOrElse(Date.minValue)
+        val pfs = prev ++ fs
+        val last = pfs.lastOption
+        val inWindow = pfs.filter(_.date.int >= sd.int)
+        (last.map { f =>
+          val cfid = factAndMeta.fact.featureId
+          Fact.newFact("", cfid.namespace.name, cfid.name, d, Time(0), f.value)
+        }.toList ++
+          List(Fact.newFact("", fid.namespace.name, fid.name, d, Time(0), LongValue(inWindow.size)))
+        ).map(_.withEntity(ce.entity + ":" + d.hyphenated))
+      }
+    }
+    lazy val chord = Entities.fromChordEntities(new ChordEntities(ces.map(ce => ce.entity -> ce.dateArray).toMap.asJava))
   }
 
   implicit def ChordFactArbitrary: Arbitrary[ChordFact] = Arbitrary(for {
@@ -116,7 +135,7 @@ object ChordArbitraries {
 
   implicit def ChordFactsArbitrary: Arbitrary[ChordFacts] = Arbitrary(for {
     n     <- Gen.choose(1, 20)
-    dates <- Gen.sequence[List, ChordEntity]((0 until n).map(chordEntityGen))
+    dates <- Gen.sequence[List, ChordEntity]((0 until n).map(chordEntityGen)).map(_.filter(!_.isEmpty))
     // Just generate one stub fact - we only care about the entity and date
     fact  <- Arbitrary.arbitrary[SparseEntities]
     fid   <- Arbitrary.arbitrary[FeatureId]
