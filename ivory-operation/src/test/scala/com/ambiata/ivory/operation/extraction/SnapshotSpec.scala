@@ -40,7 +40,7 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
         s <- Snapshot.takeSnapshot(repo, fact.date, false)
         f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.snapshotId)).toHdfs).run(repo.scoobiConfiguration)
       } yield f
-    }.map(_.toSet) must beOkValue(facts.toSet)
+    }.map(_.toSet) must beOkValue((oldfacts.sortBy(_.date).lastOption.toList ++ facts).toSet)
   }).set(minTestsOk = 1)
 
 }

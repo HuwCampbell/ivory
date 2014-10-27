@@ -329,29 +329,30 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
 object SnapshotReducer {
   type ReducerContext = Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context
 
+  val sentinelDateTime = DateTime.unsafeFromLong(-1)
+
   def reduce[A](fact: MutableFact, iter: JIterator[A], mutator: PipeFactMutator[A, A],
                 emitter: Emitter[NullWritable, A], out: A, windowStart: Date): Unit = {
-    var datetime = DateTime.unsafeFromLong(0)
-    var found = false
+    var datetime = sentinelDateTime
     val kout = NullWritable.get()
     while(iter.hasNext) {
       val next = iter.next
       mutator.from(next, fact)
-      if (datetime.long != fact.datetime.long) {
-        datetime = fact.datetime
-        if (windowStart.int <= fact.datetime.date.int) {
-          // Directly emit the last fact, which had the highest priority of that entity
-          emitter.emit(kout, next)
-          found = true
-        } else {
-          // We need to keep a copy of the highest priority fact before the window, just in case it's the last one
-          mutator.pipe(next, out)
+      // Respect the "highest" priority (ie. the first fact with any given datetime)
+      if (datetime != fact.datetime) {
+        // If the _current_ fact is in the window we still want to emit the _previous_ fact which may be
+        // the last fact within the window, or another fact within the window
+        // As such we can't do anything on the first fact
+        if (datetime != sentinelDateTime && windowStart.underlying <= fact.datetime.date.underlying) {
+          emitter.emit(kout, out)
         }
+        datetime = fact.datetime
+        // Store the current fact, which may or may not be emitted depending on the next fact
+        mutator.pipe(next, out)
       }
     }
-    if (!found) {
-      emitter.emit(kout, out)
-    }
+    // _Always_ emit the last fact, which will be within the window, or the last fact
+    emitter.emit(kout, out)
   }
 
   def windowLookupToArray(lookup: SnapshotWindowLookup): Array[Int] =
