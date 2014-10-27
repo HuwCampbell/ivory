@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
-import com.ambiata.ivory.core.thrift.{ThriftFactStructSparse, ThriftFactPrimitiveValue, ThriftFactValue}
+import com.ambiata.ivory.core.thrift._
 
 trait ReductionValueFrom[@specialized(Int, Float, Double, Boolean) A] {
   def from(a: ThriftFactValue): A
@@ -58,6 +58,15 @@ object ReductionValueDate extends ReductionValueFrom[Int] with ReductionValueFro
   def fromPrim(v: ThriftFactPrimitiveValue): Int = v.getDate
   def to(v: Int, t: ThriftFactValue) = t.setDate(v)
   def toPrim(v: Int): ThriftFactPrimitiveValue = ThriftFactPrimitiveValue.date(v)
+}
+
+case class ValueOrTombstone[@specialized(Int, Float, Double, Boolean) A](var value: A, var tombstone: Boolean)
+
+class ReductionValueOrTombstone[@specialized(Int, Float, Double, Boolean) A](toValue: ReductionValueTo[A]) extends ReductionValueTo[ValueOrTombstone[A]] {
+  val tombstone = new ThriftTombstone
+  def to(v: ValueOrTombstone[A], t: ThriftFactValue) =
+  if (v.tombstone) t.setT(tombstone)
+  else toValue.to(v.value, t)
 }
 
 case class ReductionValueStruct[K, V](TO: ReductionValueToPrim[V]) extends ReductionValueTo[KeyValue[K, V]] {

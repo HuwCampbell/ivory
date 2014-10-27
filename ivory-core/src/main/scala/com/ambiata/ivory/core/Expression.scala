@@ -19,12 +19,16 @@ object Expression {
       case CountUnique                  => List("count_unique")
       case NumFlips                     => List("num_flips")
       case CountBy                      => List("count_by")
+      case DaysSince                    => List("days_since")
       case DaysSinceEarliestBy          => List("days_since_earliest_by")
       case DaysSinceLatestBy            => List("days_since_latest_by")
       case Proportion(value)            => List("proportion", value)
     }
     (exp match {
       case Count                        => List("count")
+      case IntervalMean                 => List("interval_mean")
+      case IntervalSD                   => List("interval_sd")
+      case IntervalGradient             => List("interval_gradient")
       case Latest                       => List("latest")
       case DaysSinceLatest              => List("days_since_latest")
       case DaysSinceEarliest            => List("days_since_earliest")
@@ -62,6 +66,9 @@ object Expression {
       case "minimum_in_days" :: Nil         => MinimumInDays
       case "minimum_in_weeks" :: Nil        => MinimumInWeeks
       case "count_days" :: Nil              => CountDays
+      case "interval_mean" :: Nil           => IntervalMean
+      case "interval_sd" :: Nil             => IntervalSD
+      case "interval_gradient" :: Nil       => IntervalGradient
       case "sum_by" :: key :: sumBy :: Nil  => SumBy(key, sumBy)
       // Subexpressions
       case "sum" :: tail                    => parseSub(Sum, tail)
@@ -72,6 +79,7 @@ object Expression {
       case "num_flips" :: tail              => parseSub(NumFlips, tail)
       case "count_by" :: tail               => parseSub(CountBy, tail)
       case "proportion" :: value :: tail    => parseSub(Proportion(value), tail)
+      case "days_since" :: tail             => parseSub(DaysSince, tail)
       case "days_since_latest_by" :: tail   => parseSub(DaysSinceLatestBy, tail)
       case "days_since_earliest_by" :: tail => parseSub(DaysSinceEarliestBy, tail)
     }.map(_.right).getOrElse {
@@ -94,6 +102,10 @@ object Expression {
         case LongEncoding   => ok
         case DoubleEncoding => ok
         case _              => s"Non-numeric encoding not supported".left
+      }
+      case DaysSince => subenc match {
+        case DateEncoding   => ok
+        case _              => s"Non-date encoding not supported".left
       }
       case (CountUnique | DaysSinceLatestBy | DaysSinceEarliestBy) => subenc match {
         case StringEncoding => ok
@@ -122,6 +134,9 @@ object Expression {
       case QuantileInDays(_, _)          => ok
       case QuantileInWeeks(_, _)         => ok
       case ProportionByTime(_, _)        => ok
+      case IntervalMean                  => ok
+      case IntervalSD                    => ok
+      case IntervalGradient              => ok
       case SumBy(key, field)             => encoding match {
         case StructEncoding(values) => for {
            k <- values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
@@ -165,6 +180,9 @@ case object CountDays extends Expression
 case class QuantileInDays(k: Int, q: Int) extends Expression
 case class QuantileInWeeks(k: Int, q: Int) extends Expression
 case class ProportionByTime(start: Time, end: Time) extends Expression
+case object IntervalMean extends Expression
+case object IntervalSD extends Expression
+case object IntervalGradient extends Expression
 
 /** [[SumBy]] is "special" in that it requires _two_ struct fields */
 case class SumBy(key: String, field: String) extends Expression
@@ -181,6 +199,7 @@ case object StandardDeviation extends SubExpression
 case object CountUnique extends SubExpression
 case object NumFlips extends SubExpression
 case object CountBy extends SubExpression
+case object DaysSince extends SubExpression
 case object DaysSinceLatestBy extends SubExpression
 case object DaysSinceEarliestBy extends SubExpression
 case class Proportion(value: String) extends SubExpression

@@ -198,7 +198,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   def expressionArbitrary(cd: ConcreteDefinition): Gen[Expression] = {
     val fallback = Gen.frequency(
       15 -> Gen.oneOf(Count, Latest, DaysSinceLatest, DaysSinceEarliest, MeanInDays, MaximumInDays, MinimumInDays,
-        MeanInWeeks, MaximumInWeeks, MinimumInWeeks, CountDays),
+        MeanInWeeks, MaximumInWeeks, MinimumInWeeks, CountDays, IntervalMean, IntervalSD, IntervalGradient),
       1 -> (for {
         q <- Gen.choose(10, 100)
         k <- Gen.choose(1, q)
@@ -234,7 +234,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
         all
       )
       case BooleanEncoding => Gen.oneOf(all, arbitrary[Boolean].map(b => Proportion(b.toString)))
-      case DateEncoding => all
+      case DateEncoding => Gen.oneOf(all, Gen.const(DaysSince))
     }
   }
 

@@ -13,7 +13,7 @@ class GradientReducer[@specialized(Long, Double) A](dates: DateOffsets)(implicit
 
   def foldWithDate(s: GradientState[A], y: A, date: Date): GradientState[A] = {
     s.count += 1
-    val x = dates.get(date).value
+    val x = N.toLong(dates.get(date).value)
     s.sumy = s.sumy + y
     s.sumx = s.sumx + x
     s.sumxx = s.sumxx + (x * x)

@@ -39,6 +39,9 @@ object Reduction {
   def fromExpression(exp: Expression, encoding: Encoding, dates: DateOffsetsLazy): Option[Reduction] = exp match {
     case Count                        => Some(new CountReducer())
     case Latest                       => Some(new LatestReducer())
+    case IntervalMean                 => Some(new IntervalReducer(dates.dates, new MeanReducer, ReductionValueDouble))
+    case IntervalSD                   => Some(new IntervalReducer(dates.dates, new StandardDeviationReducer, ReductionValueDouble))
+    case IntervalGradient             => Some(new IntervalReducer(dates.dates, new GradientReducer(dates.dates), ReductionValueDouble))
     case DaysSinceLatest              => Some(new DaysSinceLatestReducer(dates.dates))
     case MeanInDays                   => Some(new DateReduction(dates.dates, new MeanInDaysReducer, ReductionValueDouble))
     case MeanInWeeks                  => Some(new DateReduction(dates.dates, new MeanInWeeksReducer, ReductionValueDouble))
@@ -126,11 +129,14 @@ object Reduction {
       case IntEncoding     => Some(f.i(new NumFlipsReducer[Int](0), ReductionValueLong))
       case LongEncoding    => Some(f.l(new NumFlipsReducer[Long](0), ReductionValueLong))
       case DoubleEncoding  => Some(f.d(new NumFlipsReducer[Double](0), ReductionValueLong))
-      case DateEncoding    => Some(f.d(new NumFlipsReducer[Double](0), ReductionValueLong))
+      case DateEncoding    => Some(f.date(new NumFlipsReducer[Int](0), ReductionValueLong))
     }
     case CountBy => condOpt(encoding) {
       case StringEncoding  => f.s(new CountByReducer, ReductionValueStruct[String, Long](ReductionValueLong))
       case IntEncoding     => f.i(new CountByReducer, ReductionValueStruct[Int, Long](ReductionValueLong))
+    }
+    case DaysSince => condOpt(encoding) {
+      case DateEncoding    => f.date(new DaysSinceReducer(dates.dates), new ReductionValueOrTombstone[Int](ReductionValueInt))
     }
     case DaysSinceEarliestBy => condOpt(encoding) {
       case StringEncoding  => f.s(new DaysSinceEarliestByReducer(dates.dates), ReductionValueStruct[String, Int](ReductionValueInt))
