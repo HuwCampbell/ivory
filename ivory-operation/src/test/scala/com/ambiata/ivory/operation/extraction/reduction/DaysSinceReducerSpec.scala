@@ -23,7 +23,7 @@ class DaysSinceReducerSpec extends Specification with ScalaCheck { def is = s2""
         v    <- last._1
       } yield (JodaDays.daysBetween(v.localDate, last._2.localDate).getDays)
 
-    if (answer.tombstone === true)
+    if (answer.tombstone)
       myDays must beNone
     else
       myDays must beSome(answer.value)
