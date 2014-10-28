@@ -45,6 +45,9 @@ diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
 
 [ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "0" ]
 
+# Ingest the facts again so that a new incremental snapshot will be taken,
+# however the actual snapshot should turn out to be the same.
+$V0 ingest-bulk -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts" -d "${DICT_NAME}"
 
 $IVORY snapshot -o "dense:psv=${TARGET}/snap-dense" -o "sparse:psv=${TARGET}/snap-sparse"
 $IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
