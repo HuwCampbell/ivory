@@ -13,6 +13,5 @@ trait Arbitraries extends
   with ArbitraryFeatures
   with ArbitraryValues
   with ArbitraryMetadata
-  with ArbitraryRepositories
 
 object Arbitraries extends Arbitraries

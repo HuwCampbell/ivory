@@ -36,10 +36,10 @@ trait TemporaryRepositories {
    * run a function with a temporary repository that is going to run some setup operations first and
    * finally run a cleanup
    */
-  def withTemporaryRepositorySetup[T, R <: Repository](repository: TemporaryRepositorySetup[R])(f: TemporaryRepositorySetup[R] => ResultTIO[T]): ResultTIO[T] =
+  def withTemporaryRepositorySetup[T, R <: Repository](repository: TemporaryRepositorySetup[R])(f: R => ResultTIO[T]): ResultTIO[T] =
     for {
       _ <- repository.setup
-      t <- ResultT.using(ResultT.safe[IO, TemporaryRepositorySetup[R]](repository))(f)
+      t <- ResultT.using(ResultT.safe[IO, TemporaryRepositorySetup[R]](repository))(tmpRepo => f(tmpRepo.repository))
     } yield t
 
 }

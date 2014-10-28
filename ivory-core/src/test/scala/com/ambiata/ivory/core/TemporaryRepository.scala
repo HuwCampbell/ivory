@@ -49,6 +49,7 @@ object TemporaryCluster {
 
 case class TemporaryRepositorySetup[R <: Repository](temporaryRepository: TemporaryRepository[R], setup: ResultTIO[Unit]) {
   def clean: ResultTIO[Unit] = temporaryRepository.clean
+  def repository: R = temporaryRepository.repo
 }
 
 object TemporaryRepositorySetup {

@@ -192,7 +192,7 @@ object build extends Build {
     , settings = standardSettings ++ lib("testing") ++ Seq[Settings](
       name := "ivory-testing"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.saws)
-  ).dependsOn(core % "compile->test")
+  ).dependsOn(core % "compile->test", operation % "compile->test")
 
   lazy val compilationSettings: Seq[Settings] = Seq(
     javaOptions ++= Seq("-Xmx3G", "-Xms512m", "-Xss4m")
