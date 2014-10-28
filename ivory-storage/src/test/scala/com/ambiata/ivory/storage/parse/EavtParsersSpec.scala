@@ -1,8 +1,11 @@
 package com.ambiata.ivory.storage.parse
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.Arbitraries._
-
+import com.ambiata.ivory.core.arbitraries._
+import ArbitraryFeatures._
+import ArbitraryEncodings._
+import ArbitraryValues._
+import ArbitraryFacts._
 import org.joda.time.DateTimeZone
 import org.scalacheck._, Arbitrary._
 import org.specs2._
@@ -26,7 +29,7 @@ Eavt Parse Formats
 
   case class PrimitiveSparseEntities(meta: ConcreteDefinition, fact: Fact, zone: DateTimeZone)
   implicit def PrimitiveSpareEntitiesArbitrary: Arbitrary[PrimitiveSparseEntities] = Arbitrary(
-    factWithZoneGen(Gen.oneOf(testEntities(1000)), featureMetaGen(arbitrary[PrimitiveEncoding])).map(PrimitiveSparseEntities.tupled)
+    factWithZoneGen(Gen.oneOf(testEntities(1000)), concreteDefinitionGen(arbitrary[PrimitiveEncoding])).map(PrimitiveSparseEntities.tupled)
   )
 
   def date = prop((fz: PrimitiveSparseEntities) =>

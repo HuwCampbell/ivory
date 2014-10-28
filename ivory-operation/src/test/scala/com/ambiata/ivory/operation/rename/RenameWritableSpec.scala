@@ -2,8 +2,8 @@ package com.ambiata.ivory.operation.rename
 
 import java.io.{ByteArrayOutputStream, DataOutputStream}
 
-import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries._, ArbitraryFacts._
 import com.ambiata.ivory.operation.rename.RenameWritable._
 import com.ambiata.poacher.mr.Writables
 import org.apache.hadoop.io.WritableComparator

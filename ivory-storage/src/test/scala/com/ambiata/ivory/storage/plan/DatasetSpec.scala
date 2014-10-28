@@ -4,7 +4,9 @@ import com.ambiata.ivory.core._
 
 import org.specs2._
 import org.scalacheck._, Arbitrary._
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries._
+import ArbitraryFeatures._
+import ArbitraryValues._
 import com.ambiata.ivory.storage.Arbitraries._
 
 object DatasetSpec extends Specification with ScalaCheck { def is = s2"""

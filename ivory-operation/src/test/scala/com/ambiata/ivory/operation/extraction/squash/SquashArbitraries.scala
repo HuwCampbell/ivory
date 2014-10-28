@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries._, ArbitraryFeatures._, ArbitraryFacts._, ArbitraryValues._
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
 import org.scalacheck._
 import scalaz._, Scalaz._

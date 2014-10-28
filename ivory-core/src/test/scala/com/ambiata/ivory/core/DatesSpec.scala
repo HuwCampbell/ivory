@@ -1,6 +1,8 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries._
+import ArbitraryValues._
+
 import org.specs2._
 import org.scalacheck._, Arbitrary._
 import org.joda.time._, format.DateTimeFormat

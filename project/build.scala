@@ -25,6 +25,7 @@ object build extends Build {
     , operation
     , performance
     , storage
+    , testing
     )
   )
   /** this should only ever export _api_, DO NOT add things to this list */
@@ -184,6 +185,14 @@ object build extends Build {
                                                depend.saws)
   )
   .dependsOn(core, mr, core % "test->test", mr % "test->test")
+
+  lazy val testing = Project(
+      id = "testing"
+    , base = file("ivory-testing")
+    , settings = standardSettings ++ lib("testing") ++ Seq[Settings](
+      name := "ivory-testing"
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.saws)
+  ).dependsOn(core % "compile->test")
 
   lazy val compilationSettings: Seq[Settings] = Seq(
     javaOptions ++= Seq("-Xmx3G", "-Xms512m", "-Xss4m")

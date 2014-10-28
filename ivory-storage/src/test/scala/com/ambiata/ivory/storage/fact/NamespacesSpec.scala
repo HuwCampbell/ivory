@@ -1,7 +1,9 @@
 package com.ambiata.ivory.storage.fact
 
-import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries._
+import ArbitraryFeatures._
+import ArbitraryMetadata._
 
 import com.ambiata.ivory.storage.ScalaCheckManagedProperties
 import com.ambiata.mundane.control._

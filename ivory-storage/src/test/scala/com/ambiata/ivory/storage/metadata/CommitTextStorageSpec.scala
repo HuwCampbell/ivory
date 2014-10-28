@@ -7,7 +7,8 @@ import com.ambiata.mundane.control._
 import org.specs2._
 import scalaz._, Scalaz._
 import org.scalacheck._, Arbitrary._
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries._
+import ArbitraryMetadata._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
 class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"""

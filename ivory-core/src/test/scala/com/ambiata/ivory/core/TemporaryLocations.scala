@@ -1,6 +1,5 @@
 package com.ambiata.ivory.core
 
-import java.io.File
 import java.util.UUID
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
@@ -10,45 +9,14 @@ import com.ambiata.poacher.hdfs.{Hdfs => PoacherHdfs}
 import com.ambiata.saws.s3.{S3 => SawsS3, S3Address}
 import org.apache.hadoop.fs.Path
 
-import scalaz.{Store =>_,_}, Scalaz._, effect._
+import scalaz.{Store =>_,_}, Scalaz._
 
-case class TemporaryRepository[R <: Repository](repo: R) {
-  def clean: ResultT[IO, Unit] =
-    repo.store.deleteAll(Key.Root)
-}
-
-case class TemporaryLocationDir(location: IvoryLocation) {
-  def clean: ResultTIO[Unit] = IvoryLocation.deleteAll(location)
-}
-
-case class TemporaryLocationFile(location: IvoryLocation) {
-  def clean: ResultTIO[Unit] = IvoryLocation.delete(location)
-}
-
-case class TemporaryCluster(cluster: Cluster) {
-  def clean: ResultTIO[Unit] = IvoryLocation.deleteAll(cluster.root)
-}
-
-object TemporaryLocations {
-  implicit def TemporaryRepositoryResource[R <: Repository]: Resource[TemporaryRepository[R]] = new Resource[TemporaryRepository[R]] {
-    def close(temp: TemporaryRepository[R]) = temp.clean.run.void // Squelch errors
-  }
-
-  implicit val TemporaryLocationDirResource: Resource[TemporaryLocationDir] = new Resource[TemporaryLocationDir] {
-    def close(temp: TemporaryLocationDir) = temp.clean.run.void // Squelch errors
-  }
-
-  implicit val TemporaryLocationFileResource: Resource[TemporaryLocationFile] = new Resource[TemporaryLocationFile] {
-    def close(temp: TemporaryLocationFile) = temp.clean.run.void // Squelch errors
-  }
-
-  implicit val TemporaryClusterResource: Resource[TemporaryCluster] = new Resource[TemporaryCluster] {
-    def close(temp: TemporaryCluster) = temp.clean.run.void // Squelch errors
-  }
+trait TemporaryLocations {
 
   val conf = IvoryConfiguration.Empty
 
   def testBucket: String = Option(System.getenv("AWS_TEST_BUCKET")).getOrElse("ambiata-dev-view")
+
   def testBucketDir: DirPath = DirPath.unsafe(testBucket)
 
   def withIvoryLocationDir[A](temporaryType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] = {
@@ -67,22 +35,6 @@ object TemporaryLocations {
   def withIvoryLocationFile[A](temporaryType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] =
     runWithIvoryLocationFile(createLocation(temporaryType))(f)
 
-  def withRepository[A](temporaryType: TemporaryType)(f: Repository => ResultTIO[A]): ResultTIO[A] = {
-    val repo = temporaryType match {
-      case Posix =>
-        LocalRepository(createUniqueLocalLocation)
-      case S3 =>
-        S3Repository(createUniqueS3Location, conf.s3TmpDirectory)
-      case Hdfs =>
-        HdfsRepository(createUniqueHdfsLocation)
-    }
-    runWithRepository(repo)(f)
-  }
-
-  def withHdfsRepository[A](f: HdfsRepository => ResultTIO[A]): ResultTIO[A] = {
-    runWithRepository(HdfsRepository(createUniqueHdfsLocation))(f)
-  }
-
   def withCluster[A](f: Cluster => ResultTIO[A]): ResultTIO[A] =
     runWithCluster(Cluster(createUniqueIvoryLocation))(f)
 
@@ -100,7 +52,6 @@ object TemporaryLocations {
 
   def createUniquePath: DirPath =
     DirPath.unsafe(System.getProperty("java.io.tmpdir", "/tmp")) </> tempUniquePath
-
 
   def createUniqueIvoryLocation = createUniqueHdfsLocation
 
@@ -137,3 +88,5 @@ object TemporaryLocations {
   def tempUniquePath: DirPath =
     DirPath.unsafe(s"temporary-${UUID.randomUUID()}")
 }
+
+object TemporaryLocations extends TemporaryLocations

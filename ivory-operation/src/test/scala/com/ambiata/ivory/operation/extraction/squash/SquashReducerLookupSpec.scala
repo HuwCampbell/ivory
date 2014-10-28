@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.extraction.squash
 
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries._, ArbitraryDictionaries._, ArbitraryFacts._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.ReducerLookup
 import com.ambiata.poacher.mr.{ByteWriter, Writables}
