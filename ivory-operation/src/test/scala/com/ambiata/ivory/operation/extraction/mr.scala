@@ -130,24 +130,29 @@ SnapshotReducerSpec
     })
   })
 
-  def window = prop((f: NonEmptyList[Fact], date: Date) => {
-    val facts = SnapshotFacts(f, date)
+  def window = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
+    val facts = SnapshotFacts(dts, fact, date)
     val mutator = new MockFactMutator
     SnapshotReducer.reduce(createMutableFact, facts.facts.asJava.iterator(), mutator, mutator,
       createMutableFact, date)
     mutator.facts.toList ==== facts.expected
   }).set(maxSize = 10)
 
-  def windowPriority = prop((f: NonEmptyList[Fact], date: Date) => {
-    val facts = SnapshotFacts(f, date)
+  def windowPriority = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
+    val facts = SnapshotFacts(dts, fact, date)
     val mutator = new MockFactMutator
     SnapshotReducer.reduce(createMutableFact, facts.factsDupe.asJava.iterator(), mutator, mutator,
       createMutableFact, date)
     mutator.facts.toList ==== facts.expected
   }).set(maxSize = 10)
 
-  case class SnapshotFacts(f: NonEmptyList[Fact], date: Date) {
-    val (oldFacts, newFacts) = f.list.sortBy(_.date).partition(_.date.int < date.int)
+  /** We only care about the DateTime for reducing snapshots, so we reuse the same fact */
+  case class SnapshotFacts(dts: NonEmptyList[DateTime], fact: Fact, date: Date) {
+    // Make sure we remove distinct times here to avoid confusion later in the dupe test
+    val (oldFacts, newFacts) = dts.list.distinct.sortBy(_.long)
+      .map(dt => fact.withDate(dt.date).withTime(dt.time))
+      .zipWithIndex.map(f => f._1.withValue(IntValue(f._2)))
+      .partition(_.date.int < date.int)
     def facts: List[Fact] = oldFacts ++ newFacts
     def factsDupe: List[Fact] = facts.zip(facts).flatMap(fs => List(fs._1, fs._2.withEntity("")))
     def expected: List[Fact] = oldFacts.lastOption.toList ++ newFacts
