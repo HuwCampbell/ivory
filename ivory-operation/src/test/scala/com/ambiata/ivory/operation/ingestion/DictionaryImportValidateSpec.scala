@@ -64,7 +64,7 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
     val filter = FilterTextV0.asString(FilterStruct(FilterStructOp(FilterOpAnd, List("missing" -> FilterEquals(StringValue(""))), Nil)))
     // The actual validation of different bad filters is handled in FilterSpec
     val dict = vdict1.copy(
-      cd = ConcreteDefinition(StructEncoding(Map()), None, "", Nil),
+      cd = ConcreteDefinition(StructEncoding(Map()), Mode.State, None, "", Nil),
       vd = vdict1.vd.copy(query = vdict1.vd.query.copy(expression = Count, filter = Some(filter)))
     ).dictionary
     validateSelf(dict).toEither.left.map(_.head) must beLeft ((f: DictionaryValidateFailure) => f must beLike {
@@ -93,5 +93,5 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
   )
 
   private def dict(enc: Encoding) =
-    Dictionary(List(Definition.concrete(fid, enc, Some(BinaryType), "", Nil)))
+    Dictionary(List(Definition.concrete(fid, enc, Mode.State, Some(BinaryType), "", Nil)))
 }

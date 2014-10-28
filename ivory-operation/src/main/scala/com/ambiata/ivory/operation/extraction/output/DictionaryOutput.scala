@@ -15,13 +15,14 @@ object DictionaryOutput {
     import com.ambiata.ivory.storage.metadata.DictionaryTextStorage
     dictionary.byFeatureIndex.toList.sortBy(_._1).map({
       case (i, d) => i.toString + delim + DictionaryTextStorage.delimitedLineWithDelim(d.featureId -> (d match {
-        case Concrete(_, m) => m.copy(tombstoneValue = List(tombstone))
+        case Concrete(_, m) =>
+          m.copy(tombstoneValue = List(tombstone))
         case Virtual(_, vd) =>
-          val source = dictionary.byFeatureId.get(vd.source).flatMap {
-            case Concrete(_, cd) => Some(cd.encoding)
+          val (source, mode) = dictionary.byFeatureId.get(vd.source).flatMap {
+            case Concrete(_, cd) => Some(cd.encoding -> cd.mode)
             case Virtual(_, _)   => None
-          }.getOrElse(StringEncoding)
-          ConcreteDefinition(expressionEncoding(vd.query.expression, source), None, "", List(tombstone))
+          }.getOrElse(StringEncoding -> Mode.State)
+          ConcreteDefinition(expressionEncoding(vd.query.expression, source), mode, None, "", List(tombstone))
       }), delim.toString)
     })
   }
@@ -73,7 +74,7 @@ object DictionaryOutput {
         }.getOrElse(source)
         case _                          => source
       }
-    } 
+    }
   }
 
   def writeToHdfs(output: Path, dictionary: Dictionary, missing: String, delimiter: Char): Hdfs[Unit] =

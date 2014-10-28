@@ -27,8 +27,9 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
     DictionaryTextStorageV2(l, DELIM).parse
 
   def toLine(f: (FeatureId, Definition)) = f._1.toString(":") + DELIM + (f._2 match {
-    case Concrete(_, ConcreteDefinition(encoding, ty, desc, tombstone)) => List(
+    case Concrete(_, ConcreteDefinition(encoding, mode, ty, desc, tombstone)) => List(
       Some("encoding" -> Encoding.render(encoding)),
+      Some("mode" -> mode.render),
       ty.flatMap(t => Some("type" -> Type.render(t))),
       if (desc.isEmpty) None else Some("description" -> desc),
       if (tombstone.isEmpty) None else Some("tombstone" -> tombstone.mkString(","))
@@ -82,8 +83,9 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
         val enc = DictionaryTextStorageV2.parseEncoding(encv)
         val ty = m.get("type").cata(DictionaryTextStorage.parseType(_).map(some), None.success).toValidationNel
         val desc = m.getOrElse("description", "")
+        val mode = Mode.fromString(m.getOrElse("mode", "state")).toSuccess(NonEmptyList(s"Invalid mode for feature $featureId"))
         val tomb = m.get("tombstone").cata(Delimited.parseCsv, Nil)
-        (enc |@| ty)(Definition.concrete(featureId, _, _, desc, tomb))
+        (enc |@| mode |@| ty)(Definition.concrete(featureId, _, _, _, desc, tomb))
       case (None, Some(source)) =>
         val window = m.get("window").traverseU { s =>
            s.split(" ", 2) match {

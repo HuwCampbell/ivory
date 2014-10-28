@@ -20,7 +20,7 @@ import syntax.bind._
 
 
 class EavtTextImporterSpec extends Specification with ThrownExpectations with FileMatchers with FixtureExample[Setup] { def is = s2"""
- 
+
  The Eavt text import can import text or Thrift facts
 
   MR job runs and creates expected text data   $text
@@ -68,9 +68,9 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
 
   val dictionary =
     Dictionary(
-      List(Definition.concrete(FeatureId(ns1, "fid1"), StringEncoding, Some(CategoricalType), "abc", Nil),
-           Definition.concrete(FeatureId(ns1, "fid2"), IntEncoding,    Some(NumericalType),   "def", Nil),
-           Definition.concrete(FeatureId(ns1, "fid3"), DoubleEncoding, Some(NumericalType),   "ghi", Nil)))
+      List(Definition.concrete(FeatureId(ns1, "fid1"), StringEncoding, Mode.State, Some(CategoricalType), "abc", Nil),
+           Definition.concrete(FeatureId(ns1, "fid2"), IntEncoding,    Mode.State, Some(NumericalType),   "def", Nil),
+           Definition.concrete(FeatureId(ns1, "fid3"), DoubleEncoding, Mode.State, Some(NumericalType),   "ghi", Nil)))
 
   // This needs to be a function otherwise Scoobi will serialise with xstream :(
   def expected = List(
@@ -93,7 +93,7 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
       writer => ResultT.safe(expected.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
     }.run(sc) must beOk
   }
-  
+
   def saveTextInputFileWithErrors = {
     val raw = List("pid1|fid1|v1|2012-10-01 00:00:10",
                    "pid1|fid2|x|2012-10-15 00:00:20",
@@ -109,7 +109,7 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
         runJob(repository, dictionary, FactsetId.initial, input.toHdfsPath, errors.toHdfsPath, List(ns1 -> 1.mb), DateTimeZone.getDefault) >>
     writeFactsetVersion(repository, List(FactsetId.initial)) must beOk
 
-  def theImportMustBeOk = 
+  def theImportMustBeOk =
     factsFromIvoryFactset(repository, FactsetId.initial).map(_.run.collect { case \/-(r) => r }).run(sc) must beOkLike(_.toSet must_== expected.toSet)
 
   def thereMustBeErrors =

@@ -7,9 +7,9 @@ import org.specs2.matcher.MustThrownMatchers
 trait SampleFacts extends MustThrownMatchers {
 
   val sampleDictionary = Dictionary(List(
-    Definition.concrete(FeatureId(Name("ns1"), "fid1"), StringEncoding, Some(CategoricalType), "desc", Nil),
-    Definition.concrete(FeatureId(Name("ns1"), "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
-    Definition.concrete(FeatureId(Name("ns2"), "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil)
+    Definition.concrete(FeatureId(Name("ns1"), "fid1"), StringEncoding, Mode.State, Some(CategoricalType), "desc", Nil),
+    Definition.concrete(FeatureId(Name("ns1"), "fid2"), IntEncoding, Mode.State, Some(NumericalType), "desc", Nil),
+    Definition.concrete(FeatureId(Name("ns2"), "fid3"), BooleanEncoding, Mode.State, Some(CategoricalType), "desc", Nil)
   ))
 
   val sampleFacts: List[List[Fact]] = List(List(

@@ -157,10 +157,11 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   def featureMetaGen(genc: Gen[Encoding]): Gen[ConcreteDefinition] =
     for {
       enc   <- genc
+      m     <- arbitrary[Mode]
       ty    <- arbitrary[Option[Type]]
       desc  <- arbitrary[DictDesc].map(_.s)
       tombs <- Gen.listOf(arbitrary[DictTomb].map(_.s))
-    } yield ConcreteDefinition(enc, ty, desc, tombs)
+    } yield ConcreteDefinition(enc, m, ty, desc, tombs)
 
 
   case class DefinitionWithQuery(cd: ConcreteDefinition, expression: Expression, filter: FilterEncoded)
@@ -552,8 +553,11 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
 
   case class FactAndPriority(f: Fact, p: Priority)
 
-  implicit def ArbitraryFactAndPriority: Arbitrary[FactAndPriority] = Arbitrary(for {
+  implicit def FactAndPriorityArbitrary: Arbitrary[FactAndPriority] = Arbitrary(for {
     f <- Arbitrary.arbitrary[Fact]
     p <- Arbitrary.arbitrary[Priority]
   } yield new FactAndPriority(f, p))
+
+  implicit def ModeAribitrary: Arbitrary[Mode] =
+    Arbitrary(Gen.oneOf(Mode.State, Mode.Set))
 }

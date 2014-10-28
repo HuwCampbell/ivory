@@ -72,7 +72,7 @@ Eavt Parse Formats
       ).run(List(entity.value, feature.name, Value.toString(value, None).getOrElse("?"), date.hyphenated)).toOption must beNone})
 
   def structFail = {
-    val dict = Dictionary(List(Definition.concrete(FeatureId(Name("ns"), "a"), StructEncoding(Map()), None, "", Nil)))
+    val dict = Dictionary(List(Definition.concrete(FeatureId(Name("ns"), "a"), StructEncoding(Map()), Mode.State, None, "", Nil)))
     EavtParsers.parse("e|a|v|t", dict, Name("ns"), DateTimeZone.getDefault).toOption must beNone
   }
 
@@ -87,25 +87,25 @@ Eavt Parse Formats
   implicit def BadValueArbitrary: Arbitrary[BadValue] = Arbitrary(Gen.oneOf(
     /** A bad BooleanValue, examplified by an integer  */
     arbitrary[Int] map (v =>
-      BadValue(ConcreteDefinition(BooleanEncoding, None, "bad-boolean-test-case", Nil), v.toString))
+      BadValue(ConcreteDefinition(BooleanEncoding, Mode.State, None, "bad-boolean-test-case", Nil), v.toString))
 
     /** A bad IntValue, examplified by a string  */
   , arbitrary[String] map (v =>
-      BadValue(ConcreteDefinition(IntEncoding, None, "bad-int-test-case", Nil), v)) filter (x =>
+      BadValue(ConcreteDefinition(IntEncoding, Mode.State, None, "bad-int-test-case", Nil), v)) filter (x =>
         !x.value.parseInt.toOption.isDefined)
 
     /** A bad LongValue, examplified by a double  */
   , arbitrary[Double] map (v =>
-      BadValue(ConcreteDefinition(LongEncoding, None, "bad-long-test-case", Nil), v.toString))
+      BadValue(ConcreteDefinition(LongEncoding, Mode.State, None, "bad-long-test-case", Nil), v.toString))
 
     /** A bad DoubleValue, examplified by a string  */
   , arbitrary[String] map (v =>
-      BadValue(ConcreteDefinition(DoubleEncoding, None, "bad-double-test-case", Nil), v)) filter (x =>
+      BadValue(ConcreteDefinition(DoubleEncoding, Mode.State, None, "bad-double-test-case", Nil), v)) filter (x =>
         !x.value.parseInt.toOption.isDefined)
 
     /** Edge cases for a bad DoubleValue (note this should include Long.MaxValue, but see #187)  */
   , Gen.oneOf(Double.NaN.toString, Double.NegativeInfinity.toString, Double.PositiveInfinity.toString) map (v =>
-      BadValue(ConcreteDefinition(DoubleEncoding, None, "bad-double-edge-test-case", Nil), v))
+      BadValue(ConcreteDefinition(DoubleEncoding, Mode.State, None, "bad-double-edge-test-case", Nil), v))
   ))
 
   def validString(s: String, e: Encoding): Boolean = e match {

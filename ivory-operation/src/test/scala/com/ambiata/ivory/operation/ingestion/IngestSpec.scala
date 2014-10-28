@@ -82,7 +82,7 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
 
   val dictionary =
     sampleDictionary append {
-      Dictionary(List(Definition.concrete(FeatureId(Name("ns1"), "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil)))
+      Dictionary(List(Definition.concrete(FeatureId(Name("ns1"), "fid3"), BooleanEncoding, Mode.State, Some(CategoricalType), "desc", Nil)))
     }
 
 }
