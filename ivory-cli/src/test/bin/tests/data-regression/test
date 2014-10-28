@@ -50,11 +50,11 @@ diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
 $V0 ingest-bulk -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts" -d "${DICT_NAME}"
 
 $IVORY snapshot -o "dense:psv=${TARGET}/snap-dense" -o "sparse:psv=${TARGET}/snap-sparse"
-$IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
+$IVORY cat-facts "${REPOSITORY}/snapshots/00000001" | sort > "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
 diff_test_mr "${DIR}/expected/snap-dense.psv" "${TARGET}/snap-dense"
 diff_test_mr "${DIR}/expected/snap-sparse.psv" "${TARGET}/snap-sparse"
-COUNT_FACTS_OUT=$($IVORY count-facts "${REPOSITORY}/snapshots/00000000")
+COUNT_FACTS_OUT=$($IVORY count-facts "${REPOSITORY}/snapshots/00000001")
 [ $(wc -l ${DIR}/expected/snapshot.psv | awk '{print $1}') = $COUNT_FACTS_OUT ]
 
 [ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "1" ]
