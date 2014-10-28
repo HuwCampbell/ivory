@@ -21,7 +21,7 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
 
   def e1 = {
     val entry = "demo|postcode|string|categorical|Postcode|☠"
-    DictionaryTextStorage.parseDictionaryEntry(entry) ==== (FeatureId(Name("demo"), "postcode"), ConcreteDefinition(StringEncoding, Some(CategoricalType), "Postcode", List("☠"))).success
+    DictionaryTextStorage.parseDictionaryEntry(entry) ==== (FeatureId(Name("demo"), "postcode"), ConcreteDefinition(StringEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))).success
   }
 
   def e2 = {
@@ -37,9 +37,9 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
   def e4 = {
     val location = IvoryLocation.fromFilePath("ivory-storage" </> "src" </> "test" </> "resources" <|> "good_dictionary.txt")
     DictionaryTextStorage.fromSingleFile(location).run.unsafePerformIO().toDisjunction must_== Dictionary(List(
-     Definition.concrete(FeatureId(Name("demo"), "gender"), StringEncoding, Some(CategoricalType), "Gender", List("☠")),
-     Definition.concrete(FeatureId(Name("widgets"), "count.1W"), IntEncoding, Some(NumericalType), "Count in the last week", List("☠")),
-     Definition.concrete(FeatureId(Name("demo"), "postcode"), StringEncoding, Some(CategoricalType), "Postcode", List("☠"))
+     Definition.concrete(FeatureId(Name("demo"), "gender"), StringEncoding, Mode.State, Some(CategoricalType), "Gender", List("☠")),
+     Definition.concrete(FeatureId(Name("widgets"), "count.1W"), IntEncoding, Mode.State, Some(NumericalType), "Count in the last week", List("☠")),
+     Definition.concrete(FeatureId(Name("demo"), "postcode"), StringEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))
    )).right
   }
 

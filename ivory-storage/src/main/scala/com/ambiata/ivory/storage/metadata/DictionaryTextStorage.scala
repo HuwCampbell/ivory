@@ -57,7 +57,7 @@ object DictionaryTextStorage extends TextStorage[(FeatureId, ConcreteDefinition)
       } yield r
       desc      <- string
       tombstone <- string
-    } yield (FeatureId(namespace, name), ConcreteDefinition(encoding, Some(ty), desc, Delimited.parseCsv(tombstone)))
+    } yield (FeatureId(namespace, name), ConcreteDefinition(encoding, Mode.State, Some(ty), desc, Delimited.parseCsv(tombstone)))
     parser.run(Delimited.parsePsv(entry))
   }
 

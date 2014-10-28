@@ -35,11 +35,11 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck { def is
 
   def dateLoad = prop((dict: PrimitiveDictionary) => run { (loader, dir) =>
     storeDateDicts(dict.dict, dir) >> loader.load
-  } must beOkValue(dict.dict))
+  } must beOkValue(setState(dict.dict)))
 
   def loadMigrate = prop((dict: PrimitiveDictionary) => run { (loader, dir) =>
     storeDateDicts(dict.dict, dir) >> loader.loadMigrate
-  } must beOkValue(Some(DictionaryId(Identifier.initial) -> dict.dict)))
+  } must beOkValue(Some(DictionaryId(Identifier.initial) -> setState(dict.dict))))
 
   def loadIdentifier = prop((dict: Dictionary) => run { (loader, dir) =>
     loader.store(dict) >>= (id => loader.loadFromId(id))
@@ -62,4 +62,13 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck { def is
       case Virtual(k, _) =>
         false
     })).map(PrimitiveDictionary))
+
+  /* Older, date based dictionaries do not support sets, need to force all modes to state for testing legacy migration . */
+  def setState(d: Dictionary): Dictionary = Dictionary(d.definitions.map({
+    case Concrete(id, definition) =>
+      Concrete(id, definition.copy(mode = Mode.State))
+    case Virtual(id, definition) =>
+      Virtual(id, definition)
+  }))
+
 }

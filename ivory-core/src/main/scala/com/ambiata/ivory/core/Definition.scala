@@ -20,14 +20,14 @@ case class Concrete(id: FeatureId, definition: ConcreteDefinition) extends Defin
 case class Virtual(id: FeatureId, definition: VirtualDefinition) extends Definition
 
 object Definition {
-  def concrete(featureId: FeatureId, encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String]): Definition =
-    Concrete(featureId, ConcreteDefinition(encoding, ty, desc, tombstoneValue))
+  def concrete(featureId: FeatureId, encoding: Encoding, mode: Mode, ty: Option[Type], desc: String, tombstoneValue: List[String]): Definition =
+    Concrete(featureId, ConcreteDefinition(encoding, mode, ty, desc, tombstoneValue))
 
   def virtual(featureId: FeatureId, source: FeatureId, query: Query, window: Option[Window]): Definition =
     Virtual(featureId, VirtualDefinition(source, query, window))
 }
 
-case class ConcreteDefinition(encoding: Encoding, ty: Option[Type], desc: String, tombstoneValue: List[String]) {
+case class ConcreteDefinition(encoding: Encoding, mode: Mode, ty: Option[Type], desc: String, tombstoneValue: List[String]) {
   def toDefinition(featureId: FeatureId): Definition =
     Concrete(featureId, this)
 }

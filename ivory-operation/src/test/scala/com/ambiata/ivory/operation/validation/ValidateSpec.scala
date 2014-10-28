@@ -22,9 +22,9 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
     RepositoryBuilder.using { repo =>
       val outpath = repo.root </> "out"
       val dict = Dictionary(List(
-        Definition.concrete(FeatureId(Name("ns1"), "fid1"), DoubleEncoding, Some(NumericalType), "desc", Nil),
-        Definition.concrete(FeatureId(Name("ns1"), "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
-        Definition.concrete(FeatureId(Name("ns2"), "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil))
+        Definition.concrete(FeatureId(Name("ns1"), "fid1"), DoubleEncoding, Mode.State, Some(NumericalType), "desc", Nil),
+        Definition.concrete(FeatureId(Name("ns1"), "fid2"), IntEncoding, Mode.State, Some(NumericalType), "desc", Nil),
+        Definition.concrete(FeatureId(Name("ns2"), "fid3"), BooleanEncoding, Mode.State, Some(CategoricalType), "desc", Nil))
       )
 
       val facts1 = List(
@@ -58,9 +58,9 @@ class ValidateSpec extends Specification with ThrownExpectations with FileMatche
       val outpath = repo.root </> "out"
 
       val dict = Dictionary(List(
-        Definition.concrete(FeatureId(Name("ns1"), "fid1"), DoubleEncoding, Some(NumericalType), "desc", Nil),
-        Definition.concrete(FeatureId(Name("ns1"), "fid2"), IntEncoding, Some(NumericalType), "desc", Nil),
-        Definition.concrete(FeatureId(Name("ns2"), "fid3"), BooleanEncoding, Some(CategoricalType), "desc", Nil)
+        Definition.concrete(FeatureId(Name("ns1"), "fid1"), DoubleEncoding, Mode.State, Some(NumericalType), "desc", Nil),
+        Definition.concrete(FeatureId(Name("ns1"), "fid2"), IntEncoding, Mode.State, Some(NumericalType), "desc", Nil),
+        Definition.concrete(FeatureId(Name("ns2"), "fid3"), BooleanEncoding, Mode.State, Some(CategoricalType), "desc", Nil)
       ))
 
       val facts1 = List(

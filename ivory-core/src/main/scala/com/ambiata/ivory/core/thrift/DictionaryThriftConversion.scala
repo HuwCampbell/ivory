@@ -7,6 +7,7 @@ import scalaz.{Name => _, Value => _, _}, Scalaz._, BijectionT._
 object DictionaryThriftConversion {
 
   import ThriftDictionaryEncoding._
+  import ThriftDictionaryMode._
 
   // Not a true bijective due to the struct encoding in thrift
   private val primitiveEncoding = new {
@@ -75,6 +76,14 @@ object DictionaryThriftConversion {
     case NUMERICAL => NumericalType
   })
 
+  private val modeBi = bijection[Id, Id, Mode, ThriftDictionaryMode]({
+    case Mode.State => STATE
+    case Mode.Set => SET
+  }, {
+    case STATE => Mode.State
+    case SET => Mode.Set
+  })
+
   object window {
     def to(window: Window): ThriftDictionaryWindow =
       new ThriftDictionaryWindow(window.length, window.unit match {
@@ -127,11 +136,12 @@ object DictionaryThriftConversion {
       val (encJava, structJava) = encoding.to(cd.encoding)
       val meta = new ThriftDictionaryFeatureMeta(encJava, cd.desc, cd.tombstoneValue.asJava)
       cd.ty.foreach(t => meta.setType(typeBi.to(t)))
+      meta.setMode(modeBi.to(cd.mode))
       structJava.foreach(meta.setValue)
       meta
     }
     def from(meta: ThriftDictionaryFeatureMeta): ConcreteDefinition =
-      ConcreteDefinition(encoding.from(meta), Option(meta.`type`).map(typeBi.from), meta.desc, meta.tombstoneValue.asScala.toList)
+      ConcreteDefinition(encoding.from(meta), Option(meta.mode).cata(modeBi.from, Mode.state), Option(meta.`type`).map(typeBi.from), meta.desc, meta.tombstoneValue.asScala.toList)
   }
 
   def dictionaryToThrift(dictionary: Dictionary): ThriftDictionary =

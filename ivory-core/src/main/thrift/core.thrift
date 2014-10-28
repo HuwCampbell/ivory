@@ -133,12 +133,19 @@ struct ThriftDictionaryFeatureId {
     2: string name;
 }
 
+
+enum ThriftDictionaryMode {
+    STATE = 1,
+    SET = 2
+}
+
 struct ThriftDictionaryFeatureMeta {
     1: ThriftDictionaryEncoding encoding;
     2: optional ThriftDictionaryType type;
     3: string desc;
     4: list<string> tombstoneValue;
     5: optional ThriftDictionaryFeatureValue value;
+    6: optional ThriftDictionaryMode mode;
 }
 
 enum ThriftDictionaryWindowUnit {
