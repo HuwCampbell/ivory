@@ -14,24 +14,56 @@ object ChordArbitraries {
   case class ChordEntity(entity: String, dates: List[(Date, List[Date])], above: List[Date]) {
     lazy val dateArray: Array[Int] =
       dates.map(_._1.int).sorted.reverse.toArray
+
+    def fromFact(fact: Fact): List[(Date, List[Fact])] =
+      dates.sortBy(_._1).map({ case (date, dates) => date ->
+        dates.sorted.map(fact.withDate).zipWithIndex.map({
+          case (fact, index) =>
+            fact.withValue(StringValue(List(entity, date.hyphenated, index).mkString(" ")))
+        })
+      })
+
     /** Creates facts but ensures each have a unique value to confirm priority actually works */
-    def toFacts[A](fact: Fact)(t: (Date, List[Fact], List[Fact]) => List[A]): List[A] = {
-      // Accumulate over the facts and keep track of everything up until this point (see expected())
-      dates.sortBy(_._1).foldLeft((List[Fact](), List[A]())){ case ((prev, as), dd) =>
-        val now = dd._2.sorted.map(fact.withDate).zipWithIndex.map {
-          case (f, i) => f.withValue(StringValue(List(entity, dd._1.hyphenated, i).mkString(" ")))
-        }
-        (prev ++ now) -> (as ++ t(dd._1, now, prev))
-      }._2
-    }
+    def fromFactWithPriority(fact: Fact): List[(Date, List[Fact])] =
+      fromFact(fact).map({ case (date, facts) =>
+        date -> facts.zip(facts.map(incValue(_, "p"))).flatMap(f => List(f._1, f._2)) })
+
+    def toFacts[A](fact: Fact)(t: (Date, List[Fact], List[Fact]) => List[A]): List[A] =
+      fromFact(fact).foldLeft(List[Fact]() -> List[A]())({ case ((prev, as), (date, fact)) =>
+        (prev ++ fact) -> (as ++ t(date, fact, prev))
+      })._2
+
+    def toFactsWithPriority[A](fact: Fact)(t: (Date, List[Fact], List[Fact]) => List[A]): List[A] =
+      fromFactWithPriority(fact).foldLeft(List[Fact]() -> List[A]())({ case ((prev, as), (date, fact)) =>
+        (prev ++ fact) -> (as ++ t(date, fact, prev))
+      })._2
 
     def facts(fact: Fact): List[Fact] =
       toFacts(fact)((_, fs, _) => fs).map(_.withEntity(entity))
+
+    // Duplicate every fact with priority version but different value
+    def factsWithPriority(fact: Fact): List[Fact] =
+      toFactsWithPriority(fact)((_, fs, _) => fs).map(_.withEntity(entity))
+
     def expected(fact: Fact): List[Fact] =
       // Take the latest fact, which may come from a previous chord period if this one is empty
-      toFacts(fact)((d, fs, prev) => (prev ++ fs).lastOption.map(_.withEntity(entity + ":" + d.hyphenated)).toList)
+      toFacts(fact)(expecteds)
+
+    def expectedSet(fact: Fact): List[Fact] =
+      // Take the latest fact, which may come from a previous chord period if this one is empty
+      toFactsWithPriority(fact)(expecteds)
+
+    def expecteds: (Date, List[Fact], List[Fact]) => List[Fact] =
+      (d, fs, prev) => (prev ++ fs).lastOption.map(_.withEntity(entity + ":" + d.hyphenated)).toList
+
     def expectedWindow(fact: Fact, window: Option[Window]): List[Fact] =
-      toFacts(fact) {(d, fs, prev) =>
+      toFacts(fact)(expectedWindows(window)).distinct
+
+    def expectedWindowSet(fact: Fact, window: Option[Window]): List[Fact] =
+      toFactsWithPriority(fact)(expectedWindows(window)).distinct
+
+    def expectedWindows: Option[Window] => (Date, List[Fact], List[Fact]) => List[Fact] =
+      window => (d, fs, prev) =>
         window.map(SnapshotWindows.startingDate(_, d)).map {
           sd =>
             // _Always_ emit the last fact before the window (for state-based features)
@@ -39,16 +71,16 @@ object ChordArbitraries {
               // All the facts from the window
               fs.filter(_.date.int >= sd.int)
         }.getOrElse((prev ++ fs).lastOption.toList).map(_.withEntity(entity))
-      }.distinct
   }
 
   /** A single entity, for testing [[com.ambiata.ivory.operation.extraction.ChordReducer]] */
   case class ChordFact(ce: ChordEntity, fact: Fact, window: Option[Window]) {
     lazy val facts: List[Fact] = ce.facts(fact)
-    // Duplicate every fact with priority version but different value
-    lazy val factsWithPriority: List[Fact] = facts.zip(facts.map(incValue(_, "p"))).flatMap(f => List(f._1, f._2))
+    lazy val factsWithPriority: List[Fact] = ce.factsWithPriority(fact)
     lazy val expected: List[Fact] = ce.expected(fact)
+    lazy val expectedSet: List[Fact] = ce.expectedSet(fact)
     lazy val expectedWindow: List[Fact] = ce.expectedWindow(fact, window)
+    lazy val expectedWindowSet: List[Fact] = ce.expectedWindowSet(fact, window)
     lazy val windowDateArray: Option[Array[Int]] = window.map {
       win => ce.dates.map(_._1).map(SnapshotWindows.startingDate(win, _).int).sorted.reverse.toArray
     }
@@ -64,7 +96,7 @@ object ChordArbitraries {
     lazy val takeSnapshot: Boolean = ces.sortBy(_.dates.headOption.map(_._1).getOrElse(Date.maxValue)).headOption
       .flatMap(_.dates.headOption).flatMap(_._2.headOption).isDefined
   }
- 
+
   implicit def ChordFactArbitrary: Arbitrary[ChordFact] = Arbitrary(for {
     e     <- chordEntityGen(0)
     // Just generate one stub fact - we only care about the entity and date

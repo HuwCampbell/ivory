@@ -335,15 +335,15 @@ public class SnapshotWindowLookup implements org.apache.thrift.TBase<SnapshotWin
           case 1: // WINDOW
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map60 = iprot.readMapBegin();
-                struct.window = new HashMap<Integer,Integer>(2*_map60.size);
-                for (int _i61 = 0; _i61 < _map60.size; ++_i61)
+                org.apache.thrift.protocol.TMap _map70 = iprot.readMapBegin();
+                struct.window = new HashMap<Integer,Integer>(2*_map70.size);
+                for (int _i71 = 0; _i71 < _map70.size; ++_i71)
                 {
-                  int _key62;
-                  int _val63;
-                  _key62 = iprot.readI32();
-                  _val63 = iprot.readI32();
-                  struct.window.put(_key62, _val63);
+                  int _key72;
+                  int _val73;
+                  _key72 = iprot.readI32();
+                  _val73 = iprot.readI32();
+                  struct.window.put(_key72, _val73);
                 }
                 iprot.readMapEnd();
               }
@@ -371,10 +371,10 @@ public class SnapshotWindowLookup implements org.apache.thrift.TBase<SnapshotWin
         oprot.writeFieldBegin(WINDOW_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.I32, struct.window.size()));
-          for (Map.Entry<Integer, Integer> _iter64 : struct.window.entrySet())
+          for (Map.Entry<Integer, Integer> _iter74 : struct.window.entrySet())
           {
-            oprot.writeI32(_iter64.getKey());
-            oprot.writeI32(_iter64.getValue());
+            oprot.writeI32(_iter74.getKey());
+            oprot.writeI32(_iter74.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -405,10 +405,10 @@ public class SnapshotWindowLookup implements org.apache.thrift.TBase<SnapshotWin
       if (struct.isSetWindow()) {
         {
           oprot.writeI32(struct.window.size());
-          for (Map.Entry<Integer, Integer> _iter65 : struct.window.entrySet())
+          for (Map.Entry<Integer, Integer> _iter75 : struct.window.entrySet())
           {
-            oprot.writeI32(_iter65.getKey());
-            oprot.writeI32(_iter65.getValue());
+            oprot.writeI32(_iter75.getKey());
+            oprot.writeI32(_iter75.getValue());
           }
         }
       }
@@ -420,15 +420,15 @@ public class SnapshotWindowLookup implements org.apache.thrift.TBase<SnapshotWin
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map66 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.I32, iprot.readI32());
-          struct.window = new HashMap<Integer,Integer>(2*_map66.size);
-          for (int _i67 = 0; _i67 < _map66.size; ++_i67)
+          org.apache.thrift.protocol.TMap _map76 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.I32, iprot.readI32());
+          struct.window = new HashMap<Integer,Integer>(2*_map76.size);
+          for (int _i77 = 0; _i77 < _map76.size; ++_i77)
           {
-            int _key68;
-            int _val69;
-            _key68 = iprot.readI32();
-            _val69 = iprot.readI32();
-            struct.window.put(_key68, _val69);
+            int _key78;
+            int _val79;
+            _key78 = iprot.readI32();
+            _val79 = iprot.readI32();
+            struct.window.put(_key78, _val79);
           }
         }
         struct.setWindowIsSet(true);

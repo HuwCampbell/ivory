@@ -346,16 +346,16 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
           case 1: // MAPPING
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map50 = iprot.readMapBegin();
-                struct.mapping = new HashMap<String,FeatureMappingValue>(2*_map50.size);
-                for (int _i51 = 0; _i51 < _map50.size; ++_i51)
+                org.apache.thrift.protocol.TMap _map60 = iprot.readMapBegin();
+                struct.mapping = new HashMap<String,FeatureMappingValue>(2*_map60.size);
+                for (int _i61 = 0; _i61 < _map60.size; ++_i61)
                 {
-                  String _key52;
-                  FeatureMappingValue _val53;
-                  _key52 = iprot.readString();
-                  _val53 = new FeatureMappingValue();
-                  _val53.read(iprot);
-                  struct.mapping.put(_key52, _val53);
+                  String _key62;
+                  FeatureMappingValue _val63;
+                  _key62 = iprot.readString();
+                  _val63 = new FeatureMappingValue();
+                  _val63.read(iprot);
+                  struct.mapping.put(_key62, _val63);
                 }
                 iprot.readMapEnd();
               }
@@ -383,10 +383,10 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
         oprot.writeFieldBegin(MAPPING_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, struct.mapping.size()));
-          for (Map.Entry<String, FeatureMappingValue> _iter54 : struct.mapping.entrySet())
+          for (Map.Entry<String, FeatureMappingValue> _iter64 : struct.mapping.entrySet())
           {
-            oprot.writeString(_iter54.getKey());
-            _iter54.getValue().write(oprot);
+            oprot.writeString(_iter64.getKey());
+            _iter64.getValue().write(oprot);
           }
           oprot.writeMapEnd();
         }
@@ -417,10 +417,10 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
       if (struct.isSetMapping()) {
         {
           oprot.writeI32(struct.mapping.size());
-          for (Map.Entry<String, FeatureMappingValue> _iter55 : struct.mapping.entrySet())
+          for (Map.Entry<String, FeatureMappingValue> _iter65 : struct.mapping.entrySet())
           {
-            oprot.writeString(_iter55.getKey());
-            _iter55.getValue().write(oprot);
+            oprot.writeString(_iter65.getKey());
+            _iter65.getValue().write(oprot);
           }
         }
       }
@@ -432,16 +432,16 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map56 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.mapping = new HashMap<String,FeatureMappingValue>(2*_map56.size);
-          for (int _i57 = 0; _i57 < _map56.size; ++_i57)
+          org.apache.thrift.protocol.TMap _map66 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.mapping = new HashMap<String,FeatureMappingValue>(2*_map66.size);
+          for (int _i67 = 0; _i67 < _map66.size; ++_i67)
           {
-            String _key58;
-            FeatureMappingValue _val59;
-            _key58 = iprot.readString();
-            _val59 = new FeatureMappingValue();
-            _val59.read(iprot);
-            struct.mapping.put(_key58, _val59);
+            String _key68;
+            FeatureMappingValue _val69;
+            _key68 = iprot.readString();
+            _val69 = new FeatureMappingValue();
+            _val69.read(iprot);
+            struct.mapping.put(_key68, _val69);
           }
         }
         struct.setMappingIsSet(true);

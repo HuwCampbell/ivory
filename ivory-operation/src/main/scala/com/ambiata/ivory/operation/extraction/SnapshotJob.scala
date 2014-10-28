@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.lookup.{FeatureIdLookup, SnapshotWindowLookup}
+import com.ambiata.ivory.lookup.{FeatureIdLookup, SnapshotWindowLookup, FlagLookup}
 import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
@@ -29,7 +29,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
  * This is a hand-coded MR job to squeeze the most out of snapshot performance.
  */
 object SnapshotJob {
-  def run(repository: HdfsRepository, conf: Configuration, reducers: Int, date: Date, inputs: List[Prioritized[FactsetGlob]], output: Path,
+  def run(repository: HdfsRepository, conf: Configuration, dictionary: Dictionary, reducers: Int, date: Date, inputs: List[Prioritized[FactsetGlob]], output: Path,
           windows: SnapshotWindows, incremental: Option[Path], codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
@@ -85,6 +85,7 @@ object SnapshotJob {
     val (featureIdLookup, windowLookup) = windowTable(windows)
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup)
     ctx.thriftCache.push(job, Keys.WindowLookup, windowLookup)
+    ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(dictionary))
 
     // run job
     if (!job.waitForCompletion(true))
@@ -116,6 +117,7 @@ object SnapshotJob {
     val FactsetLookup = ThriftCache.Key("factset-lookup")
     val FactsetVersionLookup = ThriftCache.Key("factset-version-lookup")
     val WindowLookup = ThriftCache.Key("factset-window-lookup")
+    val FeatureIsSetLookup = ThriftCache.Key("feature-is-set-lookup")
   }
 }
 
@@ -302,20 +304,29 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
 
   val mutator = new FactByteMutator
 
-  // Optimised array lookup for features to the window, where we know that features are simply ordered from zero
+  /** Optimised array lookup for features to the window, where we know that features are simply ordered from zero */
   var windowLookup: Array[Int] = null
+
+  /** Optimised array lookup to flag "Set" features vs "State" features. */
+  var isSetLookup: Array[Boolean] = null
 
   override def setup(context: ReducerContext): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
+
     val windowLookupThrift = new SnapshotWindowLookup
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.WindowLookup, windowLookupThrift)
     windowLookup = windowLookupToArray(windowLookupThrift)
+
+    val isSetLookupThrift = new FlagLookup
+    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
+    isSetLookup = FeatureLookups.isSetLookupToArray(isSetLookupThrift)
   }
 
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
     emitter.context = context
-    val windowStart = Date.unsafeFromInt(windowLookup(SnapshotWritable.GroupingEntityFeatureId.getFeatureId(key)))
-    SnapshotReducer.reduce(fact, iter.iterator, mutator, emitter, vout, windowStart)
+    val feature = SnapshotWritable.GroupingEntityFeatureId.getFeatureId(key)
+    val windowStart = Date.unsafeFromInt(windowLookup(feature))
+    SnapshotReducer.reduce(fact, iter.iterator, mutator, emitter, vout, windowStart, isSetLookup(feature))
   }
 }
 
@@ -332,14 +343,15 @@ object SnapshotReducer {
   val sentinelDateTime = DateTime.unsafeFromLong(-1)
 
   def reduce[A](fact: MutableFact, iter: JIterator[A], mutator: PipeFactMutator[A, A],
-                emitter: Emitter[NullWritable, A], out: A, windowStart: Date): Unit = {
+                emitter: Emitter[NullWritable, A], out: A, windowStart: Date, isSet: Boolean): Unit = {
     var datetime = sentinelDateTime
     val kout = NullWritable.get()
     while(iter.hasNext) {
       val next = iter.next
       mutator.from(next, fact)
-      // Respect the "highest" priority (ie. the first fact with any given datetime)
-      if (datetime != fact.datetime) {
+      // Respect the "highest" priority (ie. the first fact with any given datetime), unless this is a set
+      // then we want to include every value (at least until we have keyed sets, see https://github.com/ambiata/ivory/issues/376).
+      if (datetime != fact.datetime || isSet) {
         // If the _current_ fact is in the window we still want to emit the _previous_ fact which may be
         // the last fact within the window, or another fact within the window
         // As such we can't do anything on the first fact

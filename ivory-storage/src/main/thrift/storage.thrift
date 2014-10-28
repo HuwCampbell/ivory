@@ -8,6 +8,10 @@ struct ReducerLookup {
     1: map<i32, i32> reducers;
 }
 
+struct FlagLookup {
+    1: map<i32, bool> flags;
+}
+
 struct FeatureIdLookup {
     1: map<string, i32> ids;
 }

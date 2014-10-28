@@ -32,22 +32,22 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVersionLookup, FactsetVersionLookup._Fields>, java.io.Serializable, Cloneable, Comparable<FactsetVersionLookup> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("FactsetVersionLookup");
+public class FlagLookup implements org.apache.thrift.TBase<FlagLookup, FlagLookup._Fields>, java.io.Serializable, Cloneable, Comparable<FlagLookup> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("FlagLookup");
 
-  private static final org.apache.thrift.protocol.TField VERSIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("versions", org.apache.thrift.protocol.TType.MAP, (short)1);
+  private static final org.apache.thrift.protocol.TField FLAGS_FIELD_DESC = new org.apache.thrift.protocol.TField("flags", org.apache.thrift.protocol.TType.MAP, (short)1);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new FactsetVersionLookupStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new FactsetVersionLookupTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new FlagLookupStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new FlagLookupTupleSchemeFactory());
   }
 
-  public Map<String,Byte> versions; // required
+  public Map<Integer,Boolean> flags; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    VERSIONS((short)1, "versions");
+    FLAGS((short)1, "flags");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -62,8 +62,8 @@ public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVers
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // VERSIONS
-          return VERSIONS;
+        case 1: // FLAGS
+          return FLAGS;
         default:
           return null;
       }
@@ -107,85 +107,85 @@ public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVers
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.VERSIONS, new org.apache.thrift.meta_data.FieldMetaData("versions", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.FLAGS, new org.apache.thrift.meta_data.FieldMetaData("flags", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE))));
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32), 
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(FactsetVersionLookup.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(FlagLookup.class, metaDataMap);
   }
 
-  public FactsetVersionLookup() {
+  public FlagLookup() {
   }
 
-  public FactsetVersionLookup(
-    Map<String,Byte> versions)
+  public FlagLookup(
+    Map<Integer,Boolean> flags)
   {
     this();
-    this.versions = versions;
+    this.flags = flags;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public FactsetVersionLookup(FactsetVersionLookup other) {
-    if (other.isSetVersions()) {
-      Map<String,Byte> __this__versions = new HashMap<String,Byte>(other.versions);
-      this.versions = __this__versions;
+  public FlagLookup(FlagLookup other) {
+    if (other.isSetFlags()) {
+      Map<Integer,Boolean> __this__flags = new HashMap<Integer,Boolean>(other.flags);
+      this.flags = __this__flags;
     }
   }
 
-  public FactsetVersionLookup deepCopy() {
-    return new FactsetVersionLookup(this);
+  public FlagLookup deepCopy() {
+    return new FlagLookup(this);
   }
 
   @Override
   public void clear() {
-    this.versions = null;
+    this.flags = null;
   }
 
-  public int getVersionsSize() {
-    return (this.versions == null) ? 0 : this.versions.size();
+  public int getFlagsSize() {
+    return (this.flags == null) ? 0 : this.flags.size();
   }
 
-  public void putToVersions(String key, byte val) {
-    if (this.versions == null) {
-      this.versions = new HashMap<String,Byte>();
+  public void putToFlags(int key, boolean val) {
+    if (this.flags == null) {
+      this.flags = new HashMap<Integer,Boolean>();
     }
-    this.versions.put(key, val);
+    this.flags.put(key, val);
   }
 
-  public Map<String,Byte> getVersions() {
-    return this.versions;
+  public Map<Integer,Boolean> getFlags() {
+    return this.flags;
   }
 
-  public FactsetVersionLookup setVersions(Map<String,Byte> versions) {
-    this.versions = versions;
+  public FlagLookup setFlags(Map<Integer,Boolean> flags) {
+    this.flags = flags;
     return this;
   }
 
-  public void unsetVersions() {
-    this.versions = null;
+  public void unsetFlags() {
+    this.flags = null;
   }
 
-  /** Returns true if field versions is set (has been assigned a value) and false otherwise */
-  public boolean isSetVersions() {
-    return this.versions != null;
+  /** Returns true if field flags is set (has been assigned a value) and false otherwise */
+  public boolean isSetFlags() {
+    return this.flags != null;
   }
 
-  public void setVersionsIsSet(boolean value) {
+  public void setFlagsIsSet(boolean value) {
     if (!value) {
-      this.versions = null;
+      this.flags = null;
     }
   }
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case VERSIONS:
+    case FLAGS:
       if (value == null) {
-        unsetVersions();
+        unsetFlags();
       } else {
-        setVersions((Map<String,Byte>)value);
+        setFlags((Map<Integer,Boolean>)value);
       }
       break;
 
@@ -194,8 +194,8 @@ public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVers
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case VERSIONS:
-      return getVersions();
+    case FLAGS:
+      return getFlags();
 
     }
     throw new IllegalStateException();
@@ -208,8 +208,8 @@ public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVers
     }
 
     switch (field) {
-    case VERSIONS:
-      return isSetVersions();
+    case FLAGS:
+      return isSetFlags();
     }
     throw new IllegalStateException();
   }
@@ -218,21 +218,21 @@ public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVers
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof FactsetVersionLookup)
-      return this.equals((FactsetVersionLookup)that);
+    if (that instanceof FlagLookup)
+      return this.equals((FlagLookup)that);
     return false;
   }
 
-  public boolean equals(FactsetVersionLookup that) {
+  public boolean equals(FlagLookup that) {
     if (that == null)
       return false;
 
-    boolean this_present_versions = true && this.isSetVersions();
-    boolean that_present_versions = true && that.isSetVersions();
-    if (this_present_versions || that_present_versions) {
-      if (!(this_present_versions && that_present_versions))
+    boolean this_present_flags = true && this.isSetFlags();
+    boolean that_present_flags = true && that.isSetFlags();
+    if (this_present_flags || that_present_flags) {
+      if (!(this_present_flags && that_present_flags))
         return false;
-      if (!this.versions.equals(that.versions))
+      if (!this.flags.equals(that.flags))
         return false;
     }
 
@@ -245,19 +245,19 @@ public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVers
   }
 
   @Override
-  public int compareTo(FactsetVersionLookup other) {
+  public int compareTo(FlagLookup other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
 
-    lastComparison = Boolean.valueOf(isSetVersions()).compareTo(other.isSetVersions());
+    lastComparison = Boolean.valueOf(isSetFlags()).compareTo(other.isSetFlags());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetVersions()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.versions, other.versions);
+    if (isSetFlags()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.flags, other.flags);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -279,14 +279,14 @@ public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVers
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("FactsetVersionLookup(");
+    StringBuilder sb = new StringBuilder("FlagLookup(");
     boolean first = true;
 
-    sb.append("versions:");
-    if (this.versions == null) {
+    sb.append("flags:");
+    if (this.flags == null) {
       sb.append("null");
     } else {
-      sb.append(this.versions);
+      sb.append(this.flags);
     }
     first = false;
     sb.append(")");
@@ -314,15 +314,15 @@ public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVers
     }
   }
 
-  private static class FactsetVersionLookupStandardSchemeFactory implements SchemeFactory {
-    public FactsetVersionLookupStandardScheme getScheme() {
-      return new FactsetVersionLookupStandardScheme();
+  private static class FlagLookupStandardSchemeFactory implements SchemeFactory {
+    public FlagLookupStandardScheme getScheme() {
+      return new FlagLookupStandardScheme();
     }
   }
 
-  private static class FactsetVersionLookupStandardScheme extends StandardScheme<FactsetVersionLookup> {
+  private static class FlagLookupStandardScheme extends StandardScheme<FlagLookup> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, FactsetVersionLookup struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, FlagLookup struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -332,22 +332,22 @@ public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVers
           break;
         }
         switch (schemeField.id) {
-          case 1: // VERSIONS
+          case 1: // FLAGS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map50 = iprot.readMapBegin();
-                struct.versions = new HashMap<String,Byte>(2*_map50.size);
-                for (int _i51 = 0; _i51 < _map50.size; ++_i51)
+                org.apache.thrift.protocol.TMap _map20 = iprot.readMapBegin();
+                struct.flags = new HashMap<Integer,Boolean>(2*_map20.size);
+                for (int _i21 = 0; _i21 < _map20.size; ++_i21)
                 {
-                  String _key52;
-                  byte _val53;
-                  _key52 = iprot.readString();
-                  _val53 = iprot.readByte();
-                  struct.versions.put(_key52, _val53);
+                  int _key22;
+                  boolean _val23;
+                  _key22 = iprot.readI32();
+                  _val23 = iprot.readBool();
+                  struct.flags.put(_key22, _val23);
                 }
                 iprot.readMapEnd();
               }
-              struct.setVersionsIsSet(true);
+              struct.setFlagsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -363,18 +363,18 @@ public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVers
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, FactsetVersionLookup struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, FlagLookup struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.versions != null) {
-        oprot.writeFieldBegin(VERSIONS_FIELD_DESC);
+      if (struct.flags != null) {
+        oprot.writeFieldBegin(FLAGS_FIELD_DESC);
         {
-          oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.BYTE, struct.versions.size()));
-          for (Map.Entry<String, Byte> _iter54 : struct.versions.entrySet())
+          oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.BOOL, struct.flags.size()));
+          for (Map.Entry<Integer, Boolean> _iter24 : struct.flags.entrySet())
           {
-            oprot.writeString(_iter54.getKey());
-            oprot.writeByte(_iter54.getValue());
+            oprot.writeI32(_iter24.getKey());
+            oprot.writeBool(_iter24.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -386,52 +386,52 @@ public class FactsetVersionLookup implements org.apache.thrift.TBase<FactsetVers
 
   }
 
-  private static class FactsetVersionLookupTupleSchemeFactory implements SchemeFactory {
-    public FactsetVersionLookupTupleScheme getScheme() {
-      return new FactsetVersionLookupTupleScheme();
+  private static class FlagLookupTupleSchemeFactory implements SchemeFactory {
+    public FlagLookupTupleScheme getScheme() {
+      return new FlagLookupTupleScheme();
     }
   }
 
-  private static class FactsetVersionLookupTupleScheme extends TupleScheme<FactsetVersionLookup> {
+  private static class FlagLookupTupleScheme extends TupleScheme<FlagLookup> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, FactsetVersionLookup struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, FlagLookup struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
-      if (struct.isSetVersions()) {
+      if (struct.isSetFlags()) {
         optionals.set(0);
       }
       oprot.writeBitSet(optionals, 1);
-      if (struct.isSetVersions()) {
+      if (struct.isSetFlags()) {
         {
-          oprot.writeI32(struct.versions.size());
-          for (Map.Entry<String, Byte> _iter55 : struct.versions.entrySet())
+          oprot.writeI32(struct.flags.size());
+          for (Map.Entry<Integer, Boolean> _iter25 : struct.flags.entrySet())
           {
-            oprot.writeString(_iter55.getKey());
-            oprot.writeByte(_iter55.getValue());
+            oprot.writeI32(_iter25.getKey());
+            oprot.writeBool(_iter25.getValue());
           }
         }
       }
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, FactsetVersionLookup struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, FlagLookup struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map56 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.BYTE, iprot.readI32());
-          struct.versions = new HashMap<String,Byte>(2*_map56.size);
-          for (int _i57 = 0; _i57 < _map56.size; ++_i57)
+          org.apache.thrift.protocol.TMap _map26 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.BOOL, iprot.readI32());
+          struct.flags = new HashMap<Integer,Boolean>(2*_map26.size);
+          for (int _i27 = 0; _i27 < _map26.size; ++_i27)
           {
-            String _key58;
-            byte _val59;
-            _key58 = iprot.readString();
-            _val59 = iprot.readByte();
-            struct.versions.put(_key58, _val59);
+            int _key28;
+            boolean _val29;
+            _key28 = iprot.readI32();
+            _val29 = iprot.readBool();
+            struct.flags.put(_key28, _val29);
           }
         }
-        struct.setVersionsIsSet(true);
+        struct.setFlagsIsSet(true);
       }
     }
   }
