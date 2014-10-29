@@ -2,7 +2,6 @@ package com.ambiata.ivory.operation.extraction.reduction
 
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.thrift.ThriftFactValue
 import org.specs2.{ScalaCheck, Specification}
 
 class LatestReducerSpec extends Specification with ScalaCheck { def is = s2"""
@@ -26,6 +25,6 @@ class LatestReducerSpec extends Specification with ScalaCheck { def is = s2"""
 
   def latestStruct = prop((field: String, fact: Fact, values: List[Option[String]]) => {
     val r = ReducerUtil.runWithTombstones(new LatestStructReducer(""), values)
-    values.lastOption.flatten.map(s => r.value ==== s).getOrElse(r.tombstone must beTrue)
+    values.lastOption.flatten.map(s => r.value ==== s and (r.tombstone must beFalse)).getOrElse(r.tombstone must beTrue)
   })
 }
