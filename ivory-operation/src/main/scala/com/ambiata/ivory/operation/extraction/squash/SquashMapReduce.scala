@@ -62,11 +62,8 @@ class SquashReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, 
 
     ctx.thriftCache.pop(context.getConfiguration, SquashJob.Keys.ExpressionLookup, lookup)
     val traceMod = context.getConfiguration.getInt(SquashJob.Keys.ProfileMod, SquashConfig.default.profileSampleRate)
-    def newCounter(group: String): String => Counter = { name =>
-      val mrc = MrCounter[BytesWritable, BytesWritable, NullWritable, BytesWritable](group, name)
-      mrc.context = context
-      mrc
-    }
+    def newCounter(group: String): String => Counter =
+      name => MrCounter[BytesWritable, BytesWritable, NullWritable, BytesWritable](group, name, context)
     tracer = new SquashProfiler(traceMod, newCounter(SquashJob.Keys.CounterTotalGroup), newCounter(SquashJob.Keys.CounterSaveGroup),
       newCounter(SquashJob.Keys.ProfileTotalGroup), newCounter(SquashJob.Keys.ProfileSaveGroup))
   }

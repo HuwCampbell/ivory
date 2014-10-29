@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._, Arbitraries._
-import com.ambiata.ivory.mr.Counter
+import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.reduction.CountReducer
 import org.scalacheck.Arbitrary
 import org.specs2.{ScalaCheck, Specification}
@@ -12,17 +12,18 @@ class SquashProfileSpec extends Specification with ScalaCheck { def is = s2"""
 
   Profile facts                                                   $profile
   SquashCounts monoid laws                                        ${monoid.laws[SquashCounts]}
+
 """
 
-  case class PCounter(var c: Int) extends Counter {
+  case class PCounter(var counter: Int) extends Counter {
     def count(i: Int): Unit =
-      c += 1
+      counter += 1
   }
 
-  def profile = prop((factss: Short, s: Short, fact: Fact) => {
+  def profile = propNoShrink((factss: Short, s: Short, fact: Fact) => {
     val facts = Math.abs(factss)
-    val c1 = PCounter(0)
-    val c2 = PCounter(0)
+    val c1 = MemoryCounter()
+    val c2 = MemoryCounter()
     val p1 = PCounter(0)
     val p2 = PCounter(0)
     val mod = Math.abs(s) + 1
@@ -31,10 +32,10 @@ class SquashProfileSpec extends Specification with ScalaCheck { def is = s2"""
     (0 until facts).map(_ => f).foreach(reducer.update)
     val result = reducer.save
     result.getL ==== facts and
-      (c1.c ==== facts) and
-      (c2.c ==== 1) and (
-        if (facts == 0) p1.c ==== 0 and p2.c ==== 0
-        else p1.c must beGreaterThan(0) and p2.c ==== 1
+      (c1.counter ==== facts) and
+      (c2.counter ==== 1) and (
+        if (facts == 0) p1.counter ==== 0 and p2.counter ==== 0
+        else p1.counter must beGreaterThan(0) and p2.counter ==== 1
       )
   })
 

@@ -161,10 +161,13 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
   val emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = MrEmitter()
 
   /** Class to count number of non skipped facts, created once per mapper */
-  var okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
+  var okCounter: Counter = null
 
   /** Class to count number of skipped facts, created once per mapper */
-  var skipCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
+  var skipCounter: Counter = null
+
+  /** Class to count number of dropped facts that don't appear in dictionary anymore, created once per mapper */
+  var dropCounter: LabelledCounter = null
 
   /** Thrift object provided from sub class, created once per mapper */
   val tfact = new ThriftFact
@@ -182,8 +185,9 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
       SnapshotJob.Keys.FactsetVersionLookup, context.getConfiguration, context.getInputSplit)
     converter = factsetInfo.factConverter
     priority = factsetInfo.priority
-    okCounter = MrCounter("ivory", s"snapshot.v${factsetInfo.version}.ok")
-    skipCounter = MrCounter("ivory", s"snapshot.v${factsetInfo.version}.skip")
+    okCounter = MrCounter("ivory", s"snapshot.v${factsetInfo.version}.ok", context)
+    skipCounter = MrCounter("ivory", s"snapshot.v${factsetInfo.version}.skip", context)
+    dropCounter = MrLabelledCounter("ivory.drop", context)
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
   }
 
@@ -196,9 +200,7 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
    */
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
     emitter.context = context
-    okCounter.context = context
-    skipCounter.context = context
-    SnapshotFactsetMapper.map(tfact, date, converter, value, priority, kout, vout, emitter, okCounter, skipCounter,
+    SnapshotFactsetMapper.map(tfact, date, converter, value, priority, kout, vout, emitter, okCounter, skipCounter, dropCounter,
       serializer, featureIdLookup)
   }
 }
@@ -207,15 +209,19 @@ object SnapshotFactsetMapper {
 
   def map[A <: ThriftLike](tfact: ThriftFact, date: Date, converter: VersionedFactConverter, input: BytesWritable,
                            priority: Priority, kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable],
-                           okCounter: Counter, skipCounter: Counter, deserializer: ThriftSerialiser,
+                           okCounter: Counter, skipCounter: Counter, dropCounter: LabelledCounter, deserializer: ThriftSerialiser,
                            featureIdLookup: FeatureIdLookup) {
     deserializer.fromBytesViewUnsafe(tfact, input.getBytes, 0, input.getLength)
     val f = converter.convert(tfact)
-    if(f.date > date)
+    val name = f.featureId.toString
+    val featureId = featureIdLookup.getIds.get(name)
+    if (featureId == null)
+      dropCounter.count(name, 1)
+    else if (f.date > date)
       skipCounter.count(1)
     else {
       okCounter.count(1)
-      KeyState.set(f, priority, kout, featureIdLookup.getIds.get(f.featureId.toString))
+      KeyState.set(f, priority, kout, featureId)
       val bytes = deserializer.toBytes(f.toNamespacedThrift)
       vout.set(bytes, 0, bytes.length)
       emitter.emit(kout, vout)
@@ -245,8 +251,10 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
   val emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = MrEmitter()
 
   /** Class to count number of non skipped facts, created once per mapper */
-  val okCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] =
-    MrCounter("ivory", "snapshot.incr.ok")
+  var okCounter: Counter = null
+
+  /** Class to count number of dropped facts that don't appear in dictionary anymore, created once per mapper */
+  var dropCounter: LabelledCounter = null
 
   val featureIdLookup = new FeatureIdLookup
 
@@ -254,27 +262,32 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
     super.setup(context)
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
+    okCounter = MrCounter("ivory", "snapshot.incr.ok", context)
+    dropCounter = MrLabelledCounter("ivory.drop", context)
   }
 
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
     emitter.context = context
-    okCounter.context = context
-    SnapshotIncrementalMapper.map(fact, value, Priority.Max, kout, vout, emitter, okCounter, serializer, featureIdLookup)
+    SnapshotIncrementalMapper.map(fact, value, Priority.Max, kout, vout, emitter, okCounter, dropCounter, serializer, featureIdLookup)
   }
 }
 
 object SnapshotIncrementalMapper {
-
   def map(fact: NamespacedThriftFact with NamespacedThriftFactDerived, bytes: BytesWritable, priority: Priority,
           kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter,
-          serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup) {
-    okCounter.count(1)
-    fact.clear()
+          dropCounter: LabelledCounter, serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup) {
     serializer.fromBytesViewUnsafe(fact, bytes.getBytes, 0, bytes.getLength)
-    KeyState.set(fact, priority, kout, featureIdLookup.getIds.get(fact.featureId.toString))
-    // Pass through the bytes
-    vout.set(bytes.getBytes, 0, bytes.getLength)
-    emitter.emit(kout, vout)
+    val name = fact.featureId.toString
+    val featureId = featureIdLookup.getIds.get(name)
+    if (featureId == null)
+      dropCounter.count(name, 1)
+    else {
+      okCounter.count(1)
+      KeyState.set(fact, priority, kout, featureId)
+      // Pass through the bytes
+      vout.set(bytes.getBytes, 0, bytes.getLength)
+      emitter.emit(kout, vout)
+    }
   }
 }
 

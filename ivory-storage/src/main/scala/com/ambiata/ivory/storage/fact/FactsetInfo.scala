@@ -12,7 +12,7 @@ import org.apache.hadoop.mapreduce.InputSplit
 
 import scalaz._, Scalaz._
 
-case class FactsetInfo(val version: FactsetVersion, val factConverter: VersionedFactConverter, val priority: Priority)
+case class FactsetInfo(version: FactsetVersion, factConverter: VersionedFactConverter, priority: Priority)
 
 object FactsetInfo {
   def fromMr(thriftCache: ThriftCache, factsetLookupKey: ThriftCache.Key, factsetVersionLookupKey: ThriftCache.Key,
