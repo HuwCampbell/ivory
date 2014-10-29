@@ -49,8 +49,9 @@ class EavOutputSpec extends Specification with SampleFacts with ThrownExpectatio
       for {
         _               <- RepositoryBuilder.createRepo(repo, dictionary, facts)
         eav             <- IvoryLocation.fromUri((dir </> "eav").path, IvoryConfiguration.Empty)
-        meta            <- Snapshot.takeSnapshot(repo, Date.maxValue, incremental = false)
-        input            = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
+        res             <- Snapshot.takeSnapshot(repo, Date.maxValue, incremental = false)
+        meta            = res.meta
+        input           = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
         _               <- EavOutput.extractFromSnapshot(repo, eav, '|', "NA", meta, SquashConfig.testing)
         dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, IvoryConfiguration.Empty)
         dictionaryLines <- IvoryLocation.readLines(dictLocation)

@@ -64,7 +64,8 @@ class PivotOutputSpec extends Specification with SampleFacts with ThrownExpectat
       for {
         _     <- RepositoryBuilder.createRepo(repo, dictionary, facts)
         pivot <- IvoryLocation.fromUri((dir </> "pivot").path, IvoryConfiguration.Empty)
-        meta  <- Snapshot.takeSnapshot(repo, Date.maxValue, incremental = false)
+        res   <- Snapshot.takeSnapshot(repo, Date.maxValue, incremental = false)
+        meta      = res.meta
         input     = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
         _                <- PivotOutput.createPivot(repo, input, pivot, '|', "NA")
         dictLocation     <- IvoryLocation.fromUri((dir </> "pivot" </> ".dictionary").path, IvoryConfiguration.Empty)
