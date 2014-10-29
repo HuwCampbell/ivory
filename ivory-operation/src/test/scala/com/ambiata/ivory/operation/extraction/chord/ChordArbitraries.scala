@@ -89,7 +89,9 @@ object ChordArbitraries {
   case class ChordFacts(ces: List[ChordEntity], fid: FeatureId, factAndMeta: SparseEntities, other: List[Fact]) {
     lazy val facts: List[Fact] = (ces.flatMap(_.facts(factAndMeta.fact)) ++ above ++ other).map(_.withFeatureId(fid))
     lazy val above: List[Fact] = ces.flatMap(_.above.map(factAndMeta.fact.withDate))
-    lazy val expected: List[Fact] = ces.flatMap(_.expected(factAndMeta.fact)).map(_.withFeatureId(fid))
+    lazy val expected: List[Fact] = factAndMeta.meta.mode.fold(
+      ces.flatMap(_.expected(factAndMeta.fact)), ces.flatMap(_.expectedSet(factAndMeta.fact))
+    ).map(_.withFeatureId(fid))
     lazy val dictionary: Dictionary = Dictionary(List(factAndMeta.meta.toDefinition(fid)))
     // If the oldest chord has no facts then don't capture a snapshot (it will error at the moment)
     // https://github.com/ambiata/ivory/issues/343
