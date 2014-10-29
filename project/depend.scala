@@ -17,12 +17,9 @@ object depend {
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141027030643-3092827" excludeAll(
-    ExclusionRule(organization = "org.specs2"),
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141029224557-0755851" excludeAll(
     ExclusionRule(organization = "javax.mail"),
-    ExclusionRule(organization = "com.owtelse.codec"),
-    ExclusionRule(organization = "com.ambiata", name = "mundane-testing_2.10"),
-    ExclusionRule(organization = "com.ambiata", name = "mundane-testing_2.11")
+    ExclusionRule(organization = "com.owtelse.codec")
   ))
 
   val MUNDANE_VERSION ="1.2.1-20141024050817-e2b01b2"
@@ -32,10 +29,10 @@ object depend {
 
   def notion(version: String) =
     if (version.contains("cdh4"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141027042212-a6a007c") ++
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141029230238-6f3ce88") ++
       hadoop(version)
     else if (version.contains("cdh5"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141027042212-a6a007c") ++
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141029230241-6f3ce88") ++
        hadoop(version)
     else
       sys.error(s"unsupported poacher version, can not build for $version")
@@ -59,8 +56,8 @@ object depend {
   }
 
   def poacher(version: String) =
-  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141027025850-d167b6b")
-  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141027025312-d167b6b")
+  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141029225227-4b9e748")
+  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141029225055-4b9e748")
   else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 
