@@ -35,6 +35,7 @@ class LatestStructReducer[@specialized(Int, Float, Double, Boolean) A](seed: A) 
 
   def fold(a: ValueOrTombstone[A], value: A): ValueOrTombstone[A] = {
     a.value = value
+    a.tombstone = false
     a
   }
 
