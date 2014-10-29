@@ -5,6 +5,21 @@ import com.ambiata.ivory.core._
 /** Reimplementation of some of JodaTime's functionality for performance */
 object DateTimeUtil {
 
+  val monthLengths: Array[Byte] = Array(
+      31
+    , 28
+    , 31
+    , 30
+    , 31
+    , 30
+    , 31
+    , 31
+    , 30
+    , 31
+    , 30
+    , 31
+  )
+
   val monthDayArray: Array[Int] = Array(
            0
          , 31
@@ -52,7 +67,7 @@ object DateTimeUtil {
     ret += monthSecondArray(m-1)
 
     // Add a day if it's a leap year and we're past Feb
-    if (((y % 4 == 0 && y % 100 != 0) || y % 400 == 0) && m > 2)
+    if (m > 2 && isLeapYear(y))
       ret += 86400
 
     // Add a day for each leap year since 2000, or subtract one for each before.
@@ -84,7 +99,7 @@ object DateTimeUtil {
     ret += monthDayArray(m-1)
 
     // Add a day if it's a leap year and we're past Feb
-    if (((y % 4 == 0 && y % 100 != 0) || y % 400 == 0) && m > 2)
+    if (m > 2 && isLeapYear(y))
         ret += 1
 
     // Add a day for each leap year since 2000, or subtract one for each before.
@@ -100,5 +115,81 @@ object DateTimeUtil {
 
     ret += (y-2000) * 365
     ret
+  }
+
+  def isLeapYear(y: Short): Boolean =
+    (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
+
+  def minusDays(date: Date, offset: Int): Date = {
+
+    def daysInYear(y: Short, m: Int): Int =
+      monthDayArray(m - 1) + (if (m > 2 && isLeapYear(y)) 1 else 0)
+    def daysInMonth(y: Short, m: Int): Int =
+      monthLengths(m - 1) + (if (m == 2 && isLeapYear(y)) 1 else 0)
+
+    var y = date.year
+    var m = date.month.toInt
+    val d = date.day
+
+    // The special case where we're still in the same month
+    val d2 = if (offset < d) {
+      d - offset
+    } else {
+      var daysLeft = offset - d
+
+      var currentDays = daysInYear(y, m)
+      while (currentDays <= daysLeft) {
+        daysLeft -= currentDays
+        y = (y - 1).toShort
+        currentDays = if (isLeapYear(y)) 366 else 365
+        // Start from December, but not 12 because we always decrement one below
+        m = 13
+      }
+
+      // We're always going back _at least_ one month at this point
+      m -= 1
+
+      // Loop back through the months of this year until we run out of days
+      currentDays = daysInMonth(y, m)
+      while (currentDays <= daysLeft) {
+        daysLeft -= currentDays
+        m -= 1
+        currentDays = daysInMonth(y, m)
+      }
+      currentDays - daysLeft
+    }
+    Date.unsafe(y, m.toByte, d2.toByte)
+  }
+
+  def minusMonths(date: Date, offset: Int): Date = {
+    val y = date.year
+    val m = date.month
+    val thisYear = offset < m
+    val y2 = if (thisYear) y           else (y - ((12 + offset - m) / 12)).toShort
+    val m2 = (if (thisYear) m - offset else 12 + ((m - offset) % 12)).toByte
+    unsafeDateRoundedDownToLastDayOfMonth(y2, m2, date.day)
+  }
+
+  def minusYears(date: Date, offset: Int): Date =
+    unsafeDateRoundedDownToLastDayOfMonth((date.year - offset).toShort, date.month, date.day)
+
+  /**
+   * Ensure that the created dated will round down to the first date according to that month (and year).
+   *
+   * {{{
+   *    Start             | End
+   *    =====================================
+   *    Date(2003, 2, 29) | Date(2003, 2, 28)
+   *    Date(2003, 4, 31) | Date(2003, 4, 30)
+   * }}}
+   */
+  def unsafeDateRoundedDownToLastDayOfMonth(y: Short, m: Byte, d: Byte): Date = {
+    val d2: Byte =
+      if (m == 2 && d > 28 && isLeapYear(y)) 29
+      else {
+        val maxMonth = monthLengths(m - 1)
+        if (d < maxMonth) d else maxMonth
+      }
+    Date.unsafe(y, m, d2)
   }
 }
