@@ -199,7 +199,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   def expressionArbitrary(cd: ConcreteDefinition): Gen[Expression] = {
     val fallback = Gen.frequency(
       15 -> Gen.oneOf(Count, DaysSinceLatest, DaysSinceEarliest, MeanInDays, MaximumInDays, MinimumInDays,
-        MeanInWeeks, MaximumInWeeks, MinimumInWeeks, CountDays, IntervalMean, IntervalSD, IntervalGradient),
+        MeanInWeeks, MaximumInWeeks, MinimumInWeeks, CountDays, Interval(Min), Interval(Mean), Interval(Max), Interval(Gradient), Interval(StandardDeviation)),
       1 -> (for {
         q <- Gen.choose(10, 100)
         k <- Gen.choose(1, q)
@@ -223,7 +223,7 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
 
   def subExpressionArbitrary(pe: PrimitiveEncoding): Gen[SubExpression] = {
     val all = Gen.oneOf(Latest, NumFlips)
-    val numeric = Gen.oneOf(Sum, Mean, Gradient, StandardDeviation)
+    val numeric = Gen.oneOf(Sum, Min, Mean, Max, Gradient, StandardDeviation)
     pe match {
       case IntEncoding =>
         Gen.oneOf(Gen.const(CountBy), numeric, all)

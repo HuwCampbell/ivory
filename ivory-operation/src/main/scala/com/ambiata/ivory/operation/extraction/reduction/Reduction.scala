@@ -38,9 +38,12 @@ object Reduction {
 
   def fromExpression(exp: Expression, encoding: Encoding, dates: DateOffsetsLazy): Option[Reduction] = exp match {
     case Count                        => Some(new CountReducer())
-    case IntervalMean                 => Some(new IntervalReducer(dates.dates, new MeanReducer, ReductionValueDouble))
-    case IntervalSD                   => Some(new IntervalReducer(dates.dates, new StandardDeviationReducer, ReductionValueDouble))
-    case IntervalGradient             => Some(new IntervalReducer(dates.dates, new GradientReducer(dates.dates), ReductionValueDouble))
+    case Interval(Min)                => Some(new IntervalReducer(dates.dates, new MinReducer, ReductionValueLong))
+    case Interval(Max)                => Some(new IntervalReducer(dates.dates, new MaxReducer, ReductionValueLong))
+    case Interval(Mean)               => Some(new IntervalReducer(dates.dates, new MeanReducer, ReductionValueDouble))
+    case Interval(StandardDeviation)  => Some(new IntervalReducer(dates.dates, new StandardDeviationReducer, ReductionValueDouble))
+    case Interval(Gradient)           => Some(new IntervalReducer(dates.dates, new GradientReducer(dates.dates), ReductionValueDouble))
+    case Interval(_)                  => None
     case DaysSinceLatest              => Some(new DaysSinceLatestReducer(dates.dates))
     case MeanInDays                   => Some(new DateReduction(dates.dates, new MeanInDaysReducer, ReductionValueDouble))
     case MeanInWeeks                  => Some(new DateReduction(dates.dates, new MeanInWeeksReducer, ReductionValueDouble))
@@ -62,6 +65,7 @@ object Reduction {
       }
       case _ => None
     }
+
     case BasicExpression(Latest)      => Some(new LatestReducer)
     case BasicExpression(sexp)        => encoding match {
       case pe: PrimitiveEncoding      => fromSubExpression(sexp, pe, dates, new EncodedReduction {
@@ -112,6 +116,16 @@ object Reduction {
       case IntEncoding    => f.i(new ReductionFoldIntToLong(new SumReducer[Long]), ReductionValueLong)
       case LongEncoding   => f.l(new SumReducer[Long], ReductionValueLong)
       case DoubleEncoding => f.d(new SumReducer[Double], ReductionValueDouble)
+    }
+    case Min => condOpt(encoding) {
+      case IntEncoding    => f.i(new MinReducer[Int], ReductionValueInt)
+      case LongEncoding   => f.l(new MinReducer[Long], ReductionValueLong)
+      case DoubleEncoding => f.d(new MinReducer[Double], ReductionValueDouble)
+    }
+    case Max => condOpt(encoding) {
+      case IntEncoding    => f.i(new MaxReducer[Int], ReductionValueInt)
+      case LongEncoding   => f.l(new MaxReducer[Long], ReductionValueLong)
+      case DoubleEncoding => f.d(new MaxReducer[Double], ReductionValueDouble)
     }
     case Mean => condOpt(encoding) {
       case IntEncoding    => f.i(new ReductionFoldIntToLong(new MeanReducer[Long]), ReductionValueDouble)

@@ -14,6 +14,8 @@ object Expression {
     def asSubString(se: SubExpression): List[String] = se match {
       case Latest                       => List("latest")
       case Sum                          => List("sum")
+      case Min                          => List("min")
+      case Max                          => List("max")
       case Mean                         => List("mean")
       case Gradient                     => List("gradient")
       case StandardDeviation            => List("std_dev")
@@ -27,9 +29,7 @@ object Expression {
     }
     (exp match {
       case Count                        => List("count")
-      case IntervalMean                 => List("interval_mean")
-      case IntervalSD                   => List("interval_sd")
-      case IntervalGradient             => List("interval_gradient")
+      case Interval(other)              => List("interval") ++ asSubString(other)
       case DaysSinceLatest              => List("days_since_latest")
       case DaysSinceEarliest            => List("days_since_earliest")
       case MeanInDays                   => List("mean_in_days")
@@ -65,13 +65,12 @@ object Expression {
       case "minimum_in_days" :: Nil         => MinimumInDays
       case "minimum_in_weeks" :: Nil        => MinimumInWeeks
       case "count_days" :: Nil              => CountDays
-      case "interval_mean" :: Nil           => IntervalMean
-      case "interval_sd" :: Nil             => IntervalSD
-      case "interval_gradient" :: Nil       => IntervalGradient
       case "sum_by" :: key :: sumBy :: Nil  => SumBy(key, sumBy)
       // Subexpressions
       case "latest" :: tail                 => parseSub(Latest, tail)
       case "sum" :: tail                    => parseSub(Sum, tail)
+      case "min" :: tail                    => parseSub(Min, tail)
+      case "max" :: tail                    => parseSub(Max, tail)
       case "mean" :: tail                   => parseSub(Mean, tail)
       case "gradient" :: tail               => parseSub(Gradient, tail)
       case "std_dev" :: tail                => parseSub(StandardDeviation, tail)
@@ -90,6 +89,11 @@ object Expression {
       case "proportion_by_time" :: s :: e :: Nil =>
         def hour(s: String): String \/ Time = parseInt(s).map(3600 *).flatMap(i => Time.create(i).toRightDisjunction(s"Invalid time: $i"))
         (hour(s) |@| hour(e))(ProportionByTime)
+      case "interval" :: other :: Nil       => parse(other) match {
+        case \/-(BasicExpression(e)) => Interval(e).right
+        case -\/(m)                  => s"Error parsing interval expression '$exp' internal with message '$m'".left
+        case _                       => s"Bad interval expression '$exp'".left
+      }
       case _ => s"Unrecognised expression '$exp'".left
     }}
   }
@@ -98,7 +102,7 @@ object Expression {
     val ok = ().right
     def validateSub(sexp: SubExpression, subenc: PrimitiveEncoding): String \/ Unit = sexp match {
       case Latest           => ok
-      case (Sum | Mean | Gradient | StandardDeviation) => subenc match {
+      case (Sum | Min | Max | Mean | Gradient | StandardDeviation) => subenc match {
         case IntEncoding    => ok
         case LongEncoding   => ok
         case DoubleEncoding => ok
@@ -134,9 +138,10 @@ object Expression {
       case QuantileInDays(_, _)          => ok
       case QuantileInWeeks(_, _)         => ok
       case ProportionByTime(_, _)        => ok
-      case IntervalMean                  => ok
-      case IntervalSD                    => ok
-      case IntervalGradient              => ok
+      case Interval(other)               => other match {
+        case (Min | Max | Mean | Gradient | StandardDeviation) => ok
+        case _  => "Non-supported interval sub expression".left
+      }
       case SumBy(key, field)             => encoding match {
         case StructEncoding(values) => for {
            k <- values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
@@ -179,20 +184,20 @@ case object CountDays extends Expression
 case class QuantileInDays(k: Int, q: Int) extends Expression
 case class QuantileInWeeks(k: Int, q: Int) extends Expression
 case class ProportionByTime(start: Time, end: Time) extends Expression
-case object IntervalMean extends Expression
-case object IntervalSD extends Expression
-case object IntervalGradient extends Expression
 
 /** [[SumBy]] is "special" in that it requires _two_ struct fields */
 case class SumBy(key: String, field: String) extends Expression
 
 case class BasicExpression(exp: SubExpression) extends Expression
 case class StructExpression(field: String, exp: SubExpression) extends Expression
+case class Interval(exp: SubExpression) extends Expression
 
 /** Represents an expression that can be done on values, which may be a specific field of a struct */
 trait SubExpression
 case object Latest extends SubExpression
 case object Sum extends SubExpression
+case object Min extends SubExpression
+case object Max extends SubExpression
 case object Mean extends SubExpression
 case object Gradient extends SubExpression
 case object StandardDeviation extends SubExpression
