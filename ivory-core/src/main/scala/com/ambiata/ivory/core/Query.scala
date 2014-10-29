@@ -5,3 +5,8 @@ package com.ambiata.ivory.core
  * are supported.
  */
 case class Query(expression: Expression, filter: Option[Filter])
+
+object Query {
+  def empty: Query =
+    Query(BasicExpression(Latest), None)
+}

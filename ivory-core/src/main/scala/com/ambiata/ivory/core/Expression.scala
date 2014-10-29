@@ -12,6 +12,7 @@ object Expression {
    */
   def asString(exp: Expression): String = {
     def asSubString(se: SubExpression): List[String] = se match {
+      case Latest                       => List("latest")
       case Sum                          => List("sum")
       case Mean                         => List("mean")
       case Gradient                     => List("gradient")
@@ -29,7 +30,6 @@ object Expression {
       case IntervalMean                 => List("interval_mean")
       case IntervalSD                   => List("interval_sd")
       case IntervalGradient             => List("interval_gradient")
-      case Latest                       => List("latest")
       case DaysSinceLatest              => List("days_since_latest")
       case DaysSinceEarliest            => List("days_since_earliest")
       case MeanInDays                   => List("mean_in_days")
@@ -56,7 +56,6 @@ object Expression {
     val args = exp.split(",", -1).toList
     PartialFunction.condOpt(args) {
       case "count" :: Nil                   => Count
-      case "latest" :: Nil                  => Latest
       case "mean_in_days" :: Nil            => MeanInDays
       case "mean_in_weeks" :: Nil           => MeanInWeeks
       case "days_since_latest" :: Nil       => DaysSinceLatest
@@ -71,6 +70,7 @@ object Expression {
       case "interval_gradient" :: Nil       => IntervalGradient
       case "sum_by" :: key :: sumBy :: Nil  => SumBy(key, sumBy)
       // Subexpressions
+      case "latest" :: tail                 => parseSub(Latest, tail)
       case "sum" :: tail                    => parseSub(Sum, tail)
       case "mean" :: tail                   => parseSub(Mean, tail)
       case "gradient" :: tail               => parseSub(Gradient, tail)
@@ -97,6 +97,7 @@ object Expression {
   def validate(exp: Expression, encoding: Encoding): String \/ Unit = {
     val ok = ().right
     def validateSub(sexp: SubExpression, subenc: PrimitiveEncoding): String \/ Unit = sexp match {
+      case Latest           => ok
       case (Sum | Mean | Gradient | StandardDeviation) => subenc match {
         case IntEncoding    => ok
         case LongEncoding   => ok
@@ -121,7 +122,6 @@ object Expression {
     }
     (exp match {
       case Count                         => ok
-      case Latest                        => ok
       case DaysSinceLatest               => ok
       case DaysSinceEarliest             => ok
       case MeanInDays                    => ok
@@ -167,7 +167,6 @@ object Expression {
 
 // Expressions that can only be done on the top-level
 case object Count extends Expression
-case object Latest extends Expression
 case object DaysSinceLatest extends Expression
 case object DaysSinceEarliest extends Expression
 case object MeanInDays extends Expression
@@ -192,6 +191,7 @@ case class StructExpression(field: String, exp: SubExpression) extends Expressio
 
 /** Represents an expression that can be done on values, which may be a specific field of a struct */
 trait SubExpression
+case object Latest extends SubExpression
 case object Sum extends SubExpression
 case object Mean extends SubExpression
 case object Gradient extends SubExpression

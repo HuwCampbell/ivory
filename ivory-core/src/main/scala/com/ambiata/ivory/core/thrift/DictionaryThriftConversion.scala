@@ -112,9 +112,6 @@ object DictionaryThriftConversion {
       exp <- Expression.parse(expression.getExpression).toOption
       fil  = Option(expression.getFilter).map(Filter.apply)
     } yield Query(exp, fil)
-
-    def empty: Query =
-      Query(Latest, None)
   }
 
   object virtual {
@@ -126,7 +123,7 @@ object DictionaryThriftConversion {
     }
     def from(virt: ThriftDictionaryVirtual): String \/ VirtualDefinition = for {
       source <- featureId.from(virt.getSourceName)
-      exp    <- (if (virt.isSetExpression) QueryConversion.from(virt.getExpression) else Some(QueryConversion.empty))
+      exp    <- (if (virt.isSetExpression) QueryConversion.from(virt.getExpression) else Some(Query.empty))
         .toRightDisjunction("Invalid expression")
     } yield VirtualDefinition(source, exp, virt.isSetWindow.option(window.from(virt.getWindow)))
   }

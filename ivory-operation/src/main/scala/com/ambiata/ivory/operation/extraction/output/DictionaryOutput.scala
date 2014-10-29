@@ -35,6 +35,7 @@ object DictionaryOutput {
    */
   def expressionEncoding(expression: Expression, source: Encoding): Encoding = {
     def getExpressionEncoding(exp: SubExpression, enc: Encoding): Encoding = exp match {
+      case Latest              => enc
       case Sum                 => enc
       case CountUnique         => LongEncoding
       case Mean                => DoubleEncoding
@@ -50,7 +51,6 @@ object DictionaryOutput {
     expression match {
       // A short term hack for supporting feature gen based on known functions
       case Count                        => LongEncoding
-      case Latest                       => source
       case IntervalMean                 => DoubleEncoding
       case IntervalSD                   => DoubleEncoding
       case IntervalGradient             => DoubleEncoding

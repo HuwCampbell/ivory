@@ -147,7 +147,7 @@ object SquashJob {
 
   def concreteGroupToReductions(date: Date, fid: FeatureId, cg: ConcreteGroup): List[FeatureReduction] = {
     // We use 'latest' reduction to output the concrete feature as well
-    val cr = reductionToThriftExp(date, fid, Query(Latest, None), cg.definition.encoding, None)
+    val cr = reductionToThriftExp(date, fid, Query.empty, cg.definition.encoding, None)
     val vrs = cg.virtual.map((reductionToThrift(date, cg.definition.encoding) _).tupled)
     cr :: vrs
   }
@@ -160,13 +160,14 @@ object SquashJob {
     query.filter.map(_.render).foreach(fr.setFilter)
     fr.setDate((query.expression match {
       // For latest and days since reducers, we need to match all facts (to catch them before the window).
-      case Latest                         => Date.minValue
+      case BasicExpression(Latest) => Date.minValue
+      case StructExpression(_, Latest) => Date.minValue
       // Days since is similar to latest, except an additional date operation is applied
       case BasicExpression(DaysSince)     => Date.minValue
       case StructExpression(_, DaysSince) => Date.minValue
       // If no window is specified the only functions we should be applying will deal with a single value,
       // and should _always_ apply; hence the min date
-      case _      => window.cata(window => SnapshotWindows.startingDate(window, date), Date.minValue)
+      case _ => window.cata(window => SnapshotWindows.startingDate(window, date), Date.minValue)
     }).int)
     fr
   }
