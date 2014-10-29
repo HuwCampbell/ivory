@@ -350,26 +350,26 @@ public class FeatureReductionLookup implements org.apache.thrift.TBase<FeatureRe
           case 1: // REDUCTIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map70 = iprot.readMapBegin();
-                struct.reductions = new HashMap<Integer,List<FeatureReduction>>(2*_map70.size);
-                for (int _i71 = 0; _i71 < _map70.size; ++_i71)
+                org.apache.thrift.protocol.TMap _map80 = iprot.readMapBegin();
+                struct.reductions = new HashMap<Integer,List<FeatureReduction>>(2*_map80.size);
+                for (int _i81 = 0; _i81 < _map80.size; ++_i81)
                 {
-                  int _key72;
-                  List<FeatureReduction> _val73;
-                  _key72 = iprot.readI32();
+                  int _key82;
+                  List<FeatureReduction> _val83;
+                  _key82 = iprot.readI32();
                   {
-                    org.apache.thrift.protocol.TList _list74 = iprot.readListBegin();
-                    _val73 = new ArrayList<FeatureReduction>(_list74.size);
-                    for (int _i75 = 0; _i75 < _list74.size; ++_i75)
+                    org.apache.thrift.protocol.TList _list84 = iprot.readListBegin();
+                    _val83 = new ArrayList<FeatureReduction>(_list84.size);
+                    for (int _i85 = 0; _i85 < _list84.size; ++_i85)
                     {
-                      FeatureReduction _elem76;
-                      _elem76 = new FeatureReduction();
-                      _elem76.read(iprot);
-                      _val73.add(_elem76);
+                      FeatureReduction _elem86;
+                      _elem86 = new FeatureReduction();
+                      _elem86.read(iprot);
+                      _val83.add(_elem86);
                     }
                     iprot.readListEnd();
                   }
-                  struct.reductions.put(_key72, _val73);
+                  struct.reductions.put(_key82, _val83);
                 }
                 iprot.readMapEnd();
               }
@@ -397,14 +397,14 @@ public class FeatureReductionLookup implements org.apache.thrift.TBase<FeatureRe
         oprot.writeFieldBegin(REDUCTIONS_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.LIST, struct.reductions.size()));
-          for (Map.Entry<Integer, List<FeatureReduction>> _iter77 : struct.reductions.entrySet())
+          for (Map.Entry<Integer, List<FeatureReduction>> _iter87 : struct.reductions.entrySet())
           {
-            oprot.writeI32(_iter77.getKey());
+            oprot.writeI32(_iter87.getKey());
             {
-              oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter77.getValue().size()));
-              for (FeatureReduction _iter78 : _iter77.getValue())
+              oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter87.getValue().size()));
+              for (FeatureReduction _iter88 : _iter87.getValue())
               {
-                _iter78.write(oprot);
+                _iter88.write(oprot);
               }
               oprot.writeListEnd();
             }
@@ -438,14 +438,14 @@ public class FeatureReductionLookup implements org.apache.thrift.TBase<FeatureRe
       if (struct.isSetReductions()) {
         {
           oprot.writeI32(struct.reductions.size());
-          for (Map.Entry<Integer, List<FeatureReduction>> _iter79 : struct.reductions.entrySet())
+          for (Map.Entry<Integer, List<FeatureReduction>> _iter89 : struct.reductions.entrySet())
           {
-            oprot.writeI32(_iter79.getKey());
+            oprot.writeI32(_iter89.getKey());
             {
-              oprot.writeI32(_iter79.getValue().size());
-              for (FeatureReduction _iter80 : _iter79.getValue())
+              oprot.writeI32(_iter89.getValue().size());
+              for (FeatureReduction _iter90 : _iter89.getValue())
               {
-                _iter80.write(oprot);
+                _iter90.write(oprot);
               }
             }
           }
@@ -459,25 +459,25 @@ public class FeatureReductionLookup implements org.apache.thrift.TBase<FeatureRe
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map81 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.LIST, iprot.readI32());
-          struct.reductions = new HashMap<Integer,List<FeatureReduction>>(2*_map81.size);
-          for (int _i82 = 0; _i82 < _map81.size; ++_i82)
+          org.apache.thrift.protocol.TMap _map91 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I32, org.apache.thrift.protocol.TType.LIST, iprot.readI32());
+          struct.reductions = new HashMap<Integer,List<FeatureReduction>>(2*_map91.size);
+          for (int _i92 = 0; _i92 < _map91.size; ++_i92)
           {
-            int _key83;
-            List<FeatureReduction> _val84;
-            _key83 = iprot.readI32();
+            int _key93;
+            List<FeatureReduction> _val94;
+            _key93 = iprot.readI32();
             {
-              org.apache.thrift.protocol.TList _list85 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-              _val84 = new ArrayList<FeatureReduction>(_list85.size);
-              for (int _i86 = 0; _i86 < _list85.size; ++_i86)
+              org.apache.thrift.protocol.TList _list95 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+              _val94 = new ArrayList<FeatureReduction>(_list95.size);
+              for (int _i96 = 0; _i96 < _list95.size; ++_i96)
               {
-                FeatureReduction _elem87;
-                _elem87 = new FeatureReduction();
-                _elem87.read(iprot);
-                _val84.add(_elem87);
+                FeatureReduction _elem97;
+                _elem97 = new FeatureReduction();
+                _elem97.read(iprot);
+                _val94.add(_elem97);
               }
             }
-            struct.reductions.put(_key83, _val84);
+            struct.reductions.put(_key93, _val94);
           }
         }
         struct.setReductionsIsSet(true);

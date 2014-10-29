@@ -335,15 +335,15 @@ public class FeatureIdLookup implements org.apache.thrift.TBase<FeatureIdLookup,
           case 1: // IDS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map20 = iprot.readMapBegin();
-                struct.ids = new HashMap<String,Integer>(2*_map20.size);
-                for (int _i21 = 0; _i21 < _map20.size; ++_i21)
+                org.apache.thrift.protocol.TMap _map30 = iprot.readMapBegin();
+                struct.ids = new HashMap<String,Integer>(2*_map30.size);
+                for (int _i31 = 0; _i31 < _map30.size; ++_i31)
                 {
-                  String _key22;
-                  int _val23;
-                  _key22 = iprot.readString();
-                  _val23 = iprot.readI32();
-                  struct.ids.put(_key22, _val23);
+                  String _key32;
+                  int _val33;
+                  _key32 = iprot.readString();
+                  _val33 = iprot.readI32();
+                  struct.ids.put(_key32, _val33);
                 }
                 iprot.readMapEnd();
               }
@@ -371,10 +371,10 @@ public class FeatureIdLookup implements org.apache.thrift.TBase<FeatureIdLookup,
         oprot.writeFieldBegin(IDS_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I32, struct.ids.size()));
-          for (Map.Entry<String, Integer> _iter24 : struct.ids.entrySet())
+          for (Map.Entry<String, Integer> _iter34 : struct.ids.entrySet())
           {
-            oprot.writeString(_iter24.getKey());
-            oprot.writeI32(_iter24.getValue());
+            oprot.writeString(_iter34.getKey());
+            oprot.writeI32(_iter34.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -405,10 +405,10 @@ public class FeatureIdLookup implements org.apache.thrift.TBase<FeatureIdLookup,
       if (struct.isSetIds()) {
         {
           oprot.writeI32(struct.ids.size());
-          for (Map.Entry<String, Integer> _iter25 : struct.ids.entrySet())
+          for (Map.Entry<String, Integer> _iter35 : struct.ids.entrySet())
           {
-            oprot.writeString(_iter25.getKey());
-            oprot.writeI32(_iter25.getValue());
+            oprot.writeString(_iter35.getKey());
+            oprot.writeI32(_iter35.getValue());
           }
         }
       }
@@ -420,15 +420,15 @@ public class FeatureIdLookup implements org.apache.thrift.TBase<FeatureIdLookup,
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map26 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I32, iprot.readI32());
-          struct.ids = new HashMap<String,Integer>(2*_map26.size);
-          for (int _i27 = 0; _i27 < _map26.size; ++_i27)
+          org.apache.thrift.protocol.TMap _map36 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I32, iprot.readI32());
+          struct.ids = new HashMap<String,Integer>(2*_map36.size);
+          for (int _i37 = 0; _i37 < _map36.size; ++_i37)
           {
-            String _key28;
-            int _val29;
-            _key28 = iprot.readString();
-            _val29 = iprot.readI32();
-            struct.ids.put(_key28, _val29);
+            String _key38;
+            int _val39;
+            _key38 = iprot.readString();
+            _val39 = iprot.readI32();
+            struct.ids.put(_key38, _val39);
           }
         }
         struct.setIdsIsSet(true);

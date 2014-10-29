@@ -85,6 +85,7 @@ object ChordJob {
     ctx.thriftCache.push(job, Keys.FactsetVersionLookup, FactsetLookups.versionTable(inputs.map(_.value)))
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup(dictionary))
     ctx.thriftCache.push(job, Keys.ChordEntitiesLookup, Entities.toChordEntities(entities))
+    ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(dictionary))
 
     // run job
     if (!job.waitForCompletion(true))
@@ -111,6 +112,7 @@ object ChordJob {
     val FactsetLookup = ThriftCache.Key("factset-lookup")
     val FactsetVersionLookup = ThriftCache.Key("factset-version-lookup")
     val ChordEntitiesLookup = ThriftCache.Key("chord-entities-lookup")
+    val FeatureIsSetLookup = ThriftCache.Key("feature-is-set-lookup")
   }
 }
 
@@ -311,15 +313,23 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
 
   val buffer = new StringBuilder(4096)
 
+  /** Optimised array lookup to flag "Set" features vs "State" features. */
+  var isSetLookup: Array[Boolean] = null
+
   override def setup(context: ReducerContext): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
     entities = ChordJob.setupEntities(ctx.thriftCache, context.getConfiguration)
+
+    val isSetLookupThrift = new FlagLookup
+    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
+    isSetLookup = FeatureLookups.isSetLookupToArray(isSetLookupThrift)
   }
 
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
     emitter.context = context
     val entity = SnapshotWritable.GroupingEntityFeatureId.getEntity(key)
-    ChordReducer.reduce(fact, iter.iterator, mutator, chordEmitter, vout, entities.entities.get(entity), buffer)
+    val feature = SnapshotWritable.GroupingEntityFeatureId.getFeatureId(key)
+    ChordReducer.reduce(fact, iter.iterator, mutator, chordEmitter, vout, entities.entities.get(entity), buffer, isSetLookup(feature))
   }
 }
 
@@ -400,7 +410,7 @@ object ChordReducer {
   }
 
   def reduce[A](fact: MutableFact, iter: JIterator[A], mutator: PipeFactMutator[A, A],
-                emitter: ChordEmitter[A], out: A, dates: Array[Int], buffer: StringBuilder): Unit = {
+                emitter: ChordEmitter[A], out: A, dates: Array[Int], buffer: StringBuilder, isSet: Boolean): Unit = {
 
     /**
      * Entity ids need to be appended with the date in the chord file as its possible to have the same entity
@@ -428,7 +438,7 @@ object ChordReducer {
       mutator.from(next, fact)
       val datetime = fact.datetime
       // facts are in priority order already, so this simply takes the top priority when there is a date/time clash
-      if (datetime != previousDatetime) {
+      if (datetime != previousDatetime || isSet) {
         i = emitEntity(previousDatetime, datetime.date, i)
         previousDatetime = datetime
         // Store this fact to be emitted if we can't find a better match

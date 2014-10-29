@@ -119,6 +119,7 @@ SnapshotReducerSpec
   window lookup to array                                            $windowLookupToArray
   window facts                                                      $window
   window respects priority                                          $windowPriority
+  window outputs all facts when isSet reguardless of priority       $windowIsSet
 
 """
 
@@ -134,7 +135,7 @@ SnapshotReducerSpec
     val facts = SnapshotFacts(dts, fact, date)
     val mutator = new MockFactMutator
     SnapshotReducer.reduce(createMutableFact, facts.facts.asJava.iterator(), mutator, mutator,
-      createMutableFact, date)
+      createMutableFact, date, isSet = false)
     mutator.facts.toList ==== facts.expected
   }).set(maxSize = 10)
 
@@ -142,8 +143,16 @@ SnapshotReducerSpec
     val facts = SnapshotFacts(dts, fact, date)
     val mutator = new MockFactMutator
     SnapshotReducer.reduce(createMutableFact, facts.factsDupe.asJava.iterator(), mutator, mutator,
-      createMutableFact, date)
+      createMutableFact, date, isSet = false)
     mutator.facts.toList ==== facts.expected
+  }).set(maxSize = 10)
+
+  def windowIsSet = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
+    val facts = SnapshotFacts(dts, fact, date)
+    val mutator = new MockFactMutator
+    SnapshotReducer.reduce(createMutableFact, facts.factsDupe.asJava.iterator(), mutator, mutator,
+      createMutableFact, date, isSet = true)
+    mutator.facts.toList ==== facts.expectedSet
   }).set(maxSize = 10)
 
   /** We only care about the DateTime for reducing snapshots, so we reuse the same fact */
@@ -154,7 +163,10 @@ SnapshotReducerSpec
       .zipWithIndex.map(f => f._1.withValue(IntValue(f._2)))
       .partition(_.date.int < date.int)
     def facts: List[Fact] = oldFacts ++ newFacts
-    def factsDupe: List[Fact] = facts.zip(facts).flatMap(fs => List(fs._1, fs._2.withEntity("")))
+    def factsDupe: List[Fact] = dupe(oldFacts) ++ dupe(newFacts)
     def expected: List[Fact] = oldFacts.lastOption.toList ++ newFacts
+    def expectedSet: List[Fact] = dupe(oldFacts).lastOption.toList ++ dupe(newFacts)
+    def dupe(f: List[Fact]): List[Fact] =
+      f.zip(f).flatMap(fs => List(fs._1, fs._2.withValue(IntValue(fs._2.value match { case IntValue(x) => x + 10; case _ => 99 }))))
   }
 }
