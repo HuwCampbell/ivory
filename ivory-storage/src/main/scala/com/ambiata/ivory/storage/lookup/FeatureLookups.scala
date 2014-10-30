@@ -16,6 +16,15 @@ object FeatureLookups {
     isSet
   }
 
+  def featureIdTable(dictionary: Dictionary): FeatureIdLookup = {
+    val features = new FeatureIdLookup()
+    dictionary.byFeatureIndex.foreach({
+      case (n, definition) =>
+        features.putToIds(definition.featureId.toString, n)
+    })
+    features
+  }
+
   def isSetLookupToArray(lookup: FlagLookup): Array[Boolean] = {
     val all = lookup.getFlags.asScala.toList
     val max = all.map(_._1).max

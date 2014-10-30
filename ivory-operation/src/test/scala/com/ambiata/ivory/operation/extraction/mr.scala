@@ -111,11 +111,15 @@ SnapshotReducerSpec
 
 """
 
-  def windowLookupToArray = prop((l: NonEmptyList[(FeatureId, Option[Date])]) => {
-    val lookup = SnapshotJob.windowTable(SnapshotWindows(l.list.map((SnapshotWindow.apply _).tupled)))._2
+  def windowLookupToArray = prop((l: NonEmptyList[(FeatureId, Option[Date])], e: Encoding, m: Mode) => {
+    val dictionary = Dictionary(l.list.map({ case (fid, date) =>
+      Definition.concrete(fid, e, m, None, fid.toString, Nil)
+    }))
+    val index = dictionary.byFeatureIndex.map({ case (n, d) => d.featureId -> n })
+    val lookup = SnapshotJob.windowTable(dictionary, SnapshotWindows(l.list.map((SnapshotWindow.apply _).tupled)))._2
     val a = SnapshotReducer.windowLookupToArray(lookup)
-    seqToResult(l.list.zipWithIndex.map {
-      case ((fid, w), i) => a(i) ==== w.getOrElse(Date.maxValue).int
+    seqToResult(l.list.map {
+      case (fid, w) => a(index(fid)) ==== w.getOrElse(Date.maxValue).int
     })
   })
 

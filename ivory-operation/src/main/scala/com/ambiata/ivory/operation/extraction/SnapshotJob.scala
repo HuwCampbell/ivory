@@ -57,7 +57,7 @@ object SnapshotJob {
     val mappers = inputs.map(p => (classOf[SnapshotFactsetMapper], p.value))
     mappers.foreach({ case (clazz, factsetGlob) =>
       factsetGlob.keys.foreach(key => {
-        println(s"Input path: ${key}")
+        println(s"Input path: ${key.name}")
         MultipleInputs.addInputPath(job, repository.toIvoryLocation(key).toHdfsPath, classOf[SequenceFileInputFormat[_, _]], clazz)
       })
     })
@@ -82,7 +82,7 @@ object SnapshotJob {
     job.getConfiguration.set(Keys.SnapshotDate, date.int.toString)
     ctx.thriftCache.push(job, Keys.FactsetLookup, FactsetLookups.priorityTable(inputs))
     ctx.thriftCache.push(job, Keys.FactsetVersionLookup, FactsetLookups.versionTable(inputs.map(_.value)))
-    val (featureIdLookup, windowLookup) = windowTable(windows)
+    val (featureIdLookup, windowLookup) = windowTable(dictionary, windows)
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup)
     ctx.thriftCache.push(job, Keys.WindowLookup, windowLookup)
     ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(dictionary))
@@ -98,16 +98,13 @@ object SnapshotJob {
     ()
   }
 
-  def windowTable(windows: SnapshotWindows): (FeatureIdLookup, SnapshotWindowLookup) = {
-    val featureIdLookup = new FeatureIdLookup()
-    // Need to ensure the map is initialized here, otherwise a dictionary with no windows will NPE out later
+  def windowTable(dictionary: Dictionary, windows: SnapshotWindows): (FeatureIdLookup, SnapshotWindowLookup) = {
+    val featureIdLookup = FeatureLookups.featureIdTable(dictionary)
     val windowLookup = new SnapshotWindowLookup(new java.util.HashMap[Integer, Integer])
-    windows.windows.zipWithIndex.map {
-      case (SnapshotWindow(fid, w), i) =>
-        featureIdLookup.putToIds(fid.toString, i)
-        // If all the features have no window we still need to ensure we still have values populated
-        windowLookup.putToWindow(i, w.getOrElse(Date.maxValue).int)
-    }
+    windows.windows.map(window => {
+      val id = featureIdLookup.getIds.get(window.featureId.toString)
+      windowLookup.putToWindow(id, window.startDate.getOrElse(Date.maxValue).int)
+    })
     (featureIdLookup, windowLookup)
   }
 
@@ -375,6 +372,7 @@ object SnapshotReducer {
         // Store the current fact, which may or may not be emitted depending on the next fact
         mutator.pipe(next, out)
       }
+
     }
     // _Always_ emit the last fact, which will be within the window, or the last fact
     emitter.emit(kout, out)
