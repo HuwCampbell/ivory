@@ -38,6 +38,8 @@ object DictionaryOutput {
       case Latest              => enc
       case Sum                 => enc
       case CountUnique         => LongEncoding
+      case Min                 => enc
+      case Max                 => enc
       case Mean                => DoubleEncoding
       case Gradient            => DoubleEncoding
       case StandardDeviation   => DoubleEncoding
@@ -51,9 +53,7 @@ object DictionaryOutput {
     expression match {
       // A short term hack for supporting feature gen based on known functions
       case Count                        => LongEncoding
-      case IntervalMean                 => DoubleEncoding
-      case IntervalSD                   => DoubleEncoding
-      case IntervalGradient             => DoubleEncoding
+      case Interval(sexp)               => getExpressionEncoding(sexp, LongEncoding)
       case DaysSinceLatest              => IntEncoding
       case DaysSinceEarliest            => IntEncoding
       case MeanInDays                   => DoubleEncoding

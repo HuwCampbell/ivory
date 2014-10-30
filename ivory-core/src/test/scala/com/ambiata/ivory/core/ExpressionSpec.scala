@@ -19,7 +19,8 @@ class ExpressionSpec extends Specification with ScalaCheck { def is = s2"""
   def parseFail = seqToResult(List(
     "quantile_in_days,3,s",
     "quantile_in_weeks,s,3",
-    "proportion_by_time,24,3"
+    "proportion_by_time,24,3",
+    "interval,noexpression"
   ).map(s => Expression.parse(s).toEither must beLeft))
 
 
@@ -30,6 +31,7 @@ class ExpressionSpec extends Specification with ScalaCheck { def is = s2"""
   def validationFail = seqToResult(List(
     BasicExpression(Sum)               -> StringEncoding,
     BasicExpression(CountUnique)       -> IntEncoding,
+    Interval(NumFlips)                 -> LongEncoding,
     StructExpression("a", CountUnique) -> StructEncoding(Map("b" -> mandatory(StringEncoding))),
     StructExpression("a", Mean)        -> StructEncoding(Map("a" -> mandatory(StringEncoding))),
     SumBy("k", "v")                    -> StringEncoding,
