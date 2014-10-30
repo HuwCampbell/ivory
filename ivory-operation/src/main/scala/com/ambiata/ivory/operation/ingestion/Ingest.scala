@@ -53,11 +53,11 @@ object Ingest {
    * @param optimal size of each reducer ingesting facts
    * @param format text or thrift
    */
-  def ingestFacts(repository: Repository, input: IvoryLocation, namespace: Option[Name],
+  def ingestFacts(repository: Repository, cluster: Cluster, input: IvoryLocation, namespace: Option[Name],
                   timezone: Option[DateTimeZone], optimal: BytesQuantity, format: Format): IvoryTIO[FactsetId] =
     for {
       factsetId <- Factsets.allocateFactsetIdI(repository)
-      _         <- FactImporter.importFacts(repository, namespace, optimal, format, factsetId, input, timezone)
+      _         <- FactImporter.importFacts(repository, cluster, namespace, optimal, format, factsetId, input, timezone)
       _         <- updateFeatureStore(repository, factsetId)
     } yield factsetId
 

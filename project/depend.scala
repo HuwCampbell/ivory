@@ -28,15 +28,20 @@ object depend {
                       "com.ambiata"          %% c                 % MUNDANE_VERSION) ++
                   Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")
 
-  def notion(version: String) =
+  def notion(version: String) = {
+    val cdh4Version = "0.0.1-cdh4-20141118070441-60cd13d"
+    val cdh5Version = "0.0.1-cdh5-20141118070441-60cd13d"
     if (version.contains("cdh4"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141118015440-e9262fd") ++
+      Seq("com.ambiata" %% "notion-core"     % cdh4Version) ++
+      Seq("com.ambiata" %% "notion-distcopy" % cdh4Version) ++
       hadoop(version)
     else if (version.contains("cdh5"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141118015450-e9262fd") ++
-       hadoop(version)
+      Seq("com.ambiata" %% "notion-core"     % cdh5Version) ++
+      Seq("com.ambiata" %% "notion-distcopy" % cdh5Version) ++
+      hadoop(version)
     else
       sys.error(s"unsupported poacher version, can not build for $version")
+  }
 
   val caliper   = Seq("com.google.caliper"   %  "caliper"         % "0.5-rc1",
                       "com.google.guava"     %  "guava"           % "14.0.1" force())
@@ -86,4 +91,5 @@ object depend {
       Resolver.url("ambiata-oss", new URL("https://ambiata-oss.s3.amazonaws.com"))(Resolver.ivyStylePatterns),
       "Scalaz Bintray Repo"  at "http://dl.bintray.com/scalaz/releases",
       "spray.io"             at "http://repo.spray.io")
+
 }

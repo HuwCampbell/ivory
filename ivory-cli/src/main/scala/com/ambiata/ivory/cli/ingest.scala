@@ -37,10 +37,10 @@ object ingest extends IvoryApp {
 
   type Namespace = String
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser,
+  val cmd = IvoryCmd.withCluster[CliArguments](parser,
       CliArguments("", None, None, 256.mb, TextFormat),
-      repo => configuration => c => for {
+      repo => cluster => configuration => c => for {
         input   <- IvoryT.fromResultTIO { IvoryLocation.fromUri(c.input, configuration) }
-        factset <- Ingest.ingestFacts(repo, input, c.namespace, c.timezone, c.optimal, c.format)
+        factset <- Ingest.ingestFacts(repo, cluster, input, c.namespace, c.timezone, c.optimal, c.format)
       } yield List(s"Successfully imported '${c.input}' as $factset into '${repo}'"))
 }
