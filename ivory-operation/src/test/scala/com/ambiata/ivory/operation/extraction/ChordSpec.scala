@@ -23,10 +23,8 @@ ChordSpec
     RepositoryBuilder.using { repo =>
       val entities = facts.ces.flatMap(ce => ce.dates.map(ce.entity + "|" + _._1.hyphenated))
       implicit val sc = repo.scoobiConfiguration
-      // Test that priority works by duplicating every fact in the first factset but with a different value
-      val values =  List(facts.facts.map(incValue(_, "p"))) ++ List(facts.facts)
       for {
-        _                <- RepositoryBuilder.createRepo(repo, facts.dictionary, values)
+        _                <- RepositoryBuilder.createRepo(repo, facts.dictionary, facts.facts)
         entitiesLocation =  IvoryLocation.fromDirPath(directory </> "entities")
         _                <- IvoryLocation.writeUtf8Lines(entitiesLocation, entities)
         outPath          <- Chord.createChord(repo, entitiesLocation, takeSnapshot = facts.takeSnapshot)

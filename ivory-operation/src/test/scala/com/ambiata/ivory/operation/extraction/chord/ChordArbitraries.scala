@@ -28,39 +28,30 @@ object ChordArbitraries {
       fromFact(fact).map({ case (date, facts) =>
         date -> facts.zip(facts.map(incValue(_, "p"))).flatMap(f => List(f._1, f._2)) })
 
-    def toFacts[A](fact: Fact)(t: (Date, List[Fact], List[Fact]) => List[A]): List[A] =
-      fromFact(fact).foldLeft(List[Fact]() -> List[A]())({ case ((prev, as), (date, fact)) =>
+    def fromFactWithMode(fact: Fact, mode: Mode): List[(Date, List[Fact])] = {
+      mode match {
+        case Mode.State => fromFact(fact)
+        case Mode.Set   => fromFactWithPriority(fact)
+      }
+    }
+
+    def toFacts[A](fact: Fact, mode: Mode)(t: (Date, List[Fact], List[Fact]) => List[A]): List[A] =
+      fromFactWithMode(fact, mode).foldLeft(List[Fact]() -> List[A]())({ case ((prev, as), (date, fact)) =>
         (prev ++ fact) -> (as ++ t(date, fact, prev))
       })._2
 
-    def toFactsWithPriority[A](fact: Fact)(t: (Date, List[Fact], List[Fact]) => List[A]): List[A] =
-      fromFactWithPriority(fact).foldLeft(List[Fact]() -> List[A]())({ case ((prev, as), (date, fact)) =>
-        (prev ++ fact) -> (as ++ t(date, fact, prev))
-      })._2
+    def facts(fact: Fact, mode: Mode): List[Fact] =
+      toFacts(fact, mode)((_, fs, _) => fs).map(_.withEntity(entity))
 
-    def facts(fact: Fact): List[Fact] =
-      toFacts(fact)((_, fs, _) => fs).map(_.withEntity(entity))
-
-    // Duplicate every fact with priority version but different value
-    def factsWithPriority(fact: Fact): List[Fact] =
-      toFactsWithPriority(fact)((_, fs, _) => fs).map(_.withEntity(entity))
-
-    def expected(fact: Fact): List[Fact] =
+    def expected(fact: Fact, mode: Mode): List[Fact] =
       // Take the latest fact, which may come from a previous chord period if this one is empty
-      toFacts(fact)(expecteds)
-
-    def expectedSet(fact: Fact): List[Fact] =
-      // Take the latest fact, which may come from a previous chord period if this one is empty
-      toFactsWithPriority(fact)(expecteds)
+      toFacts(fact, mode)(expecteds)
 
     def expecteds: (Date, List[Fact], List[Fact]) => List[Fact] =
       (d, fs, prev) => (prev ++ fs).lastOption.map(_.withEntity(entity + ":" + d.hyphenated)).toList
 
-    def expectedWindow(fact: Fact, window: Option[Window]): List[Fact] =
-      toFacts(fact)(expectedWindows(window)).distinct
-
-    def expectedWindowSet(fact: Fact, window: Option[Window]): List[Fact] =
-      toFactsWithPriority(fact)(expectedWindows(window)).distinct
+    def expectedWindow(fact: Fact, mode: Mode, window: Option[Window]): List[Fact] =
+      toFacts(fact, mode)(expectedWindows(window)).distinct
 
     def expectedWindows: Option[Window] => (Date, List[Fact], List[Fact]) => List[Fact] =
       window => (d, fs, prev) =>
@@ -75,24 +66,30 @@ object ChordArbitraries {
 
   /** A single entity, for testing [[com.ambiata.ivory.operation.extraction.ChordReducer]] */
   case class ChordFact(ce: ChordEntity, fact: Fact, window: Option[Window]) {
-    lazy val facts: List[Fact] = ce.facts(fact)
-    lazy val factsWithPriority: List[Fact] = ce.factsWithPriority(fact)
-    lazy val expected: List[Fact] = ce.expected(fact)
-    lazy val expectedSet: List[Fact] = ce.expectedSet(fact)
-    lazy val expectedWindow: List[Fact] = ce.expectedWindow(fact, window)
-    lazy val expectedWindowSet: List[Fact] = ce.expectedWindowSet(fact, window)
+    lazy val facts: List[Fact] = ce.facts(fact, Mode.State)
+    lazy val factsWithPriority: List[Fact] = ce.facts(fact, Mode.Set)
+    lazy val expected: List[Fact] = ce.expected(fact, Mode.State)
+    lazy val expectedSet: List[Fact] = ce.expected(fact, Mode.Set)
+    lazy val expectedWindow: List[Fact] = ce.expectedWindow(fact, Mode.State, window)
+    lazy val expectedWindowSet: List[Fact] = ce.expectedWindow(fact, Mode.Set, window)
     lazy val windowDateArray: Option[Array[Int]] = window.map {
       win => ce.dates.map(_._1).map(SnapshotWindows.startingDate(win, _).int).sorted.reverse.toArray
     }
   }
 
-  case class ChordFacts(ces: List[ChordEntity], fid: FeatureId, factAndMeta: SparseEntities, other: List[Fact]) {
-    lazy val facts: List[Fact] = (ces.flatMap(_.facts(factAndMeta.fact)) ++ above ++ other).map(_.withFeatureId(fid))
+  case class ChordFacts(ces: List[ChordEntity], factAndMeta: SparseEntities, other: List[Fact]) {
+    lazy val facts: List[List[Fact]] = {
+      val innerFacts = ces.flatMap(_.facts(factAndMeta.fact, Mode.State))
+      List(
+        // The first factset, with the exact same commits but with a different value
+        // Depending on the mode, different facts will be expected
+        innerFacts.map(incValue(_, "p")),
+        innerFacts ++ above ++ other.map(_.withFeatureId(factAndMeta.fact.featureId))
+      )
+    }
     lazy val above: List[Fact] = ces.flatMap(_.above.map(factAndMeta.fact.withDate))
-    lazy val expected: List[Fact] = factAndMeta.meta.mode.fold(
-      ces.flatMap(_.expected(factAndMeta.fact)), ces.flatMap(_.expectedSet(factAndMeta.fact))
-    ).map(_.withFeatureId(fid))
-    lazy val dictionary: Dictionary = Dictionary(List(factAndMeta.meta.toDefinition(fid)))
+    lazy val expected: List[Fact] = ces.flatMap(_.expected(factAndMeta.fact, factAndMeta.meta.mode))
+    lazy val dictionary: Dictionary = Dictionary(List(factAndMeta.meta.toDefinition(factAndMeta.fact.featureId)))
     // If the oldest chord has no facts then don't capture a snapshot (it will error at the moment)
     // https://github.com/ambiata/ivory/issues/343
     lazy val takeSnapshot: Boolean = ces.sortBy(_.dates.headOption.map(_._1).getOrElse(Date.maxValue)).headOption
@@ -111,10 +108,9 @@ object ChordArbitraries {
     dates <- Gen.sequence[List, ChordEntity]((0 until n).map(chordEntityGen))
     // Just generate one stub fact - we only care about the entity and date
     fact  <- Arbitrary.arbitrary[SparseEntities]
-    fid   <- Arbitrary.arbitrary[FeatureId]
     // Generate other facts that aren't related in any way - they should be ignored
     o     <- Gen.choose(1, 3).flatMap(i => Gen.listOfN(i, Arbitrary.arbitrary[Fact]))
-  } yield ChordFacts(dates, fid, fact, o))
+  } yield ChordFacts(dates, fact, o))
 
   /** Use an increasing number to represent the entity to avoid name clashes */
   def chordEntityGen(e: Int): Gen[ChordEntity] = for {
