@@ -17,6 +17,9 @@ trait Fact {
   def value: Value
   def toThrift: ThriftFact
 
+  def partition: Partition =
+    Partition(namespace, date)
+
   def toNamespacedThrift: MutableFact
 
   def coordinateString(delim: Char): String = {
@@ -189,7 +192,7 @@ object StringFact {
 }
 
 object DateFact {
-  def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Date): Fact = 
+  def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Date): Fact =
     FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.date(value.int))
 }
 
