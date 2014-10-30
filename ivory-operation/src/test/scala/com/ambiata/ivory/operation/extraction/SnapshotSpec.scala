@@ -18,7 +18,7 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
 
   A snapshot of the features can be extracted as a sequence file $e1
   A snapshot of the features can be extracted over a window      $windowing        ${tag("mr")}
-  A snapshot builds incrementally on the last if it exists       $incremental
+  A snapshot builds incrementally on the last if it exists       $incremental      ${tag("mr")}
 
 """
 
@@ -48,12 +48,13 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
   }).set(minTestsOk = 1)
 
   def incremental = prop(
-    (vdict: VirtualDictionaryWindow, fact: Fact) => {
-      val facts = List(fact).map(_.withFeatureId(vdict.vdict.vd.source))
-      val facts2 = List(fact.withDate(Date.fromLocalDate(fact.date.localDate.plusDays(1)))).map(_.withFeatureId(vdict.vdict.vd.source))
+    (dictionary: Dictionary, featureId: FeatureId, fact: Fact) => {
+      val feature = dictionary.definitions.headOption.cata(_.featureId, featureId)
+      val facts = fact.withFeatureId(feature).pure[List]
+      val facts2 = facts.map(_.withDate(Date.fromLocalDate(fact.date.localDate.plusDays(1))))
       RepositoryBuilder.using((repo: HdfsRepository) =>
         for {
-          _ <- RepositoryBuilder.createRepo(repo, vdict.vd.dictionary, facts.pure[List])
+          _ <- RepositoryBuilder.createRepo(repo, dictionary, facts.pure[List])
           res <- Snapshot.takeSnapshot(repo, fact.date, true)
           _ <- RepositoryBuilder.createFactset(repo, facts2)
           res2 <- Snapshot.takeSnapshot(repo, fact.date, true)

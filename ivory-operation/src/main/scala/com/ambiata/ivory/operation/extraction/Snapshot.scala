@@ -62,7 +62,7 @@ object Snapshot {
    */
   def takeIncrementalSnapshot(repo: Repository, date: Date): ResultTIO[SnapshotJobSummary[SnapshotManifest]] =
     for {
-      latest  <- SnapshotManifest.latestUpToDateSnapshot(repo, date).run
+      latest    <- SnapshotManifest.latestUpToDateSnapshot(repo, date).run
       result    <- latest match {
         case Some(m) =>
           for {

@@ -6,8 +6,11 @@ import com.ambiata.ivory.cli.extract._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.api.Ivory.{Date => _, _}
 import com.ambiata.ivory.storage.control.IvoryRead
+import com.ambiata.ivory.storage.metadata._
 import org.joda.time.LocalDate
 import java.util.{Calendar, UUID}
+
+import scalaz._, Scalaz._
 
 object snapshot extends IvoryApp {
 
@@ -50,6 +53,10 @@ object snapshot extends IvoryApp {
         res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental)
         meta = res.meta
         _    <- Extraction.extract(of, SnapshotExtract(meta, c.squash)).run(IvoryRead.prod(repo))
-      } yield List(banner, s"Output path: ${meta.snapshotId}", s"Incremental snapshot used: ${res.incremental.map(_.snapshotId)}", "Status -- SUCCESS")
+      } yield List(
+        banner,
+        s"Output path: ${meta.snapshotId}",
+        res.incremental.cata((incr: SnapshotManifest) => s"Incremental snapshot used: ${incr.snapshotId}", "No Incremental Snapshot was used."),
+        "Status -- SUCCESS")
   })
 }
