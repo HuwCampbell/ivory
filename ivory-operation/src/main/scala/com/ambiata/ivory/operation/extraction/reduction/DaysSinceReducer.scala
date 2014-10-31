@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
-import com.ambiata.ivory.core.{Date, Fact, DateValue, TombstoneValue, Crash}
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift.ThriftFactValue
 
 class DaysSinceReducer(dates: DateOffsets) extends ReductionFold[ValueOrTombstone[Int], Int, ValueOrTombstone[Int]] {

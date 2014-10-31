@@ -3,7 +3,9 @@ package com.ambiata.ivory.operation.extraction
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
-import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable
+import com.ambiata.ivory.operation.extraction.chord._
+import com.ambiata.ivory.operation.extraction.reduction.DateOffsets
+import com.ambiata.ivory.operation.extraction.snapshot.{SnapshotWindows, SnapshotWritable}
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.mr._
@@ -32,7 +34,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
  */
 object ChordJob {
   def run(repository: HdfsRepository, reducers: Int, inputs: List[Prioritized[FactsetGlob]], output: Path, entities: Entities,
-          dictionary: Dictionary, incremental: Option[Path], codec: Option[CompressionCodec]): ResultTIO[Unit] = {
+          dictionary: Dictionary, incremental: Option[Path], codec: Option[CompressionCodec], windowing: Boolean): ResultTIO[Unit] = {
 
     val job = Job.getInstance(repository.configuration)
     val ctx = MrContext.newContext("ivory-chord", job)
@@ -86,6 +88,9 @@ object ChordJob {
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup(dictionary))
     ctx.thriftCache.push(job, Keys.ChordEntitiesLookup, Entities.toChordEntities(entities))
     ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(dictionary))
+    job.getConfiguration.setBoolean(Keys.ChordWindowEnabled, windowing)
+    if (windowing)
+      ctx.thriftCache.push(job, Keys.ChordWindowsLookup, FeatureLookups.windowTable(dictionary))
 
     // run job
     if (!job.waitForCompletion(true))
@@ -108,11 +113,13 @@ object ChordJob {
 
   object Keys {
     val ChordDate = "ivory.chorddate"
+    val ChordWindowEnabled = "ivory.chord.window.enable"
     val FeatureIdLookup = ThriftCache.Key("feature-id-lookup")
     val FactsetLookup = ThriftCache.Key("factset-lookup")
     val FactsetVersionLookup = ThriftCache.Key("factset-version-lookup")
     val ChordEntitiesLookup = ThriftCache.Key("chord-entities-lookup")
     val FeatureIsSetLookup = ThriftCache.Key("feature-is-set-lookup")
+    val ChordWindowsLookup = ThriftCache.Key("chord-window-lookup")
   }
 }
 
@@ -318,11 +325,14 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
 
   /** Class to emit the key/value bytes, created once per mapper */
   val emitter: MrEmitter[BytesWritable, BytesWritable, NullWritable, BytesWritable] = MrEmitter()
-  val chordEmitter = new ChordNormalEmitter[BytesWritable](emitter)
+  val chordNormalEmitter = new ChordNormalEmitter[BytesWritable](emitter)
 
   val mutator = new FactByteMutator
 
   var entities: Entities = null
+  var featureWindows: Array[Option[Date => Date]] = null
+  /** Shared array which can be re-used which is allocated size of the largest number of chords for a single entity */
+  var windows: Array[Int] = null
 
   val buffer = new StringBuilder(4096)
 
@@ -336,12 +346,30 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
     val isSetLookupThrift = new FlagLookup
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
     isSetLookup = FeatureLookups.isSetLookupToArray(isSetLookupThrift)
+
+    if (context.getConfiguration.getBoolean(ChordJob.Keys.ChordWindowEnabled, false)) {
+      featureWindows = ChordReducer.setupWindows(ctx.thriftCache, context.getConfiguration).map(_.map(Window.startingDate))
+      windows = new Array(entities.maxChordSize)
+    }
   }
 
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
     emitter.context = context
     val entity = SnapshotWritable.GroupingEntityFeatureId.getEntity(key)
     val feature = SnapshotWritable.GroupingEntityFeatureId.getFeatureId(key)
+
+    val chords = entities.entities.get(entity)
+    val chordEmitter =
+      if (featureWindows != null) {
+        val featureId = SnapshotWritable.GroupingEntityFeatureId.getFeatureId(key)
+        val dateLookup = featureWindows(featureId)
+        // Using isDefined/get to avoid function allocation :(
+        if (dateLookup.isDefined)
+          ChordWindows.updateWindowsForChords(chords, dateLookup.get, windows)
+        // The final code will/should not create this every time, but this is currently used in testing
+        new ChordWindowEmitter(emitter, if (dateLookup.isDefined) windows else null)
+      } else chordNormalEmitter
+
     ChordReducer.reduce(fact, iter.iterator, mutator, chordEmitter, vout, entities.entities.get(entity), buffer, isSetLookup(feature))
   }
 }
@@ -355,6 +383,17 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
  ********************************************************** */
 object ChordReducer {
   type ReducerContext = Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context
+
+  def setupWindows(thriftCache: ThriftCache, configuration: Configuration): Array[Option[Window]] = {
+    val windows = new SnapshotWindowLookup
+    thriftCache.pop(configuration, ChordJob.Keys.ChordWindowsLookup, windows)
+    windowLookupToArray(windows)
+  }
+
+  def windowLookupToArray(windows: SnapshotWindowLookup): Array[Option[Window]] =
+    FeatureLookups.sparseMapToArray(windows.window.asScala.map {
+      case (fid, w) => fid.toInt ->  WindowLookup.fromInt(w)
+    }.toList, None)
 
   val sentinelDateTime = DateTime.unsafeFromLong(-1)
 

@@ -77,7 +77,8 @@ object ChordArbitraries {
     }
   }
 
-  case class ChordFacts(ces: List[ChordEntity], factAndMeta: SparseEntities, other: List[Fact]) {
+  case class ChordFacts(ces: List[ChordEntity], fid: FeatureId, factAndMeta: SparseEntities, window: Option[Window],
+                        other: List[Fact]) {
     lazy val facts: List[List[Fact]] = {
       val innerFacts = ces.flatMap(_.facts(factAndMeta.fact, Mode.State))
       List(
@@ -89,11 +90,21 @@ object ChordArbitraries {
     }
     lazy val above: List[Fact] = ces.flatMap(_.above.map(factAndMeta.fact.withDate))
     lazy val expected: List[Fact] = ces.flatMap(_.expected(factAndMeta.fact, factAndMeta.meta.mode))
-    lazy val dictionary: Dictionary = Dictionary(List(factAndMeta.meta.toDefinition(factAndMeta.fact.featureId)))
+    lazy val expectedWindow: List[Fact] = ces.flatMap(_.expectedWindow(factAndMeta.fact, factAndMeta.meta.mode, window))
+    lazy val dictionary: Dictionary = Dictionary(List(
+      factAndMeta.meta.toDefinition(factAndMeta.fact.featureId),
+      VirtualDefinition(factAndMeta.fact.featureId, Query(Count, None), window).toDefinition(fid)
+    ))
     // If the oldest chord has no facts then don't capture a snapshot (it will error at the moment)
     // https://github.com/ambiata/ivory/issues/343
-    lazy val takeSnapshot: Boolean = ces.sortBy(_.dates.headOption.map(_._1).getOrElse(Date.maxValue)).headOption
-      .flatMap(_.dates.headOption).flatMap(_._2.headOption).isDefined
+    lazy val takeSnapshot: Boolean = factAndMeta.meta.mode match {
+      // Currently the priority/window in snapshots/sets is slightly off - we keep more than we need
+      // Disabling snapshots here is easier than complicating the "expected" code with that logic
+      // https://github.com/ambiata/ivory/issues/376
+      case Mode.Set => false
+      case Mode.State => ces.sortBy(_.dates.headOption.map(_._1).getOrElse(Date.maxValue)).headOption
+        .flatMap(_.dates.headOption).flatMap(_._2.headOption).isDefined
+    }
   }
 
   implicit def ChordFactArbitrary: Arbitrary[ChordFact] = Arbitrary(for {
@@ -108,9 +119,11 @@ object ChordArbitraries {
     dates <- Gen.sequence[List, ChordEntity]((0 until n).map(chordEntityGen))
     // Just generate one stub fact - we only care about the entity and date
     fact  <- Arbitrary.arbitrary[SparseEntities]
+    fid   <- Arbitrary.arbitrary[FeatureId]
+    win   <- Arbitrary.arbitrary[Option[Window]]
     // Generate other facts that aren't related in any way - they should be ignored
     o     <- Gen.choose(1, 3).flatMap(i => Gen.listOfN(i, Arbitrary.arbitrary[Fact]))
-  } yield ChordFacts(dates, fact, o))
+  } yield ChordFacts(dates, fid, fact, win, o))
 
   /** Use an increasing number to represent the entity to avoid name clashes */
   def chordEntityGen(e: Int): Gen[ChordEntity] = for {

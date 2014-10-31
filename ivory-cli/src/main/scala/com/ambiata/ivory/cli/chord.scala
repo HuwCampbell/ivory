@@ -29,7 +29,7 @@ object chord extends IvoryApp {
       ent  <- IvoryLocation.fromUri(c.entities, conf)
       of   <- Extract.parse(conf, c.formats)
       _    <- ResultT.when(of.outputs.isEmpty, ResultT.fail[IO, Unit]("No output/format specified"))
-      out  <- IvoryRetire.chord(repo, ent, c.takeSnapshot)
+      out  <- IvoryRetire.chord(repo, ent, c.takeSnapshot, false)
       _    <- Extraction.extract(of, ChordExtract(repo.toIvoryLocation(out))).run(IvoryRead.prod(repo))
       // Delete the output file only if successful - could be useful for debugging otherwise
       _    <- repo.store.deleteAll(out)
