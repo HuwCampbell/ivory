@@ -25,11 +25,15 @@ object FeatureLookups {
     features
   }
 
-  def isSetLookupToArray(lookup: FlagLookup): Array[Boolean] = {
-    val all = lookup.getFlags.asScala.toList
-    val max = all.map(_._1).max
-    val out = Array.fill(max + 1)(false)
-    all.foreach({ case (i, v) => out(i) = v })
-    out
+  def isSetLookupToArray(lookup: FlagLookup): Array[Boolean] =
+    sparseMapToArray(lookup.getFlags.asScala.toList.map { case (i, b) => i.toInt -> b.booleanValue()}, false)
+
+  def sparseMapToArray[A : scala.reflect.ClassTag](map: List[(Int, A)], default: A): Array[A] = {
+    val max = map.map(_._1).max
+    val array = Array.fill(max + 1)(default)
+    map.foreach {
+      case (i, a) => array(i) = a
+    }
+    array
   }
 }
