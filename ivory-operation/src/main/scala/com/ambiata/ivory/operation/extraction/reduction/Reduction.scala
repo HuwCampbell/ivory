@@ -27,11 +27,19 @@ trait Reduction {
 
 object Reduction {
 
-  def compile(fr: FeatureReduction, end: Date, profile: Reduction => Reduction): Option[Reduction] = for {
-    exp      <- Expression.parse(fr.getExpression).toOption
+  /** This is a hack because of the lack of set vs state mode, eventually this (should) disappear */
+  def getWindowOverride(expression: Expression): Option[Date] = condOpt(expression) {
+    // For latest and days since reducers, we need to match all facts (to catch them before the window).
+    case BasicExpression(Latest)        => Date.minValue
+    case StructExpression(_, Latest)    => Date.minValue
+    // Days since is similar to latest, except an additional date operation is applied
+    case BasicExpression(DaysSince)     => Date.minValue
+    case StructExpression(_, DaysSince) => Date.minValue
+  }
+
+  def compile(fr: FeatureReduction, exp: Expression, dates: DateOffsetsLazy, profile: Reduction => Reduction): Option[Reduction] = for {
     encoding <- DictionaryTextStorageV2.parseEncoding(fr.getEncoding).toOption
     filter    = if (fr.isSetFilter) Some(Filter(fr.getFilter)) else None
-    dates     = DateOffsets.calculateLazyCompact(Date.unsafeFromInt(fr.date), end)
     reduction<- Reduction.fromExpression(exp, encoding, dates)
     // We want to profile _after_ the filter has been applied
     profiled  = profile(reduction)

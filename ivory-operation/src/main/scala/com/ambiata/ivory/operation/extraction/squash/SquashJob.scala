@@ -3,7 +3,7 @@ package com.ambiata.ivory.operation.extraction.squash
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
 import com.ambiata.ivory.operation.extraction.{Snapshots, SnapshotJob}
-import com.ambiata.ivory.storage.lookup.{ReducerLookups, ReducerSize}
+import com.ambiata.ivory.storage.lookup.{ReducerLookups, ReducerSize, WindowLookup}
 import com.ambiata.ivory.storage.metadata.SnapshotManifest
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FileName
@@ -107,7 +107,7 @@ object SquashJob {
     // cache / config initialization
     job.getConfiguration.set(SnapshotJob.Keys.SnapshotDate, date.int.toString)
     job.getConfiguration.setInt(Keys.ProfileMod, squashConf.profileSampleRate)
-    val (featureIdLookup, reductionLookup) = dictToLookup(dictionary, date)
+    val (featureIdLookup, reductionLookup) = dictToLookup(dictionary)
     ctx.thriftCache.push(job, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
     ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,
       SquashReducerLookup.create(dictionary, featureIdLookup, reducers))
@@ -134,40 +134,30 @@ object SquashJob {
     }
   }
 
-  def dictToLookup(dictionary: DictionaryConcrete, date: Date): (FeatureIdLookup, FeatureReductionLookup) = {
+  def dictToLookup(dictionary: DictionaryConcrete): (FeatureIdLookup, FeatureReductionLookup) = {
     val featureIdLookup = new FeatureIdLookup
     val reductionLookup = new FeatureReductionLookup
     dictionary.sources.zipWithIndex.foreach { case ((fid, cg), i) =>
       featureIdLookup.putToIds(fid.toString, i)
-      reductionLookup.putToReductions(i, concreteGroupToReductions(date, fid, cg).asJava)
+      reductionLookup.putToReductions(i, concreteGroupToReductions(fid, cg).asJava)
     }
     (featureIdLookup, reductionLookup)
   }
 
-  def concreteGroupToReductions(date: Date, fid: FeatureId, cg: ConcreteGroup): List[FeatureReduction] = {
+  def concreteGroupToReductions(fid: FeatureId, cg: ConcreteGroup): List[FeatureReduction] = {
     // We use 'latest' reduction to output the concrete feature as well
-    val cr = reductionToThriftExp(date, fid, Query.empty, cg.definition.encoding, None)
-    val vrs = cg.virtual.map((reductionToThrift(date, cg.definition.encoding) _).tupled)
+    val cr = reductionToThriftExp(fid, Query.empty, cg.definition.encoding, None)
+    val vrs = cg.virtual.map((reductionToThrift(cg.definition.encoding) _).tupled)
     cr :: vrs
   }
 
-  def reductionToThrift(date: Date, encoding: Encoding)(fid: FeatureId, vd: VirtualDefinition): FeatureReduction =
-    reductionToThriftExp(date, fid, vd.query, encoding, vd.window)
+  def reductionToThrift(encoding: Encoding)(fid: FeatureId, vd: VirtualDefinition): FeatureReduction =
+    reductionToThriftExp(fid, vd.query, encoding, vd.window)
 
-  def reductionToThriftExp(date: Date, fid: FeatureId, query: Query, encoding: Encoding, window: Option[Window]): FeatureReduction = {
-    val fr = new FeatureReduction(fid.namespace.name, fid.toString, fid.name, Expression.asString(query.expression), Encoding.render(encoding))
+  def reductionToThriftExp(fid: FeatureId, query: Query, encoding: Encoding, window: Option[Window]): FeatureReduction = {
+    val fr = new FeatureReduction(fid.namespace.name, fid.toString, fid.name, Expression.asString(query.expression),
+      Encoding.render(encoding), WindowLookup.toInt(window))
     query.filter.map(_.render).foreach(fr.setFilter)
-    fr.setDate((query.expression match {
-      // For latest and days since reducers, we need to match all facts (to catch them before the window).
-      case BasicExpression(Latest) => Date.minValue
-      case StructExpression(_, Latest) => Date.minValue
-      // Days since is similar to latest, except an additional date operation is applied
-      case BasicExpression(DaysSince)     => Date.minValue
-      case StructExpression(_, DaysSince) => Date.minValue
-      // If no window is specified the only functions we should be applying will deal with a single value,
-      // and should _always_ apply; hence the min date
-      case _ => window.cata(window => Window.startingDate(window)(date), Date.minValue)
-    }).int)
     fr
   }
 

@@ -44,14 +44,20 @@ object EntityIterator {
   }
 }
 
-class SquashReducerState(date: Date) {
+trait SquashReducerState {
+  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, mutator: FactByteMutator,
+               iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable): Unit
+}
 
-  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducers: Iterable[(FeatureReduction, Reduction)],
-                mutator: FactByteMutator, iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, BytesWritable],
-                out: BytesWritable): Unit = {
+class SquashReducerStateSnapshot(date: Date) extends SquashReducerState {
+
+  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, mutator: FactByteMutator,
+                iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable): Unit = {
     // Fact is null by default, and we want to re-use the same one
     emitFact.setFact(new ThriftFact)
 
+    // This is easy for snapshot - we only need to create a single pool for a single date
+    val reducers = reducerPool.compile(Array(date))(0)
     EntityIterator.iterate(fact, mutator, iter)((), new EntityIterator.EntityCallback[Unit] {
       def initialise(state: SquashReducerEntityState): Unit =
         SquashReducerState.clear(reducers)
@@ -66,13 +72,12 @@ class SquashReducerState(date: Date) {
 /**
  * NOTE: Currently "dead code", but will soon be required for chord to function correctly.
  */
-class SquashChordReducerState(chord: Entities) {
+class SquashReducerStateChord(chord: Entities) extends SquashReducerState {
 
-  class SquashChordReducerEntityState(var dates: Array[Int], var reducers: Int => List[(FeatureReduction, Reduction)])
+  class SquashChordReducerEntityState(var dates: Array[Int], var reducers: Int => List[(FeatureReduction, Date, Reduction)])
 
-  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerLookup: Array[Int] => Int => List[(FeatureReduction, Reduction)],
-                mutator: FactByteMutator, iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, BytesWritable],
-                out: BytesWritable): Unit = {
+  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, mutator: FactByteMutator,
+                iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable): Unit = {
     val buffer = new StringBuilder
     // Fact is null by default, and we want to re-use the same one
     emitFact.setFact(new ThriftFact)
@@ -83,7 +88,7 @@ class SquashChordReducerState(chord: Entities) {
 
       def initialise(state: SquashReducerEntityState): SquashChordReducerEntityState = {
         val dates = chord.entities.get(state.entity)
-        entityState.reducers = reducerLookup(dates)
+        entityState.reducers = reducerPool.compile(dates.map(Date.unsafeFromInt))
         entityState.dates = dates
         var i = 0
         while (i < dates.length) {
@@ -136,21 +141,21 @@ object SquashReducerState {
 
   val kout = NullWritable.get()
 
-  def clear(reducers: Iterable[(FeatureReduction, Reduction)]): Unit =
-    reducers.foreach(_._2.clear())
+  def clear(reducers: Iterable[(FeatureReduction, Date, Reduction)]): Unit =
+    reducers.foreach(_._3.clear())
 
-  def update(fact: MutableFact, reducers: Iterable[(FeatureReduction, Reduction)]): Unit = {
+  def update(fact: MutableFact, reducers: Iterable[(FeatureReduction, Date, Reduction)]): Unit = {
     reducers.foreach {
-      case (fr, state) =>
+      case (fr, date, state) =>
         // We have captured the largest window, and we now need to filter by date per virtual feature
-        if (fr.date <= fact.date.int) {
+        if (date.underlying <= fact.date.underlying) {
           state.update(fact)
         }
     }
   }
 
   // Write out the final reduced values
-  def emit(emitFact: MutableFact, mutator: FactByteMutator, reducers: Iterable[(FeatureReduction, Reduction)],
+  def emit(emitFact: MutableFact, mutator: FactByteMutator, reducers: Iterable[(FeatureReduction, Date, Reduction)],
            emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, namespace: Name, entity: String,
            date: Date): Unit = {
     // Use emitFact here to avoid clobbering values in fact
@@ -163,7 +168,7 @@ object SquashReducerState {
     tfact.setEntity(entity)
     tfact.unsetSeconds()
     reducers.foreach {
-      case (fr, state) =>
+      case (fr, _, state) =>
         val value = state.save
         if (value != null) {
           tfact.setAttribute(fr.getSource)

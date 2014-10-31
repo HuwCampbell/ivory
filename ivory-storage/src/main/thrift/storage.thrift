@@ -43,8 +43,8 @@ struct FeatureReduction {
     3: string source;
     4: string expression;
     5: string encoding;
-    6: optional string filter;
-    7: optional i32 date;
+    6: i32 window;
+    7: optional string filter;
 }
 
 struct FeatureReductionLookup {
