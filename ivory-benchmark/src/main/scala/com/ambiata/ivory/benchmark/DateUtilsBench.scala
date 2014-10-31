@@ -3,7 +3,6 @@ package com.ambiata.ivory.benchmark
 import java.lang.System.identityHashCode
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.operation.extraction.reduction._
 import com.google.caliper._
 
 object DateUtilsBenchApp extends App {

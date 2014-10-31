@@ -379,14 +379,5 @@ object SnapshotReducer {
   }
 
   def windowLookupToArray(lookup: SnapshotWindowLookup): Array[Int] =
-    sparseMapToArray(lookup.getWindow.asScala.map { case (i, v) => i.toInt -> v.toInt}.toList, Date.maxValue.int)
-
-  def sparseMapToArray[A : scala.reflect.ClassTag](map: List[(Int, A)], default: A): Array[A] = {
-    val max = map.map(_._1).max
-    val array = Array.fill(max + 1)(default)
-    map.foreach {
-      case (i, a) => array(i) = a
-    }
-    array
-  }
+    FeatureLookups.sparseMapToArray(lookup.getWindow.asScala.map { case (i, v) => i.toInt -> v.toInt}.toList, Date.maxValue.int)
 }

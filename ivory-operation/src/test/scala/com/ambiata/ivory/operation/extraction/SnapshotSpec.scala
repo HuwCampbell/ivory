@@ -33,7 +33,7 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
     val facts = List(
       fact,
       fact.withTime(Time.unsafe(fact.time.seconds + 1)),
-      fact.withDate(SnapshotWindows.startingDate(vdict.window, fact.date))
+      fact.withDate(Window.startingDate(vdict.window)(fact.date))
     ).map(_.withFeatureId(vdict.vdict.vd.source))
 
     val deprioritized = List(
@@ -43,7 +43,7 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
     )
 
     val oldfacts = List(
-      fact.withDate(Date.fromLocalDate(SnapshotWindows.startingDate(vdict.window, fact.date).localDate.minusDays(1)))
+      fact.withDate(Date.fromLocalDate(Window.startingDate(vdict.window)(fact.date).localDate.minusDays(1)))
     ).map(_.withFeatureId(vdict.vdict.vd.source))
 
     RepositoryBuilder.using { repo => for {
@@ -82,12 +82,12 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
     val facts = List(
         fact(date, time, 1)
       , fact(date, time, 2)
-      , fact(SnapshotWindows.startingDate(window, date), time, 3)
-      , fact(SnapshotWindows.startingDate(window, date), time, 4)
+      , fact(Window.startingDate(window)(date), time, 3)
+      , fact(Window.startingDate(window)(date), time, 4)
       )
 
     val outer = List(
-        fact(Date.fromLocalDate(SnapshotWindows.startingDate(window, date).localDate.minusDays(1)), time, 5)
+        fact(Date.fromLocalDate(Window.startingDate(window)(date).localDate.minusDays(1)), time, 5)
       , fact(Date.fromLocalDate(date.localDate.plusDays(1)), time, 6)
       )
 

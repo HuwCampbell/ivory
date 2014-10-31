@@ -1,6 +1,6 @@
-package com.ambiata.ivory.operation.extraction.reduction
+package com.ambiata.ivory.core
 
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core.Arbitraries._
 import org.joda.time.{Days => JodaDays, LocalDate => JodaLocalDate, LocalDateTime => JodaLocalDateTime, Seconds => JodaSeconds}
 import org.scalacheck.Arbitrary
 import org.specs2.{ScalaCheck, Specification}

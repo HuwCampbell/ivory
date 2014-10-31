@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
-import com.ambiata.ivory.core.Date
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.extraction.reduction.ReductionArbitraries._
 import org.specs2.{ScalaCheck, Specification}
 import org.specs2.matcher._

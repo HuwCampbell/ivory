@@ -1,6 +1,4 @@
-package com.ambiata.ivory.operation.extraction.reduction
-
-import com.ambiata.ivory.core._
+package com.ambiata.ivory.core
 
 /** Reimplementation of some of JodaTime's functionality for performance */
 object DateTimeUtil {

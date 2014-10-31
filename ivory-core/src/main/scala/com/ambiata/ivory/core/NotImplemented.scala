@@ -13,6 +13,10 @@ object NotImplemented {
   def chordSquash(): Unit =
     println("WARNING: Chord is running without a squash, virtual features will not be generated!")
 
+  def chordWindow(): Unit =
+    println("WARNING: Chord is running with windowing, which isn't fully implemented yet. " +
+      "Unless this is a test you have done something VERY wrong!!!")
+
   def reducerPerformance(name: String): Unit =
     println(s"WARNING: $name has not been optimized")
 }

@@ -1,9 +1,10 @@
 package com.ambiata.ivory.operation.extraction
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, Arbitraries._
 import com.ambiata.ivory.mr.MockFactMutator
 import com.ambiata.ivory.operation.extraction.ChordReducer._
 import com.ambiata.ivory.operation.extraction.chord.ChordArbitraries._
+import com.ambiata.ivory.storage.lookup.FeatureLookups
 import org.specs2._
 import scala.collection.JavaConverters._
 
@@ -16,6 +17,7 @@ class ChordJobSpec extends Specification with ScalaCheck { def is = s2"""
   Can extract expected facts with set                    $set
   Can extract expected facts with windows and set        $windowset
 
+  Serialising dictionary windows is symmetrical          $lookupTable
 """
   def N: MockFactMutator => ChordEmitter[Fact] =
     new ChordNormalEmitter(_)
@@ -47,4 +49,9 @@ class ChordJobSpec extends Specification with ScalaCheck { def is = s2"""
       emitter(mutator), createMutableFact, dateArray, new StringBuilder, isSet)
     mutator.facts.toList ==== expected
   }
+
+  def lookupTable = prop((dict: Dictionary) => {
+    windowLookupToArray(FeatureLookups.windowTable(dict)) ====
+      FeatureLookups.sparseMapToArray(FeatureLookups.maxConcreteWindows(dict).toList, None)
+  })
 }

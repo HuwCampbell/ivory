@@ -17,22 +17,25 @@ import Entities._
 case class Entities(entities: Mappings) {
   type PrioritizedFact = (Priority, Fact)
 
-  private case class DateRange(earliest: Date, latest: Date)
+  private case class DateRange(earliest: Date, latest: Date, maxCount: Int)
 
   /** get the earliest date and the latest date across all entities */
   private val dateRange: DateRange = {
     // Going full-mutable to avoid creating GC pressure on Hadoop
     var lmin = Date.maxValue.underlying
     var lmax = Date.minValue.underlying
+    var maxCount = 0
     entities.values.asScala.foreach { ds =>
       lmin = Math.min(lmin, ds.last) // last is the minimum date because the array is sorted
       lmax = Math.max(lmax, ds.head) // head is the maximum date because the array is sorted
+      maxCount = Math.max(ds.length, maxCount)
     }
-    DateRange(Date.unsafeFromInt(lmin), Date.unsafeFromInt(lmax))
+    DateRange(Date.unsafeFromInt(lmin), Date.unsafeFromInt(lmax), maxCount)
   }
 
   def earliestDate = dateRange.earliest
   def latestDate   = dateRange.latest
+  def maxChordSize = dateRange.maxCount
 
   /** @return true if this fact concerns one of the entities and happened before the last required date for that entity */
   def keep(f: Fact): Boolean = {
