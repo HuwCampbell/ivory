@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
-import com.ambiata.ivory.core.Date
+import com.ambiata.ivory.core.{Date, DateTimeUtil}
 
 case class DateOffsets(start: Int, end: Date, val count: Int, val offsets: Array[Int], f: DateOffsetLookup) {
 
