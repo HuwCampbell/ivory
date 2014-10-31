@@ -75,8 +75,8 @@ spareMapToArray
     (table.getFlags.asScala.filter(_._2).size ==== array.filter(identity).length) })
 
   // Using Byte just to speed up the test - otherwise we create some _really_ big arrays
-  def sparseMapToArray = prop((ls: Map[Byte, String]) => ls.nonEmpty ==> {
-    val l = ls.map { case (i, s) => Math.abs(i) -> s }
+  def sparseMapToArray = prop((ls: List[(Byte, String)]) => ls.nonEmpty ==> {
+    val l = ls.toMap.map { case (i, s) => Math.abs(i) -> s }
     // Using null here as a sentinel value that we know ScalaCheck won't generate for us
     val a = FeatureLookups.sparseMapToArray(l.toList, null)
     (a.length, a.toList.filterNot(_ == null)) ==== ((l.maxBy(_._1)._1 + 1, l.toList.sortBy(_._1).map(_._2)))
