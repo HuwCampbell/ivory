@@ -55,7 +55,7 @@ object ChordArbitraries {
 
     def expectedWindows: Option[Window] => (Date, List[Fact], List[Fact]) => List[Fact] =
       window => (d, fs, prev) =>
-        window.map(SnapshotWindows.startingDate(_, d)).map {
+        window.map(Window.startingDate(_)(d)).map {
           sd =>
             // _Always_ emit the last fact before the window (for state-based features)
             (prev ++ fs).filter(_.date.int < sd.int).lastOption.toList ++
@@ -73,7 +73,7 @@ object ChordArbitraries {
     lazy val expectedWindow: List[Fact] = ce.expectedWindow(fact, Mode.State, window)
     lazy val expectedWindowSet: List[Fact] = ce.expectedWindow(fact, Mode.Set, window)
     lazy val windowDateArray: Option[Array[Int]] = window.map {
-      win => ce.dates.map(_._1).map(SnapshotWindows.startingDate(win, _).int).sorted.reverse.toArray
+      win => ce.dates.map(_._1).map(Window.startingDate(win)(_).int).sorted.reverse.toArray
     }
   }
 

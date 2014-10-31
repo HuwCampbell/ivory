@@ -37,6 +37,6 @@ class SnapshotWindowsSpec extends Specification with ScalaCheck { def is = s2"""
       (Window(1, Years),  Date(2013, 2, 28), Date(2012, 2, 28), "year: to leap year"),
       (Window(1, Years),  Date(2014, 2, 28), Date(2013, 2, 28), "year: not leap year")
     ).map {
-      case (window, start, e, reason) => (startingDate(window, start) ==== e).setMessage(reason)
+      case (window, start, e, reason) => (Window.startingDate(window)(start) ==== e).setMessage(reason)
     })
 }

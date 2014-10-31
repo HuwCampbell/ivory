@@ -3,7 +3,6 @@ package com.ambiata.ivory.operation.extraction.squash
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
 import com.ambiata.ivory.operation.extraction.SnapshotJob
-import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.lookup.{ReducerLookups, ReducerSize}
 import com.ambiata.ivory.storage.metadata.SnapshotManifest
 import com.ambiata.mundane.control._
@@ -167,7 +166,7 @@ object SquashJob {
       case StructExpression(_, DaysSince) => Date.minValue
       // If no window is specified the only functions we should be applying will deal with a single value,
       // and should _always_ apply; hence the min date
-      case _ => window.cata(window => SnapshotWindows.startingDate(window, date), Date.minValue)
+      case _ => window.cata(window => Window.startingDate(window)(date), Date.minValue)
     }).int)
     fr
   }

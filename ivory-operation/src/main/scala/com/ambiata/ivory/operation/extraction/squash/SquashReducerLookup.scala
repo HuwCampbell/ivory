@@ -53,7 +53,7 @@ object SquashReducerLookup {
     // The actual date doesn't matter - we're just using it to calculate the rough size of the window
     val date = Date.maxValue
     val windowSizes = dictionary.sources.flatMap { case (fid, cg) =>
-      cg.virtual.flatMap(_._2.window).map(SnapshotWindows.startingDate(_, date)).sorted.headOption
+      cg.virtual.flatMap(_._2.window).map(Window.startingDate(_)(date)).sorted.headOption
         .map(d => Days.daysBetween(d.localDate, date.localDate).getDays).map(fid ->)
     }
     val totalDays = windowSizes.values.sum

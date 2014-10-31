@@ -29,6 +29,18 @@ object Window {
       case _        => None
     }
 
+  /**
+   * Create a lookup function _once_ that knows what to do with a given date.
+   * NOTE: We are using our own [[DateTimeUtil]] because we can't run Joda on Hadoop for various reasons,
+   * one of which is performance.
+   */
+  def startingDate(window: Window): Date => Date =
+    window.unit match {
+      case Days   => d => DateTimeUtil.minusDays(d, window.length)
+      case Weeks  => d => DateTimeUtil.minusDays(d, window.length * 7)
+      case Months => d => DateTimeUtil.minusMonths(d, window.length)
+      case Years  => d => DateTimeUtil.minusYears(d, window.length)
+    }
 }
 
 sealed trait WindowUnit
