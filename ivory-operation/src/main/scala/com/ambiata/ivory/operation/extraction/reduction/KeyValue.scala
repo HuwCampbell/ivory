@@ -7,9 +7,9 @@ class KeyValue[K, V]() {
 
   val map = new JHashMap[K, V]
 
-  def getOrElse(k: K, v: V): V = {
+  def getOrElse(k: K, v2: V): V = {
     val v = map.get(k)
-    if (v == null) v
+    if (v == null) v2
     else v
   }
 
