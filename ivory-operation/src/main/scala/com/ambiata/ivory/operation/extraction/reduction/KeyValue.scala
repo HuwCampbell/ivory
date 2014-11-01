@@ -13,6 +13,10 @@ class KeyValue[K, V]() {
     else v
   }
 
+  /** Use with care - only required when calling [[getOrElse()]] with a default value would require call-by-name */
+  def getOrNull(k: K): V =
+    map.get(k)
+
   def put(k: K, v: V): Unit = {
     map.put(k, v)
     ()
