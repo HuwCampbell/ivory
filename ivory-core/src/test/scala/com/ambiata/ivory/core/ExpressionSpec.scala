@@ -36,6 +36,8 @@ class ExpressionSpec extends Specification with ScalaCheck { def is = s2"""
     StructExpression("a", Mean)        -> StructEncoding(Map("a" -> mandatory(StringEncoding))),
     SumBy("k", "v")                    -> StringEncoding,
     SumBy("k", "v")                    -> StructEncoding(Map("k" -> mandatory(IntEncoding), "v" -> mandatory(IntEncoding))),
-    SumBy("k", "v")                    -> StructEncoding(Map("k" -> mandatory(StringEncoding), "v" -> mandatory(BooleanEncoding)))
+    SumBy("k", "v")                    -> StructEncoding(Map("k" -> mandatory(StringEncoding), "v" -> mandatory(BooleanEncoding))),
+    CountBySecondary("k", "v")         -> StringEncoding,
+    CountBySecondary("k", "v")         -> StructEncoding(Map("k" -> mandatory(StringEncoding)))
   ).map((Expression.validate _).tupled).map(_.toEither must beLeft))
 }

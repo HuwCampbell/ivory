@@ -43,6 +43,7 @@ object Expression {
       case QuantileInWeeks(k, q)        => List("quantile_in_weeks", k, q)
       case ProportionByTime(s, e)       => List("proportion_by_time", s, e)
       case SumBy(key, field)            => List("sum_by", key, field)
+      case CountBySecondary(key, field) => List("count_by", key, field)
       case BasicExpression(sexp)        => asSubString(sexp)
       case StructExpression(name, sexp) => asSubString(sexp) ++ List(name)
     }).mkString(",")
@@ -66,6 +67,7 @@ object Expression {
       case "minimum_in_weeks" :: Nil        => MinimumInWeeks
       case "count_days" :: Nil              => CountDays
       case "sum_by" :: key :: sumBy :: Nil  => SumBy(key, sumBy)
+      case "count_by" :: key :: fld :: Nil  => CountBySecondary(key, fld)
       // Subexpressions
       case "latest" :: tail                 => parseSub(Latest, tail)
       case "sum" :: tail                    => parseSub(Sum, tail)
@@ -151,10 +153,21 @@ object Expression {
                case IntEncoding | LongEncoding | DoubleEncoding => ok
                case _                                           => s"sum_by field is required to be numerical".left
              }
-             case _ => s"sum_by key is required to be a string}".left
+             case _ => s"sum_by key is required to be a string".left
            }
         } yield ()
         case _                           => s"sum_by requires struct encoding".left
+      }
+      case CountBySecondary(key, field)             => encoding match {
+        case StructEncoding(values) => for {
+          k <- values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
+          f <- values.get(field).map(_.encoding).toRightDisjunction(s"Struct field not found '$field'")
+          _ <- (k, f) match {
+            case (StringEncoding, StringEncoding) => ok
+            case _                                => s"count_by fields are required to be strings".left
+          }
+        } yield ()
+        case _                           => s"count_by requires struct encoding".left
       }
       case BasicExpression(sexp)         => encoding match {
         case pe: PrimitiveEncoding       => validateSub(sexp, pe)
@@ -185,8 +198,9 @@ case class QuantileInDays(k: Int, q: Int) extends Expression
 case class QuantileInWeeks(k: Int, q: Int) extends Expression
 case class ProportionByTime(start: Time, end: Time) extends Expression
 
-/** [[SumBy]] is "special" in that it requires _two_ struct fields */
+/** These are "special" in that they requires _two_ struct fields */
 case class SumBy(key: String, field: String) extends Expression
+case class CountBySecondary(key: String, field: String) extends Expression
 
 case class BasicExpression(exp: SubExpression) extends Expression
 case class StructExpression(field: String, exp: SubExpression) extends Expression

@@ -6,6 +6,7 @@ import com.ambiata.ivory.lookup.FeatureReduction
 import com.ambiata.ivory.storage.metadata.DictionaryTextStorageV2
 
 import scala.PartialFunction.condOpt
+import scalaz.{Value => _, _}, Scalaz._
 
 /**
  * Map-reduce reductions that represent a single feature gen.
@@ -61,6 +62,16 @@ object Reduction {
         case IntEncoding    => Some(new ReductionFold2StructWrapper(k, f, new SumByReducer[Int], ReductionValueString, ReductionValueInt, ReductionValueStruct[String, Int](ReductionValueInt)))
         case LongEncoding   => Some(new ReductionFold2StructWrapper(k, f, new SumByReducer[Long], ReductionValueString, ReductionValueLong, ReductionValueStruct[String, Long](ReductionValueLong)))
         case DoubleEncoding => Some(new ReductionFold2StructWrapper(k, f, new SumByReducer[Double], ReductionValueString, ReductionValueDouble, ReductionValueStruct[String, Double](ReductionValueDouble)))
+        case _              => None
+      }
+      case _ => None
+    }
+    case CountBySecondary(k, f)       => encoding match {
+      case StructEncoding(values) => (values.get(k).map(_.encoding) tuple values.get(f).map(_.encoding)).flatMap {
+        case (StringEncoding, StringEncoding) =>
+          Some(new ReductionFold2StructWrapper(k, f, new CountBySecondaryReducer[String, String], ReductionValueString,
+            ReductionValueString, ReductionValueStruct[String, collection.mutable.Set[String]](ReductionValueSetSize()))
+          )
         case _              => None
       }
       case _ => None

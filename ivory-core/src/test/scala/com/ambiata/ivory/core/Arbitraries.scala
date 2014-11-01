@@ -211,11 +211,12 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
         val subexpGen = Gen.oneOf(values.toList).flatMap {
           case (name, sve) => subExpressionArbitrary(sve.encoding).map(se => StructExpression(name, se))
         }
-        // SumBy is a little more complicated
+        // SumBy and CountBySecondary are a little more complicated
         (for {
-          se <- values.find(_._2.encoding == StringEncoding)
-          ie <- values.find(v => List(IntEncoding, LongEncoding, DoubleEncoding).contains(v._2.encoding))
-        } yield SumBy(se._1, ie._1)).cata(sumBy => Gen.frequency(5 -> Gen.const(sumBy), 5 -> subexpGen), subexpGen)
+          se <- values.find(_._2.encoding == StringEncoding).map(_._1)
+          ie <- values.find(v => v._1 != se && List(StringEncoding).contains(v._2.encoding)).map(ie => CountBySecondary(se, ie._1)) orElse
+            values.find(v => List(IntEncoding, LongEncoding, DoubleEncoding).contains(v._2.encoding)).map(ie => SumBy(se, ie._1))
+        } yield ie).cata(v => Gen.frequency(5 -> Gen.const(v), 5 -> subexpGen), subexpGen)
       case p: PrimitiveEncoding   => subExpressionArbitrary(p).map(BasicExpression)
       case l: ListEncoding        => fallback
     })
