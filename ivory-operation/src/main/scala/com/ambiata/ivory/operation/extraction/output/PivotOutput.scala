@@ -2,10 +2,6 @@ package com.ambiata.ivory.operation.extraction.output
 
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.lookup.ReducerSize
-import com.ambiata.ivory.storage.metadata.SnapshotManifest
-import com.ambiata.ivory.operation.extraction.squash.{SquashConfig, SquashJob}
-import com.ambiata.ivory.operation.extraction.Snapshot
-import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
 
@@ -15,25 +11,6 @@ import com.ambiata.mundane.io.MemoryConversions._
  * and create a "dense" file where there is one line per entity id and all the values for that entity
  */
 object PivotOutput {
-
-  /**
-   * Take a snapshot first then extract a pivot
-   */
-  def createPivotFromSnapshot(repository: Repository, output: IvoryLocation, delim: Char, missing: String,
-                              meta: SnapshotManifest, squash: SquashConfig): ResultTIO[Unit] = for {
-    dict <- Snapshot.dictionaryForSnapshot(repository, meta)
-    _    <- SquashJob.squashFromSnapshotWith(repository, dict, meta, output, squash)(path =>
-      createPivotWithDictionary(repository, repository.toIvoryLocation(path), output, dict, delim, missing))
-  } yield ()
-
-  /**
-   * Extract a pivot from a given snapshot (input) to output
-   */
-  def createPivot(repository: Repository, input: IvoryLocation, output: IvoryLocation, delim: Char, missing: String): ResultTIO[Unit] = for {
-    dictionary  <- latestDictionaryFromIvory(repository)
-    _            = NotImplemented.chordSquash()
-    _           <- createPivotWithDictionary(repository, input, output, dictionary.removeVirtualFeatures, delim, missing)
-  } yield ()
 
   /**
    * Create a pivot on a HdfsRepository

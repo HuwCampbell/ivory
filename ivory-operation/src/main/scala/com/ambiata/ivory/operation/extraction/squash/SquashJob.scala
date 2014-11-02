@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
-import com.ambiata.ivory.operation.extraction.SnapshotJob
+import com.ambiata.ivory.operation.extraction.{Snapshot, SnapshotJob}
 import com.ambiata.ivory.storage.lookup.{ReducerLookups, ReducerSize}
 import com.ambiata.ivory.storage.metadata.SnapshotManifest
 import com.ambiata.mundane.control._
@@ -23,18 +23,19 @@ import scalaz._, Scalaz._
 
 object SquashJob {
 
-  def squashFromSnapshotWith[A](repository: Repository, dictionary: Dictionary, snapmeta: SnapshotManifest,
-                                output: IvoryLocation, conf: SquashConfig)(f: Key => ResultTIO[A]): ResultTIO[A] = for {
+  def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotManifest, conf: SquashConfig)
+                               (f: (Key, Dictionary) => ResultTIO[(A, List[IvoryLocation])]): ResultTIO[A] = for {
+    dictionary      <- Snapshot.dictionaryForSnapshot(repository, snapmeta)
     toSquash        <- squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date, conf)
     (profile, key, doSquash) =  toSquash
-    a               <- f(key)
+    a               <- f(key, dictionary)
     _               <- ResultT.when(doSquash, for {
-      _             <- profile.traverseU {
-        prof => IvoryLocation.writeUtf8Lines(output </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof))
+      _             <- profile.traverseU { prof =>
+        a._2.traverseU(output => IvoryLocation.writeUtf8Lines(output </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof)))
       }
       _             <- repository.store.deleteAll(key)
     } yield ())
-  } yield a
+  } yield a._1
 
   /**
    * Returns the path to the squashed facts if we have any virtual features (and true), or the original `in` path (and false).
