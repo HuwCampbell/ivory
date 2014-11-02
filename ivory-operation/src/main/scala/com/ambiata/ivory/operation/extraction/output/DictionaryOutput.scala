@@ -67,6 +67,7 @@ object DictionaryOutput {
       case QuantileInWeeks(k, q)        => DoubleEncoding
       case ProportionByTime(s, e)       => DoubleEncoding
       case SumBy(_, _)                  => StructEncoding(Map())
+      case CountBySecondary(_, _)       => StructEncoding(Map())
       case BasicExpression(sexp)        => getExpressionEncoding(sexp, source)
       case StructExpression(name, sexp) => source match {
         case StructEncoding(values) => values.get(name).map {
