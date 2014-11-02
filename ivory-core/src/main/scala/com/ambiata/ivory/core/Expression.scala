@@ -108,20 +108,20 @@ object Expression {
         case IntEncoding    => ok
         case LongEncoding   => ok
         case DoubleEncoding => ok
-        case _              => s"Non-numeric encoding not supported".left
+        case _              => "Non-numeric encoding not supported".left
       }
       case DaysSince => subenc match {
         case DateEncoding   => ok
-        case _              => s"Non-date encoding not supported".left
+        case _              => "Non-date encoding not supported".left
       }
       case (CountUnique | DaysSinceLatestBy | DaysSinceEarliestBy) => subenc match {
         case StringEncoding => ok
-        case _              => s"Non-string encoding not supported".left
+        case _              => "Non-string encoding not supported".left
       }
       case CountBy => subenc match {
         case StringEncoding => ok
         case IntEncoding    => ok
-        case _              => s"Non-string encoding not supported".left
+        case _              => "Non-string encoding not supported".left
       }
       case NumFlips         => ok
       case Proportion(v)    => Value.parsePrimitive(subenc, v).disjunction.void
@@ -151,12 +151,12 @@ object Expression {
            _ <- (k, f) match {
              case (StringEncoding, fieldEncoding) => fieldEncoding match {
                case IntEncoding | LongEncoding | DoubleEncoding => ok
-               case _                                           => s"sum_by field is required to be numerical".left
+               case _                                           => "sum_by field is required to be numerical".left
              }
-             case _ => s"sum_by key is required to be a string".left
+             case _ => "sum_by key is required to be a string".left
            }
         } yield ()
-        case _                           => s"sum_by requires struct encoding".left
+        case _                           => "sum_by requires struct encoding".left
       }
       case CountBySecondary(key, field)             => encoding match {
         case StructEncoding(values) => for {
@@ -164,20 +164,20 @@ object Expression {
           f <- values.get(field).map(_.encoding).toRightDisjunction(s"Struct field not found '$field'")
           _ <- (k, f) match {
             case (StringEncoding, StringEncoding) => ok
-            case _                                => s"count_by fields are required to be strings".left
+            case _                                => "count_by fields are required to be strings".left
           }
         } yield ()
-        case _                           => s"count_by requires struct encoding".left
+        case _                           => "count_by requires struct encoding".left
       }
       case BasicExpression(sexp)         => encoding match {
         case pe: PrimitiveEncoding       => validateSub(sexp, pe)
-        case _                           => s"Only primitive encoding supported for".left
+        case _                           => "Only primitive encoding supported".left
       }
       case StructExpression(field, sexp) => encoding match {
         case StructEncoding(values) =>
           values.get(field).toRightDisjunction(s"Struct field not found '$field'")
             .flatMap(sev => validateSub(sexp, sev.encoding))
-        case _                      => s"Expression with a field not supported".left
+        case _                      => "Expression with a field not supported".left
       }
     }).leftMap(_ + " " + asString(exp))
   }
