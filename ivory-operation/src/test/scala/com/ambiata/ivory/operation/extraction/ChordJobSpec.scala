@@ -1,12 +1,13 @@
 package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._, Arbitraries._
-import com.ambiata.ivory.mr.MockFactMutator
+import com.ambiata.ivory.mr.{Emitter, MockFactMutator}
 import com.ambiata.ivory.operation.extraction.ChordReducer._
 import com.ambiata.ivory.operation.extraction.chord.ChordArbitraries._
 import com.ambiata.ivory.storage.lookup.FeatureLookups
+import org.apache.hadoop.io.{BytesWritable, NullWritable}
 import org.specs2._
-import scala.collection.JavaConverters._
+import org.specs2.execute.Result
 
 class ChordJobSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -19,10 +20,10 @@ class ChordJobSpec extends Specification with ScalaCheck { def is = s2"""
 
   Serialising dictionary windows is symmetrical          $lookupTable
 """
-  def N: MockFactMutator => ChordEmitter[Fact] =
+  def N: Emitter[NullWritable, BytesWritable] => ChordEmitter =
     new ChordNormalEmitter(_)
 
-  def W: Array[Int] => MockFactMutator => ChordEmitter[Fact] =
+  def W: Array[Int] => Emitter[NullWritable, BytesWritable] => ChordEmitter =
     w => new ChordWindowEmitter(_, w)
 
   def normal = prop((cf: ChordFact) =>
@@ -43,11 +44,10 @@ class ChordJobSpec extends Specification with ScalaCheck { def is = s2"""
   def windowset = prop((cf: ChordFact) =>
     reduce(W(cf.windowDateArray.orNull), cf.factsWithPriority, cf.expectedWindowSet, cf.ce.dateArray, isSet = true))
 
-  def reduce(emitter: MockFactMutator => ChordEmitter[Fact], facts: List[Fact], expected: List[Fact], dateArray: Array[Int], isSet: Boolean) = {
-    val mutator = new MockFactMutator()
-    ChordReducer.reduce(createMutableFact, facts.iterator.asJava, mutator,
-      emitter(mutator), createMutableFact, dateArray, new StringBuilder, isSet)
-    mutator.facts.toList ==== expected
+  def reduce(chordEmitter: Emitter[NullWritable, BytesWritable] => ChordEmitter, facts: List[Fact], expected: List[Fact], dateArray: Array[Int], isSet: Boolean): Result = {
+    MockFactMutator.run(facts) { (bytes, mutator, emitter, out) =>
+      ChordReducer.reduce(createMutableFact, bytes, mutator, chordEmitter(emitter), out, dateArray, new StringBuilder, isSet)
+    } ==== expected
   }
 
   def lookupTable = prop((dict: Dictionary) => {
