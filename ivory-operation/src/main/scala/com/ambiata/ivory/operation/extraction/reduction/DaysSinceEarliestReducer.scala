@@ -4,27 +4,25 @@ import com.ambiata.ivory.core.thrift.ThriftFactValue
 import com.ambiata.ivory.core.{Date, Fact}
 
 class DaysSinceEarliestReducer(dates: DateOffsets) extends Reduction {
-
   var sentinelDate = Date.unsafeFromInt(-1)
   var date = sentinelDate
-  var tombstone = true
   val value = new ThriftFactValue
 
   def clear(): Unit = {
     value.clear()
     date = sentinelDate
-    tombstone = true
   }
 
   def update(fv: Fact): Unit = {
-    if (date == sentinelDate) {
+    // FIX the types, !fv.isTombstone should never be possible for sets
+    //     and this function only makes sense for sets, should be fixed
+    //     with #376.
+    if (date == sentinelDate && !fv.isTombstone)
       date = fv.date
-      tombstone = fv.isTombstone
-    }
   }
 
   def save: ThriftFactValue =
-    if (date != sentinelDate && !tombstone) {
+    if (date != sentinelDate) {
       value.setI(dates.untilEnd(date).value)
       value
     } else null
