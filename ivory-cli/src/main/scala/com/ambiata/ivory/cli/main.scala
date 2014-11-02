@@ -14,6 +14,7 @@ object main {
     convertDictionary,
     countFacts,
     createRepository,
+    debug.dumpFacts,
     debug.dumpReduction,
     factDiff,
     importDictionary,

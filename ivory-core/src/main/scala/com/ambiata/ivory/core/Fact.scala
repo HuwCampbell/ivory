@@ -148,7 +148,8 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
 }
 
 object FatThriftFact {
-  def apply(ns: String, date: Date, tfact: ThriftFact): Fact = new NamespacedThriftFact(tfact, ns, date.int) with NamespacedThriftFactDerived
+  def apply(ns: String, date: Date, tfact: ThriftFact): MutableFact =
+    new NamespacedThriftFact(tfact, ns, date.int) with NamespacedThriftFactDerived
 
   def factWith(entity: String, namespace: String, feature: String, date: Date, time: Time, value: ThriftFactValue): Fact = {
     val tfact = new ThriftFact(entity, feature, value)

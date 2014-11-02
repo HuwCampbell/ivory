@@ -1,9 +1,6 @@
 package com.ambiata.ivory.core
 
 case class PrioritizedFactset(factsetId: FactsetId, priority: Priority) {
-  def globPath: String =
-    factsetId.render + "/*/*/*/*/*"
-
   def render = factsetId.render
 }
 
