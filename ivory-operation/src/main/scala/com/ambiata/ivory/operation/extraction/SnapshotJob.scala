@@ -352,8 +352,8 @@ object SnapshotReducer {
 
   val sentinelDateTime = DateTime.unsafeFromLong(-1)
 
-  def reduce[A](fact: MutableFact, iter: JIterator[A], mutator: PipeFactMutator[A, A],
-                emitter: Emitter[NullWritable, A], out: A, windowStart: Date, isSet: Boolean): Unit = {
+  def reduce(fact: MutableFact, iter: JIterator[BytesWritable], mutator: FactByteMutator,
+             emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, windowStart: Date, isSet: Boolean): Unit = {
     var datetime = sentinelDateTime
     val kout = NullWritable.get()
     while(iter.hasNext) {

@@ -7,7 +7,6 @@ import com.ambiata.ivory.operation.extraction.chord.ChordArbitraries.ChordFacts
 import com.ambiata.ivory.operation.extraction.reduction.Reduction
 import com.ambiata.ivory.operation.extraction.squash.SquashArbitraries._
 import org.specs2.{ScalaCheck, Specification}
-import scala.collection.JavaConverters._
 
 class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -21,10 +20,10 @@ class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2
     )
 
     val facts = sf.facts.list.sortBy(fact => (fact.entity, fact.datetime.long))
-    val mutator = new MockFactMutator()
-    val state = new SquashReducerState(sf.date)
-    state.reduceAll(createMutableFact, createMutableFact, frs, mutator, facts.asJava.iterator, mutator, createMutableFact)
-    mutator.facts.toList ==== sf.expectedFactsWithCount.sortBy(_.entity)
+    MockFactMutator.run(facts) { (bytes, mutator, emitter, out) =>
+      val state = new SquashReducerState(sf.date)
+      state.reduceAll(createMutableFact, createMutableFact, frs, mutator, bytes, emitter, out)
+    } ==== sf.expectedFactsWithCount.sortBy(_.entity)
   })
 
   def squashChord = prop((cf: ChordFacts) => cf.facts.nonEmpty ==> {
@@ -44,9 +43,9 @@ class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2
       }
 
     val facts = cf.facts.sortBy(fact => (fact.entity, fact.datetime.long))
-    val mutator = new MockFactMutator()
-    val state = new SquashChordReducerState(cf.chord)
-    state.reduceAll(createMutableFact, createMutableFact, frs, mutator, facts.asJava.iterator, mutator, createMutableFact)
-    mutator.facts.toList ==== cf.expectedSquash
+    MockFactMutator.run(facts) { (bytes, mutator, emitter, out) =>
+      val state = new SquashChordReducerState(cf.chord)
+      state.reduceAll(createMutableFact, createMutableFact, frs, mutator, bytes, emitter, out)
+    } ==== cf.expectedSquash
   })
 }

@@ -15,7 +15,6 @@ import org.apache.hadoop.io.BytesWritable
 import org.specs2._
 import org.specs2.matcher.ThrownExpectations
 
-import scala.collection.JavaConverters._
 import scalaz.NonEmptyList
 import scalaz.scalacheck.ScalazArbitrary._
 
@@ -125,26 +124,23 @@ SnapshotReducerSpec
 
   def window = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
     val facts = SnapshotFacts(dts, fact, date)
-    val mutator = new MockFactMutator
-    SnapshotReducer.reduce(createMutableFact, facts.facts.asJava.iterator(), mutator, mutator,
-      createMutableFact, date, isSet = false)
-    mutator.facts.toList ==== facts.expected
+    MockFactMutator.run(facts.facts) { (bytes, mutator, emitter, out) =>
+      SnapshotReducer.reduce(createMutableFact, bytes, mutator, emitter, out, date, isSet = false)
+    } ==== facts.expected
   }).set(maxSize = 10)
 
   def windowPriority = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
     val facts = SnapshotFacts(dts, fact, date)
-    val mutator = new MockFactMutator
-    SnapshotReducer.reduce(createMutableFact, facts.factsDupe.asJava.iterator(), mutator, mutator,
-      createMutableFact, date, isSet = false)
-    mutator.facts.toList ==== facts.expected
+    MockFactMutator.run(facts.factsDupe) { (bytes, mutator, emitter, out) =>
+      SnapshotReducer.reduce(createMutableFact, bytes, mutator, emitter, out, date, isSet = false)
+    } ==== facts.expected
   }).set(maxSize = 10)
 
   def windowIsSet = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
     val facts = SnapshotFacts(dts, fact, date)
-    val mutator = new MockFactMutator
-    SnapshotReducer.reduce(createMutableFact, facts.factsDupe.asJava.iterator(), mutator, mutator,
-      createMutableFact, date, isSet = true)
-    mutator.facts.toList ==== facts.expectedSet
+    MockFactMutator.run(facts.factsDupe) { (bytes, mutator, emitter, out) =>
+      SnapshotReducer.reduce(createMutableFact, bytes, mutator, emitter, out, date, isSet = true)
+    } ==== facts.expectedSet
   }).set(maxSize = 10)
 
   /** We only care about the DateTime for reducing snapshots, so we reuse the same fact */

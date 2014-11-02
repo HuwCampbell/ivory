@@ -1,30 +1,31 @@
 package com.ambiata.ivory.mr
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.thrift._
 import com.ambiata.poacher.mr._
-import org.apache.hadoop.io.NullWritable
+import org.apache.hadoop.io.{BytesWritable, NullWritable}
+import java.util.{Iterator => JIterator}
+import scala.collection.JavaConverters._
 
-class MockFactMutator extends MutableStream[MutableFact, Fact] with PipeMutator[Fact, Fact] with Mutator[MutableFact, Fact]
-  with Emitter[NullWritable, Fact] {
+object MockFactMutator {
 
-  val facts = collection.mutable.ListBuffer[Fact]()
-
-  def from(in: Fact, fact: MutableFact): Unit = {
+  /** For testing MR code that deals with a stream of fact bytes */
+  def run(facts: List[Fact])(f: (JIterator[BytesWritable], FactByteMutator, Emitter[NullWritable, BytesWritable], BytesWritable) => Unit): List[Fact] = {
+    // When in Rome. This is what Hadoop does
+    val in = Writables.bytesWritable(4096)
     val serialiser = ThriftSerialiser()
-    // Be nice if there was a way in the thrift objects to do this "copy", but it doesn't matter
-    serialiser.fromBytesUnsafe(fact, serialiser.toBytes(in.toNamespacedThrift))
-    ()
-  }
-
-  def mutate(in: MutableFact, out: Fact): Unit =
-    pipe(in, out)
-
-  def pipe(in: Fact, out: Fact): Unit =
-    from(in, out.toNamespacedThrift)
-
-  def emit(kout: NullWritable, vout: Fact): Unit = {
-    facts += new NamespacedThriftFact(vout.toNamespacedThrift) with NamespacedThriftFactDerived
-    ()
+    val outFacts = new collection.mutable.ListBuffer[Fact]
+    val emitter = new Emitter[NullWritable, BytesWritable] {
+      def emit(key: NullWritable, value: BytesWritable): Unit = {
+        outFacts += serialiser.fromBytesViewUnsafe(createMutableFact, value.getBytes, 0, value.getLength)
+        ()
+      }
+    }
+    f(facts.toIterator.map {
+      fact =>
+        val bytes = serialiser.toBytes(fact.toNamespacedThrift)
+        in.set(bytes, 0, bytes.length)
+        in
+    }.asJava, new FactByteMutator, emitter, Writables.bytesWritable(4096))
+    outFacts.toList
   }
 }
