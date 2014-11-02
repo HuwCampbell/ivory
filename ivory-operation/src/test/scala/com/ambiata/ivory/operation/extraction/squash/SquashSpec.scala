@@ -35,9 +35,11 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
       _ <- RepositoryBuilder.createRepo(repo, dict, List(allFacts))
       res <- Snapshot.takeSnapshot(repo, sf.date, false)
       s     = res.meta
-      out   = repo.toIvoryLocation(Key(KeyName.unsafe("out")))
-      f <- SquashJob.squashFromSnapshotWith(repo, dict, s, out, SquashConfig.testing)(key =>
-             ResultT.ok(postProcess(valueFromSequenceFile[Fact](repo.toIvoryLocation(key).toHdfs).run(repo.scoobiConfiguration).toList)))
+      out   = repo.toIvoryLocation(Key(KeyName.unsafe("out"))): IvoryLocation
+      f <- SquashJob.squashFromSnapshotWith(repo, s, SquashConfig.testing)((key, _) =>
+        ResultT.safe(postProcess(valueFromSequenceFile[Fact](repo.toIvoryLocation(key).toHdfs)
+          .run(repo.scoobiConfiguration).toList) -> List(out))
+      )
       p <- IvoryLocation.readLines(out </> FileName.unsafe(".profile"))
     } yield (f, p.size > 0)
     } must beOkValue((

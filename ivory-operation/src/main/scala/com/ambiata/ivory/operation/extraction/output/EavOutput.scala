@@ -1,35 +1,12 @@
 package com.ambiata.ivory.operation.extraction.output
 
 import com.ambiata.ivory.core._, IvorySyntax._
-import com.ambiata.ivory.operation.extraction.Snapshot
-import com.ambiata.ivory.operation.extraction.squash.{SquashConfig, SquashJob}
-import com.ambiata.ivory.storage.metadata.Metadata._
-import com.ambiata.ivory.storage.metadata.SnapshotManifest
 import com.ambiata.mundane.control._
 
 /**
  * Takes a snapshot and stores as EAV text
  */
 object EavOutput {
-
-  /**
-   * Take a snapshot first then extract EAV text
-   */
-  def extractFromSnapshot(repository: Repository, output: IvoryLocation, delim: Char, tombstone: String,
-                          meta: SnapshotManifest, conf: SquashConfig): ResultTIO[Unit] = for {
-    dict <- Snapshot.dictionaryForSnapshot(repository, meta)
-    _    <- SquashJob.squashFromSnapshotWith(repository, dict, meta, output, conf)(key =>
-              extractWithDictionary(repository, repository.toIvoryLocation(key), output, dict, delim, tombstone))
-  } yield ()
-
-  /**
-   * Extract EAV text from a given snapshot (input) to output
-   */
-  def extractFromChord(repository: Repository, input: IvoryLocation, output: IvoryLocation, delim: Char, tombstone: String): ResultTIO[Unit] = for {
-    dictionary  <- latestDictionaryFromIvory(repository)
-    _            = NotImplemented.chordSquash()
-    _           <- extractWithDictionary(repository, input, output, dictionary.removeVirtualFeatures, delim, tombstone)
-  } yield ()
 
   /**
    *  HdfsRepository

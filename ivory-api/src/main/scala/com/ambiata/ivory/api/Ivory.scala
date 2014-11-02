@@ -77,8 +77,6 @@ object Ivory
   val Name = com.ambiata.ivory.core.Name
 
   val Extraction = com.ambiata.ivory.operation.extraction.Extraction
-  val SnapshotExtract = com.ambiata.ivory.operation.extraction.SnapshotExtract
-  val ChordExtract = com.ambiata.ivory.operation.extraction.ChordExtract
 
   type OutputFormat = com.ambiata.ivory.operation.extraction.output.OutputFormat
   val OutputFormat = com.ambiata.ivory.operation.extraction.output.OutputFormat

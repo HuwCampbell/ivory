@@ -28,7 +28,7 @@ object Chord {
    * Returns a newly created [[Key]] to the chord in thrift format, which can be fed into other jobs.
    * Consumers of this method should delete the returned path when finished with the result.
    */
-  def createChord(repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean, windowing: Boolean): ResultTIO[Key] = for {
+  def createChord(repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean, windowing: Boolean): ResultTIO[(Key, Dictionary)] = for {
     _                   <- checkThat(repository, repository.isInstanceOf[HdfsRepository], "Chord only works on HDFS repositories at this stage.")
     _                    = if (windowing) NotImplemented.chordWindow()
     entities            <- Entities.readEntitiesFrom(entitiesLocation)
@@ -44,7 +44,7 @@ object Chord {
    * Run the chord extraction on Hdfs, returning the [[Key]] where the chord was written to.
    */
   def runChord(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotManifest],
-               windowing: Boolean): ResultTIO[Key] = {
+               windowing: Boolean): ResultTIO[(Key, Dictionary)] = {
     for {
       hr                   <- downcast[Repository, HdfsRepository](repository, "Chord only works on HDFS repositories at this stage.")
       featureStoreSnapshot <- incremental.traverseU(SnapshotManifest.featureStoreSnapshot(repository, _))
@@ -52,7 +52,7 @@ object Chord {
       factsetGlobs         <- calculateGlobs(repository, store, entities.latestDate, featureStoreSnapshot)
       outputPath           <- Repository.tmpDir(repository)
       _                    <- job(hr, dictionary, factsetGlobs, outputPath, entities, featureStoreSnapshot, hr.codec, windowing).run(hr.configuration)
-    } yield outputPath
+    } yield (outputPath, dictionary)
   }
 
   def calculateGlobs(repository: Repository, featureStore: FeatureStore, latestDate: Date,
