@@ -77,6 +77,8 @@ object Dictionary {
 
 /** Represents a dictionary grouped by the concrete definitions */
 case class DictionaryConcrete(sources: Map[FeatureId, ConcreteGroup]) {
+  /** Return the indexes for just _concrete_ features in this dictionary */
+  lazy val byFeatureIndexReverse: Map[FeatureId, Int] = sources.keys.toList.sortBy(_.toString).zipWithIndex.toMap
   lazy val dictionary: Dictionary = Dictionary(sources.toList.flatMap {
     case (fid, cg) => cg.definition.toDefinition(fid) :: cg.virtual.map(v => v._2.toDefinition(v._1))
   })

@@ -20,6 +20,7 @@ Indexing count cross checks:
   By feature index contains same count as dictionary             $byFeatureIndexCount
   By feature index (reverse) contains same count as dictionary   $byFeatureIndexReverseCount
   By concrete index contains same count as dictionary            $byConcreteCount
+  By concrete feature index (reverse) is the same as dictionary  $byConcreteFeatureIndexReverse
 
 Filtering:
   By namespace leaves only definitions for that namespace        $filterNamespace
@@ -73,6 +74,11 @@ Exists:
   def byConcreteCount = prop((dictionary: Dictionary) =>
     dictionary.byConcrete.sources.map(1 + _._2.virtual.size).sum ==== dictionary.size
   )
+
+  def byConcreteFeatureIndexReverse = prop { (dictionary: Dictionary) =>
+    val conc = dictionary.byConcrete
+    conc.byFeatureIndexReverse == dictionary.forFeatureIds(conc.sources.keySet).byFeatureIndexReverse
+  }
 
   def filterNamespace = prop((dictionary: Dictionary, n: Int) => (n > 0 && dictionary.size > 0) ==> {
     val namespace = dictionary.definitions(n % dictionary.size).featureId.namespace
