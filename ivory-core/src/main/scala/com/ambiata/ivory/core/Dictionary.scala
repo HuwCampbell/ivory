@@ -76,5 +76,10 @@ object Dictionary {
 }
 
 /** Represents a dictionary grouped by the concrete definitions */
-case class DictionaryConcrete(sources: Map[FeatureId, ConcreteGroup])
+case class DictionaryConcrete(sources: Map[FeatureId, ConcreteGroup]) {
+  lazy val dictionary: Dictionary = Dictionary(sources.toList.flatMap {
+    case (fid, cg) => cg.definition.toDefinition(fid) :: cg.virtual.map(v => v._2.toDefinition(v._1))
+  })
+}
+
 case class ConcreteGroup(definition: ConcreteDefinition, virtual: List[(FeatureId, VirtualDefinition)])

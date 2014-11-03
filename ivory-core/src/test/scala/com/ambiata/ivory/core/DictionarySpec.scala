@@ -13,6 +13,7 @@ Indexing:
   By feature index (reverse) contains matching entries           $byFeatureIndexReverse
   By feature index matches reverse index                         $symmetricalFeatureIndex
   By concrete contains all features                              $byConcrete
+  By concrete is lossless                                        $byConcreteLossless
 
 Indexing count cross checks:
   By feature id contains same count as dictionary                $byFeatureIdCount
@@ -54,6 +55,10 @@ Exists:
 
   def byConcrete = prop((dictionary: Dictionary) =>
     dictionary.byConcrete.sources.flatMap(f => f._1 :: f._2.virtual.map(_._1)).toSet ==== dictionary.byFeatureId.keySet
+  )
+
+  def byConcreteLossless = prop((dictionary: Dictionary) =>
+    dictionary.byConcrete.dictionary.byFeatureId ==== dictionary.byFeatureId
   )
 
   def byFeatureIdCount = prop((dictionary: Dictionary) =>
