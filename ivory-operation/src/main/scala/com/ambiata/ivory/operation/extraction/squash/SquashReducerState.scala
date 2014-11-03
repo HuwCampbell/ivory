@@ -7,7 +7,7 @@ import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.Entities
 import com.ambiata.ivory.operation.extraction.reduction.Reduction
 import java.util.{Iterator => JIterator}
-import org.apache.hadoop.io.{BytesWritable, NullWritable}
+import org.apache.hadoop.io.{BytesWritable, NullWritable, Text}
 
 object EntityIterator {
 
@@ -44,12 +44,12 @@ object EntityIterator {
   }
 }
 
-trait SquashReducerState {
+trait SquashReducerState[A] {
   def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, mutator: FactByteMutator,
-               iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable): Unit
+               iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, A], out: A): Unit
 }
 
-class SquashReducerStateSnapshot(date: Date) extends SquashReducerState {
+class SquashReducerStateSnapshot(date: Date) extends SquashReducerState[BytesWritable] {
 
   def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, mutator: FactByteMutator,
                 iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable): Unit = {
@@ -72,7 +72,7 @@ class SquashReducerStateSnapshot(date: Date) extends SquashReducerState {
 /**
  * NOTE: Currently "dead code", but will soon be required for chord to function correctly.
  */
-class SquashReducerStateChord(chord: Entities) extends SquashReducerState {
+class SquashReducerStateChord(chord: Entities) extends SquashReducerState[BytesWritable] {
 
   class SquashChordReducerEntityState(var dates: Array[Int], var reducers: Int => List[(FeatureReduction, Date, Reduction)])
 
@@ -134,6 +134,49 @@ class SquashReducerStateChord(chord: Entities) extends SquashReducerState {
     buffer.append(delim)
     buffer.append(date.hyphenated)
     buffer.toString()
+  }
+}
+
+class SquashReducerStateDump(date: Date, delim: Char, missing: String) extends SquashReducerState[Text] {
+
+  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, mutator: FactByteMutator,
+                iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, Text], out: Text): Unit = {
+
+    // We only need this to emit the value
+    emitFact.setFact(new ThriftFact)
+
+    val reducers = reducerPool.compile(Array(date))(0)
+    val buffer = new StringBuilder
+    EntityIterator.iterate(fact, mutator, iter)((), new EntityIterator.EntityCallback[Unit] {
+      def initialise(state: SquashReducerEntityState): Unit =
+        SquashReducerState.clear(reducers)
+      def update(state: SquashReducerEntityState, fact: MutableFact, value: Unit): Unit = {
+        SquashReducerState.update(fact, reducers)
+        reducers.foreach {
+          case (fr, _, r) =>
+            buffer.clear()
+            buffer.append(fact.entity)
+            buffer.append(delim)
+            buffer.append(fr.ns)
+            buffer.append(delim)
+            buffer.append(fr.source)
+            buffer.append(delim)
+            // Output the time first so it's easier to eyeball the original and reduced values
+            buffer.append(fact.datetime.localIso8601)
+            buffer.append(delim)
+            buffer.append(Value.toStringWithStruct(fact.value, missing))
+            buffer.append(delim)
+            // Update the fact with the current reduction value
+            val value = r.save
+            emitFact.getFact.setValue(value)
+            buffer.append(if (value != null) Value.toStringWithStruct(emitFact.value, missing) else missing)
+            out.set(buffer.toString())
+            emitter.emit(SquashReducerState.kout, out)
+        }
+      }
+      // Nothing to do here, we emit each fact/feature as we go
+      def emit(state: SquashReducerEntityState, value: Unit): Unit = ()
+    })
   }
 }
 

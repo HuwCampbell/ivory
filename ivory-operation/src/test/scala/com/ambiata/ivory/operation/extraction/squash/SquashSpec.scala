@@ -12,27 +12,21 @@ import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
-
-import scalaz.{Value => _, _}, Scalaz._
+import scalaz.{Name => _, _}, Scalaz._
 
 class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is = s2"""
 
   A count of the facts can be squashed out of a snapshot      $count  ${tag("mr")}
+  A dump of reductions can be squashed out of a snapshot      $dump   ${tag("mr")}
 """
 
   def count = prop((sf: SquashFactsMultiple) => {
-    val dict = sf.facts.map(_.dict).foldLeft(Dictionary.empty) {
-      // Set the expression for all features to count for simplicity, we test all the expression logic elsewhere
-      case (d, vd) => d append vd.withExpression(Count).dictionary
-    }
-    val allFacts = sf.facts.list.flatMap(_.facts.list)
-
     def postProcess(results: List[Fact]): List[Fact] =
       results.sortBy(fact => (fact.entity, fact.featureId))
 
     val expectedFacts = sf.facts.list.flatMap(_.expectedFactsWithCount)
     RepositoryBuilder.using { repo => for {
-      _ <- RepositoryBuilder.createRepo(repo, dict, List(allFacts))
+      _ <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
       res <- Snapshots.takeSnapshot(repo, sf.date)
       s     = res.meta
       out   = repo.toIvoryLocation(Key(KeyName.unsafe("out"))): IvoryLocation
@@ -46,5 +40,23 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
       postProcess(expectedFacts),
       true
     ))
+  }).set(minTestsOk = 1, maxDiscardRatio = 10)
+
+  def dump = prop((sf: SquashFactsMultiple) => {
+    // Take a subset of the entities and virtual features (one from each SquashFacts)
+    // Note that it's possible to generate the same entity for different features
+    val entities: Map[String, List[FeatureId]] = sf.facts.list
+      .flatMap(f => f.facts.list.headOption.map(_.entity) tuple f.dict.cg.virtual.headOption.map(_._1))
+      .groupBy(_._1).mapValues(_.map(_._2))
+    RepositoryBuilder.using { repo => for {
+      _    <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
+      res  <- Snapshots.takeSnapshot(repo, sf.date)
+      out   = repo.toIvoryLocation(Key(KeyName.unsafe("dump")))
+      _    <- SquashDumpJob.dump(repo, res.meta.snapshotId, out, entities.values.flatten.toList, entities.keys.toList)
+      dump <- IvoryLocation.readLines(out).map(_.map(_.split("\\|", -1) match {
+        case Array(e, ns, a, _, _, _) =>  e -> FeatureId(Name.unsafe(ns), a)
+      }).toSet)
+    } yield dump
+    } must beOkValue(sf.allFacts.flatMap(f => entities.get(f.entity).toList.flatten.map(f.entity ->)).toSet)
   }).set(minTestsOk = 1, maxDiscardRatio = 10)
 }

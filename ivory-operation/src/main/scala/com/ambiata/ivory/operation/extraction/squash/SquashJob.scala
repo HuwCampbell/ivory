@@ -58,7 +58,8 @@ object SquashJob {
     inPath =  hr.toIvoryLocation(input).toHdfsPath
     // This is about the best we can do at the moment, until we have more size information about each feature
     rs     <- ReducerSize.calculate(inPath, 1.gb).run(hr.configuration)
-    prof   <- run(job._1, job._2, rs, dictionary.byConcrete, inPath, hr.toIvoryLocation(key).toHdfsPath, hr.codec, conf)
+    _      <- initJob(job._1, inPath)
+    prof   <- run(job._1, job._2, rs, dictionary, hr.toIvoryLocation(key).toHdfsPath, hr.codec, conf, latest = true)
     a      <- f(key)
     _      <- repository.store.deleteAll(key)
     _      <- out.traverseU(output => IvoryLocation.writeUtf8Lines(output </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof)))
@@ -80,10 +81,23 @@ object SquashJob {
     (job, ctx)
   }
 
-  def run(job: Job, ctx: MrContext, reducers: Int, dictionary: DictionaryConcrete, input: Path, output: Path,
-          codec: Option[CompressionCodec], squashConf: SquashConfig): ResultTIO[SquashStats] = {
+  def initJob(job: Job, input: Path): ResultTIO[Unit] = ResultT.safe[IO, Unit] {
+    // reducer
+    job.setOutputKeyClass(classOf[NullWritable])
+    job.setOutputValueClass(classOf[BytesWritable])
 
-    job.setJarByClass(classOf[SquashReducer])
+    // input
+    println(s"Input path: $input")
+    MultipleInputs.addInputPath(job, input, classOf[SequenceFileInputFormat[_, _]], classOf[SquashMapper])
+
+    // output
+    job.setOutputFormatClass(classOf[SequenceFileOutputFormat[_, _]])
+  }
+
+  def run(job: Job, ctx: MrContext, reducers: Int, dict: Dictionary, output: Path, codec: Option[CompressionCodec],
+          squashConf: SquashConfig, latest: Boolean): ResultTIO[SquashStats] = {
+
+    job.setJarByClass(classOf[SquashPartitioner])
     job.setJobName(ctx.id.value)
 
     // map
@@ -95,18 +109,9 @@ object SquashJob {
     job.setGroupingComparatorClass(classOf[SquashWritable.GroupingByFeatureId])
     job.setSortComparatorClass(classOf[SquashWritable.ComparatorFeatureId])
 
-    // reducer
     job.setNumReduceTasks(reducers)
-    job.setOutputKeyClass(classOf[NullWritable])
-    job.setOutputValueClass(classOf[BytesWritable])
 
-    // input
-    println(s"Input path: $input")
-    MultipleInputs.addInputPath(job, input, classOf[SequenceFileInputFormat[_, _]], classOf[SquashMapper])
-
-    // output
     val tmpout = new Path(ctx.output, "squash")
-    job.setOutputFormatClass(classOf[SequenceFileOutputFormat[_, _]])
     FileOutputFormat.setOutputPath(job, tmpout)
 
     // compression
@@ -116,8 +121,9 @@ object SquashJob {
     })
 
     // cache / config initialization
+    val dictionary = dict.byConcrete
     job.getConfiguration.setInt(Keys.ProfileMod, squashConf.profileSampleRate)
-    val (featureIdLookup, reductionLookup) = dictToLookup(dictionary)
+    val (featureIdLookup, reductionLookup) = dictToLookup(dictionary, latest)
     ctx.thriftCache.push(job, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
     ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,
       SquashReducerLookup.create(dictionary, featureIdLookup, reducers))
@@ -144,21 +150,23 @@ object SquashJob {
     }
   }
 
-  def dictToLookup(dictionary: DictionaryConcrete): (FeatureIdLookup, FeatureReductionLookup) = {
+  def dictToLookup(dictionary: DictionaryConcrete, latest: Boolean): (FeatureIdLookup, FeatureReductionLookup) = {
     val featureIdLookup = new FeatureIdLookup
     val reductionLookup = new FeatureReductionLookup
-    dictionary.sources.zipWithIndex.foreach { case ((fid, cg), i) =>
-      featureIdLookup.putToIds(fid.toString, i)
-      reductionLookup.putToReductions(i, concreteGroupToReductions(fid, cg).asJava)
+    dictionary.sources.foreach { case (fid, cg) =>
+      dictionary.byFeatureIndexReverse.get(fid).map { i =>
+        featureIdLookup.putToIds(fid.toString, i)
+        reductionLookup.putToReductions(i, concreteGroupToReductions(fid, cg, latest).asJava)
+      }
     }
     (featureIdLookup, reductionLookup)
   }
 
-  def concreteGroupToReductions(fid: FeatureId, cg: ConcreteGroup): List[FeatureReduction] = {
+  def concreteGroupToReductions(fid: FeatureId, cg: ConcreteGroup, latest: Boolean): List[FeatureReduction] = {
     // We use 'latest' reduction to output the concrete feature as well
-    val cr = reductionToThriftExp(fid, Query.empty, cg.definition.encoding, None)
+    val cr = latest.option(reductionToThriftExp(fid, Query.empty, cg.definition.encoding, None))
     val vrs = cg.virtual.map((reductionToThrift(cg.definition.encoding) _).tupled)
-    cr :: vrs
+    cr.toList ++ vrs
   }
 
   def reductionToThrift(encoding: Encoding)(fid: FeatureId, vd: VirtualDefinition): FeatureReduction =

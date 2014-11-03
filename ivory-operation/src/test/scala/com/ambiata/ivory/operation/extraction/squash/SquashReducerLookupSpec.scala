@@ -16,7 +16,7 @@ class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s
   def lookup = prop((d: VirtualDictionaryWindow, d2: Dictionary, s: Short, e: Int) => {
     val reducers = s & (Short.MaxValue - 1)
     val dict = (d.vd.dictionary append d2).byConcrete
-    val (lookup, _) = SquashJob.dictToLookup(dict)
+    val (lookup, _) = SquashJob.dictToLookup(dict, latest = true)
     val create = SquashReducerLookup.create(dict, lookup, reducers)
     val lookupV = create.reducers.get(lookup.ids.get(d.vdict.vd.source.toString))
     // Just a santity test - we should do better though

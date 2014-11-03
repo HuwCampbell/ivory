@@ -25,3 +25,6 @@ cat "${TARGET}/pivot/.profile"
 
 $IVORY chord -o "dense:psv=${TARGET}/chord" --entities "${INPUT}/chord.psv" --sample-rate 1
 diff_test "${DIR}/expected/chord.psv" "${TARGET}/chord/part-r-00000"
+
+$IVORY debug-dump-reduction -e "ID00000000" -e "ID00000001" -f "halibut:sum" -f "expression:count_by" -o "${TARGET}/dump" -s 00000001
+diff_test_mr "${DIR}/expected/dump.psv" "${TARGET}/dump/"
