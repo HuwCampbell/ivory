@@ -7,7 +7,7 @@ import com.ambiata.ivory.storage.control.IvoryRead
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.parse.ListParser.string
-import com.ambiata.mundane.parse.{Delimited, ListParser}
+import com.ambiata.mundane.parse.Delimited
 
 import scalaz.{Name => _, _}, Scalaz._, effect._
 
@@ -39,7 +39,7 @@ object renameFacts extends IvoryApp {
   } yield List(s"Successfully renamed ${stats._3.facts} facts to new factset ${stats._1.render}")})
 
   def createMapping(mapping: List[(String, String)]): String \/ RenameMapping =
-    mapping.traverseU { case (f, t) => parseFeatureId(f) tuple parseFeatureId(t) }.map(RenameMapping.apply)
+    mapping.traverseU { case (f, t) => FeatureId.parse(f) tuple FeatureId.parse(t) }.map(RenameMapping.apply)
 
   def parseBatchFile(path: String, conf: IvoryConfiguration): ResultTIO[RenameMapping] = for {
     location <- IvoryLocation.fromUri(path, conf)
@@ -52,12 +52,7 @@ object renameFacts extends IvoryApp {
   def parseLine(line: String): String \/ (FeatureId, FeatureId) = {
     for {
       l <- (string tuple string).run(Delimited.parsePsv(line)).disjunction
-      m <- parseFeatureId(l._1) tuple parseFeatureId(l._2)
+      m <- FeatureId.parse(l._1) tuple FeatureId.parse(l._2)
     } yield m
   }
-
-  def parseFeatureId(featureId: String): String \/ FeatureId =
-    (string tuple string).run(Delimited.parseRow(featureId, ':')).disjunction.flatMap {
-      case (ns, n) => Name.nameFromStringDisjunction(ns).map(FeatureId(_, n))
-    }
 }
