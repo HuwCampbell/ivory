@@ -26,8 +26,8 @@ case class Dictionary(definitions: List[Definition]) {
   /** Reverse index this dictionary by an integer feature index,
       this is the inverse of byFeatureIndex and the same warnings
       apply. */
-  val byFeatureIndexReverse: Map[Definition, Int] =
-    sortedByFeatureId.zipWithIndex.toMap
+  val byFeatureIndexReverse: Map[FeatureId, Int] =
+    sortedByFeatureId.map(_.featureId).zipWithIndex.toMap
 
   /** Create a `Dictionary` from `this` only containing features in the specified namespace. */
   def forNamespace(namespace: Name): Dictionary =

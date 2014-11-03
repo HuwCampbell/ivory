@@ -45,11 +45,11 @@ Exists:
 
   def byFeatureIndexReverse = prop((dictionary: Dictionary) =>
     seqToResult(dictionary.definitions.map(d =>
-      dictionary.byFeatureIndexReverse.get(d) must beSome)))
+      dictionary.byFeatureIndexReverse.get(d.featureId) must beSome)))
 
   def symmetricalFeatureIndex = prop((dictionary: Dictionary) =>
     seqToResult(dictionary.definitions.map(d =>
-      dictionary.byFeatureIndexReverse.get(d).flatMap(n =>
+      dictionary.byFeatureIndexReverse.get(d.featureId).flatMap(n =>
        dictionary.byFeatureIndex.get(n)) must beSome(d))))
 
   def byConcrete = prop((dictionary: Dictionary) =>
