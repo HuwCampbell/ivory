@@ -8,6 +8,7 @@ import com.ambiata.ivory.api.Ivory.{Date => _, _}
 import com.ambiata.ivory.operation.extraction.squash.SquashJob
 import com.ambiata.ivory.storage.control.IvoryRead
 import com.ambiata.ivory.storage.metadata._
+import com.ambiata.mundane.control._
 import org.joda.time.LocalDate
 import java.util.{Calendar, UUID}
 
@@ -53,9 +54,9 @@ object snapshot extends IvoryApp {
         of   <- Extract.parse(configuration, c.formats)
         res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental)
         meta = res.meta
-        _    <- SquashJob.squashFromSnapshotWith(repo, meta, c.squash) { (input, dictionary) =>
+        _    <- ResultT.when(of.outputs.nonEmpty, SquashJob.squashFromSnapshotWith(repo, meta, c.squash) { (input, dictionary) =>
           Extraction.extract(of, repo.toIvoryLocation(input), dictionary).run(IvoryRead.prod(repo)).map(_ -> of.outputs.map(_._2))
-        }
+        })
       } yield List(
         banner,
         s"Output path: ${meta.snapshotId}",
