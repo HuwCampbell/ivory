@@ -1,7 +1,6 @@
 package com.ambiata.ivory.storage.plan
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.data.Identifier
 
 sealed trait Dataset
 

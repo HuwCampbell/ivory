@@ -1,8 +1,8 @@
-package com.ambiata.ivory.data
+package com.ambiata.ivory.core
 
 import org.specs2._
 import org.scalacheck._, Arbitrary._
-import com.ambiata.ivory.data.Arbitraries._
+import com.ambiata.ivory.core.Arbitraries._
 
 import scalaz._, Scalaz._
 import argonaut._, Argonaut._

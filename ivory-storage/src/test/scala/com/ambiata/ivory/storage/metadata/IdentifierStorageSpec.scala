@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.metadata
 
-import com.ambiata.ivory.data.Identifier
+import com.ambiata.ivory.core.Identifier
 import com.ambiata.ivory.core.TemporaryLocations._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._

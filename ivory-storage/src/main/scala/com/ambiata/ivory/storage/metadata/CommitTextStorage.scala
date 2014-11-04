@@ -4,7 +4,6 @@ package metadata
 import scalaz._, Scalaz._, effect._
 
 import com.ambiata.mundane.control._
-import com.ambiata.ivory.data._
 import com.ambiata.ivory.core._
 
 // 2 lines.

@@ -2,7 +2,6 @@ package com.ambiata.ivory.storage
 package metadata
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.data.Identifier
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import scodec.bits.ByteVector

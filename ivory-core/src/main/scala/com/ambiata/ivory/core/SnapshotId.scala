@@ -1,7 +1,5 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.ivory.data.Identifier
-
 import scalaz._, Scalaz._
 import argonaut._, Argonaut._
 
