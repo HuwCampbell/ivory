@@ -29,8 +29,6 @@ case class SnapshotJobSummary[A](
  * Snapshots are used to store the latest feature values at a given date.
  * This can be done incrementally in order to be fast.
  *
- * Snapshots are also used to extract chords and pivots.
- *
  * After each snapshot is taken, metadata is saved to know exactly:
  *
  *  - when the snapshot was taken

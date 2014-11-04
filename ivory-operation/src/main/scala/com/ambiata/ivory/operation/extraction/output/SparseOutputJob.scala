@@ -14,16 +14,16 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat
 
 /**
- * This is a hand-coded MR job to squeeze the most out of EAV performance.
+ * This is a hand-coded MR job to squeeze the most out of sparse performance.
  */
-object EavOutputJob {
+object SparseOutputJob {
   def run(conf: Configuration, dictionary: Dictionary, input: Path, output: Path, missing: String,
           delimiter: Char, codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
-    val ctx = MrContext.newContext("ivory-eav", job)
+    val ctx = MrContext.newContext("ivory-sparse", job)
 
-    job.setJarByClass(classOf[EavOutputMapper])
+    job.setJarByClass(classOf[SparseOutputMapper])
     job.setJobName(ctx.id.value)
 
     // input
@@ -31,7 +31,7 @@ object EavOutputJob {
     FileInputFormat.addInputPaths(job, input.toString)
 
     // map
-    job.setMapperClass(classOf[EavOutputMapper])
+    job.setMapperClass(classOf[SparseOutputMapper])
     job.setMapOutputKeyClass(classOf[NullWritable])
     job.setMapOutputValueClass(classOf[Text])
 
@@ -79,7 +79,7 @@ object EavOutputJob {
  *
  * The output is EAV text
  */
-class EavOutputMapper extends Mapper[NullWritable, BytesWritable, NullWritable, Text] {
+class SparseOutputMapper extends Mapper[NullWritable, BytesWritable, NullWritable, Text] {
   /** Thrift deserializer. */
   val serializer = ThriftSerialiser()
 
@@ -103,8 +103,8 @@ class EavOutputMapper extends Mapper[NullWritable, BytesWritable, NullWritable, 
 
   override def setup(context: Mapper[NullWritable, BytesWritable, NullWritable, Text]#Context): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    missing = context.getConfiguration.get(EavOutputJob.Keys.Missing)
-    delimiter = context.getConfiguration.get(EavOutputJob.Keys.Delimiter).charAt(0)
+    missing = context.getConfiguration.get(SparseOutputJob.Keys.Missing)
+    delimiter = context.getConfiguration.get(SparseOutputJob.Keys.Delimiter).charAt(0)
   }
 
   /** Read and pass through, extracting entity and feature id for sort phase. */

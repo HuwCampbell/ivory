@@ -12,10 +12,10 @@ object Extraction {
     formats.outputs.traverse {
       case (DenseFormat(delim), output) =>
         println(s"Storing extracted data '$input' to '${output.show}'")
-        PivotOutput.createPivotWithDictionary(repository, input, output, dictionary, delim, formats.missingValue)
+        DenseOutput.createWithDictionary(repository, input, output, dictionary, delim, formats.missingValue)
       case (SparseFormat(delim), output) =>
         println(s"Storing extracted data '$input' to '${output.show}'")
-        EavOutput.extractWithDictionary(repository, input, output, dictionary, delim, formats.missingValue)
+        SparseOutput.extractWithDictionary(repository, input, output, dictionary, delim, formats.missingValue)
     }.void
   )
 }
