@@ -39,7 +39,7 @@ case class SnapshotJobSummary[A](
  *
  * Note that in between 2 snapshots, the FeatureStore might have changed
  */
-object Snapshot {
+object Snapshots {
   /**
    * Take a new snapshot as at the specified date.
    */

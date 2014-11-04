@@ -181,7 +181,7 @@ object SnapshotManifest {
 
 /**
  * Representation of Snapshot metadata stored on disk
- **/
+ */
 case class NewSnapshotManifest(
   snapshotId: SnapshotId,
   formatVersion: SnapshotManifestVersion,

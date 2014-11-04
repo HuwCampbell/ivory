@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.operation.extraction.Snapshot
+import com.ambiata.ivory.operation.extraction.Snapshots
 import com.ambiata.ivory.operation.extraction.squash.SquashArbitraries._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.storage.legacy._
@@ -33,7 +33,7 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
     val expectedFacts = sf.facts.list.flatMap(_.expectedFactsWithCount)
     RepositoryBuilder.using { repo => for {
       _ <- RepositoryBuilder.createRepo(repo, dict, List(allFacts))
-      res <- Snapshot.takeSnapshot(repo, sf.date)
+      res <- Snapshots.takeSnapshot(repo, sf.date)
       s     = res.meta
       out   = repo.toIvoryLocation(Key(KeyName.unsafe("out"))): IvoryLocation
       f <- SquashJob.squashFromSnapshotWith(repo, s, SquashConfig.testing)((key, _) =>
