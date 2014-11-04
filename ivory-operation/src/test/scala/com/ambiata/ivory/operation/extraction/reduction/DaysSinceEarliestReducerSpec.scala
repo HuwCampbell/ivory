@@ -9,7 +9,7 @@ class DaysSinceEarliestReducerSpec extends Specification with ScalaCheck { def i
 """
 
   def daysSinceEarliest = prop((fs: List[Fact]) => {
-    val facts = fs.sortBy(_.date).filter(!_.isTombstone)
+    val facts = fs.filter(!_.isTombstone).sortBy(_.date)
     val dateOffsets = DateOffsets.compact(
       facts.headOption.map(_.date).getOrElse(Date.minValue),
       facts.lastOption.map(_.date).getOrElse(Date.minValue)

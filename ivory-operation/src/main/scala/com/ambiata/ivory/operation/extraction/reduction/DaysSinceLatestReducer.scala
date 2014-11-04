@@ -5,23 +5,23 @@ import com.ambiata.ivory.core.thrift.ThriftFactValue
 
 class DaysSinceLatestReducer(dates: DateOffsets) extends Reduction {
 
-  var date = Date.minValue
-  var tombstone = true
+  val sentinelDate = Date.unsafeFromInt(-1)
+  var date = sentinelDate
   val value = new ThriftFactValue
 
   def clear(): Unit = {
     value.clear()
-    date = Date.minValue
-    tombstone = true
+    date = sentinelDate
   }
 
   def update(fv: Fact): Unit = {
-    date = fv.date
-    tombstone = fv.isTombstone
+    // FIX It shouldn't be possible to check for tombstone in sets
+    if (!fv.isTombstone)
+      date = fv.date
   }
 
   def save: ThriftFactValue =
-    if (!tombstone) {
+    if (date != sentinelDate) {
       value.setI(dates.untilEnd(date).value)
       value
     } else null
