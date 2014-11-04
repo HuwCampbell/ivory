@@ -12,7 +12,6 @@ import org.apache.hadoop.fs.Path
 import org.joda.time.DateTimeZone
 import EavtTextImporter._
 import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
-import IvorySyntax._
 
 /**
  * Import a text file, formatted as an EAVT file, into ivory.
@@ -29,8 +28,8 @@ case class EavtTextImporter(repository: Repository,
     val errorKey = Repository.errors / factsetId.asKeyName
 
     for {
-      hr            <- downcast[Repository, HdfsRepository](repository, "Repository must be HDFS")
-      inputLocation <- downcast[IvoryLocation, HdfsIvoryLocation](input, "The input must be HDFS")
+      hr            <- repository.asHdfsRepository[IO]
+      inputLocation <- input.asHdfsIvoryLocation[IO]
       dictionary    <- latestDictionaryFromIvory(repository)
       inputPath     =  inputLocation.toHdfsPath
       errorPath     =  hr.toIvoryLocation(errorKey).toHdfsPath

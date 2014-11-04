@@ -10,11 +10,11 @@ import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.notion.core._
 import com.ambiata.poacher.hdfs._
 import org.apache.hadoop.io.compress._
-import scalaz.{Store => _, _}, Scalaz._
+import scalaz.{Store => _, _}, Scalaz._, effect.IO
 
 /**
  * A Chord is the extraction of feature values for some entities at some dates
- * 
+ *
  * Use the latest snapshot (if available) to get the latest values
  */
 object Chord {
@@ -46,11 +46,13 @@ object Chord {
   def runChord(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotManifest],
                windowing: Boolean): ResultTIO[(Key, Dictionary)] = {
     for {
-      hr                   <- downcast[Repository, HdfsRepository](repository, "Chord only works on HDFS repositories at this stage.")
       featureStoreSnapshot <- incremental.traverseU(SnapshotManifest.featureStoreSnapshot(repository, _))
       dictionary           <- latestDictionaryFromIvory(repository)
       factsetGlobs         <- calculateGlobs(repository, store, entities.latestDate, featureStoreSnapshot)
       outputPath           <- Repository.tmpDir(repository)
+
+      /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
+      hr                   <- repository.asHdfsRepository[IO]
       _                    <- job(hr, dictionary, factsetGlobs, outputPath, entities, featureStoreSnapshot, hr.codec, windowing).run(hr.configuration)
     } yield (outputPath, dictionary)
   }

@@ -1,7 +1,5 @@
 package com.ambiata.ivory.operation.extraction
 
-import org.apache.commons.logging.LogFactory
-
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.fact._
@@ -11,17 +9,15 @@ import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.poacher.hdfs._
-import com.ambiata.poacher.scoobi._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
-import IvorySyntax._
 import scalaz.{DList => _, _}, Scalaz._, effect._
 
 /**
  * Contains information that would be handy to return to the user of the CLI or
  * Ivory "as a library" that doesnt have to go in the snapshot metadata for persistence
  * in the repository itself.
- **/
+ */
 case class SnapshotJobSummary[A](
     meta: A
   , incremental: Option[SnapshotManifest]) {
@@ -44,8 +40,6 @@ case class SnapshotJobSummary[A](
  * Note that in between 2 snapshots, the FeatureStore might have changed
  */
 object Snapshot {
-  private implicit val logger = LogFactory.getLog("ivory.operation.Snapshot")
-
   /**
    * Take a new snapshot
    * If incremental is true, take a incremental snapshot (based off the previous one), unless the previous one is up to date
@@ -83,18 +77,19 @@ object Snapshot {
   /**
    * create a new snapshot at a given date, using the previous snapshot data if present
    */
-  def createSnapshot(repo: Repository, date: Date): Option[SnapshotManifest] => ResultTIO[SnapshotJobSummary[NewSnapshotManifest]] = (previousSnapshot: Option[SnapshotManifest]) =>
+  def createSnapshot(repository: Repository, date: Date): Option[SnapshotManifest] => ResultTIO[SnapshotJobSummary[NewSnapshotManifest]] = (previousSnapshot: Option[SnapshotManifest]) =>
     for {
-      newSnapshot <- NewSnapshotManifest.createSnapshotManifest(repo, date)
-      _           <- NewSnapshotManifest.getFeatureStoreId(repo, newSnapshot).flatMap((featureStoreId: FeatureStoreId) => runSnapshot(repo, newSnapshot, previousSnapshot, date, newSnapshot.snapshotId).info(s"""
-                                 | Running extractor on:
-                                 |
-                                 | Repository     : ${repo}
-                                 | Feature Store  : ${featureStoreId.render}
-                                 | Date           : ${date.hyphenated}
-                                 | Output         : ${Repository.snapshot(newSnapshot.snapshotId).name}
-                                 |
-                                 """.stripMargin))
+      newSnapshot <- NewSnapshotManifest.createSnapshotManifest(repository, date)
+      _           <- NewSnapshotManifest.getFeatureStoreId(repository, newSnapshot).flatMap((featureStoreId: FeatureStoreId) => for {
+        _ <- runSnapshot(repository, newSnapshot, previousSnapshot, date, newSnapshot.snapshotId)
+        _ <- ResultT.fromIO(IO.putStrLn(s"""| Running extractor on:
+                                            |
+                                            | Repository     : ${repository.root.show}
+                                            | Feature Store  : ${featureStoreId.render}
+                                            | Date           : ${date.hyphenated}
+                                            | Output         : ${Repository.snapshot(newSnapshot.snapshotId).name}
+                                            |""".stripMargin))
+      } yield ())
     } yield SnapshotJobSummary(newSnapshot, previousSnapshot)
 
   /**
@@ -102,11 +97,13 @@ object Snapshot {
    */
   def runSnapshot(repository: Repository, newSnapshot: NewSnapshotManifest, previousSnapshot: Option[SnapshotManifest], date: Date, newSnapshotId: SnapshotId): ResultTIO[Unit] =
     for {
-      hr              <- downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'")
-      output          =  hr.toIvoryLocation(Repository.snapshot(newSnapshot.snapshotId))
       dictionary      <- latestDictionaryFromIvory(repository)
       windows         =  SnapshotWindows.planWindow(dictionary, date)
       newFactsetGlobs <- calculateGlobs(repository, dictionary, windows, newSnapshot, previousSnapshot, date)
+
+      /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
+      hr              <- repository.asHdfsRepository[IO]
+      output          =  hr.toIvoryLocation(Repository.snapshot(newSnapshot.snapshotId))
       _               <- job(hr, dictionary, previousSnapshot, newFactsetGlobs, date, output.toHdfsPath, windows, hr.codec).run(hr.configuration)
       _               <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(newSnapshot.snapshotId) / ".dictionary", dictionary)
       _               <- NewSnapshotManifest.save(repository, newSnapshot)
@@ -142,14 +139,6 @@ object Snapshot {
       _               <- Hdfs.log(s"Number of reducers: $reducers")
       _               <- Hdfs.safe(SnapshotJob.run(repository, conf, dictionary, reducers.toInt, snapshotDate, factsetsGlobs, outputPath, windows, incrementalPath, codec))
     } yield ()
-
-  /** This is exposed through the external API */
-  def snapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Path] = for {
-    sc         <- ScoobiAction.scoobiConfiguration
-    repository <- ScoobiAction.fromResultTIO(Repository.fromUri(repoPath.toString, IvoryConfiguration.fromScoobiConfiguration(sc)))
-    hr         <- ScoobiAction.fromResultTIO(downcast[Repository, HdfsRepository](repository, s"Snapshot only works with Hdfs repositories currently, got '$repository'"))
-    snap       <- ScoobiAction.fromResultTIO(takeSnapshot(hr, date, incremental).map(res => hr.toIvoryLocation(Repository.snapshot(res.meta.snapshotId)).toHdfsPath))
-  } yield snap
 
   def dictionaryForSnapshot(repository: Repository, meta: SnapshotManifest): ResultTIO[Dictionary] =
     meta.storeOrCommitId.b.cata(

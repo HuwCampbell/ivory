@@ -28,6 +28,17 @@ trait IvoryLocation {
   def </>(other: FilePath):      SelfType = map(_ </> other.toDirPath)
   def </>(other: DirPath):       SelfType = map(_ </> other)
   def </>(name: FileName):       SelfType = map(_ </> name)
+
+  /** This is far from ok, but is acting as a magnet for broken code that depends on this
+      nonsense casting. This will be removed with s3 changes. */
+  def asHdfsIvoryLocation[F[_]: Monad]: ResultT[F, HdfsIvoryLocation] =
+    this match {
+      case h @ HdfsIvoryLocation(_, _, _, _) =>
+        type ResultF[A] = ResultT[F, A]
+        h.pure[ResultF]
+      case _ =>
+        ResultT.fail[F, HdfsIvoryLocation]("This ivory operation currently only supports hdfs locations.")
+    }
 }
 
 case class HdfsIvoryLocation(location: HdfsLocation, configuration: Configuration, scoobiConfiguration: ScoobiConfiguration, codec: Option[CompressionCodec]) extends IvoryLocation {
@@ -138,9 +149,9 @@ object IvoryLocation {
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.exists(new Path(path)).run(conf)
   }
 
-  def writeUtf8Lines(location: IvoryLocation, lines: List[String]): ResultTIO[Unit] = 
+  def writeUtf8Lines(location: IvoryLocation, lines: List[String]): ResultTIO[Unit] =
     writeUtf8(location, Lists.prepareForFile(lines))
-  
+
   def writeUtf8(location: IvoryLocation, string: String): ResultTIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Files.write(l.filePath, string)
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).put(string).executeT(s3Client).void

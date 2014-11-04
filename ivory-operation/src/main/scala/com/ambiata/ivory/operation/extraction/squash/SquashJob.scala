@@ -17,9 +17,8 @@ import org.apache.hadoop.io.{BytesWritable, NullWritable}
 import org.apache.hadoop.mapreduce.Job
 import org.apache.hadoop.mapreduce.lib.input.{MultipleInputs, SequenceFileInputFormat}
 import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, SequenceFileOutputFormat}
-import IvorySyntax._
 import scala.collection.JavaConverters._
-import scalaz._, Scalaz._
+import scalaz._, Scalaz._, effect.IO
 
 object SquashJob {
 
@@ -53,7 +52,7 @@ object SquashJob {
     if (dictionary.hasVirtual) {
       for {
         key    <- Repository.tmpDir(repository)
-        hr     <- downcast[Repository, HdfsRepository](repository, s"Squash only works with Hdfs repositories currently, got '$repository'")
+        hr     <- repository.asHdfsRepository[IO]
         inPath =  hr.toIvoryLocation(input).toHdfsPath
         ns     =  dictionary.byFeatureId.groupBy(_._1.namespace).keys.toList
         // This is about the best we can do at the moment, until we have more size information about each feature
