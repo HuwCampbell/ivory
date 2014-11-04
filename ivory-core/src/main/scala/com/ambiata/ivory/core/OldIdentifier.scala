@@ -1,4 +1,4 @@
-package com.ambiata.ivory.data
+package com.ambiata.ivory.core
 
 import com.ambiata.ivory.reflect.MacrosCompat
 import com.ambiata.notion.core._

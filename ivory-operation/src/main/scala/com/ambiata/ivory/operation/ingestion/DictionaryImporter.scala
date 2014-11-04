@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.data.Identifier
+import com.ambiata.ivory.core.Identifier
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control._
 import scalaz._, Scalaz._

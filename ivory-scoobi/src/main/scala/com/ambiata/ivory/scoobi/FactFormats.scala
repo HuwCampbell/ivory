@@ -2,7 +2,7 @@ package com.ambiata.ivory.scoobi
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.data._
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.WireFormats.ShortWireFormat
 import com.nicta.scoobi._, Scoobi._
 

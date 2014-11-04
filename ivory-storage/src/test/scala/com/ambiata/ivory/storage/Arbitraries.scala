@@ -1,13 +1,11 @@
 package com.ambiata.ivory.storage
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.legacy._
 
 import com.ambiata.ivory.core.Arbitraries._
-import com.ambiata.ivory.data.Arbitraries._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._
 import org.scalacheck._, Arbitrary._

@@ -1,6 +1,5 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.ivory.data.Identifier
 import com.ambiata.mundane.io.FileName
 import scalaz._, Scalaz._
 import scala.math.{Ordering => SOrdering}

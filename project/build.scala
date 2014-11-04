@@ -21,7 +21,6 @@ object build extends Build {
     , benchmark
     , cli
     , core
-    , data
     , mr
     , operation
     , performance
@@ -147,17 +146,6 @@ object build extends Build {
                                                depend.thrift ++ depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value) ++
                                                depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.saws ++ depend.notion(version.value))
   )
-  .dependsOn(data, data % "test->test")
-
-  lazy val data = Project(
-    id = "data"
-  , base = file("ivory-data")
-  , settings = standardSettings ++ lib("data") ++ Seq[Settings](
-      name := "ivory-data"
-    , libraryDependencies ++= (if (scalaVersion.value.contains("2.10")) Seq(compilerPlugin("org.scalamacros" %% "paradise" % "2.0.0" cross CrossVersion.full)) else Nil)
-    ) ++ Seq[Settings](libraryDependencies ++= depend.argonaut ++ depend.scalaz ++ depend.mundane ++ depend.specs2 ++
-                                               depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value) ++ depend.notion(version.value))
-  )
 
   lazy val operation = Project(
     id = "operation"
@@ -205,7 +193,7 @@ object build extends Build {
                                                depend.argonaut ++ depend.poacher(version.value) ++ depend.specs2 ++
                                                depend.saws)
   )
-  .dependsOn(core, data, scoobi, mr, core % "test->test",  scoobi % "test->test", data % "test->test")
+  .dependsOn(core, scoobi, mr, core % "test->test",  scoobi % "test->test")
 
   lazy val compilationSettings: Seq[Settings] = Seq(
     javaOptions ++= Seq("-Xmx3G", "-Xms512m", "-Xss4m")

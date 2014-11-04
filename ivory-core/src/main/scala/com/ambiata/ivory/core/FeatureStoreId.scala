@@ -1,6 +1,5 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.ivory.data.OldIdentifier
 import com.ambiata.mundane.parse.ListParser
 
 import scalaz._, Scalaz._
