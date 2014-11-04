@@ -157,7 +157,7 @@ object SquashReducerState {
     val nsfact = emitFact.toNamespacedThrift
     val tfact = nsfact.getFact
     nsfact.setNspace(namespace.name)
-    // Arbitrarily setting the date to the snapshot date, but it could be anything and isn't important for pivot
+    // Arbitrarily setting the date to the snapshot date, but it could be anything and isn't important for output
     // https://github.com/ambiata/ivory/issues/293
     nsfact.setYyyyMMdd(date.int)
     tfact.setEntity(entity)

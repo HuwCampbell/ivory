@@ -19,16 +19,16 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat
 
 /**
- * This is a hand-coded MR job to squeeze the most out of pivot performance.
+ * This is a hand-coded MR job to squeeze the most out of dense performance.
  */
-object PivotOutputJob {
+object DenseOutputJob {
   def run(conf: Configuration, dictionary: Dictionary, input: Path, output: Path, missing: String,
           delimiter: Char, reducers: Int, codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
-    val ctx = MrContext.newContext("ivory-pivot", job)
+    val ctx = MrContext.newContext("ivory-dense", job)
 
-    job.setJarByClass(classOf[PivotMapper])
+    job.setJarByClass(classOf[DenseMapper])
     job.setJobName(ctx.id.value)
 
     // input
@@ -36,21 +36,21 @@ object PivotOutputJob {
     FileInputFormat.addInputPaths(job, input.toString)
 
     // map
-    job.setMapperClass(classOf[PivotMapper])
+    job.setMapperClass(classOf[DenseMapper])
     job.setMapOutputKeyClass(classOf[BytesWritable])
     job.setMapOutputValueClass(classOf[BytesWritable])
 
     // partition & sort
-    job.setPartitionerClass(classOf[PivotPartitioner])
-    job.setGroupingComparatorClass(classOf[PivotGrouping])
+    job.setPartitionerClass(classOf[DensePartitioner])
+    job.setGroupingComparatorClass(classOf[DenseGrouping])
     job.setSortComparatorClass(classOf[BytesWritable.Comparator])
 
     // reducer
     job.setNumReduceTasks(reducers)
-    job.setReducerClass(classOf[PivotReducer])
+    job.setReducerClass(classOf[DenseReducer])
 
     // output
-    val tmpout = new Path(ctx.output, "pivot")
+    val tmpout = new Path(ctx.output, "dense")
     job.setOutputFormatClass(classOf[TextOutputFormat[_, _]])
     FileOutputFormat.setOutputPath(job, tmpout)
 
@@ -68,10 +68,10 @@ object PivotOutputJob {
 
     // run job
     if (!job.waitForCompletion(true))
-      sys.error("ivory pivot failed.")
+      sys.error("ivory dense failed.")
 
     Committer.commit(ctx, {
-      case "pivot" => output
+      case "dense" => output
     }, true).run(conf).run.unsafePerformIO()
 
     DictionaryOutput.writeToHdfs(output, dictionary, missing, delimiter).run(conf).run.unsafePerformIO()
@@ -79,14 +79,14 @@ object PivotOutputJob {
   }
 
   object Keys {
-    val Missing = "ivory.pivot.missing"
-    val Delimiter = "ivory.pivot.delimiter"
-    val FeatureIds = ThriftCache.Key("ivory.pivot.lookup.featureid")
+    val Missing = "ivory.dense.missing"
+    val Delimiter = "ivory.dense.delimiter"
+    val FeatureIds = ThriftCache.Key("ivory.dense.lookup.featureid")
   }
 }
 
 /**
- * Mapper for ivory-pivot.
+ * Mapper for ivory-dense.
  *
  * The input is a standard SequenceFileInputFormat. Where the key is empty and the value
  * is thrift encoded bytes of a NamespacedThriftFact.
@@ -94,7 +94,7 @@ object PivotOutputJob {
  * The output key is the entity id and namespace.
  * The output value is the same as the input value.
  */
-class PivotMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
+class DenseMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
   /** Thrift deserializer. */
   val serializer = ThriftSerialiser()
 
@@ -109,7 +109,7 @@ class PivotMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, Byt
 
   override def setup(context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    ctx.thriftCache.pop(context.getConfiguration, PivotOutputJob.Keys.FeatureIds, features)
+    ctx.thriftCache.pop(context.getConfiguration, DenseOutputJob.Keys.FeatureIds, features)
   }
 
   /** Read and pass through, extracting entity and feature id for sort phase. */
@@ -128,7 +128,7 @@ class PivotMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, Byt
 }
 
 /**
- * Reducer for ivory-pivot.
+ * Reducer for ivory-dense.
  *
  * This reducer takes the latest namespaced fact, in entity|namespace|attribute order.
  *
@@ -136,7 +136,7 @@ class PivotMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, Byt
  *
  * The output is a PSV text file.
  */
-class PivotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, Text] {
+class DenseReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, Text] {
   /** Thrift deserializer */
   val serializer = ThriftSerialiser()
 
@@ -164,10 +164,10 @@ class PivotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, T
     import scala.collection.JavaConverters._
     val lookup = new FeatureIdLookup
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    ctx.thriftCache.pop(context.getConfiguration, PivotOutputJob.Keys.FeatureIds, lookup)
+    ctx.thriftCache.pop(context.getConfiguration, DenseOutputJob.Keys.FeatureIds, lookup)
     features = lookup.getIds.asScala.toList.sortBy(_._2).map(_._1).toArray
-    missing = context.getConfiguration.get(PivotOutputJob.Keys.Missing)
-    delimiter = context.getConfiguration.get(PivotOutputJob.Keys.Delimiter).charAt(0)
+    missing = context.getConfiguration.get(DenseOutputJob.Keys.Missing)
+    delimiter = context.getConfiguration.get(DenseOutputJob.Keys.Delimiter).charAt(0)
   }
 
   override def reduce(key: BytesWritable, iterable: JIterable[BytesWritable], context: Reducer[BytesWritable, BytesWritable, NullWritable, Text]#Context): Unit = {
@@ -209,13 +209,13 @@ class PivotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, T
 }
 
 /** Group by just the entity and ignore featureId */
-class PivotGrouping extends RawBytesComparator {
+class DenseGrouping extends RawBytesComparator {
   def compareRaw(bytes1: Array[Byte], offset1: Int, length1: Int, bytes2: Array[Byte], offset2: Int, length2: Int): Int =
     compareBytes(bytes1, offset1, length1 - 4, bytes2, offset2, length2 - 4)
 }
 
 /** Partition by just the entity and ignore featureId */
-class PivotPartitioner extends Partitioner[BytesWritable, BytesWritable] {
+class DensePartitioner extends Partitioner[BytesWritable, BytesWritable] {
   override def getPartition(k: BytesWritable, v: BytesWritable, partitions: Int): Int =
     (WritableComparator.hashBytes(k.getBytes, 0, k.getLength - 4) & 0x7fffffff) % partitions
 }

@@ -11,7 +11,7 @@ import com.ambiata.ivory.operation.extraction.Snapshots
 import org.specs2.matcher.ThrownExpectations
 import org.specs2._
 
-class EavOutputSpec extends Specification with SampleFacts with ThrownExpectations with ScalaCheck { def is = s2"""
+class SparseOutputSpec extends Specification with SampleFacts with ThrownExpectations with ScalaCheck { def is = s2"""
 
  A Sequence file containing feature values can be
    extracted as EAV                                      $eav       ${tag("mr")}
@@ -21,14 +21,14 @@ class EavOutputSpec extends Specification with SampleFacts with ThrownExpectatio
 """
 
   def eav =
-    RepositoryBuilder.using(extractEav(sampleFacts, sampleDictionary)) must beOkValue(
+    RepositoryBuilder.using(extractSparse(sampleFacts, sampleDictionary)) must beOkValue(
       List("eid1|ns1|fid1|abc"
          , "eid2|ns1|fid2|11"
          , "eid3|ns2|fid3|true").sorted.mkString("\n") -> expectedDictionary
     )
 
   def matchDict = prop { (facts: FactsWithDictionary) =>
-    RepositoryBuilder.using(extractEav(List(facts.facts), facts.dictionary)) must beOkLike {
+    RepositoryBuilder.using(extractSparse(List(facts.facts), facts.dictionary)) must beOkLike {
       case (out, dict) =>
         val namespaces = dict.map(_.split("\\|", -1) match { case l => l(1) -> l(2)})
         seqToResult(out.lines.toList.map(_.split("\\|", -1) match {
@@ -43,7 +43,7 @@ class EavOutputSpec extends Specification with SampleFacts with ThrownExpectatio
     "2|ns2|fid3|boolean|categorical|desc|NA"
   )
 
-  def extractEav(facts: List[List[Fact]], dictionary: Dictionary)(repo: HdfsRepository): ResultTIO[(String, List[String])] =
+  def extractSparse(facts: List[List[Fact]], dictionary: Dictionary)(repo: HdfsRepository): ResultTIO[(String, List[String])] =
     TemporaryDirPath.withDirPath { dir =>
       for {
         _               <- RepositoryBuilder.createRepo(repo, dictionary, facts)
@@ -51,7 +51,7 @@ class EavOutputSpec extends Specification with SampleFacts with ThrownExpectatio
         res             <- Snapshots.takeSnapshot(repo, Date.maxValue)
         meta            = res.meta
         input           = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
-        _               <- EavOutput.extractWithDictionary(repo, input, eav, dictionary, '|', "NA")
+        _               <- SparseOutput.extractWithDictionary(repo, input, eav, dictionary, '|', "NA")
         dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, IvoryConfiguration.Empty)
         dictionaryLines <- IvoryLocation.readLines(dictLocation)
         eavLines        <- IvoryLocation.readLines(eav).map(_.sorted)
