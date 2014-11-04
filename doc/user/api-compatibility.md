@@ -3,6 +3,10 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-37b2727
+
+ - `snapshot` no longer has a `--no-incremental` flag.
+
 ## 1.0.0-*-1c85f36
 
 - `create-repository` now takes the repository path as an argument, and no longer requires `-p`/`--path`. eg.

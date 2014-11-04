@@ -41,38 +41,21 @@ case class SnapshotJobSummary[A](
  */
 object Snapshot {
   /**
-   * Take a new snapshot
-   * If incremental is true, take a incremental snapshot (based off the previous one), unless the previous one is up to date
+   * Take a new snapshot as at the specified date.
    */
-  def takeSnapshot(repository: Repository, date: Date, incremental: Boolean): ResultTIO[SnapshotJobSummary[SnapshotManifest]] =
-    if (incremental) takeIncrementalSnapshot(repository, date)
-    else             takeNewSnapshot(repository, date).map(_.map(SnapshotManifest.snapshotManifestNew))
-
-  /**
-   * We need to create a new incremental snapshot if the previous one is not up to date any more
-   *
-   *  - if it corresponds to an old store
-   *  - if there were partitions created after the snapshot has been taken
-   */
-  def takeIncrementalSnapshot(repo: Repository, date: Date): ResultTIO[SnapshotJobSummary[SnapshotManifest]] =
+  def takeSnapshot(repository: Repository, date: Date): ResultTIO[SnapshotJobSummary[SnapshotManifest]] =
     for {
-      latest    <- SnapshotManifest.latestUpToDateSnapshot(repo, date).run
+      latest    <- SnapshotManifest.latestUpToDateSnapshot(repository, date).run
       result    <- latest match {
         case Some(m) =>
           for {
-            storeId <- SnapshotManifest.getFeatureStoreId(repo, m)
+            storeId <- SnapshotManifest.getFeatureStoreId(repository, m)
             _ <- ResultT.fromIO(IO.putStrLn(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${storeId}'"))
             x <- ResultT.safe[IO, SnapshotManifest](m)
           } yield SnapshotJobSummary(x, latest)
-        case None    => (SnapshotManifest.latestSnapshot(repo, date).run >>= createSnapshot(repo, date)).map(_.map(SnapshotManifest.snapshotManifestNew))
+        case None    => (SnapshotManifest.latestSnapshot(repository, date).run >>= createSnapshot(repository, date)).map(_.map(SnapshotManifest.snapshotManifestNew))
       }
     } yield result
-
-  /**
-   * take a new snapshot, without considering any previous incremental snapshot
-   */
-  def takeNewSnapshot(repository: Repository, date: Date): ResultTIO[SnapshotJobSummary[NewSnapshotManifest]] =
-    createSnapshot(repository, date)(None)
 
   /**
    * create a new snapshot at a given date, using the previous snapshot data if present

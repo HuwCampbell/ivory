@@ -16,7 +16,7 @@ import scalaz._, Scalaz._
 
 object snapshot extends IvoryApp {
 
-  case class CliArguments(date: LocalDate, incremental: Boolean, squash: SquashConfig, formats: ExtractOutput)
+  case class CliArguments(date: LocalDate, squash: SquashConfig, formats: ExtractOutput)
 
   val parser = Extract.options(new scopt.OptionParser[CliArguments]("snapshot") {
     head("""
@@ -27,7 +27,6 @@ object snapshot extends IvoryApp {
          |""".stripMargin)
 
     help("help") text "shows this usage text"
-    opt[Unit]("no-incremental") action { (x, c) => c.copy(incremental = false) }   text "Flag to turn off incremental mode"
     opt[Int]("sample-rate") action { (x, c) => c.copy(squash = c.squash.copy(profileSampleRate = x)) } text
       "Every X number of facts will be sampled when calculating virtual results. Defaults to 1,000,000. " +
         "WARNING: Decreasing this number will degrade performance."
@@ -35,7 +34,7 @@ object snapshot extends IvoryApp {
       s"Optional date to take snapshot from, default is now."
   })(c => f => c.copy(formats = f(c.formats)))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(LocalDate.now(), true, SquashConfig.default, ExtractOutput()), {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(LocalDate.now(), SquashConfig.default, ExtractOutput()), {
     repo => configuration => c =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
@@ -45,14 +44,13 @@ object snapshot extends IvoryApp {
                       |  Run ID                  : ${runId}
                       |  Ivory Repository        : ${repo.root.show}
                       |  Extract At Date         : ${c.date.toString("yyyy/MM/dd")}
-                      |  Incremental             : ${c.incremental}
                       |  Outputs                 : ${c.formats.formats.mkString(", ")}
                       |
                       |""".stripMargin
       println(banner)
       for {
         of   <- Extract.parse(configuration, c.formats)
-        res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date), c.incremental)
+        res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date))
         meta = res.meta
         _    <- ResultT.when(of.outputs.nonEmpty, SquashJob.squashFromSnapshotWith(repo, meta, c.squash) { (input, dictionary) =>
           Extraction.extract(of, repo.toIvoryLocation(input), dictionary).run(IvoryRead.prod(repo)).map(_ -> of.outputs.map(_._2))

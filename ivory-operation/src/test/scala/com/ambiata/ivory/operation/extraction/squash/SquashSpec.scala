@@ -33,7 +33,7 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
     val expectedFacts = sf.facts.list.flatMap(_.expectedFactsWithCount)
     RepositoryBuilder.using { repo => for {
       _ <- RepositoryBuilder.createRepo(repo, dict, List(allFacts))
-      res <- Snapshot.takeSnapshot(repo, sf.date, false)
+      res <- Snapshot.takeSnapshot(repo, sf.date)
       s     = res.meta
       out   = repo.toIvoryLocation(Key(KeyName.unsafe("out"))): IvoryLocation
       f <- SquashJob.squashFromSnapshotWith(repo, s, SquashConfig.testing)((key, _) =>
