@@ -4,7 +4,7 @@ import com.ambiata.ivory.core.thrift.ThriftFactValue
 import com.ambiata.ivory.core.{Date, Fact}
 
 class DaysSinceEarliestReducer(dates: DateOffsets) extends Reduction {
-  var sentinelDate = Date.unsafeFromInt(-1)
+  val sentinelDate = Date.unsafeFromInt(-1)
   var date = sentinelDate
   val value = new ThriftFactValue
 
