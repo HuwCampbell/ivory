@@ -47,35 +47,40 @@ object ChordArbitraries {
     def facts(fact: Fact, mode: Mode): List[Fact] =
       toFacts(fact, mode)((_, fs, _) => fs).map(_.withEntity(entity))
 
-    def expected(fact: Fact, mode: Mode): List[Fact] =
+    def expected(fact: Fact, mode: Mode, rwDate: Boolean): List[Fact] =
       // Take the latest fact, which may come from a previous chord period if this one is empty
-      toFacts(fact, mode)(expecteds)
+      toFacts(fact, mode)(expecteds(rwDate))
 
-    def expecteds: (Date, List[Fact], List[Fact]) => List[Fact] =
-      (d, fs, prev) => (prev ++ fs).lastOption.map(_.withEntity(entity + ":" + d.hyphenated)).toList
+    def expecteds(rwDate: Boolean): (Date, List[Fact], List[Fact]) => List[Fact] =
+      (d, fs, prev) => (prev ++ fs).lastOption.map(_.withEntity(entity + ":" + d.hyphenated))
+        .map(rewriteDate(rwDate, d)).toList
 
-    def expectedWindow(fact: Fact, mode: Mode, window: Option[Window]): List[Fact] =
-      toFacts(fact, mode)(expectedWindows(window)).distinct
+    def expectedWindow(fact: Fact, mode: Mode, window: Option[Window], rwDate: Boolean): List[Fact] =
+      toFacts(fact, mode)(expectedWindows(window, rwDate)).distinct
 
-    def expectedWindows: Option[Window] => (Date, List[Fact], List[Fact]) => List[Fact] =
-      window => (d, fs, prev) =>
+    def expectedWindows: (Option[Window], Boolean) => (Date, List[Fact], List[Fact]) => List[Fact] =
+      (window, rwDate) => (d, fs, prev) =>
         window.map(Window.startingDate(_)(d)).map {
           sd =>
             // _Always_ emit the last fact before the window (for state-based features)
             (prev ++ fs).filter(_.date.int < sd.int).lastOption.toList ++
               // All the facts from the window
               fs.filter(_.date.int >= sd.int)
-        }.getOrElse((prev ++ fs).lastOption.toList).map(_.withEntity(entity))
+        }.getOrElse((prev ++ fs).lastOption.toList).map(_.withEntity(entity)).map(rewriteDate(rwDate, d))
+
+    /** Squash will rewrite the date of the fact to be the same as the chord */
+    def rewriteDate(rewrite: Boolean, date: Date): Fact => Fact =
+      fact => if (rewrite) fact.withDate(date) else fact
   }
 
   /** A single entity, for testing [[com.ambiata.ivory.operation.extraction.ChordReducer]] */
   case class ChordFact(ce: ChordEntity, fact: Fact, window: Option[Window]) {
     lazy val facts: List[Fact] = ce.facts(fact, Mode.State)
     lazy val factsWithPriority: List[Fact] = ce.facts(fact, Mode.Set)
-    lazy val expected: List[Fact] = ce.expected(fact, Mode.State)
-    lazy val expectedSet: List[Fact] = ce.expected(fact, Mode.Set)
-    lazy val expectedWindow: List[Fact] = ce.expectedWindow(fact, Mode.State, window)
-    lazy val expectedWindowSet: List[Fact] = ce.expectedWindow(fact, Mode.Set, window)
+    lazy val expected: List[Fact] = ce.expected(fact, Mode.State, false)
+    lazy val expectedSet: List[Fact] = ce.expected(fact, Mode.Set, false)
+    lazy val expectedWindow: List[Fact] = ce.expectedWindow(fact, Mode.State, window, false)
+    lazy val expectedWindowSet: List[Fact] = ce.expectedWindow(fact, Mode.Set, window, false)
     lazy val windowDateArray: Option[Array[Int]] = window.map {
       win => ce.dates.map(_._1).map(Window.startingDate(win)(_).int).sorted.reverse.toArray
     }
@@ -83,8 +88,9 @@ object ChordArbitraries {
 
   case class ChordFacts(ces: List[ChordEntity], fid: FeatureId, factAndMeta: SparseEntities, window: Option[Window],
                         other: List[Fact]) {
-    lazy val facts: List[Fact] = ces.flatMap(_.facts(factAndMeta.fact, Mode.State))
+    lazy val facts: List[Fact] = ces.flatMap(_.facts(factAndMeta.fact, factAndMeta.meta.mode))
     lazy val allFacts: List[List[Fact]] = {
+      val facts = ces.flatMap(_.facts(factAndMeta.fact, Mode.State))
       List(
         // The first factset, with the exact same commits but with a different value
         // Depending on the mode, different facts will be expected
@@ -93,10 +99,12 @@ object ChordArbitraries {
       )
     }
     lazy val above: List[Fact] = ces.flatMap(_.above.map(factAndMeta.fact.withDate))
-    lazy val expected: List[Fact] = ces.flatMap(_.expected(factAndMeta.fact, factAndMeta.meta.mode))
-    lazy val expectedWindow: List[Fact] = ces.flatMap(_.expectedWindow(factAndMeta.fact, factAndMeta.meta.mode, window))
+    lazy val expected: List[Fact] =
+      ces.flatMap(_.expected(factAndMeta.fact, factAndMeta.meta.mode, true)).map(_.withTime(Time(0)))
     lazy val dictionary: Dictionary = Dictionary(List(
-      factAndMeta.meta.toDefinition(factAndMeta.fact.featureId),
+      factAndMeta.meta.toDefinition(factAndMeta.fact.featureId)
+    ))
+    lazy val dictionaryWithCount: Dictionary = dictionary append Dictionary(List(
       VirtualDefinition(factAndMeta.fact.featureId, Query(Count, None), window).toDefinition(fid)
     ))
     // If the oldest chord has no facts then don't capture a snapshot (it will error at the moment)
@@ -110,7 +118,7 @@ object ChordArbitraries {
         .flatMap(_.dates.headOption).flatMap(_._2.headOption).isDefined
     }
     lazy val expectedSquash: List[Fact] = ces.sortBy(_.entity).flatMap {
-      ce => ce.toFacts(factAndMeta.fact, Mode.State) { (d, fs, prev) =>
+      ce => ce.toFacts(factAndMeta.fact, factAndMeta.meta.mode) { (d, fs, prev) =>
         val sd = window.map(Window.startingDate(_)(d)).getOrElse(Date.minValue)
         val pfs = prev ++ fs
         val last = pfs.lastOption

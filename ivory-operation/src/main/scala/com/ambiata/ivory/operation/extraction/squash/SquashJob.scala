@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
-import com.ambiata.ivory.operation.extraction.{Snapshots, SnapshotJob}
+import com.ambiata.ivory.operation.extraction.{ChordJob, Entities, Snapshots, SnapshotJob}
 import com.ambiata.ivory.storage.lookup.{ReducerLookups, ReducerSize, WindowLookup}
 import com.ambiata.ivory.storage.metadata.SnapshotManifest
 import com.ambiata.mundane.control._
@@ -22,23 +22,27 @@ import scalaz._, Scalaz._, effect.IO
 
 object SquashJob {
 
-  def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotManifest, conf: SquashConfig)
-                               (f: (Key, Dictionary) => ResultTIO[(A, List[IvoryLocation])]): ResultTIO[A] = for {
-    dictionary      <- Snapshots.dictionaryForSnapshot(repository, snapmeta)
-    toSquash        <- squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date, conf)
-    (profile, key, doSquash) =  toSquash
-    a               <- f(key, dictionary)
-    _               <- ResultT.when(doSquash, for {
-      _             <- profile.traverseU { prof =>
-        a._2.traverseU(output => IvoryLocation.writeUtf8Lines(output </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof)))
-      }
-      _             <- repository.store.deleteAll(key)
-    } yield ())
-  } yield a._1
+  def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotManifest, conf: SquashConfig, out: List[IvoryLocation])
+                               (f: (Key, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
+    dictionary <- Snapshots.dictionaryForSnapshot(repository, snapmeta)
+    in          = Repository.snapshot(snapmeta.snapshotId)
+    hr         <- repository.asHdfsRepository[IO]
+    job        <- SquashJob.initSnapshotJob(hr.configuration, snapmeta.date)
+    result     <- squashMeMaybe(dictionary, out)(f(in, dictionary), squash(repository, dictionary, in, conf, out, job)(f(_, dictionary)))
+  } yield result
+
+  /**
+   * Only squash if there is something to output and there are virtual features.
+   * For snapshots the input can be re-used as the output.
+   * For chords there is a potential optimisation to bypass the squash, but the chord will need to alter its output.
+   */
+  def squashMeMaybe[A](dictionary: Dictionary, out: List[IvoryLocation])(noSquash: => A, squash: => A): A =
+    if (!out.isEmpty && dictionary.hasVirtual) squash
+    else noSquash
 
   /**
    * Returns the path to the squashed facts if we have any virtual features (and true), or the original `in` path (and false).
-   * The resulting path can/should be deleted after use (if there was a squash).
+   * The resulting path can/should be deleted after use
    *
    * There are two possible date inputs for squash:
    *
@@ -46,30 +50,38 @@ object SquashJob {
    *    This is the only mode that Ivory currently supports.
    * 2. From a chord, where a single entity may have one or more dates. It will be important to pre-calculate a starting
    *    date for every possible entity date, and then look that up per entity on the reducer.
-   *    This is _not_ implemented yet.
    */
-  def squash(repository: Repository, dictionary: Dictionary, input: Key, date: Date, conf: SquashConfig): ResultTIO[(Option[SquashStats], Key, Boolean)] = {
-    if (dictionary.hasVirtual) {
-      for {
-        key    <- Repository.tmpDir(repository)
-        hr     <- repository.asHdfsRepository[IO]
-        inPath =  hr.toIvoryLocation(input).toHdfsPath
-        ns     =  dictionary.byFeatureId.groupBy(_._1.namespace).keys.toList
-        // This is about the best we can do at the moment, until we have more size information about each feature
-        rs     <- ReducerSize.calculate(inPath, 1.gb).run(hr.configuration)
-        prof   <- run(hr.configuration, rs, dictionary.byConcrete, date, inPath, hr.toIvoryLocation(key).toHdfsPath,
-          hr.codec, conf)
-      } yield (some(prof), key, true)
-    } else
-    // No virtual features, let's skip the entire squash MR
-      (none[SquashStats], input, false).point[ResultTIO]
+  def squash[A](repository: Repository, dictionary: Dictionary, input: Key, conf: SquashConfig,
+                out: List[IvoryLocation], job: (Job, MrContext))(f: Key => ResultTIO[A]): ResultTIO[A] = for {
+    key    <- Repository.tmpDir(repository)
+    hr     <- repository.asHdfsRepository[IO]
+    inPath =  hr.toIvoryLocation(input).toHdfsPath
+    // This is about the best we can do at the moment, until we have more size information about each feature
+    rs     <- ReducerSize.calculate(inPath, 1.gb).run(hr.configuration)
+    prof   <- run(job._1, job._2, rs, dictionary.byConcrete, inPath, hr.toIvoryLocation(key).toHdfsPath, hr.codec, conf)
+    a      <- f(key)
+    _      <- repository.store.deleteAll(key)
+    _      <- out.traverseU(output => IvoryLocation.writeUtf8Lines(output </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof)))
+  } yield a
+
+  def initSnapshotJob(conf: Configuration, date: Date): ResultTIO[(Job, MrContext)] = ResultT.safe {
+    val job = Job.getInstance(conf)
+    val ctx = MrContext.newContext("ivory-squash-snapshot", job)
+    job.setReducerClass(classOf[SquashReducerSnapshot])
+    job.getConfiguration.set(SnapshotJob.Keys.SnapshotDate, date.int.toString)
+    (job, ctx)
   }
 
-  def run(conf: Configuration, reducers: Int, dictionary: DictionaryConcrete, date: Date, input: Path, output: Path,
-          codec: Option[CompressionCodec], squashConf: SquashConfig): ResultTIO[SquashStats] = {
-
+  def initChordJob(conf: Configuration, chord: Entities): ResultTIO[(Job, MrContext)] = ResultT.safe {
     val job = Job.getInstance(conf)
-    val ctx = MrContext.newContext("ivory-squash", job)
+    val ctx = MrContext.newContext("ivory-squash-chord", job)
+    job.setReducerClass(classOf[SquashReducerChord])
+    ctx.thriftCache.push(job, ChordJob.Keys.ChordEntitiesLookup, Entities.toChordEntities(chord))
+    (job, ctx)
+  }
+
+  def run(job: Job, ctx: MrContext, reducers: Int, dictionary: DictionaryConcrete, input: Path, output: Path,
+          codec: Option[CompressionCodec], squashConf: SquashConfig): ResultTIO[SquashStats] = {
 
     job.setJarByClass(classOf[SquashReducer])
     job.setJobName(ctx.id.value)
@@ -85,7 +97,6 @@ object SquashJob {
 
     // reducer
     job.setNumReduceTasks(reducers)
-    job.setReducerClass(classOf[SquashReducer])
     job.setOutputKeyClass(classOf[NullWritable])
     job.setOutputValueClass(classOf[BytesWritable])
 
@@ -105,7 +116,6 @@ object SquashJob {
     })
 
     // cache / config initialization
-    job.getConfiguration.set(SnapshotJob.Keys.SnapshotDate, date.int.toString)
     job.getConfiguration.setInt(Keys.ProfileMod, squashConf.profileSampleRate)
     val (featureIdLookup, reductionLookup) = dictToLookup(dictionary)
     ctx.thriftCache.push(job, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
@@ -120,7 +130,7 @@ object SquashJob {
     // commit files to factset
     Committer.commit(ctx, {
       case "squash" => output
-    }, true).run(conf).as {
+    }, true).run(job.getConfiguration).as {
       def update(groupName: String)(f: Long => SquashCounts): Map[String, SquashCounts] = {
         val group = job.getCounters.getGroup(groupName)
         group.iterator().asScala.map(c => c.getName -> f(c.getValue)).toMap
