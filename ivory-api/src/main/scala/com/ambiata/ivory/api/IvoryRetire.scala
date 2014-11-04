@@ -55,7 +55,7 @@ object IvoryRetire {
    * They will be replaced by a safer, stable API that lets users interact with
    * ivory, without concern for the current implementation.
    */
-  val takeSnapshot = com.ambiata.ivory.operation.extraction.Snapshot.takeSnapshot _
+  val takeSnapshot = com.ambiata.ivory.operation.extraction.Snapshots.takeSnapshot _
   val chord = com.ambiata.ivory.operation.extraction.Chord.createChord _
   val pivot = com.ambiata.ivory.operation.extraction.output.PivotOutput.createPivotWithDictionary _
 

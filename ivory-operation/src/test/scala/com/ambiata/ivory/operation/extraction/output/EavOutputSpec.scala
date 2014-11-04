@@ -7,7 +7,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.operation.extraction.Snapshot
+import com.ambiata.ivory.operation.extraction.Snapshots
 import org.specs2.matcher.ThrownExpectations
 import org.specs2._
 
@@ -48,7 +48,7 @@ class EavOutputSpec extends Specification with SampleFacts with ThrownExpectatio
       for {
         _               <- RepositoryBuilder.createRepo(repo, dictionary, facts)
         eav             <- IvoryLocation.fromUri((dir </> "eav").path, IvoryConfiguration.Empty)
-        res             <- Snapshot.takeSnapshot(repo, Date.maxValue)
+        res             <- Snapshots.takeSnapshot(repo, Date.maxValue)
         meta            = res.meta
         input           = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
         _               <- EavOutput.extractWithDictionary(repo, input, eav, dictionary, '|', "NA")

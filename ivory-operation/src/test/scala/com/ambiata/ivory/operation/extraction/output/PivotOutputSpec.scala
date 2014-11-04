@@ -7,7 +7,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.operation.extraction.Snapshot
+import com.ambiata.ivory.operation.extraction.Snapshots
 import org.specs2.matcher.ThrownExpectations
 import org.specs2._
 
@@ -64,7 +64,7 @@ class PivotOutputSpec extends Specification with SampleFacts with ThrownExpectat
       for {
         _     <- RepositoryBuilder.createRepo(repo, dictionary, facts)
         pivot <- IvoryLocation.fromUri((dir </> "pivot").path, IvoryConfiguration.Empty)
-        res   <- Snapshot.takeSnapshot(repo, Date.maxValue)
+        res   <- Snapshots.takeSnapshot(repo, Date.maxValue)
         meta      = res.meta
         input     = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
         _                <- PivotOutput.createPivotWithDictionary(repo, input, pivot, dictionary, '|', "NA")

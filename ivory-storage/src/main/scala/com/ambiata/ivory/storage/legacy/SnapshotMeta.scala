@@ -5,7 +5,6 @@ import com.ambiata.ivory.storage.fact.FeatureStoreGlob
 import com.ambiata.ivory.storage._
 import metadata._
 
-import scalaz._, Scalaz._, \&/._, effect.IO
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import com.ambiata.mundane.parse.ListParser
@@ -13,7 +12,6 @@ import com.ambiata.mundane.parse.ListParser
 import scalaz._, Scalaz._, \&/._, effect.IO
 
 case class SnapshotMeta(snapshotId: SnapshotId, date: Date, featureStoreId: FeatureStoreId, commitId: Option[CommitId]) {
-
   lazy val stringLines: List[String] =
     List(date.string("-"), featureStoreId.render) ++ commitId.map(_.render)
 
