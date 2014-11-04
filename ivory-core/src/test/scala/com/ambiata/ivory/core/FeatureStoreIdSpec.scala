@@ -26,7 +26,7 @@ Feature Store Id Properties
     Parse.decodeEither[FeatureStoreId](id.asJson.nospaces) must_== id.right)
 
   def initial =
-    Some(FeatureStoreId.initial) must_== FeatureStoreId.parse("00000")
+    Some(FeatureStoreId.initial) must_== FeatureStoreId.parse("00000000")
 
   def next = prop((id: FeatureStoreId) =>
     id.next.forall(_ > id))

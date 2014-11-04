@@ -17,13 +17,10 @@ trait FactFormats {
   implicit def ThriftFactSeqSchema: SeqSchema[ThriftFact] = SeqSchemas.thriftFactSeqSchema
 
   implicit def IdentifierWireFormat: WireFormat[Identifier] =
-    implicitly[WireFormat[Int]].xmap(Identifier.unsafe, _.toInt)
-
-  implicit def OldIdentifierWireFormat: WireFormat[OldIdentifier] =
-    implicitly[WireFormat[Int]].xmap(OldIdentifier.unsafe, _.toInt)
+    implicitly[WireFormat[String]].xmap(x => Identifier.parse(x).getOrElse(sys.error("WireFormat invariant violated.")), _.render)
 
   implicit def FactsetIdWireFormat: WireFormat[FactsetId] =
-    implicitly[WireFormat[OldIdentifier]].xmap(FactsetId.apply, _.id)
+    implicitly[WireFormat[Identifier]].xmap(FactsetId.apply, _.id)
 
   implicit def SnapshotIdWireFormat: WireFormat[SnapshotId] =
     implicitly[WireFormat[Identifier]].xmap(SnapshotId.apply, _.id)

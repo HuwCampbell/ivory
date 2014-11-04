@@ -424,11 +424,11 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
     Arbitrary(Gen.identifier.map(_.trim).retryUntil(s => !s.contains("|") && !s.contains("\uFFFF") && s.forall(_ > 31)).map(DictDesc))
 
   implicit def FeatureStoreIdArbitrary: Arbitrary[FeatureStoreId] =
-    Arbitrary(arbitrary[OldIdentifier].map(FeatureStoreId.apply))
+    Arbitrary(arbitrary[Identifier].map(FeatureStoreId.apply))
 
   case class SmallFeatureStoreIdList(ids: List[FeatureStoreId])
   implicit def SmallFeatureStoreIdListArbitrary: Arbitrary[SmallFeatureStoreIdList] =
-    Arbitrary(arbitrary[SmallOldIdentifierList].map(ids => SmallFeatureStoreIdList(ids.ids.map(FeatureStoreId.apply))))
+    Arbitrary(arbitrary[SmallIdentifierList].map(ids => SmallFeatureStoreIdList(ids.ids.map(FeatureStoreId.apply))))
 
   case class SmallCommitIdList(ids: List[CommitId])
   implicit def SmallCommitIdListArbitrary: Arbitrary[SmallCommitIdList] =
@@ -466,10 +466,10 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   } yield EncodingAndValue(enc, value))
 
   implicit def FactsetIdArbitrary: Arbitrary[FactsetId] =
-    Arbitrary(arbitrary[OldIdentifier].map(id => FactsetId(id)))
+    Arbitrary(arbitrary[Identifier].map(id => FactsetId(id)))
 
   def genFactsetIds(ids: Gen[Int]): Gen[List[FactsetId]] =
-    ids.map(createOldIdentifiers).map(ids => ids.map(FactsetId.apply))
+    ids.map(createIdentifiers).map(ids => ids.map(FactsetId.apply))
 
   /* List of FactsetIds with a size between 0 and 10 */
   case class FactsetIdList(ids: List[FactsetId])
@@ -524,7 +524,10 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
     Arbitrary(Gen.oneOf(Mode.State, Mode.Set))
 
   implicit def IdentifierArbitrary: Arbitrary[Identifier] =
-    Arbitrary(arbitrary[IdentifierList].map(_.ids.last))
+    Arbitrary(Gen.oneOf(
+      Gen.choose(1l, 0xffffffffl).map(x => Identifier.unsafe(x.toInt))
+    , Gen.choose(1, 99999).map(x => Identifier.unsafeV1(x))
+    ))
 
   def createIdentifiers(n: Int): List[Identifier] =
     (1 to n).scanLeft(Identifier.initial)((acc, _) => acc.next.get).toList
@@ -536,18 +539,4 @@ object Arbitraries extends arbitraries.ArbitrariesDictionary {
   case class SmallIdentifierList(ids: List[Identifier])
   implicit def SmallIdentifierListArbitrary: Arbitrary[SmallIdentifierList] =
     Arbitrary(Gen.choose(0, 20) map (n => SmallIdentifierList(createIdentifiers(n))))
-
-  def createOldIdentifiers(n: Int): List[OldIdentifier] =
-    (1 to n).scanLeft(OldIdentifier.initial)((acc, _) => acc.next.get).toList
-
-  implicit def OldIdentifierArbitrary: Arbitrary[OldIdentifier] =
-    Arbitrary(arbitrary[OldIdentifierList].map(_.ids.last))
-
-  case class OldIdentifierList(ids: List[OldIdentifier])
-  implicit def OldIdentifierListArbitrary: Arbitrary[OldIdentifierList] =
-    Arbitrary(Gen.choose(0, 200) map (n => OldIdentifierList(createOldIdentifiers(n))))
-
-  case class SmallOldIdentifierList(ids: List[OldIdentifier])
-  implicit def SmallOldIdentifierListArbitrary: Arbitrary[SmallOldIdentifierList] =
-    Arbitrary(Gen.choose(0, 20) map (n => SmallOldIdentifierList(createOldIdentifiers(n))))
 }
