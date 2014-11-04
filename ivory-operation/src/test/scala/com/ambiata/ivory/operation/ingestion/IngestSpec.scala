@@ -4,8 +4,8 @@ import com.ambiata.ivory.core._, Arbitraries._
 import com.ambiata.ivory.core.TemporaryLocations._
 import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.ivory.operation.ingestion.thrift.Conversion
-import com.ambiata.ivory.scoobi.SequenceUtil
-import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.mr.SequenceUtil
+import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.storage.legacy.SampleFacts
 import com.ambiata.ivory.storage.metadata.DictionaryThriftStorage
 import com.ambiata.ivory.storage.repository.Repositories

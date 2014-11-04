@@ -3,7 +3,7 @@ package com.ambiata.ivory.operation.extraction.squash
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.extraction.Snapshots
 import com.ambiata.ivory.operation.extraction.squash.SquashArbitraries._
-import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.mundane.testing.ResultTIOMatcher._

@@ -7,7 +7,7 @@ import scalaz.{DList => _, Value => _, _}
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
-import com.ambiata.ivory.scoobi._
+import com.ambiata.ivory.mr._
 import com.ambiata.notion.core._
 import FactFormats._
 
@@ -90,13 +90,13 @@ object FactStats {
       case StructValue(m)   => addToHistogram("Struct entries")
     })
 
-    List[FactStatEncode]() ++ 
+    List[FactStatEncode]() ++
     (if (histogram.size < 100)
       List(((key._1.toString, key._2), Right(histogram.toMap)))
      else Nil ) ++ (if (count > 0) {
       val mean = sum / count
       List(((key._1.toString, key._2), Left((count, mean, Math.sqrt(sqsum / count - mean * mean)))))
-     } else Nil ) 
+     } else Nil )
   }
 
   // Note: On merge with snapshot meta branch, these should be deleted

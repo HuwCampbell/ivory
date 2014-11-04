@@ -6,17 +6,17 @@ import org.apache.hadoop.io.compress.{SnappyCodec, CompressionCodec}
 import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi._
+import com.ambiata.ivory.mr._
 import FactFormats._
 
 object FlatFactThriftStorageV1 {
 
-  case class FlatFactThriftLoader(path: String) extends IvoryScoobiLoader[Fact] {
+  case class FlatFactThriftLoader(path: String) {
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ Fact] =
       valueFromSequenceFile[Fact](path).map(_.right[ParseError])
   }
 
-  case class FlatFactThriftStorer(path: String, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[Fact]] {
+  case class FlatFactThriftStorer(path: String, codec: Option[CompressionCodec]) {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[Fact] = {
       dlist.valueToSequenceFile(path, overwrite = true).persistWithCodec(codec)
     }

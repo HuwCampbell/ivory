@@ -9,7 +9,7 @@ import scalaz.concurrent.Task
 import com.ambiata.ivory.core.{TextError, ThriftError, Value, Partition, Fact}
 import com.ambiata.mundane.io.{IOActions, IOAction, Logger, FilePath}
 import scalaz.std.anyVal._
-import com.ambiata.ivory.scoobi._
+import com.ambiata.ivory.mr._
 import org.apache.hadoop.fs.{Hdfs => _, _}
 import org.apache.hadoop.conf.Configuration
 import scalaz.syntax.traverse._
