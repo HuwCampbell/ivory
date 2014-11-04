@@ -26,7 +26,7 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
   def snapshot =
     RepositoryBuilder.using { repo => for {
       _ <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
-      _ <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now), incremental = false)
+      _ <- Snapshot.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now))
     } yield ()} must beOk
 
   def windowing = propNoShrink((vdict: VirtualDictionaryWindow, fact: Fact) => {
@@ -48,7 +48,7 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
 
     RepositoryBuilder.using { repo => for {
         _ <- RepositoryBuilder.createRepo(repo, vdict.vd.dictionary, List(deprioritized, facts ++ oldfacts))
-        s <- Snapshot.takeSnapshot(repo, fact.date, false)
+        s <- Snapshot.takeSnapshot(repo, fact.date)
         f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.meta.snapshotId)).toHdfs).run(repo.scoobiConfiguration)
       } yield f
     }.map(_.toSet) must beOkValue((oldfacts.sortBy(_.date).lastOption.toList ++ facts).toSet)
@@ -62,9 +62,9 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
       RepositoryBuilder.using((repo: HdfsRepository) =>
         for {
           _ <- RepositoryBuilder.createRepo(repo, dictionary, facts.pure[List])
-          res <- Snapshot.takeSnapshot(repo, fact.date, true)
+          res <- Snapshot.takeSnapshot(repo, fact.date)
           _ <- RepositoryBuilder.createFactset(repo, facts2)
-          res2 <- Snapshot.takeSnapshot(repo, fact.date, true)
+          res2 <- Snapshot.takeSnapshot(repo, fact.date)
         } yield (res, res2.incremental.map(_.snapshotId))) must beOkLike(
           (t: (SnapshotJobSummary[SnapshotManifest], Option[SnapshotId])) =>
             t._2.cata((sid: SnapshotId) => sid must_== t._1.meta.snapshotId, SpecsFailure("No incremental was used in the second snapshot")))
@@ -93,7 +93,7 @@ class SnapshotSpec extends Specification with SampleFacts with ScalaCheck { def 
 
     RepositoryBuilder.using { repo => for {
         _ <- RepositoryBuilder.createRepo(repo, dictionary, List(facts ++ outer))
-        s <- Snapshot.takeSnapshot(repo, date, false)
+        s <- Snapshot.takeSnapshot(repo, date)
         f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.meta.snapshotId)).toHdfs).run(repo.scoobiConfiguration)
       } yield f
     }.map(_.toSet) must beOkValue((outer.sortBy(f => f.datetime.long).filter(_.date.isBeforeOrEqual(date)).lastOption.toList ++ facts).toSet)

@@ -35,7 +35,7 @@ object Chord {
     _                    = println(s"Earliest date in chord file is '${entities.earliestDate}'")
     _                    = println(s"Latest date in chord file is '${entities.latestDate}'")
     store               <- Metadata.latestFeatureStoreOrFail(repository)
-    snapshot            <- if (takeSnapshot) Snapshot.takeSnapshot(repository, entities.earliestDate, incremental = true).map(_.meta.pure[Option])
+    snapshot            <- if (takeSnapshot) Snapshot.takeSnapshot(repository, entities.earliestDate).map(_.meta.pure[Option])
                            else              SnapshotManifest.latestSnapshot(repository, entities.earliestDate).run
     out                 <- runChord(repository, store, entities, snapshot, windowing)
   } yield out
