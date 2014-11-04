@@ -112,9 +112,9 @@ SnapshotManifest Properties
 
   // This only checks the legacy snapshot manifests, as the new ones will involve looking up the commit in the metadata,
   // which wont be in the repo built.
-  def uptodate = prop { (snapshots: SnapshotMetaList, date1: Date, dateOffset: DateOffset) =>
+  def uptodate = prop { (snapshots: SnapshotMetaList, dates: UniqueDates) =>
     RepositoryBuilder.using { repo =>
-      val factsetDate = dateOffset.offset(date1)
+      val factsetDate = dates.later
 
       for {
         _         <- snapshots.metas.traverse((lm: SnapshotMeta) => storeSnapshotManifest(repo, SnapshotManifest.snapshotManifestLegacy(lm)))
@@ -122,8 +122,8 @@ SnapshotManifest Properties
         _         <- repo.store.utf8.write(Repository.factset(factsetId) / "ns" / Key.unsafe(factsetDate.slashed) / "part", "content")
         store     <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.testing(repo))
         _         <- writeFactsetVersion(repo, List(factsetId))
-        snapshot  <- SnapshotManifest.latestUpToDateSnapshot(repo, date1).run
-      } yield snapshot must beUpToDate(repo, date1)
+        snapshot  <- SnapshotManifest.latestUpToDateSnapshot(repo, dates.now).run
+      } yield snapshot must beUpToDate(repo, dates.now)
 
     } must beOkResult
   }.set(minTestsOk = 10)

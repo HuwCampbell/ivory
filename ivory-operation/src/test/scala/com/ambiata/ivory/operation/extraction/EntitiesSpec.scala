@@ -21,11 +21,12 @@ class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations
     to the required date and the best priority $keepBestFact
 """
 
-  def keepFact = prop { (fact: Fact, dateOffset: DateOffset) =>
-    val date1 = dateOffset.makeGreaterDateThan(fact.date)
-    val entities = add(Entities.empty, fact.entity, date1)
+  def keepFact = prop { (fact: Fact, o: Byte) =>
+    val unsafeDate = Date.fromLocalDate(fact.date.localDate.plusDays(Math.abs(o.toInt)))
+    val safeDate = if (Date.isValid(unsafeDate.year, unsafeDate.month, unsafeDate.day)) unsafeDate else Date.maxValue
+    val entities = add(Entities.empty, fact.entity, safeDate)
     val diagnostic = Seq(
-      s"date1 is $date1",
+      s"safeDate is $safeDate",
       s"fact is ${(fact.entity, fact.date, fact.date.int)}",
       s"entities are ${entities.entities.map { case (e, ds) => (e, ds.mkString(",")) }.mkString("\n") }").mkString("\n", "\n", "\n")
 
@@ -33,11 +34,11 @@ class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations
 
   }.set(maxSize = 3, minTestsOk= 1000)
 
-  def keepBestFact = prop { (head: PrioritizedFact, tail: List[PrioritizedFact], dateOffset: DateOffset) =>
+  def keepBestFact = prop { (head: PrioritizedFact, tail: List[PrioritizedFact]) =>
     val facts = head +: tail
 
     // create Entities from the existing facts
-    val entities = createEntitiesFromFactsWithOneMoreDate(facts, dateOffset)
+    val entities = createEntitiesFromFactsWithOneMoreDate(facts)
     val (priority1, fact1) = head
     val (entity1, date1)   = (fact1.entity, fact1.date.int)
 
@@ -61,7 +62,7 @@ class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations
    * ARBITRARIES
    */
 
-  def createEntitiesFromFactsWithOneMoreDate(facts: List[PrioritizedFact], dateOffset: DateOffset) = {
+  def createEntitiesFromFactsWithOneMoreDate(facts: List[PrioritizedFact]) = {
     facts.foldLeft(Entities(new HashMap[String, Array[Int]])) { case (entities, (p, f)) =>
       add(entities, f.entity, f.date)
     }
