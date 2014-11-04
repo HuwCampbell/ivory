@@ -9,7 +9,7 @@ import com.ambiata.notion.core._
 
 import scalaz.\&/.This
 import scalaz.effect.IO
-import scalaz.{Store => _, _}
+import scalaz.{Store => _, _}, Scalaz._
 
 /**
  * Ivory repository
@@ -23,6 +23,17 @@ sealed trait Repository {
   def store: Store[ResultTIO]
   def root: IvoryLocation
   def toIvoryLocation(key: Key): IvoryLocation
+
+  /** This is far from ok, but is acting as a magnet for broken code that depends on this
+      nonsense casting. This will be removed with s3 changes. */
+  def asHdfsRepository[F[_]: Monad]: ResultT[F, HdfsRepository] =
+    this match {
+      case h @ HdfsRepository(_) =>
+        type ResultF[A] = ResultT[F, A]
+        h.pure[ResultF]
+      case _ =>
+        ResultT.fail[F, HdfsRepository]("This ivory operation currently only supports hdfs repositories.")
+    }
 }
 
 case class HdfsRepository(root: HdfsIvoryLocation) extends Repository {

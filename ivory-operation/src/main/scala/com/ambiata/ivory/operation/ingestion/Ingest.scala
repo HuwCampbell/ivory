@@ -9,9 +9,8 @@ import com.ambiata.ivory.storage.repository._
 import IvoryStorage._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.BytesQuantity
-import org.apache.commons.logging.LogFactory
 import org.joda.time.DateTimeZone
-import IvorySyntax._
+
 /**
  * Import facts in an Ivory repository from an input path.
  *
@@ -45,9 +44,6 @@ import IvorySyntax._
  *  3. calling updateFeatureStore to update the feature store and save the factset version
  */
 object Ingest {
-
-  private implicit val logger = LogFactory.getLog("ivory.repository.Ingest")
-
   /**
    * Ingest facts in a newly created repository if necessary.
    *
@@ -74,8 +70,8 @@ object Ingest {
    *  - allocate a new factset id
    */
   def createNewFactsetId(repository: Repository): ResultTIO[FactsetId] = for {
-    _         <- Repositories.create(repository).timed("created repository")
-    factsetId <- Factsets.allocateFactsetId(repository).timed("created fact set")
+    _         <- Repositories.create(repository)
+    factsetId <- Factsets.allocateFactsetId(repository)
   } yield factsetId
 
   /**
@@ -84,7 +80,7 @@ object Ingest {
    *  - write the factset version
    */
   def updateFeatureStore(repository: Repository, factsetId: FactsetId): ResultTIO[FeatureStoreId] = for {
-    fs <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.prod(repository)).timed("created store")
+    fs <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.prod(repository))
     _  <- writeFactsetVersion(repository, List(factsetId))
     _  <- Metadata.incrementCommitFeatureStore(repository, fs)
   } yield fs
