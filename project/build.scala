@@ -47,6 +47,7 @@ object build extends Build {
   , crossScalaVersions := Seq(scalaVersion.value)
   , fork in run  := true
   , publishArtifact in packageDoc := false
+  , publishArtifact in (Test, packageBin) := true //publishArtifact in Test := true
   // https://gist.github.com/djspiewak/976cd8ac65e20e136f05
   , unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / s"scala-${scalaBinaryVersion.value}"
   // Disable to see if it fixes the build
