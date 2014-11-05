@@ -2,4 +2,4 @@
 
 source $(dirname $0)/config
 
-./sbt -ivy ~/.ivy-ivory -Dsbt.log.noformat=true "; clean; test-only -- console junitxml; +publish; +core/test:publish; +operation/test:publish; project cli; set credentials := Seq(Credentials(realm=\"Amazon S3\", host=\"ambiata-dist.s3.amazonaws.com\", userName=\"$AWS_ACCESS_KEY\", passwd=\"$AWS_SECRET_KEY\")); s3Upload; project ivory; echo-version"
+./sbt -ivy ~/.ivy-ivory -Dsbt.log.noformat=true "; clean; test-only -- console junitxml; +publish; project cli; set credentials := Seq(Credentials(realm=\"Amazon S3\", host=\"ambiata-dist.s3.amazonaws.com\", userName=\"$AWS_ACCESS_KEY\", passwd=\"$AWS_SECRET_KEY\")); s3Upload; project ivory; echo-version"
