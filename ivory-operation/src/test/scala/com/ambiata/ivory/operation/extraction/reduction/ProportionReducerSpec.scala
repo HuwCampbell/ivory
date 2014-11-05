@@ -9,6 +9,6 @@ class ProportionReducerSpec extends Specification with ScalaCheck { def is = s2"
   def proportion = prop((a: String, b: List[String], s: Short) => {
     val ps = Math.abs(s)
     val l = util.Random.shuffle(List.fill(Math.abs(ps))(a) ++ b.filter(_ != a))
-    ReducerUtil.run(new ProportionReducer[String](a), l) ==== (if (l.isEmpty) 0 else ps / l.length)
+    ReducerUtil.run(new ProportionReducer[String](a), l) ==== (if (l.isEmpty) 0 else ps.toDouble / l.length)
   })
 }

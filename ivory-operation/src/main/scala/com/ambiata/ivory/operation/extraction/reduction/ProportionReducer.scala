@@ -20,5 +20,5 @@ class ProportionReducer[A](value: A) extends ReductionFold[ProportionState, A, D
 
   def aggregate(a: ProportionState): Double =
     if (a.total == 0) 0
-    else a.count / a.total
+    else a.count.toDouble / a.total
 }
