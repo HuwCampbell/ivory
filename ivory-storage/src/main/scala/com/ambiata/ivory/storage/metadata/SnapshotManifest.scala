@@ -118,19 +118,14 @@ object SnapshotManifest {
     sids <- OptionT.optionT[ResultTIO](ids.traverseU((sid: Key) => SnapshotId.parse(sid.name)).pure[ResultTIO])
     metas <- sids.traverseU(fromIdentifier(repository, _))
     filtered = metas.filter(_.date isBeforeOrEqual date)
-    meta <- OptionT.optionT[ResultTIO](filtered.sorted.lastOption.pure[ResultTIO])
+    meta <- OptionTPlus.fromOption[ResultTIO, SnapshotManifest](filtered.sorted.lastOption)
   } yield meta
 
   def latestWithStoreId(repo: Repository, date: Date, featureStoreId: FeatureStoreId): OptionT[ResultTIO, SnapshotManifest] = for {
     meta <- latestSnapshot(repo, date)
     metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
-    x <- {
-      if (metaFeatureId == featureStoreId)
-        OptionT.some[ResultTIO, SnapshotManifest](meta)
-      else
-        OptionT.none[ResultTIO, SnapshotManifest]
-    }
-  } yield x
+    _ <- OptionTPlus.when[ResultTIO, Unit](metaFeatureId == featureStoreId, ())
+  } yield meta
 
   /**
    * Get the latest snapshot which is just before a given date
@@ -150,16 +145,8 @@ object SnapshotManifest {
     metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
     thereAreNoNewer <- checkForNewerFeatures(repo, metaFeatureId, store, meta.date, date).liftM[OptionT]
     validDictionary <- isSnapshotValidWithLatestDictionary(repo, meta).liftM[OptionT]
-
-    x <- {
-      type OptionResultTIO[A] = OptionT[ResultTIO, A]
-      if (thereAreNoNewer && validDictionary)
-        meta.pure[OptionResultTIO]
-      else
-        OptionT.none[ResultTIO, SnapshotManifest]
-    }
-
-  } yield x
+    _ <- OptionTPlus.when[ResultTIO, Unit](thereAreNoNewer && validDictionary, ())
+  } yield meta
 
   /**
    * Ensure that the provided snapshot is "valid" in relation to the latest dictionary.
