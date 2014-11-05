@@ -24,8 +24,7 @@ object SquashJob {
 
   def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotManifest, conf: SquashConfig)
                                (f: (Key, Dictionary) => ResultTIO[(A, List[IvoryLocation])]): ResultTIO[A] = for {
-    dictionaryId    <- SnapshotManifest.dictionaryIdForSnapshot(repository, snapmeta)
-    dictionary      <- Metadata.dictionaryFromIvory(repository, dictionaryId)
+    dictionary      <- Metadata.latestDictionaryFromIvory(repository)
     toSquash        <- squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date, conf)
     (profile, key, doSquash) =  toSquash
     a               <- f(key, dictionary)
