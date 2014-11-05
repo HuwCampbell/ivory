@@ -11,5 +11,5 @@ $IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts2"
 $IVORY rename -m "halibut:preheat=halibut2:warmup" -m "halibut:cooldown=halibut2:exercise" -b "${INPUT}/mapping.psv"
 
 ### check factsets ###
-$IVORY cat-facts "${REPOSITORY}/factsets/00002/*/*/*/*/*" | sort > "${TARGET}/facts.psv"
+$IVORY cat-facts "${REPOSITORY}/factsets/00000002/*/*/*/*/*" | sort > "${TARGET}/facts.psv"
 diff_test "${DIR}/expected/facts.psv" "${TARGET}/facts.psv"
