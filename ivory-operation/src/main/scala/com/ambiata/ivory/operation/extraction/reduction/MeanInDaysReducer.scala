@@ -9,7 +9,7 @@ object MeanInReducer {
       sum += i
       count += 1
     }
-    if (count == 0) 0 else sum / count
+    if (count == 0) 0 else sum.toDouble / count
   }
 }
 

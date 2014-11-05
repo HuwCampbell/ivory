@@ -11,6 +11,7 @@ class DateOffsetsSpec extends Specification with ScalaCheck { def is = s2"""
   Can calculate the number of days since the turn of the century (compact)     $daysCompact
   Can calculate the number of days until the end of the date range             $untilEnd
   Can increment the number of unit days in a range of dates                    $dateSetInc
+  Can increment the number of unit weeks in a range of dates                   $weekSetInc
 """
 
   case class TestDates(earlier: Date, now: Date, later: Date)
@@ -42,5 +43,17 @@ class DateOffsetsSpec extends Specification with ScalaCheck { def is = s2"""
     val set = doc.offsets.createSet
     doc.allDates.foreach(set.inc)
     set.fold(0)(_ + _) ==== doc.dates.map(_._1).sum
+  })
+
+  def weekSetInc = prop((doc: DatesOfCount) => {
+    var sum = 0
+    var count = 0
+    val set = doc.offsets.createSet
+    doc.allDates.foreach(set.inc)
+    set.foreachWeeks { i =>
+      sum += i
+      count += 1
+    }
+    (sum, count) ==== ((doc.datesWithFullWeeks.map(_._1).sum, doc.noOfWeeksFloor))
   })
 }
