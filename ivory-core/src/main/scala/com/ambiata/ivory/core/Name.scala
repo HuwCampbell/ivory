@@ -18,12 +18,16 @@ import scalaz.{Name => _,_}, Scalaz._
  *
  * As a result it can be used to create a file name
  */
+
 class Name private(val name: String) extends AnyVal {
   def asFileName = FileName.unsafe(name)
   def asKeyName  = KeyName.unsafe(name)
   def asDirPath = DirPath.unsafe(name)
   def asFilePath = FilePath.unsafe(name)
+  override def toString: String =
+    s"Name($name)"
 }
+
 
 object Name extends MacrosCompat {
 

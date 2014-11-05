@@ -1,9 +1,6 @@
-package com.ambiata.ivory.storage.plan
-
-import com.ambiata.ivory.core._
+package com.ambiata.ivory.core
 
 case class Datasets(sets: List[Prioritized[Dataset]]) {
-
   def byPriority: Datasets =
     copy(sets = sets.sorted)
 
@@ -14,8 +11,16 @@ case class Datasets(sets: List[Prioritized[Dataset]]) {
     copy(sets = elem +: sets)
 
   def add(priority: Priority, dataset: Dataset): Datasets =
-    copy(sets = Prioritized(priority, dataset) +: sets)
+    Prioritized(priority, dataset) +: this
 
   def filter(f: Dataset => Boolean): Datasets =
     copy(sets = sets.filter(e => f(e.value)))
+
+  def prune: Datasets =
+    Datasets(sets.filter(p => !p.value.isEmpty))
+}
+
+object Datasets {
+  def empty: Datasets =
+    Datasets(Nil)
 }

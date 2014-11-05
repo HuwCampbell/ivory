@@ -2,7 +2,6 @@ package com.ambiata.ivory.storage.sync
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.NotImplemented._
-import com.ambiata.ivory.storage.plan._
 import com.ambiata.ivory.storage.sync.Sync._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._

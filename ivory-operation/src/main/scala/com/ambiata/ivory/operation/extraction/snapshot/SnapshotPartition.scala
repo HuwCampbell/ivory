@@ -77,5 +77,5 @@ object SnapshotPartition {
   }
 
   def filterFeatureStore(store: FeatureStore, f: Partition => Boolean): FeatureStore =
-    store.copy(factsets = store.factsets.map(pr => pr.copy(value = pr.value.filter(f))))
+    store.copy(factsets = store.factsets.map(pr => pr.copy(value = pr.value.filterByPartition(f))))
 }

@@ -13,7 +13,6 @@ import java.lang.{Iterable => JIterable}
 import java.util.{Iterator => JIterator}
 
 import scala.collection.JavaConverters._
-import scalaz.{Name => _, Reducer => _, _}, Scalaz._
 
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf._

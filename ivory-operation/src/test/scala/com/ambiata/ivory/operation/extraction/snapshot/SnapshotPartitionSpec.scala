@@ -16,13 +16,10 @@ class SnapshotPartitionSpec extends Specification with ScalaCheck { def is = s2"
 
   import SnapshotPartition._
 
-  implicit def SnapshotWindowArb: Arbitrary[SnapshotWindow] = Arbitrary(for {
+  implicit def SnapshotWindowArbitrary: Arbitrary[SnapshotWindow] = Arbitrary(for {
     f <- Arbitrary.arbitrary[FeatureId]
     d <- Arbitrary.arbitrary[Option[Date]]
   } yield SnapshotWindow(f, d))
-
-  implicit def SnapshotWindowsArb: Arbitrary[SnapshotWindows] =
-    Arbitrary(Arbitrary.arbitrary[List[SnapshotWindow]].map(SnapshotWindows.apply))
 
   def sameWindow = prop((fsid: FeatureStoreId, factsets: List[Factset], w: SnapshotWindow, d: UniqueDates) => {
     incWindow(fsid, factsets, w, d.later, Some(d.now), Some(d.now))._2.flatMap(_.store.factsetIds) ==== Nil
@@ -50,5 +47,5 @@ class SnapshotPartitionSpec extends Specification with ScalaCheck { def is = s2"
   }
 
   def withNamespace(ns: Name)(f: Factset): Factset =
-    f.copy(partitions = f.partitions.copy(partitions = f.partitions.partitions.map(_.copy(namespace = ns))))
+    f.copy(partitions = f.partitions.map(_.copy(namespace = ns)))
 }

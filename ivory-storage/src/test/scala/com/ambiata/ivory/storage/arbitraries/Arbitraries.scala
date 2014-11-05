@@ -5,22 +5,12 @@ import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.legacy.SnapshotMeta
 import com.ambiata.ivory.storage.metadata.{SnapshotManifest, NewSnapshotManifest}
 import com.ambiata.ivory.storage.fact.{FactsetVersionTwo, FactsetVersionOne, FactsetVersion}
-import com.ambiata.ivory.storage.plan.{Dataset, SnapshotDataset, FactsetDataset}
 import com.ambiata.notion.core.TemporaryType
 import com.ambiata.notion.core.TemporaryType.{Hdfs, S3, Posix}
 import org.scalacheck.{Gen, Arbitrary}
 import org.scalacheck.Arbitrary._
 
 trait Arbitraries {
-  implicit def FactsetDatasetArbitrary: Arbitrary[FactsetDataset] =
-    Arbitrary(arbitrary[Factset].map(p => FactsetDataset(p.id, p.partitions.partitions)))
-
-  implicit def SnapshotDatasetArbitrary: Arbitrary[SnapshotDataset] =
-    Arbitrary(arbitrary[Identifier].map(SnapshotDataset.apply))
-
-  implicit def DatasetArbitrary: Arbitrary[Dataset] =
-    Arbitrary(Gen.oneOf(arbitrary[FactsetDataset], arbitrary[SnapshotDataset]))
-
   implicit def FactsetVersionArbitrary: Arbitrary[FactsetVersion] =
     Arbitrary(Gen.oneOf(FactsetVersionOne, FactsetVersionTwo))
 

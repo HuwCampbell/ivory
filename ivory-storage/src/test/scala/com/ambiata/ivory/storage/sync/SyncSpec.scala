@@ -1,21 +1,20 @@
 package com.ambiata.ivory.storage.sync
 
 import java.util.UUID
-
 import com.ambiata.ivory.core._
-import TemporaryRepositories._
-import TemporaryLocations._
-import com.ambiata.ivory.storage.arbitraries.Arbitraries._
-import com.ambiata.ivory.storage.plan.{Datasets, FactsetDataset}
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
+import com.ambiata.ivory.core.TemporaryLocations._
+import com.ambiata.ivory.core.TemporaryRepositories._
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.impl.ScoobiConfiguration
+
 import org.specs2.{ScalaCheck, Specification}
 
-
 import scalaz._, Scalaz._
+
 
 class SyncSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -81,30 +80,30 @@ Helper functions
     }) must beOkValue(true)
   }
 
-  def repositoryToCluster = prop((one: FactsetDataset, two: FactsetDataset) => {
+  def repositoryToCluster = prop((one: Factset, two: Factset) => {
     withRepository(Posix)(repo => {
       withCluster(cluster => {
-        val datasets = Datasets(List(Prioritized(Priority.Min, one), Prioritized(Priority.Min, two)))
+        val datasets = Datasets(List(Prioritized(Priority.Min, FactsetDataset(one)), Prioritized(Priority.Min, FactsetDataset(two))))
         for {
-          _ <- one.partitions.map(Repository.factset(one.factset) / _.key / "file").traverseU(key => IvoryLocation.writeUtf8(repo.toIvoryLocation(key), ""))
-          _ <- two.partitions.map(Repository.factset(two.factset) / _.key / "file").traverseU(key => IvoryLocation.writeUtf8(repo.toIvoryLocation(key), ""))
+          _ <- one.partitions.map(Repository.factset(one.id) / _.key / "file").traverseU(key => IvoryLocation.writeUtf8(repo.toIvoryLocation(key), ""))
+          _ <- two.partitions.map(Repository.factset(two.id) / _.key / "file").traverseU(key => IvoryLocation.writeUtf8(repo.toIvoryLocation(key), ""))
           s <- SyncIngest.toCluster(datasets, repo, cluster)
-          o <- one.partitions.traverseU(p => IvoryLocation.exists(repo.toIvoryLocation(Repository.factset(one.factset) / p.key / "file")))
-          t <- two.partitions.traverseU(p => IvoryLocation.exists(repo.toIvoryLocation(Repository.factset(two.factset) / p.key / "file")))
+          o <- one.partitions.traverseU(p => IvoryLocation.exists(repo.toIvoryLocation(Repository.factset(one.id) / p.key / "file")))
+          t <- two.partitions.traverseU(p => IvoryLocation.exists(repo.toIvoryLocation(Repository.factset(two.id) / p.key / "file")))
         } yield o ++ t })
     }) must beOkLike(_ must contain(true).forall)
   }).set(minTestsOk = 10)
 
-  def repositoryFromCluster = prop((dataset: FactsetDataset) => {
+  def repositoryFromCluster = prop((factset: Factset) => {
     withRepository(Posix)(repo => {
       withCluster(cluster => {
-        val datasets = Datasets(List(Prioritized(Priority.Min, dataset)))
+        val datasets = Datasets(List(Prioritized(Priority.Min, FactsetDataset(factset))))
         val shadowRepository = ShadowRepository.fromCluster(cluster)
         for {
-          _ <- dataset.partitions.map(Repository.factset(dataset.factset) / _.key / "file")
+          _ <- factset.partitions.map(Repository.factset(factset.id) / _.key / "file")
                  .traverseU(key => IvoryLocation.writeUtf8(shadowRepository.root </> FilePath.unsafe(key.name), ""))
           s <- SyncExtract.toRepository(datasets, cluster, repo)
-          o <- dataset.partitions.traverseU(p => IvoryLocation.exists(repo.toIvoryLocation(Repository.factset(dataset.factset) / p.key / "file")))
+          o <- factset.partitions.traverseU(p => IvoryLocation.exists(repo.toIvoryLocation(Repository.factset(factset.id) / p.key / "file")))
         } yield o })
     }) must beOkLike(_ must contain(true).forall)
   }).set(minTestsOk = 10)
@@ -140,9 +139,9 @@ Helper functions
     }) must beOkValue(true -> true)
   }
 
-  def checkPaths = prop((dataset: FactsetDataset) => {
-    val datasets = Datasets(List(Prioritized(Priority.Min, dataset)))
-    Sync.getKeys(datasets).length must be_==(dataset.partitions.length)
+  def checkPaths = prop((factset: Factset) => {
+    val datasets = Datasets(List(Prioritized(Priority.Min, FactsetDataset(factset))))
+    Sync.getKeys(datasets).length must be_==(factset.partitions.length)
   })
 
 }

@@ -4,7 +4,7 @@ import java.io.File
 
 import com.ambiata.com.amazonaws.services.s3.AmazonS3Client
 import com.ambiata.mundane.control.{ResultT, ResultTIO}
-import com.ambiata.mundane.data.Lists
+import com.ambiata.mundane.data.{Lists => L}
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.poacher.hdfs.Hdfs
@@ -152,7 +152,7 @@ object IvoryLocation {
   }
 
   def writeUtf8Lines(location: IvoryLocation, lines: List[String]): ResultTIO[Unit] =
-    writeUtf8(location, Lists.prepareForFile(lines))
+    writeUtf8(location, L.prepareForFile(lines))
 
   def writeUtf8(location: IvoryLocation, string: String): ResultTIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Files.write(l.filePath, string)

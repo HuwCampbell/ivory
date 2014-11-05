@@ -31,14 +31,26 @@ class Date private(val underlying: Int) extends AnyVal {
   def string(delim: String): String =
     s"%4d${delim}%02d${delim}%02d".format(year, month, day)
 
+  def <(other: Date): Boolean =
+    isBefore(other)
+
   def isBefore(other: Date): Boolean =
     int < other.int
+
+  def <=(other: Date): Boolean =
+    isBeforeOrEqual(other)
 
   def isBeforeOrEqual(other: Date): Boolean =
     int <= other.int
 
+  def >(other: Date): Boolean =
+    isAfter(other)
+
   def isAfter(other: Date): Boolean =
     int > other.int
+
+  def >=(other: Date): Boolean =
+    isAfterOrEqual(other)
 
   def isAfterOrEqual(other: Date): Boolean =
     int >= other.int

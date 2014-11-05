@@ -3,13 +3,12 @@ package fact
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
+import com.ambiata.ivory.storage.partition._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
-
 import scalaz._, Scalaz._, effect._
 
 object Factsets {
-
   def listIds(repository: Repository): ResultTIO[List[FactsetId]] = for {
     names <- repository.store.listHeads(Repository.factsets).map(_.filterHidden.map(_.name))
     fids  <- names.traverseU(n => ResultT.fromOption[IO, FactsetId](FactsetId.parse(n), s"Can not parse factset id '$n'"))

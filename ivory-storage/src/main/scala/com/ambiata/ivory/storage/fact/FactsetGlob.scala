@@ -1,20 +1,21 @@
 package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.storage.partition._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 
 import scalaz._, effect.IO
 
 // TODO remove once plan api is created
-case class FactsetGlob(repo: Repository, factset: FactsetId, version: FactsetVersion, partitions: Partitions) {
+case class FactsetGlob(repo: Repository, factset: FactsetId, version: FactsetVersion, partitions: List[Partition]) {
   def filterPartitions(f: Partition => Boolean): Option[FactsetGlob] = {
     val filtered = partitions.filter(f)
     if (filtered.isEmpty) None else Some(copy(partitions = filtered))
   }
 
   def keys: List[Key] =
-    partitions.partitions.map(p => Repository.factset(factset) / p.key)
+    partitions.map(p => Repository.factset(factset) / p.key)
 }
 
 object FactsetGlob {
