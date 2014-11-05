@@ -1,9 +1,9 @@
-package com.ambiata.ivory.scoobi
+package com.ambiata.ivory.mr
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi.WireFormats.ShortWireFormat
+import com.ambiata.ivory.mr.WireFormats.ShortWireFormat
 import com.nicta.scoobi._, Scoobi._
 
 trait FactFormats {
@@ -34,6 +34,7 @@ trait FactFormats {
   implicit def FeatureIdWireFormat: WireFormat[FeatureId] = WireFormats.featureIdWireFormat
 
   implicit def ParseErrorWireFormat: WireFormat[ParseError] = WireFormats.parseErrorWireFormat
+
   implicit def ParseErrorSeqSchema: SeqSchema[ParseError] = SeqSchemas.parseErrorSeqSchema
 }
 

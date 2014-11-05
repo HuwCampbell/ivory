@@ -5,7 +5,7 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._, Arbitraries._
 
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
-import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder

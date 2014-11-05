@@ -13,7 +13,7 @@ import com.ambiata.ivory.core.TemporaryLocations.withHdfsRepository
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
-import com.ambiata.ivory.scoobi._
+import com.ambiata.ivory.mr._
 import com.ambiata.poacher.hdfs._
 import FactFormats._
 

@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._, Arbitraries._
-import com.ambiata.ivory.scoobi.{FactFormats, SequenceUtil, TestConfigurations}
+import com.ambiata.ivory.mr.{FactFormats, SequenceUtil, TestConfigurations}
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import FactFormats._
 import com.ambiata.mundane.control._

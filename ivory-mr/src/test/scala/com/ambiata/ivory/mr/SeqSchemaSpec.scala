@@ -1,4 +1,4 @@
-package com.ambiata.ivory.scoobi
+package com.ambiata.ivory.mr
 
 import org.specs2._
 

@@ -5,7 +5,7 @@ import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.extraction.chord.ChordArbitraries._
-import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.storage.repository._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._

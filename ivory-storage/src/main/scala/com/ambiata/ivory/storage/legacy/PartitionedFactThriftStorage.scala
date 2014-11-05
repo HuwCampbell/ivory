@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.legacy
 
 import com.ambiata.ivory.storage.fact.{FactsetVersionTwo, FactsetVersion, FactsetVersionOne}
 
-import scalaz.{Name => _, DList => _, Value => _, _}, Scalaz._
+import scalaz.{Name => _, DList => _, Value => _, _}
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.compress.CompressionCodec
 import com.ambiata.notion.core._
@@ -11,7 +11,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.storage.fact.FactsetGlob
 import com.ambiata.poacher.scoobi._
-import com.ambiata.ivory.scoobi._
+import com.ambiata.ivory.mr._
 import FactFormats._
 
 
@@ -49,18 +49,11 @@ trait PartitionFactThriftStorage {
       loadScoobiWith(repo, factset, from, to)
   }
 
-  case class PartitionedMultiFactsetThriftLoader(repo: HdfsRepository, factsets: List[Prioritized[FactsetId]], from: Option[Date] = None, to: Option[Date] = None) {
-    def loadScoobi: ScoobiAction[DList[ParseError \/ (Priority, FactsetId, Fact)]] =
-      factsets.traverseU(pfs =>
-        loadScoobiWith(repo, pfs.value, from, to).map(_.map(_.map((pfs.priority, pfs.value, _))))
-      ).map(_.foldLeft(DList[ParseError \/ (Priority, FactsetId, Fact)]())(_ ++ _))
-  }
-
   val partitionPath: ((String, Date)) => String = scalaz.Memo.mutableHashMapMemo { nsd =>
     Partition.stringPath(nsd._1, nsd._2)
   }
 
-  case class PartitionedFactThriftStorer(repository: HdfsRepository, key: Key, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
+  case class PartitionedFactThriftStorer(repository: HdfsRepository, key: Key, codec: Option[CompressionCodec]) {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
       dlist.by(f => partitionPath((f.namespace.name, f.date)))
            .mapValues((f: Fact) => f.toThrift)

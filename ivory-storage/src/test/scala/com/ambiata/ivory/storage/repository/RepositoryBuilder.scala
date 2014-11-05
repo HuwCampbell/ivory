@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift.NamespacedThriftFact
-import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.metadata.Metadata
@@ -36,9 +36,9 @@ object RepositoryBuilder {
     val factsets = facts.foldLeft(NonEmptyList(FactsetId.initial)) { case (factsetIds, facts) =>
       // This hack is because we can't pass a non-lazy Fact directly to fromLazySeq, but we want/need them to be props
       val bytes = facts.map(f => serialiser.toBytes(f.toNamespacedThrift))
-      IvoryStorage.IvoryFactStorage(fromLazySeq(bytes).map {
+      IvoryStorage.factsetStorer(repo, Repository.factset(factsetIds.head), None).storeScoobi(fromLazySeq(bytes).map {
         bytes => serialiser.fromBytesUnsafe(new NamespacedThriftFact with NamespacedThriftFactDerived, bytes)
-      }).toIvoryFactset(repo, factsetIds.head, None)(repo.scoobiConfiguration).persist(repo.scoobiConfiguration)
+      })(repo.scoobiConfiguration).persist(repo.scoobiConfiguration)
       factsetIds.head.next.get <:: factsetIds
     }.tail.reverse
     (for {

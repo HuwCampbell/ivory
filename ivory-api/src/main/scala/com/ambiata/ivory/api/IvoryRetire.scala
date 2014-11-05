@@ -24,13 +24,9 @@ object IvoryRetire {
    * They will be replaced by a safer, stable API that lets users interact with
    * ivory, without concern for the current implementation.
    */
-  type IvoryScoobiLoader[A] = com.ambiata.ivory.storage.legacy.IvoryScoobiLoader[A]
-  type IvoryScoobiStorer[A, +B] = com.ambiata.ivory.storage.legacy.IvoryScoobiStorer[A, B]
-
   val writeFactsetVersion = com.ambiata.ivory.storage.legacy.IvoryStorage.writeFactsetVersion _
 
   val snapshotFromHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotFromHdfs _
-  val snapshotToHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotToHdfs _
   val compareHdfsSnapshots = CompareSnapshots.compareHdfsSnapshots _
 
   val createRepository = com.ambiata.ivory.storage.repository.Repositories.create _
@@ -45,9 +41,6 @@ object IvoryRetire {
   val importDictionary = com.ambiata.ivory.operation.ingestion.DictionaryImporter.importFromPath _
   val dictionaryFromIvory = com.ambiata.ivory.storage.metadata.Metadata.latestDictionaryFromIvory _
   val dictionaryToString = com.ambiata.ivory.storage.metadata.DictionaryTextStorageV2.delimitedString _
-
-  implicit def DListToIvoryFactStorage(dlist: com.nicta.scoobi.core.DList[Ivory.Fact]): com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage =
-    com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage(dlist)
 
   /**
    * Extract types. These components expose the internal representations of ivory.

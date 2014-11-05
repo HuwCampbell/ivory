@@ -4,7 +4,7 @@ import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi._
+import com.ambiata.ivory.mr._
 import FactFormats._
 import com.ambiata.poacher.scoobi._
 

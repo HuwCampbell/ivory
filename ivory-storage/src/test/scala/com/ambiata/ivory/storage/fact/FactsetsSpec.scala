@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core.Arbitraries._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi.TestConfigurations._
+import com.ambiata.ivory.mr.TestConfigurations._
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.mundane.testing.ResultTIOMatcher._

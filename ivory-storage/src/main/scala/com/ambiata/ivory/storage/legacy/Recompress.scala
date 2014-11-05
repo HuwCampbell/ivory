@@ -21,7 +21,7 @@ import MemoryConversions._
 
 import scalaz._, Scalaz._
 import scala.collection.JavaConverters._
-import com.ambiata.ivory.scoobi.WireFormats.BytesQuantityWireFormat
+import com.ambiata.ivory.mr.WireFormats.BytesQuantityWireFormat
 import com.ambiata.poacher.hdfs.Hdfs
 
 case class Stat(in: String, out: String, size: BytesQuantity, seq: Boolean) {

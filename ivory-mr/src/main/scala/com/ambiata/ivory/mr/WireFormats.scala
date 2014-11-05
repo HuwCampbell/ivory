@@ -1,4 +1,4 @@
-package com.ambiata.ivory.scoobi
+package com.ambiata.ivory.mr
 
 import com.ambiata.mundane.io.{MemoryConversions, BytesQuantity}
 import com.ambiata.poacher.mr.ThriftSerialiser

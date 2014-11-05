@@ -4,7 +4,7 @@ import scalaz.concurrent.Task
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.io.{IOActions, IOAction, Logger}
 import scalaz.std.anyVal._
-import com.ambiata.ivory.scoobi.SeqSchemas
+import com.ambiata.ivory.mr.SeqSchemas
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf.Configuration
 import com.ambiata.poacher.hdfs.Hdfs

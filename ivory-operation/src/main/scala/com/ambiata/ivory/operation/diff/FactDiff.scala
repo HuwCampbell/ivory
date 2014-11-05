@@ -5,7 +5,7 @@ import scalaz.{DList => _, Value => _, _}, Scalaz._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
-import com.ambiata.ivory.scoobi._
+import com.ambiata.ivory.mr._
 import FactFormats._
 
 object FactDiff {

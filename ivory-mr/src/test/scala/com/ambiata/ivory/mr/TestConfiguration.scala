@@ -1,4 +1,4 @@
-package com.ambiata.ivory.scoobi
+package com.ambiata.ivory.mr
 
 import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 

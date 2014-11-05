@@ -24,7 +24,6 @@ object build extends Build {
     , mr
     , operation
     , performance
-    , scoobi
     , storage
     )
   )
@@ -155,7 +154,7 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.hadoop(version.value) ++
       depend.specs2 ++ depend.mundane ++ depend.poacher(version.value) ++ depend.spire ++ depend.argonaut)
   )
-  .dependsOn(core, scoobi, storage, mr % "test->test", core % "test->test", scoobi % "test->test", storage % "test->test")
+  .dependsOn(core, storage, mr % "test->test", core % "test->test", storage % "test->test")
 
   lazy val mr = Project(
     id = "mr"
@@ -175,15 +174,6 @@ object build extends Build {
   )
     .dependsOn(core)
 
-  lazy val scoobi = Project(
-    id = "scoobi"
-  , base = file("ivory-scoobi")
-  , settings = standardSettings ++ lib("scoobi") ++ Seq[Settings](
-      name := "ivory-scoobi"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.poacher(version.value) ++ depend.scoobi(version.value) ++ depend.saws ++ depend.specs2)
-  )
-.dependsOn(core, core % "test->test")
-
   lazy val storage = Project(
     id = "storage"
   , base = file("ivory-storage")
@@ -193,7 +183,7 @@ object build extends Build {
                                                depend.argonaut ++ depend.poacher(version.value) ++ depend.specs2 ++
                                                depend.saws)
   )
-  .dependsOn(core, scoobi, mr, core % "test->test",  scoobi % "test->test")
+  .dependsOn(core, mr, core % "test->test", mr % "test->test")
 
   lazy val compilationSettings: Seq[Settings] = Seq(
     javaOptions ++= Seq("-Xmx3G", "-Xms512m", "-Xss4m")

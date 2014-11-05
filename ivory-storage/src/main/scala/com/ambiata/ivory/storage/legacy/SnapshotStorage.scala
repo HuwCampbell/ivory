@@ -7,19 +7,13 @@ import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.core._
 import com.ambiata.poacher.scoobi._
-import com.ambiata.ivory.scoobi._
+import com.ambiata.ivory.mr._
 import FactFormats._
 
 object SnapshotStorageV1 {
-  case class SnapshotLoader(path: Path) extends IvoryScoobiLoader[Fact] {
+  case class SnapshotLoader(path: Path) {
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ Fact] =
       valueFromSequenceFile[Fact](path.toString).map(_.right[ParseError])
-  }
-
-  case class SnapshotStorer(path: Path, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[Fact]] {
-    def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[Fact] = {
-      dlist.valueToSequenceFile(path.toString, overwrite = true).persistWithCodec(codec)
-    }
   }
 
   def snapshotFromHdfs(path: Path): ScoobiAction[DList[ParseError \/ Fact]] =
@@ -27,6 +21,4 @@ object SnapshotStorageV1 {
       SnapshotLoader(path).loadScoobi
     })
 
-  def snapshotToHdfs(dlist: DList[Fact], path: Path, codec: Option[CompressionCodec]): ScoobiAction[DList[Fact]] =
-  ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration => SnapshotStorer(path, codec).storeScoobi(dlist) })
 }

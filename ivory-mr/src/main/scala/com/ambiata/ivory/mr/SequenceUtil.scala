@@ -1,4 +1,4 @@
-package com.ambiata.ivory.scoobi
+package com.ambiata.ivory.mr
 
 import com.ambiata.ivory.core.{HdfsIvoryLocation, IvoryLocation}
 import com.ambiata.mundane.control._

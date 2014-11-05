@@ -7,7 +7,7 @@ import com.ambiata.poacher.hdfs._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.core._
 
-import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.poacher.scoobi.ScoobiAction
 import com.ambiata.poacher.scoobi.ScoobiAction.scoobiJob
 import com.ambiata.ivory.storage.fact.{Namespaces, Versions}
