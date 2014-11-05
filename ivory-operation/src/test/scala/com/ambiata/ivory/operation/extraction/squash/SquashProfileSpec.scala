@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.mr._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.arbitraries._, ArbitraryFacts._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 
 import com.ambiata.ivory.mr.Counter
 import com.ambiata.ivory.operation.extraction.reduction.CountReducer

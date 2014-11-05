@@ -2,8 +2,6 @@ package com.ambiata.ivory.core
 
 import org.specs2._
 import com.ambiata.ivory.core.arbitraries._
-import ArbitraryFeatures._
-import ArbitraryFacts._
 import scalaz._, Scalaz._
 
 class FilterSpec extends Specification with ScalaCheck { def is = s2"""

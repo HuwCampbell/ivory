@@ -3,7 +3,6 @@ package com.ambiata.ivory.core
 import com.ambiata.ivory.core.StructEncodedValue.mandatory
 import org.specs2._
 import com.ambiata.ivory.core.arbitraries._
-import ArbitraryFeatures._
 
 class ExpressionSpec extends Specification with ScalaCheck { def is = s2"""
 

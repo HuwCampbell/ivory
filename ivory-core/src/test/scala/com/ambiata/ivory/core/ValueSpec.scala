@@ -1,7 +1,6 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.ivory.core.arbitraries._
-import ArbitraryEncodings._
+import com.ambiata.ivory.core.arbitraries._, Arbitraries._
 import org.specs2.{ScalaCheck, Specification}
 
 class ValueSpec extends Specification with ScalaCheck { def is = s2"""

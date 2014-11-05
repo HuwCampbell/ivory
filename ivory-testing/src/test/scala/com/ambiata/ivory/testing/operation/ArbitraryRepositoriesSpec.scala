@@ -1,4 +1,4 @@
-package com.ambiata.ivory.operation
+package com.ambiata.ivory.testing.operation
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.metadata._

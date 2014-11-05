@@ -1,7 +1,9 @@
 package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.arbitraries._, ArbitraryFeatures._, ArbitraryFacts._, ArbitraryValues._
+import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
+import com.ambiata.ivory.core.gen._
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
 import org.scalacheck._
 import scalaz._, Scalaz._
@@ -57,7 +59,7 @@ object SquashArbitraries {
     w <- Arbitrary.arbitrary[ConcreteGroupFeature].flatMap { w =>
       // Make sure we have _at least_ one virtual feature
       if (w.dictionary.hasVirtual) Gen.const(w)
-      else virtualDefGen(w.fid -> w.cg.definition).map(virt => w.copy(cg = w.cg.copy(virtual = virt :: w.cg.virtual)))
+      else GenDictionary.virtual(w.fid -> w.cg.definition).map(virt => w.copy(cg = w.cg.copy(virtual = virt :: w.cg.virtual)))
     }.map {
       // My kingdom for a lens :(
       // Disable filtering in squash tests, handled in FilterReductionSpec and window cli test

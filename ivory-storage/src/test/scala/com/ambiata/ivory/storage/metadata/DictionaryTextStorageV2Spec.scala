@@ -1,7 +1,7 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import org.specs2.{ScalaCheck, Specification}
 import scalaz.{Name => _, _}, Scalaz._
 

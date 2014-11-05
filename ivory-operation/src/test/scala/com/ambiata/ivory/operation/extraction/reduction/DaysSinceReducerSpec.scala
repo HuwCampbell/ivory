@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
-import com.ambiata.ivory.operation.extraction.reduction.ReductionArbitraries._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import org.specs2.{ScalaCheck, Specification}
 import org.joda.time.{Days => JodaDays}
 
@@ -10,9 +10,9 @@ class DaysSinceReducerSpec extends Specification with ScalaCheck { def is = s2""
 
 """
 
-  def daysSince = prop((facts: List[(Option[TestDate], TestDate)]) => {
-    val ds = facts.map(td => td._1.map(_.d) -> td._2.d).sortBy(_._2)
-    
+  def daysSince = prop((facts: List[(Option[Date], Date)]) => {
+    val ds = facts.map(td => td._1 -> td._2).sortBy(_._2)
+
     val dateOffsets = DateOffsets.compact(ds.headOption.map(_._2).getOrElse(Date.minValue),
       ds.lastOption.map(_._2).getOrElse(Date.minValue))
 

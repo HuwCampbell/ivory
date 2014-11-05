@@ -1,12 +1,14 @@
 package com.ambiata.ivory.core
 
-import org.scalacheck._
+import org.scalacheck._, Arbitrary.arbitrary
 import Prop._
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.{ScalaCheck, Specification}
 import shapeless.test.illTyped
 import Name._
-import Arbitraries._
+import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
+
 
 class NameSpec extends Specification with ScalaCheck with ThrownExpectations { def is = s2"""
 
@@ -61,11 +63,11 @@ class NameSpec extends Specification with ScalaCheck with ThrownExpectations { d
   }
 
   def validStrings: Gen[String] =
-    GoodNameStringArbitrary.arbitrary.map(_.name)
+    arbitrary[Name].map(_.name)
 
   def randomStrings: Gen[String] =
-    RandomNameStringArbitrary.arbitrary.map(_.name)
+    arbitrary[RandomName].map(_.name)
 
   def badStrings: Gen[String] =
-    BadNameStringArbitrary.arbitrary.map(_.name)
+    arbitrary[BadName].map(_.name)
 }

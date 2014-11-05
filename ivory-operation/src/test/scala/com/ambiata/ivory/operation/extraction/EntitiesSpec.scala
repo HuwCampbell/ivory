@@ -2,13 +2,13 @@ package com.ambiata.ivory.operation.extraction
 
 import java.util.HashMap
 
-import com.ambiata.ivory.core.{Priority, Date, Fact, arbitraries}
-import arbitraries._, ArbitraryFacts._, ArbitraryValues._
+import com.ambiata.ivory.core.{Priority, Date, Fact}
+import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.operation.extraction.Chord.PrioritizedFact
-import org.scalacheck.{Arbitrary, Gen}
+import org.scalacheck.{Arbitrary, Gen}, Arbitrary.arbitrary
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.{ScalaCheck, Specification}
-import arbitraries._
 import scala.collection.JavaConversions._
 
 class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations { def is = s2"""
@@ -80,7 +80,7 @@ class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations
   }
 
   def genEntityDates: Gen[(Entity, List[Date])] = for {
-    id          <- EntityArbitrary.arbitrary
+    id          <- arbitrary[Entity]
     datesNumber <- Gen.choose(1, 4)
     dates       <- Gen.listOfN(datesNumber, DateArbitrary.arbitrary)
   } yield (id, dates)

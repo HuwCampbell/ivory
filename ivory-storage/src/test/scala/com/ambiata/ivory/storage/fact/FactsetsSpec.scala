@@ -1,7 +1,8 @@
 package com.ambiata.ivory.storage.fact
 
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
-import ArbitraryMetadata._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.mr.TestConfigurations._
 import com.ambiata.mundane.io._
@@ -23,7 +24,7 @@ class FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
   Can read a single factset                      $factset
                                                  """
 
-  def latest = prop { ids: FactsetIdList =>
+  def latest = prop { ids: FactsetIds =>
     withRepository { repo =>
       (for {
         _ <- ids.ids.traverseU(id => allocatePath(repo, Repository.factset(id)))
@@ -46,7 +47,7 @@ class FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
     }
   }
 
-  def factsets = prop { factsets: FactsetList =>
+  def factsets = prop { factsets: Factsets =>
     withRepository { repo =>
       val expected = factsets.factsets.map(fs => fs.copy(partitions = fs.partitions.sorted)).sortBy(_.id)
 

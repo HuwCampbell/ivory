@@ -1,7 +1,9 @@
 package com.ambiata.ivory.operation.extraction
 
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.mr.MockFactMutator
+
 import com.ambiata.ivory.operation.extraction.ChordReducer._
 import com.ambiata.ivory.operation.extraction.chord.ChordArbitraries._
 import com.ambiata.ivory.storage.lookup.FeatureLookups

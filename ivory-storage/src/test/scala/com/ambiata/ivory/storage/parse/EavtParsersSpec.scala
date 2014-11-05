@@ -2,10 +2,8 @@ package com.ambiata.ivory.storage.parse
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
-import ArbitraryFeatures._
-import ArbitraryEncodings._
-import ArbitraryValues._
-import ArbitraryFacts._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
+import com.ambiata.ivory.core.gen._
 import org.joda.time.DateTimeZone
 import org.scalacheck._, Arbitrary._
 import org.specs2._
@@ -26,11 +24,6 @@ Eavt Parse Formats
  Must fail with struct EAVT string       $structFail
 
 """
-
-  case class PrimitiveSparseEntities(meta: ConcreteDefinition, fact: Fact, zone: DateTimeZone)
-  implicit def PrimitiveSpareEntitiesArbitrary: Arbitrary[PrimitiveSparseEntities] = Arbitrary(
-    factWithZoneGen(Gen.oneOf(testEntities(1000)), concreteDefinitionGen(arbitrary[PrimitiveEncoding])).map(PrimitiveSparseEntities.tupled)
-  )
 
   def date = prop((fz: PrimitiveSparseEntities) =>
     factDateSpec(fz, DateTimeZone.getDefault, fz.fact.date.hyphenated) must_== Success(fz.fact.withTime(Time(0)))
@@ -123,5 +116,5 @@ Eavt Parse Formats
   }
 
   def genValue(m: ConcreteDefinition): Gen[Value] =
-    Gen.frequency(1 -> Gen.const(TombstoneValue), 99 -> valueOf(m.encoding, m.tombstoneValue))
+    Gen.frequency(1 -> Gen.const(TombstoneValue), 99 -> GenValue.valueOf(m.encoding, m.tombstoneValue))
 }

@@ -4,10 +4,8 @@ import com.ambiata.ivory.core._
 
 import org.specs2._
 import org.scalacheck._, Arbitrary._
-import com.ambiata.ivory.core.arbitraries._
-import ArbitraryFeatures._
-import ArbitraryValues._
-import com.ambiata.ivory.storage.Arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
+import com.ambiata.ivory.storage.arbitraries.Arbitraries._
 
 object DatasetSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -43,8 +41,8 @@ object DatasetSpec extends Specification with ScalaCheck { def is = s2"""
     dataset.partitionsBetweenExclusive(start, end) must_== expected
   })
 
-  def customFilter = prop((ns: FeatureNamespace, dataset: FactsetDataset) => {
-    val expected = dataset.copy(partitions = dataset.partitions.filter(_.namespace == ns.namespace))
-    dataset.filter(_.namespace == ns.namespace) must_== expected
+  def customFilter = prop((ns: Name, dataset: FactsetDataset) => {
+    val expected = dataset.copy(partitions = dataset.partitions.filter(_.namespace == ns))
+    dataset.filter(_.namespace == ns) must_== expected
   })
 }

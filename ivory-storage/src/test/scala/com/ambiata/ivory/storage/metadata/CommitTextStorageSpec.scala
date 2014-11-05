@@ -1,14 +1,14 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.control._
 
 import org.specs2._
 import scalaz._, Scalaz._
 import org.scalacheck._, Arbitrary._
-import com.ambiata.ivory.core.arbitraries._
-import ArbitraryMetadata._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
 class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"""
@@ -42,7 +42,7 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
     } must beOkLike(_ must_== delimitedString(commit))
   }
 
-  def listCommitIds = prop { ids: SmallCommitIdList =>
+  def listCommitIds = prop { ids: CommitIds =>
     TemporaryDirPath.withDirPath { dir =>
       val repo = LocalRepository.create(dir)
       writeCommitIds(repo, ids.ids) >>
@@ -50,7 +50,7 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
     } must beOkValue(ids.ids.toSet)
   }
 
-  def latestCommitId = prop { ids: SmallCommitIdList =>
+  def latestCommitId = prop { ids: CommitIds =>
     TemporaryDirPath.withDirPath { dir =>
       val repo = LocalRepository.create(dir)
       writeCommitIds(repo, ids.ids) >>
