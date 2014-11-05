@@ -24,7 +24,7 @@ class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""
       buffer     = new StringBuffer
       stringBufferLogging = (s: String) => IO { buffer.append(s+"\n"); ()}
       _         <- ResultT.fromIO(PrintFacts.print(
-        List(repo.toIvoryLocation(Repository.snapshot(snapshot1.meta.snapshotId)).toHdfsPath),
+        List(repo.toIvoryLocation(Repository.snapshot(snapshot1.manifest.snapshotId)).toHdfsPath),
         repo.configuration,
         delim = "|",
         tombstone = "NA",

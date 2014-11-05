@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
 import com.ambiata.ivory.operation.extraction.SnapshotJob
 import com.ambiata.ivory.storage.lookup.{ReducerLookups, ReducerSize}
-import com.ambiata.ivory.storage.metadata.{Metadata, SnapshotManifest}
+import com.ambiata.ivory.storage.metadata.{Metadata, SnapshotLatestSummary}
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FileName
 import com.ambiata.mundane.io.MemoryConversions._
@@ -22,10 +22,10 @@ import scalaz._, Scalaz._, effect.IO
 
 object SquashJob {
 
-  def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotManifest, conf: SquashConfig)
+  def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotLatestSummary, conf: SquashConfig)
                                (f: (Key, Dictionary) => ResultTIO[(A, List[IvoryLocation])]): ResultTIO[A] = for {
-    dictionary      <- Metadata.latestDictionaryFromIvory(repository)
-    toSquash        <- squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date, conf)
+    dictionary      <- Metadata.dictionaryFromIvory(repository, snapmeta.dictionaryId)
+    toSquash        <- squash(repository, dictionary, Repository.snapshot(snapmeta.manifest.snapshotId), snapmeta.manifest.date, conf)
     (profile, key, doSquash) =  toSquash
     a               <- f(key, dictionary)
     _               <- ResultT.when(doSquash, for {

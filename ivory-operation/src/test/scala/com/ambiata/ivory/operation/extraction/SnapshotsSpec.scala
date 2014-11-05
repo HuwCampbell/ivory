@@ -49,7 +49,7 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
     RepositoryBuilder.using { repo => for {
         _ <- RepositoryBuilder.createRepo(repo, vdict.vd.dictionary, List(deprioritized, facts ++ oldfacts))
         s <- Snapshots.takeSnapshot(repo, fact.date)
-        f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.meta.snapshotId)).toHdfs).run(repo.scoobiConfiguration)
+        f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.manifest.snapshotId)).toHdfs).run(repo.scoobiConfiguration)
       } yield f
     }.map(_.toSet) must beOkValue((oldfacts.sortBy(_.date).lastOption.toList ++ facts).toSet)
   }).set(minTestsOk = 3)
@@ -66,8 +66,8 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
           _ <- RepositoryBuilder.createFactset(repo, facts2)
           res2 <- Snapshots.takeSnapshot(repo, fact.date)
         } yield (res, res2.incremental.map(_.snapshotId))) must beOkLike(
-          (t: (SnapshotJobSummary[SnapshotManifest], Option[SnapshotId])) =>
-            t._2.cata((sid: SnapshotId) => sid must_== t._1.meta.snapshotId, SpecsFailure("No incremental was used in the second snapshot")))
+          (t: (SnapshotLatestSummary, Option[SnapshotId])) =>
+            t._2.cata((sid: SnapshotId) => sid must_== t._1.manifest.snapshotId, SpecsFailure("No incremental was used in the second snapshot")))
     }).set(minTestsOk = 3)
 
   def sets = propNoShrink((concrete: FeatureId, virtual: FeatureId, window: Window, date: Date, time: Time, entity: Int) => {
@@ -94,7 +94,7 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
     RepositoryBuilder.using { repo => for {
         _ <- RepositoryBuilder.createRepo(repo, dictionary, List(facts ++ outer))
         s <- Snapshots.takeSnapshot(repo, date)
-        f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.meta.snapshotId)).toHdfs).run(repo.scoobiConfiguration)
+        f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.manifest.snapshotId)).toHdfs).run(repo.scoobiConfiguration)
       } yield f
     }.map(_.toSet) must beOkValue((outer.sortBy(f => f.datetime.long).filter(_.date.isBeforeOrEqual(date)).lastOption.toList ++ facts).toSet)
   }).set(minTestsOk = 3)

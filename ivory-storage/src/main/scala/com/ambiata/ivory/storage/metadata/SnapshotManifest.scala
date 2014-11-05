@@ -115,7 +115,7 @@ object SnapshotManifest {
    */
   def latestSnapshot(repository: Repository, date: Date): OptionT[ResultTIO, SnapshotManifest] = for {
     ids <- repository.store.listHeads(Repository.snapshots).liftM[OptionT]
-    sids <- OptionT.optionT[ResultTIO](ids.traverseU((sid: Key) => SnapshotId.parse(sid.name)).pure[ResultTIO])
+    sids <- OptionT.optionT[ResultTIO](ids.traverseU(sid => SnapshotId.parse(sid.name)).pure[ResultTIO])
     metas <- sids.traverseU(fromIdentifier(repository, _))
     filtered = metas.filter(_.date isBeforeOrEqual date)
     meta <- OptionTPlus.fromOption[ResultTIO, SnapshotManifest](filtered.sorted.lastOption)
@@ -139,27 +139,27 @@ object SnapshotManifest {
    *
    *  AND dictionary == latestDictionary
    */
-  def latestUpToDateSnapshot(repo: Repository, date: Date): OptionT[ResultTIO, SnapshotManifest] = for {
+  def latestUpToDateSnapshot(repo: Repository, date: Date): OptionT[ResultTIO, SnapshotLatestSummary] = for {
     meta <- latestSnapshot(repo, date)
     store <- Metadata.latestFeatureStoreOrFail(repo).liftM[OptionT]
     metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
     thereAreNoNewer <- checkForNewerFeatures(repo, metaFeatureId, store, meta.date, date).liftM[OptionT]
-    validDictionary <- isSnapshotValidWithLatestDictionary(repo, meta).liftM[OptionT]
-    _ <- OptionTPlus.when[ResultTIO, Unit](thereAreNoNewer && validDictionary, ())
-  } yield meta
+    _ <- OptionTPlus.when[ResultTIO, Unit](thereAreNoNewer, ())
+    dictionaryId <- getValidLatestDictionary(repo, meta)
+  } yield SnapshotLatestSummary(meta, None, metaFeatureId, dictionaryId)
 
   /**
    * Ensure that the provided snapshot is "valid" in relation to the latest dictionary.
    * If features have been added (for example), then a snapshot at the same date is take again.
    */
-  def isSnapshotValidWithLatestDictionary(repository: Repository, snapmeta: SnapshotManifest): ResultTIO[Boolean] = for {
+  def getValidLatestDictionary(repository: Repository, snapmeta: SnapshotManifest): OptionT[ResultTIO, DictionaryId] = OptionT.optionT[ResultTIO](for {
     dictionaryId     <- Metadata.latestDictionaryIdFromIvory(repository)
     snapDictionaryId <- dictionaryIdForSnapshot(repository, snapmeta)
     // Currently we're invalidating the snapshot if the dictionaries aren't identical,
     // But eventually this can become a little more intelligent, such as
     //   - checking if new concrete features have been added
     //   - checking if the maximum window for a feature has increased
-  } yield snapDictionaryId === dictionaryId
+  } yield (snapDictionaryId === dictionaryId).option(dictionaryId))
 
   def dictionaryIdForSnapshot(repository: Repository, meta: SnapshotManifest): ResultTIO[DictionaryId] =
     meta.storeOrCommitId.b.cata(
@@ -271,4 +271,18 @@ object NewSnapshotManifest {
     ("id" := meta.snapshotId) ->: ("format_version" := meta.formatVersion) ->: ("date" := meta.date) ->: ("commit_id" := meta.commitId) ->: jEmptyObject
   }
 
+}
+
+/**
+ * Contains information that would be handy to return to the user of the CLI or
+ * Ivory "as a library" that doesnt have to go in the snapshot metadata for persistence
+ * in the repository itself.
+ *
+ * The [[dictionaryId]] is _guaranteed_ to be valid with the snapshot provided.
+ */
+case class SnapshotLatestSummary(
+    manifest: SnapshotManifest
+  , incremental: Option[SnapshotManifest]
+  , featureStoreId: FeatureStoreId
+  , dictionaryId: DictionaryId) {
 }

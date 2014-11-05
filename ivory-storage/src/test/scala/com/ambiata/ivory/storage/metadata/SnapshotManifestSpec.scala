@@ -125,7 +125,7 @@ SnapshotManifest Properties
         store     <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.testing(repo))
         _         <- Metadata.dictionaryToIvory(repo, Dictionary.empty)
         _         <- writeFactsetVersion(repo, List(factsetId))
-        snapshot  <- SnapshotManifest.latestUpToDateSnapshot(repo, dates.now).run
+        snapshot  <- SnapshotManifest.latestUpToDateSnapshot(repo, dates.now).run.map(_.map(_.manifest))
       } yield snapshot must beUpToDate(repo, dates.now)
 
     } must beOkResult
@@ -140,10 +140,10 @@ SnapshotManifest Properties
         commitId  <- Metadata.findOrCreateLatestCommitId(repo)
         _         <- NewSnapshotManifest.save(repo, NewSnapshotManifest.newSnapshotMeta(snapshotId, date, commitId))
         // Load a snapshot where the dictionary is still valid
-        snapshot1 <- SnapshotManifest.latestUpToDateSnapshot(repo, date).run
+        snapshot1 <- SnapshotManifest.latestUpToDateSnapshot(repo, date).run.map(_.map(_.manifest))
         // Create a newer dictionary
         _         <- Metadata.dictionaryToIvory(repo, Dictionary.empty)
-        snapshot2 <- SnapshotManifest.latestUpToDateSnapshot(repo, date).run
+        snapshot2 <- SnapshotManifest.latestUpToDateSnapshot(repo, date).run.map(_.map(_.manifest))
       } yield (snapshot1.map(_.snapshotId), snapshot2.map(_.snapshotId))
 
     } must beOkValue(Some(snapshotId) -> None)

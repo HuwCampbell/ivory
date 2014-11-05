@@ -14,18 +14,6 @@ import org.apache.hadoop.io.compress._
 import scalaz.{DList => _, _}, Scalaz._, effect._
 
 /**
- * Contains information that would be handy to return to the user of the CLI or
- * Ivory "as a library" that doesnt have to go in the snapshot metadata for persistence
- * in the repository itself.
- */
-case class SnapshotJobSummary[A](
-    meta: A
-  , incremental: Option[SnapshotManifest]) {
-
-  def map[B](f: A => B): SnapshotJobSummary[B] = SnapshotJobSummary(f(meta), incremental)
-}
-
-/**
  * Snapshots are used to store the latest feature values at a given date.
  * This can be done incrementally in order to be fast.
  *
@@ -41,44 +29,43 @@ object Snapshots {
   /**
    * Take a new snapshot as at the specified date.
    */
-  def takeSnapshot(repository: Repository, date: Date): ResultTIO[SnapshotJobSummary[SnapshotManifest]] =
+  def takeSnapshot(repository: Repository, date: Date): ResultTIO[SnapshotLatestSummary] =
     for {
       latest    <- SnapshotManifest.latestUpToDateSnapshot(repository, date).run
-      result    <- latest match {
-        case Some(m) =>
-          for {
-            storeId <- SnapshotManifest.getFeatureStoreId(repository, m)
-            _ <- ResultT.fromIO(IO.putStrLn(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${storeId}'"))
-            x <- ResultT.safe[IO, SnapshotManifest](m)
-          } yield SnapshotJobSummary(x, latest)
-        case None    => (SnapshotManifest.latestSnapshot(repository, date).run >>= createSnapshot(repository, date)).map(_.map(SnapshotManifest.snapshotManifestNew))
-      }
+      result    <- latest.cata(
+          m => ResultT.fromIO(IO.putStrLn(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${m.featureStoreId}'")).as(m)
+        , SnapshotManifest.latestSnapshot(repository, date).run >>= createSnapshot(repository, date)
+      )
     } yield result
 
   /**
    * create a new snapshot at a given date, using the previous snapshot data if present
    */
-  def createSnapshot(repository: Repository, date: Date): Option[SnapshotManifest] => ResultTIO[SnapshotJobSummary[NewSnapshotManifest]] = (previousSnapshot: Option[SnapshotManifest]) =>
+  def createSnapshot(repository: Repository, date: Date): Option[SnapshotManifest] => ResultTIO[SnapshotLatestSummary] = (previousSnapshot: Option[SnapshotManifest]) =>
     for {
-      newSnapshot <- NewSnapshotManifest.createSnapshotManifest(repository, date)
-      _           <- NewSnapshotManifest.getFeatureStoreId(repository, newSnapshot).flatMap((featureStoreId: FeatureStoreId) => for {
-        _ <- runSnapshot(repository, newSnapshot, previousSnapshot, date, newSnapshot.snapshotId)
-        _ <- ResultT.fromIO(IO.putStrLn(s"""| Running extractor on:
-                                            |
-                                            | Repository     : ${repository.root.show}
-                                            | Feature Store  : ${featureStoreId.render}
-                                            | Date           : ${date.hyphenated}
-                                            | Output         : ${Repository.snapshot(newSnapshot.snapshotId).name}
-                                            |""".stripMargin))
-      } yield ())
-    } yield SnapshotJobSummary(newSnapshot, previousSnapshot)
+      newSnapshot    <- NewSnapshotManifest.createSnapshotManifest(repository, date)
+      featureStoreId <- NewSnapshotManifest.getFeatureStoreId(repository, newSnapshot)
+      dictionaryId   <- latestDictionaryIdFromIvory(repository)
+       _             <- runSnapshot(repository, newSnapshot, previousSnapshot, date, newSnapshot.snapshotId, dictionaryId)
+       _             <- ResultT.fromIO(IO.putStrLn(
+         s"""| Running extractor on:
+             |
+             | Repository     : ${repository.root.show}
+             | Feature Store  : ${featureStoreId.render}
+             | Dictionary     : ${dictionaryId.render}
+             | Date           : ${date.hyphenated}
+             | Output         : ${Repository.snapshot(newSnapshot.snapshotId).name}
+             |""".stripMargin
+       ))
+    } yield SnapshotLatestSummary(SnapshotManifest.snapshotManifestNew(newSnapshot), previousSnapshot, featureStoreId, dictionaryId)
 
   /**
    * Run a snapshot on a given repository using the previous snapshot in case of an incremental snapshot
    */
-  def runSnapshot(repository: Repository, newSnapshot: NewSnapshotManifest, previousSnapshot: Option[SnapshotManifest], date: Date, newSnapshotId: SnapshotId): ResultTIO[Unit] =
+  def runSnapshot(repository: Repository, newSnapshot: NewSnapshotManifest, previousSnapshot: Option[SnapshotManifest],
+                  date: Date, newSnapshotId: SnapshotId, dictionaryId: DictionaryId): ResultTIO[Unit] =
     for {
-      dictionary      <- latestDictionaryFromIvory(repository)
+      dictionary      <- dictionaryFromIvory(repository, dictionaryId)
       windows         =  SnapshotWindows.planWindow(dictionary, date)
       newFactsetGlobs <- calculateGlobs(repository, dictionary, windows, newSnapshot, previousSnapshot, date)
 

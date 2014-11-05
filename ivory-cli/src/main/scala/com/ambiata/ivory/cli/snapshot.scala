@@ -51,13 +51,12 @@ object snapshot extends IvoryApp {
       for {
         of   <- Extract.parse(configuration, c.formats)
         res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date))
-        meta = res.meta
-        _    <- ResultT.when(of.outputs.nonEmpty, SquashJob.squashFromSnapshotWith(repo, meta, c.squash) { (input, dictionary) =>
+        _    <- ResultT.when(of.outputs.nonEmpty, SquashJob.squashFromSnapshotWith(repo, res, c.squash) { (input, dictionary) =>
           Extraction.extract(of, repo.toIvoryLocation(input), dictionary).run(IvoryRead.prod(repo)).map(_ -> of.outputs.map(_._2))
         })
       } yield List(
         banner,
-        s"Output path: ${meta.snapshotId}",
+        s"Output path: ${res.manifest.snapshotId}",
         res.incremental.cata((incr: SnapshotManifest) => s"Incremental snapshot used: ${incr.snapshotId}", "No Incremental Snapshot was used."),
         "Status -- SUCCESS")
   })

@@ -68,7 +68,7 @@ class DenseOutputSpec extends Specification with SampleFacts with ThrownExpectat
         dense <- IvoryLocation.fromUri((dir </> "dense").path, IvoryConfiguration.Empty)
         res   <- Snapshots.takeSnapshot(repo, Date.maxValue)
 
-        meta      = res.meta
+        meta      = res.manifest
         input     = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
         _                <- DenseOutput.createWithDictionary(repo, input, dense, dictionary, '|', "NA")
         dictLocation     <- IvoryLocation.fromUri((dir </> "dense" </> ".dictionary").path, IvoryConfiguration.Empty)
