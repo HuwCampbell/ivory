@@ -1,19 +1,17 @@
 package com.ambiata.ivory.storage.legacy
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.fact.{Factsets, FeatureStoreGlob}
-import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.Arbitraries._
 
 import org.specs2._
-import org.scalacheck._, Arbitrary._, Arbitraries._
+import org.scalacheck._, Arbitrary._
+import org.scalacheck._, Arbitrary._
+import com.ambiata.ivory.core.arbitraries._
+import ArbitraryMetadata._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
-import com.nicta.scoobi.Scoobi.ScoobiConfiguration
-import org.specs2.execute.AsResult
-import org.specs2.matcher.{Matcher, ThrownExpectations}
-import scalaz.effect.IO
+import org.specs2.matcher._
 
 object SnapshotMetaSpec extends Specification with ScalaCheck with ThrownExpectations { def is = s2"""
 

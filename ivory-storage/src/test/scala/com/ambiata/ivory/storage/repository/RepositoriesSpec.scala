@@ -33,7 +33,7 @@ Create repository should always create all folders
     exists(TemporaryType.Posix)
 
   def exists(repository: TemporaryType) = {
-    TemporaryLocations.withRepository(repository) { repo =>
+    TemporaryRepositories.withRepository(repository) { repo =>
       createRepository(repo) >> checkRepository(repo)
     } must beOkLike(_ must contain(true).forall)
   }

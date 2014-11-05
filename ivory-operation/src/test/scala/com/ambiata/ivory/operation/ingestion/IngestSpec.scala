@@ -1,7 +1,9 @@
 package com.ambiata.ivory.operation.ingestion
 
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries._, ArbitraryFacts._
 import com.ambiata.ivory.core.TemporaryLocations._
+import com.ambiata.ivory.core.TemporaryRepositories._
 import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.ivory.operation.ingestion.thrift.Conversion
 import com.ambiata.ivory.mr.SequenceUtil

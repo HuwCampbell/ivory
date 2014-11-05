@@ -1,6 +1,7 @@
 package com.ambiata.ivory.storage.fact
 
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries._
+import ArbitraryMetadata._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.mr.TestConfigurations._
 import com.ambiata.mundane.io._

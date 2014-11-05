@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.Arbitraries.DictionaryArbitrary
+import com.ambiata.ivory.core.arbitraries._, ArbitraryDictionaries._
 import com.ambiata.ivory.operation.ingestion.DictionaryImporter._
 import com.ambiata.ivory.storage.Arbitraries.StoreTypeArbitrary
 import com.ambiata.ivory.storage.metadata.Metadata._
@@ -79,7 +79,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
     invalidUpgrade(true) must beOkLike(r => r._1.isFailure && r._2.isDefined)
 
   def differentStoreDict = prop((ivoryType: TemporaryType, dictType: TemporaryType, dict: Dictionary) => {
-    TemporaryLocations.withRepository(ivoryType) { ivory => for {
+    TemporaryRepositories.withRepository(ivoryType) { ivory => for {
       _   <- Repositories.create(ivory)
       _   <- TemporaryLocations.withIvoryLocationFile(dictType) { location =>
                IvoryLocation.writeUtf8(location, DictionaryTextStorageV2.delimitedString(dict)) >>
@@ -94,7 +94,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
     val dict1 = Dictionary(List(Definition.concrete(FeatureId(Name("a"), "b"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
     val dict2 = Dictionary(List(Definition.concrete(FeatureId(Name("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
 
-    TemporaryLocations.withRepository(Posix) { ivory => for {
+    TemporaryRepositories.withRepository(Posix) { ivory => for {
       _   <- Repositories.create(ivory)
       _   <- TemporaryLocations.withIvoryLocationDir(Posix) { location =>
                IvoryLocation.writeUtf8(location </> "dict1.psv", DictionaryTextStorageV2.delimitedString(dict1)) >>

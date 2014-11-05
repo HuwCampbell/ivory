@@ -9,7 +9,7 @@ import com.ambiata.ivory.storage.Arbitraries._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core.{KeyName, Key}
-
+import com.ambiata.ivory.core.arbitraries._
 
 import org.specs2._
 import org.scalacheck._, Arbitrary._, Arbitraries._

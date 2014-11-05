@@ -3,7 +3,8 @@ package com.ambiata.ivory.storage.sync
 import java.util.UUID
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.TemporaryLocations._
+import TemporaryRepositories._
+import TemporaryLocations._
 import com.ambiata.ivory.storage.Arbitraries._
 import com.ambiata.ivory.storage.plan.{Datasets, FactsetDataset}
 import com.ambiata.mundane.io._

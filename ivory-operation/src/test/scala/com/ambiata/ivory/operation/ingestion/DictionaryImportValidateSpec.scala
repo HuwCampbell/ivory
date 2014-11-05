@@ -1,6 +1,7 @@
 package com.ambiata.ivory.operation.ingestion
 
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries._, ArbitraryEncodings._, ArbitraryDictionaries._, ArbitraryFeatures._
 import org.specs2._
 import scalaz.{Name => _,_}, Scalaz._
 

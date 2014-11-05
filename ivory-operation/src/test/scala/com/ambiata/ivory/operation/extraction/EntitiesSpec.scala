@@ -2,12 +2,13 @@ package com.ambiata.ivory.operation.extraction
 
 import java.util.HashMap
 
-import com.ambiata.ivory.core.{Priority, Date, Arbitraries, Fact}
+import com.ambiata.ivory.core.{Priority, Date, Fact, arbitraries}
+import arbitraries._, ArbitraryFacts._, ArbitraryValues._
 import com.ambiata.ivory.operation.extraction.Chord.PrioritizedFact
 import org.scalacheck.{Arbitrary, Gen}
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.{ScalaCheck, Specification}
-import Arbitraries._
+import arbitraries._
 import scala.collection.JavaConversions._
 
 class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations { def is = s2"""

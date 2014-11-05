@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.extraction
 
 import org.specs2._, execute.{Failure => SpecsFailure}
 import com.ambiata.mundane.testing.ResultTIOMatcher._
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core._, arbitraries._, Arbitraries._
 
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
 import com.ambiata.ivory.mr.FactFormats._

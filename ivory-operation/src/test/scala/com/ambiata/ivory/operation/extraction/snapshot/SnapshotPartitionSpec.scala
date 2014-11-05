@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.extraction.snapshot
 
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core._, arbitraries._, ArbitraryMetadata._, ArbitraryValues._, ArbitraryFeatures._
 import org.scalacheck.Arbitrary
 import org.specs2.{ScalaCheck, Specification}
 

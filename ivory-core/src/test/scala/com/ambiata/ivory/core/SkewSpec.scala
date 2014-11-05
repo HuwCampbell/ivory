@@ -1,6 +1,7 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries._
+import ArbitraryFeatures._
 import com.ambiata.mundane.io.BytesQuantity
 import com.ambiata.mundane.io.MemoryConversions._
 import org.specs2._

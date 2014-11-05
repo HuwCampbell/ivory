@@ -9,7 +9,7 @@ import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
-import com.ambiata.ivory.core.TemporaryLocations.withHdfsRepository
+import com.ambiata.ivory.core.TemporaryRepositories._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
