@@ -2,7 +2,7 @@ package com.ambiata.ivory.core
 
 import java.io.File
 
-import com.amazonaws.services.s3.AmazonS3Client
+import com.ambiata.com.amazonaws.services.s3.AmazonS3Client
 import com.ambiata.mundane.control.{ResultT, ResultTIO}
 import com.ambiata.mundane.data.Lists
 import com.ambiata.mundane.io._

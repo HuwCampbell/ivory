@@ -1,6 +1,6 @@
 package com.ambiata.ivory.core
 
-import com.amazonaws.services.s3.AmazonS3Client
+import com.ambiata.com.amazonaws.services.s3.AmazonS3Client
 import com.ambiata.mundane.io._
 import com.ambiata.saws.core.Clients
 import com.nicta.scoobi.Scoobi._
