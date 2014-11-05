@@ -5,7 +5,7 @@ import com.ambiata.mundane.parse.ListParser
 
 import scalaz._, Scalaz._
 
-case class FactsetId(id: OldIdentifier) {
+case class FactsetId(id: Identifier) {
   def render = id.render
   def asKeyName = id.asKeyName
   def next = id.next.map(FactsetId.apply)
@@ -21,13 +21,11 @@ object FactsetId {
     FactsetIdOrder.toScalaOrdering
 
   def initial: FactsetId =
-    FactsetId(OldIdentifier.initial)
-
-  val max = FactsetId(OldIdentifier.max)
+    FactsetId(Identifier.initial)
 
   def listParser: ListParser[FactsetId] =
-    OldIdentifier.listParser.map(FactsetId.apply)
+    Identifier.listParser.map(FactsetId.apply)
 
   def parse(strId: String): Option[FactsetId] =
-    OldIdentifier.parse(strId).map(FactsetId.apply)
+    Identifier.parse(strId).map(FactsetId.apply)
 }

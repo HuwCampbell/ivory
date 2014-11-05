@@ -8,7 +8,7 @@ import scodec.bits.ByteVector
 
 import scalaz.effect._
 
-object IdentifierStorage { outer =>
+object IdentifierStorage {
 
   def get(repository: Repository, key: Key): ResultTIO[Option[Identifier]] = {
     repository.store.listHeads(key)

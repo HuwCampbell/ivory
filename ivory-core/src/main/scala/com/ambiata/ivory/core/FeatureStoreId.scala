@@ -5,7 +5,7 @@ import com.ambiata.mundane.parse.ListParser
 import scalaz._, Scalaz._
 import argonaut._, Argonaut._
 
-case class FeatureStoreId(id: OldIdentifier) {
+case class FeatureStoreId(id: Identifier) {
   def render = id.render
   def asKeyName = id.asKeyName
   def next = id.next.map(FeatureStoreId.apply)
@@ -22,15 +22,15 @@ object FeatureStoreId {
 
   implicit def FeatureStoreIdCodecJson: CodecJson[FeatureStoreId] = CodecJson(
     (_.id.asJson),
-    (_.as[OldIdentifier].map(FeatureStoreId.apply))
+    (_.as[Identifier].map(FeatureStoreId.apply))
     )
 
   def initial: FeatureStoreId =
-    FeatureStoreId(OldIdentifier.initial)
+    FeatureStoreId(Identifier.initial)
 
   def listParser: ListParser[FeatureStoreId] =
-    OldIdentifier.listParser.map(FeatureStoreId.apply)
+    Identifier.listParser.map(FeatureStoreId.apply)
 
   def parse(strId: String): Option[FeatureStoreId] =
-    OldIdentifier.parse(strId).map(FeatureStoreId.apply)
+    Identifier.parse(strId).map(FeatureStoreId.apply)
 }

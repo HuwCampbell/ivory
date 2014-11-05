@@ -41,7 +41,7 @@ object CommitTextStorage extends TextStorage[DictionaryId \/ FeatureStoreId, Com
       Identifier.parse(l).map(x => -\/(DictionaryId(x)))
         .cata(Validation.success, Validation.failure(NonEmptyList("malformed dictionary id")))
     } else if (i == 2) {
-      OldIdentifier.parse(l).map(x => \/-(FeatureStoreId(x)))
+      Identifier.parse(l).map(x => \/-(FeatureStoreId(x)))
         .cata(Validation.success, Validation.failure(NonEmptyList("malformed feature store id")))
     } else {
       Validation.failure(NonEmptyList(s"commit text storage parse error on line ${i}: $l"))
