@@ -2,9 +2,9 @@ package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
-import com.ambiata.ivory.operation.extraction.{Snapshots, SnapshotJob}
+import com.ambiata.ivory.operation.extraction.SnapshotJob
 import com.ambiata.ivory.storage.lookup.{ReducerLookups, ReducerSize}
-import com.ambiata.ivory.storage.metadata.SnapshotManifest
+import com.ambiata.ivory.storage.metadata.{Metadata, SnapshotManifest}
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FileName
 import com.ambiata.mundane.io.MemoryConversions._
@@ -24,7 +24,8 @@ object SquashJob {
 
   def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotManifest, conf: SquashConfig)
                                (f: (Key, Dictionary) => ResultTIO[(A, List[IvoryLocation])]): ResultTIO[A] = for {
-    dictionary      <- Snapshots.dictionaryForSnapshot(repository, snapmeta)
+    dictionaryId    <- SnapshotManifest.dictionaryIdForSnapshot(repository, snapmeta)
+    dictionary      <- Metadata.dictionaryFromIvory(repository, dictionaryId)
     toSquash        <- squash(repository, dictionary, Repository.snapshot(snapmeta.snapshotId), snapmeta.date, conf)
     (profile, key, doSquash) =  toSquash
     a               <- f(key, dictionary)

@@ -52,6 +52,8 @@ SnapshotManifest Properties
 
   then the snapshot is up to date $uptodate
 
+  The "latest" snapshot requires the dictionary to be up-to-date        $uptodateDictionary
+
 """
 
   def encodeDecodeJson = prop((ns: NewSnapshotManifest) =>
@@ -117,16 +119,35 @@ SnapshotManifest Properties
       val factsetDate = dates.later
 
       for {
-        _         <- snapshots.metas.traverse((lm: SnapshotMeta) => storeSnapshotManifest(repo, SnapshotManifest.snapshotManifestLegacy(lm)))
+        _         <- snapshots.metas.traverse(lm => storeSnapshotManifest(repo, SnapshotManifest.snapshotManifestLegacy(lm.copy(commitId = None))))
         factsetId <- Factsets.allocateFactsetId(repo)
         _         <- repo.store.utf8.write(Repository.factset(factsetId) / "ns" / Key.unsafe(factsetDate.slashed) / "part", "content")
         store     <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.testing(repo))
+        _         <- Metadata.dictionaryToIvory(repo, Dictionary.empty)
         _         <- writeFactsetVersion(repo, List(factsetId))
         snapshot  <- SnapshotManifest.latestUpToDateSnapshot(repo, dates.now).run
       } yield snapshot must beUpToDate(repo, dates.now)
 
     } must beOkResult
   }.set(minTestsOk = 10)
+
+  def uptodateDictionary = prop { (snapshotId: SnapshotId, factsetId: FactsetId, date: Date) =>
+    RepositoryBuilder.using { repo =>
+      for {
+        // Create the first dictionary
+        _         <- Metadata.dictionaryToIvory(repo, Dictionary.empty)
+        store     <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.testing(repo))
+        commitId  <- Metadata.findOrCreateLatestCommitId(repo)
+        _         <- NewSnapshotManifest.save(repo, NewSnapshotManifest.newSnapshotMeta(snapshotId, date, commitId))
+        // Load a snapshot where the dictionary is still valid
+        snapshot1 <- SnapshotManifest.latestUpToDateSnapshot(repo, date).run
+        // Create a newer dictionary
+        _         <- Metadata.dictionaryToIvory(repo, Dictionary.empty)
+        snapshot2 <- SnapshotManifest.latestUpToDateSnapshot(repo, date).run
+      } yield (snapshot1.map(_.snapshotId), snapshot2.map(_.snapshotId))
+
+    } must beOkValue(Some(snapshotId) -> None)
+  }.set(minTestsOk = 3)
 
   def storeSnapshotManifest(repo: Repository, meta: SnapshotManifest): ResultTIO[Unit] = meta.fold(SnapshotMeta.save(repo, _), NewSnapshotManifest.save(repo, _))
 

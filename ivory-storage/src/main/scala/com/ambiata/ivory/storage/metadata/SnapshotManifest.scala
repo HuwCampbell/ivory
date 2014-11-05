@@ -141,22 +141,44 @@ object SnapshotManifest {
    *
    *     OR the snapshot.date <= date
    *        but there are no partitions between the snapshot date and date for factsets in the latest feature store
+   *
+   *  AND dictionary == latestDictionary
    */
   def latestUpToDateSnapshot(repo: Repository, date: Date): OptionT[ResultTIO, SnapshotManifest] = for {
     meta <- latestSnapshot(repo, date)
     store <- Metadata.latestFeatureStoreOrFail(repo).liftM[OptionT]
     metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
     thereAreNoNewer <- checkForNewerFeatures(repo, metaFeatureId, store, meta.date, date).liftM[OptionT]
+    validDictionary <- isSnapshotValidWithLatestDictionary(repo, meta).liftM[OptionT]
 
     x <- {
       type OptionResultTIO[A] = OptionT[ResultTIO, A]
-      if (thereAreNoNewer)
+      if (thereAreNoNewer && validDictionary)
         meta.pure[OptionResultTIO]
       else
         OptionT.none[ResultTIO, SnapshotManifest]
     }
 
   } yield x
+
+  /**
+   * Ensure that the provided snapshot is "valid" in relation to the latest dictionary.
+   * If features have been added (for example), then a snapshot at the same date is take again.
+   */
+  def isSnapshotValidWithLatestDictionary(repository: Repository, snapmeta: SnapshotManifest): ResultTIO[Boolean] = for {
+    dictionaryId     <- Metadata.latestDictionaryIdFromIvory(repository)
+    snapDictionaryId <- dictionaryIdForSnapshot(repository, snapmeta)
+    // Currently we're invalidating the snapshot if the dictionaries aren't identical,
+    // But eventually this can become a little more intelligent, such as
+    //   - checking if new concrete features have been added
+    //   - checking if the maximum window for a feature has increased
+  } yield snapDictionaryId === dictionaryId
+
+  def dictionaryIdForSnapshot(repository: Repository, meta: SnapshotManifest): ResultTIO[DictionaryId] =
+    meta.storeOrCommitId.b.cata(
+      commitId => Metadata.commitFromIvory(repository, commitId).map(_.dictionaryId),
+      Metadata.latestDictionaryIdFromIvory(repository)
+    )
 
   // Instances
 

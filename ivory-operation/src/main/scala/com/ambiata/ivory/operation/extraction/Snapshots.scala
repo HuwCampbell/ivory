@@ -121,15 +121,6 @@ object Snapshots {
       _               <- Hdfs.safe(SnapshotJob.run(repository, conf, dictionary, reducers.toInt, snapshotDate, factsetsGlobs, outputPath, windows, incrementalPath, codec))
     } yield ()
 
-  def dictionaryForSnapshot(repository: Repository, meta: SnapshotManifest): ResultTIO[Dictionary] =
-    meta.storeOrCommitId.b.cata(
-      commitId => for {
-        commit <- commitFromIvory(repository, commitId)
-        dict   <- dictionaryFromIvory(repository, commit.dictionaryId)
-      } yield dict,
-      latestDictionaryFromIvory(repository)
-    )
-
   def newFactsetGlobs(repo: Repository, partitions: List[SnapshotPartition]): ResultTIO[List[Prioritized[FactsetGlob]]] =
     partitions.traverseU(s => FeatureStoreGlob.between(repo, s.store, s.start, s.end).map(_.globs)).map(_.flatten)
 }
