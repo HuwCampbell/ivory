@@ -9,8 +9,6 @@ import org.scalacheck._, Arbitrary._
 import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.arbitraries._
 import ArbitraryMetadata._
-import ArbitraryValues._
-import com.ambiata.ivory.scoobi.TestConfigurations._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
 import org.specs2.matcher._

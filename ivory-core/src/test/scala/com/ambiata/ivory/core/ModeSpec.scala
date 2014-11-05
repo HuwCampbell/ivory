@@ -2,7 +2,7 @@ package com.ambiata.ivory.core
 
 import org.specs2._
 import Mode._
-import Arbitraries._
+import arbitraries.ArbitraryMetadata._
 
 class ModeSpec extends Specification with ScalaCheck { def is = s2"""
 

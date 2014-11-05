@@ -1,8 +1,6 @@
 package com.ambiata.ivory.core
 package arbitraries
 
-import com.ambiata.ivory.data.Arbitraries._
-import com.ambiata.ivory.data._
 import org.scalacheck.{Gen, Arbitrary}
 import org.scalacheck.Arbitrary._
 import ArbitraryFeatures._
@@ -16,6 +14,24 @@ trait ArbitraryMetadata {
 
   implicit def FeatureStoreIdArbitrary: Arbitrary[FeatureStoreId] =
     Arbitrary(arbitrary[Identifier].map(FeatureStoreId.apply))
+
+  implicit def ModeArbitrary: Arbitrary[Mode] =
+    Arbitrary(Gen.oneOf(Mode.State, Mode.Set))
+
+  implicit def IdentifierArbitrary: Arbitrary[Identifier] =
+    Arbitrary(Gen.oneOf(
+      Gen.choose(1l, 0xffffffffl).map(x => Identifier.unsafe(x.toInt))
+      , Gen.choose(1, 99999).map(x => Identifier.unsafeV1(x))
+    ))
+
+  def createIdentifiers(n: Int): List[Identifier] =
+    (1 to n).scanLeft(Identifier.initial)((acc, _) => acc.next.get).toList
+
+  implicit def IdentifierListArbitrary: Arbitrary[IdentifierList] =
+    Arbitrary(Gen.choose(0, 200) map (n => IdentifierList(createIdentifiers(n))))
+
+  implicit def SmallIdentifierListArbitrary: Arbitrary[SmallIdentifierList] =
+    Arbitrary(Gen.choose(0, 20) map (n => SmallIdentifierList(createIdentifiers(n))))
 
   implicit def SmallFeatureStoreIdListArbitrary: Arbitrary[SmallFeatureStoreIdList] =
     Arbitrary(arbitrary[SmallIdentifierList].map(ids => SmallFeatureStoreIdList(ids.ids.map(FeatureStoreId.apply))))
@@ -99,4 +115,7 @@ case class SmallFeatureStoreIdList(ids: List[FeatureStoreId])
 case class SmallCommitIdList(ids: List[CommitId])
 case class SmallSnapshotIdList(ids: List[SnapshotId])
 case class FactsetIdList(ids: List[FactsetId])
+case class IdentifierList(ids: List[Identifier])
+case class SmallIdentifierList(ids: List[Identifier])
+
 

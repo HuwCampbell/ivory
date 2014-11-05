@@ -2,7 +2,6 @@ package com.ambiata.ivory.storage
 package arbitraries
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.data.Identifier
 import com.ambiata.ivory.storage.legacy.SnapshotMeta
 import com.ambiata.ivory.storage.metadata.{SnapshotManifest, NewSnapshotManifest}
 import fact.{FactsetVersionTwo, FactsetVersionOne, FactsetVersion}
@@ -11,8 +10,8 @@ import com.ambiata.notion.core.TemporaryType
 import com.ambiata.notion.core.TemporaryType.{Hdfs, S3, Posix}
 import org.scalacheck.{Gen, Arbitrary}
 import org.scalacheck.Arbitrary._
-import com.ambiata.ivory.data.Arbitraries._
-import com.ambiata.ivory.core.arbitraries._, ArbitraryMetadata._
+import com.ambiata.ivory.core.arbitraries._, ArbitraryMetadata._, ArbitraryValues._
+import scalaz._, Scalaz._, scalacheck.ScalaCheckBinding._
 
 trait ArbitraryDatasets {
   implicit def FactsetDatasetArbitrary: Arbitrary[FactsetDataset] =
