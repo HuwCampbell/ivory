@@ -1,16 +1,16 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.api.Ivory._
-import com.ambiata.ivory.api.IvoryRetire
 import com.ambiata.ivory.cli.extract._
-import com.ambiata.ivory.core.{NotImplemented, IvoryLocation}
+import com.ambiata.ivory.core.IvoryLocation
+import com.ambiata.ivory.operation.extraction.Chord
 import com.ambiata.ivory.storage.control.IvoryRead
-import com.ambiata.mundane.control.ResultT
+import com.ambiata.mundane.control._
 import scalaz.effect.IO
 
 object chord extends IvoryApp {
 
-  case class CliArguments(entities: String, takeSnapshot: Boolean, formats: ExtractOutput)
+  case class CliArguments(entities: String, takeSnapshot: Boolean, squash: SquashConfig, formats: ExtractOutput)
 
   val parser = Extract.options(new scopt.OptionParser[CliArguments]("chord") {
     head("""
@@ -22,18 +22,20 @@ object chord extends IvoryApp {
     help("help") text "shows this usage text"
     opt[String]('c', "entities") action { (x, c) => c.copy(entities = x) }  required() text "Path to file containing entity/date pairs (eid|yyyy-MM-dd)."
     opt[Unit]("no-snapshot")     action { (x, c) => c.copy(takeSnapshot = false) }     text "Do not take a new snapshot, just any existing."
+    opt[Int]("sample-rate") action { (x, c) => c.copy(squash = c.squash.copy(profileSampleRate = x)) } text
+      "Every X number of facts will be sampled when calculating virtual results. Defaults to 1,000,000. " +
+        "WARNING: Decreasing this number will degrade performance."
   })(c => f => c.copy(formats = f(c.formats)))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments("", true, ExtractOutput()), { repo => conf => c =>
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments("", true, SquashConfig.default, ExtractOutput()), { repo => conf => c =>
     for {
       ent  <- IvoryLocation.fromUri(c.entities, conf)
       of   <- Extract.parse(conf, c.formats)
       _    <- ResultT.when(of.outputs.isEmpty, ResultT.fail[IO, Unit]("No output/format specified"))
-      out  <- IvoryRetire.chord(repo, ent, c.takeSnapshot, false)
-      _     = NotImplemented.chordSquash()
-      _    <- Extraction.extract(of, repo.toIvoryLocation(out._1), out._2).run(IvoryRead.prod(repo))
-      // Delete the output file only if successful - could be useful for debugging otherwise
-      _    <- repo.store.deleteAll(out._1)
+      // TODO Should be using Ivory API here, but the generic return type is lost on the monomorphic function
+      _    <- Chord.createChordWithSquash(repo, ent, c.takeSnapshot, c.squash, of.outputs.map(_._2))(
+        (out, dict) => Extraction.extract(of, repo.toIvoryLocation(out), dict).run(IvoryRead.prod(repo))
+      )
     } yield List(s"Successfully extracted chord from '${repo.root.show}'")
   })
 }

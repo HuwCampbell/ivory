@@ -2,6 +2,7 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.operation.extraction.squash.{SquashConfig, SquashJob}
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy.FeatureStoreSnapshot
 import com.ambiata.ivory.storage.metadata._, Metadata._
@@ -24,27 +25,33 @@ object Chord {
   /**
    * Create a chord from a list of entities
    * If takeSnapshot = true, take a snapshot first, otherwise use the latest available snapshot
-   *
-   * Returns a newly created [[Key]] to the chord in thrift format, which can be fed into other jobs.
-   * Consumers of this method should delete the returned path when finished with the result.
    */
-  def createChord(repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean, windowing: Boolean): ResultTIO[(Key, Dictionary)] = for {
+  def createChordWithSquash[A](repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean,
+                               config: SquashConfig, outs: List[IvoryLocation])(f: (Key, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
+    entities <- Entities.readEntitiesFrom(entitiesLocation)
+    out      <- createChordRaw(repository, entities, takeSnapshot)
+    hr       <- repository.asHdfsRepository[IO]
+    job      <- SquashJob.initChordJob(hr.configuration, entities)
+    // We always need to squash because the entities need to be rewritten, which is _only_ handled by squash
+    // This can technically be optimized to do the entity rewriting in the reducer - see the Git history for an example
+    a        <- SquashJob.squash(repository, out._2, out._1, config, outs, job)(f(_, out._2))
+  } yield a
+
+  /** Create the raw chord, which is now unusable without the squash step */
+  def createChordRaw(repository: Repository, entities: Entities, takeSnapshot: Boolean): ResultTIO[(Key, Dictionary)] = for {
     _                   <- checkThat(repository, repository.isInstanceOf[HdfsRepository], "Chord only works on HDFS repositories at this stage.")
-    _                    = if (windowing) NotImplemented.chordWindow()
-    entities            <- Entities.readEntitiesFrom(entitiesLocation)
     _                    = println(s"Earliest date in chord file is '${entities.earliestDate}'")
     _                    = println(s"Latest date in chord file is '${entities.latestDate}'")
     store               <- Metadata.latestFeatureStoreOrFail(repository)
     snapshot            <- if (takeSnapshot) Snapshots.takeSnapshot(repository, entities.earliestDate).map(_.meta.pure[Option])
                            else              SnapshotManifest.latestSnapshot(repository, entities.earliestDate).run
-    out                 <- runChord(repository, store, entities, snapshot, windowing)
+    out                 <- runChord(repository, store, entities, snapshot)
   } yield out
 
   /**
    * Run the chord extraction on Hdfs, returning the [[Key]] where the chord was written to.
    */
-  def runChord(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotManifest],
-               windowing: Boolean): ResultTIO[(Key, Dictionary)] = {
+  def runChord(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotManifest]): ResultTIO[(Key, Dictionary)] = {
     for {
       featureStoreSnapshot <- incremental.traverseU(SnapshotManifest.featureStoreSnapshot(repository, _))
       dictionary           <- latestDictionaryFromIvory(repository)
@@ -53,7 +60,7 @@ object Chord {
 
       /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
       hr                   <- repository.asHdfsRepository[IO]
-      _                    <- job(hr, dictionary, factsetGlobs, outputPath, entities, featureStoreSnapshot, hr.codec, windowing).run(hr.configuration)
+      _                    <- job(hr, dictionary, factsetGlobs, outputPath, entities, featureStoreSnapshot, hr.codec).run(hr.configuration)
     } yield (outputPath, dictionary)
   }
 
@@ -71,7 +78,7 @@ object Chord {
    */
   def job(repository: HdfsRepository, dictionary: Dictionary, factsetsGlobs: List[Prioritized[FactsetGlob]],
           outputPath: Key, entities: Entities, snapshot: Option[FeatureStoreSnapshot],
-          codec: Option[CompressionCodec], windowing: Boolean): Hdfs[Unit] = for {
+          codec: Option[CompressionCodec]): Hdfs[Unit] = for {
     conf    <- Hdfs.configuration
     incrPath = snapshot.map(snap => repository.toIvoryLocation(Repository.snapshot(snap.snapshotId)).toHdfsPath)
     paths    =  factsetsGlobs.flatMap(_.value.keys.map(key => repository.toIvoryLocation(key).toHdfsPath)) ++ incrPath.toList
@@ -81,6 +88,6 @@ object Chord {
     _       <- Hdfs.log(s"Number of reducers: $reducers")
     outPath  = repository.toIvoryLocation(outputPath).toHdfsPath
     _       <- Hdfs.fromResultTIO(ChordJob.run(repository, reducers.toInt, factsetsGlobs, outPath, entities, dictionary,
-      incrPath, codec, windowing))
+      incrPath, codec))
   } yield ()
 }

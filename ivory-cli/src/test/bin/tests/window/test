@@ -22,3 +22,6 @@ diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/pivot/.dictionary"
 # It's a little hard to check the profile, but at least make sure it contains an entry for each feature
 cat "${TARGET}/pivot/.profile"
 [ $(wc -l "${TARGET}/pivot/.profile" | awk '{print $1}') = $(wc -l "${TARGET}/pivot/.dictionary" | awk '{print $1}') ]
+
+$IVORY chord -o "dense:psv=${TARGET}/chord" --entities "${INPUT}/chord.psv" --sample-rate 1
+diff_test "${DIR}/expected/chord.psv" "${TARGET}/chord/part-r-00000"

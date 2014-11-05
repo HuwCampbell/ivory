@@ -4,8 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.operation.extraction.chord._
-import com.ambiata.ivory.operation.extraction.reduction.DateOffsets
-import com.ambiata.ivory.operation.extraction.snapshot.{SnapshotWindows, SnapshotWritable}
+import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.mr._
@@ -34,7 +33,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
  */
 object ChordJob {
   def run(repository: HdfsRepository, reducers: Int, inputs: List[Prioritized[FactsetGlob]], output: Path, entities: Entities,
-          dictionary: Dictionary, incremental: Option[Path], codec: Option[CompressionCodec], windowing: Boolean): ResultTIO[Unit] = {
+          dictionary: Dictionary, incremental: Option[Path], codec: Option[CompressionCodec]): ResultTIO[Unit] = {
 
     val job = Job.getInstance(repository.configuration)
     val ctx = MrContext.newContext("ivory-chord", job)
@@ -88,9 +87,7 @@ object ChordJob {
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup(dictionary))
     ctx.thriftCache.push(job, Keys.ChordEntitiesLookup, Entities.toChordEntities(entities))
     ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(dictionary))
-    job.getConfiguration.setBoolean(Keys.ChordWindowEnabled, windowing)
-    if (windowing)
-      ctx.thriftCache.push(job, Keys.ChordWindowsLookup, FeatureLookups.windowTable(dictionary))
+    ctx.thriftCache.push(job, Keys.ChordWindowsLookup, FeatureLookups.windowTable(dictionary))
 
     // run job
     if (!job.waitForCompletion(true))
@@ -113,7 +110,6 @@ object ChordJob {
 
   object Keys {
     val ChordDate = "ivory.chorddate"
-    val ChordWindowEnabled = "ivory.chord.window.enable"
     val FeatureIdLookup = ThriftCache.Key("feature-id-lookup")
     val FactsetLookup = ThriftCache.Key("factset-lookup")
     val FactsetVersionLookup = ThriftCache.Key("factset-version-lookup")
@@ -325,7 +321,6 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
 
   /** Class to emit the key/value bytes, created once per mapper */
   val emitter: MrEmitter[BytesWritable, BytesWritable, NullWritable, BytesWritable] = MrEmitter()
-  val chordNormalEmitter = new ChordNormalEmitter(emitter)
 
   val mutator = new FactByteMutator
 
@@ -333,6 +328,7 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
   var featureWindows: Array[Option[Date => Date]] = null
   /** Shared array which can be re-used which is allocated size of the largest number of chords for a single entity */
   var windows: Array[Int] = null
+  var chordEmitter: ChordWindowEmitter = null
 
   val buffer = new StringBuilder(4096)
 
@@ -347,10 +343,9 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
     isSetLookup = FeatureLookups.isSetLookupToArray(isSetLookupThrift)
 
-    if (context.getConfiguration.getBoolean(ChordJob.Keys.ChordWindowEnabled, false)) {
-      featureWindows = ChordReducer.setupWindows(ctx.thriftCache, context.getConfiguration).map(_.map(Window.startingDate))
-      windows = new Array(entities.maxChordSize)
-    }
+    featureWindows = ChordReducer.setupWindows(ctx.thriftCache, context.getConfiguration).map(_.map(Window.startingDate))
+    windows = new Array(entities.maxChordSize)
+    chordEmitter = new ChordWindowEmitter(emitter)
   }
 
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
@@ -359,18 +354,15 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
     val feature = SnapshotWritable.GroupingEntityFeatureId.getFeatureId(key)
 
     val chords = entities.entities.get(entity)
-    val chordEmitter =
-      if (featureWindows != null) {
-        val featureId = SnapshotWritable.GroupingEntityFeatureId.getFeatureId(key)
-        val dateLookup = featureWindows(featureId)
-        // Using isDefined/get to avoid function allocation :(
-        if (dateLookup.isDefined)
-          ChordWindows.updateWindowsForChords(chords, dateLookup.get, windows)
-        // The final code will/should not create this every time, but this is currently used in testing
-        new ChordWindowEmitter(emitter, if (dateLookup.isDefined) windows else null)
-      } else chordNormalEmitter
 
-    ChordReducer.reduce(fact, iter.iterator, mutator, chordEmitter, vout, entities.entities.get(entity), buffer, isSetLookup(feature))
+    val featureId = SnapshotWritable.GroupingEntityFeatureId.getFeatureId(key)
+    val dateLookup = featureWindows(featureId)
+    // Using isDefined/get to avoid function allocation :(
+    if (dateLookup.isDefined)
+      ChordWindows.updateWindowsForChords(chords, dateLookup.get, windows)
+    val windowStarts = if (dateLookup.isDefined) windows else null
+
+    ChordReducer.reduce(fact, iter.iterator, mutator, chordEmitter, vout, chords, windowStarts, buffer, isSetLookup(feature))
   }
 }
 
@@ -397,52 +389,12 @@ object ChordReducer {
 
   val sentinelDateTime = DateTime.unsafeFromLong(-1)
 
-  trait ChordEmitter {
+  class ChordWindowEmitter(emitter: Emitter[NullWritable, BytesWritable]) {
     val kout = NullWritable.get()
 
-    def emit(fact: MutableFact, mutator: FactByteMutator, out: BytesWritable, dates: Array[Int], buffer: StringBuilder,
-             previousDatetime: DateTime, date: Date, offset: Int): Int
-  }
-
-  class ChordNormalEmitter(emitter: Emitter[NullWritable, BytesWritable]) extends ChordEmitter {
-
-    val delim = ':'
-
-    def newEntityId(entity: String, date: Date, buffer: StringBuilder): String = {
-      buffer.setLength(0)
-      buffer.append(entity)
-      buffer.append(delim)
-      buffer.append(date.hyphenated)
-      buffer.toString()
-    }
-
-    def emit(fact: MutableFact, mutator: FactByteMutator, out: BytesWritable, dates: Array[Int], buffer: StringBuilder,
-             previousDatetime: DateTime, date: Date, offset: Int): Int = {
-      var i = offset
-      // Load the fact once from the cache
-      mutator.from(out, fact)
-      // Keep the original entity here because we're about to mutate the fact version
-      val entity = fact.entity
-      while (i >= 0 && date.underlying > dates(i)) {
-        fact.fact.setEntity(newEntityId(entity, Date.unsafeFromInt(dates(i)), buffer))
-        mutator.mutate(fact, out)
-        emitter.emit(kout, out)
-        i = i - 1
-      }
-      i
-    }
-  }
-
-  /**
-   * Currently "dead code", but will become the only implementation once squash has been extended to chord.
-   * Unfortunately chord + window is impossible without squash (unlike snapshot) because of the entity rewriting.
-   *
-   * [[windowStarts]] will be the same length as `dates`, or `null` if no window is set for the current feature.
-   */
-  class ChordWindowEmitter(emitter: Emitter[NullWritable, BytesWritable], windowStarts: Array[Int]) extends ChordEmitter {
-
-    def emit(fact: MutableFact, mutator: FactByteMutator, out: BytesWritable, dates: Array[Int], buffer: StringBuilder,
-             previousDatetime: DateTime, date: Date, offset: Int): Int = {
+    /** `windowStarts` will be the same length as `dates`, or `null` if no window is set for the current feature. */
+    def emit(fact: MutableFact, mutator: FactByteMutator, out: BytesWritable, dates: Array[Int], windowStarts: Array[Int],
+             buffer: StringBuilder, previousDatetime: DateTime, date: Date, offset: Int): Int = {
       var i = offset
       // For window features _always_ emit the last fact before the window (for state-based features)
       // Keep in mind that this will _also_ handily emit the previous fact when it _is_ in the window
@@ -462,7 +414,8 @@ object ChordReducer {
   }
 
   def reduce(fact: MutableFact, iter: JIterator[BytesWritable], mutator: FactByteMutator,
-             emitter: ChordEmitter, out: BytesWritable, dates: Array[Int], buffer: StringBuilder, isSet: Boolean): Unit = {
+             emitter: ChordWindowEmitter, out: BytesWritable, dates: Array[Int], windowStarts: Array[Int],
+             buffer: StringBuilder, isSet: Boolean): Unit = {
 
     /**
      * Entity ids need to be appended with the date in the chord file as its possible to have the same entity
@@ -472,7 +425,7 @@ object ChordReducer {
       // If the first chord has no matches there won't be anything to emit
       // It also covers the (otherwise impossible) case that the iterator is empty
       if (previousDatetime != sentinelDateTime) {
-        emitter.emit(fact, mutator, out, dates, buffer, previousDatetime, date, offset)
+        emitter.emit(fact, mutator, out, dates, windowStarts, buffer, previousDatetime, date, offset)
       } else {
         var i = offset
         // Ignore any old chords that don't have a matching fact
