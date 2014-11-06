@@ -26,8 +26,8 @@ case class Dictionary(definitions: List[Definition]) {
   /** Reverse index this dictionary by an integer feature index,
       this is the inverse of byFeatureIndex and the same warnings
       apply. */
-  val byFeatureIndexReverse: Map[Definition, Int] =
-    sortedByFeatureId.zipWithIndex.toMap
+  val byFeatureIndexReverse: Map[FeatureId, Int] =
+    sortedByFeatureId.map(_.featureId).zipWithIndex.toMap
 
   /** Create a `Dictionary` from `this` only containing features in the specified namespace. */
   def forNamespace(namespace: Name): Dictionary =
@@ -76,5 +76,12 @@ object Dictionary {
 }
 
 /** Represents a dictionary grouped by the concrete definitions */
-case class DictionaryConcrete(sources: Map[FeatureId, ConcreteGroup])
+case class DictionaryConcrete(sources: Map[FeatureId, ConcreteGroup]) {
+  /** Return the indexes for just _concrete_ features in this dictionary */
+  lazy val byFeatureIndexReverse: Map[FeatureId, Int] = sources.keys.toList.sortBy(_.toString).zipWithIndex.toMap
+  lazy val dictionary: Dictionary = Dictionary(sources.toList.flatMap {
+    case (fid, cg) => cg.definition.toDefinition(fid) :: cg.virtual.map(v => v._2.toDefinition(v._1))
+  })
+}
+
 case class ConcreteGroup(definition: ConcreteDefinition, virtual: List[(FeatureId, VirtualDefinition)])

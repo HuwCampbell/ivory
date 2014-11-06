@@ -11,6 +11,8 @@ object SquashArbitraries {
   /** A snapshot date, and associated facts that are likely to be captured by a snapshot for a _single_ feature */
   case class SquashFacts(date: Date, dict: ConcreteGroupFeature, facts: NonEmptyList[Fact]) {
 
+    lazy val factsSorted = facts.list.sortBy(fact => (fact.entity, fact.datetime.long))
+
     /** Return the squashed view of entities to their expected facts for each feature, given the window */
     def expected: Map[String, Map[FeatureId, (Option[Fact], List[Fact])]] =
       facts.list.groupBy(_.entity).mapValues { facts =>
@@ -34,7 +36,13 @@ object SquashArbitraries {
   }
 
   /** A snapshot date, and associated facts that are likely to be captured by a snapshot */
-  case class SquashFactsMultiple(date: Date, facts: NonEmptyList[SquashFacts])
+  case class SquashFactsMultiple(date: Date, facts: NonEmptyList[SquashFacts]) {
+    lazy val allFacts: List[Fact] = facts.list.flatMap(_.facts.list)
+    lazy val dict: Dictionary = facts.map(_.dict).foldLeft(Dictionary.empty) {
+      // Set the expression for all features to count for simplicity, we test all the expression logic elsewhere
+      case (d, vd) => d append vd.withExpression(Count).dictionary
+    }
+  }
 
   implicit def SquashFactMultipleArbitrary: Arbitrary[SquashFactsMultiple] = Arbitrary(for {
     d <- Arbitrary.arbitrary[Date]

@@ -23,6 +23,13 @@ diff_test() {
     diff "$1" "$2"
 }
 
+diff_test_mr() {
+  EXPECTED=$1
+  MR_OUT=$2
+  cat ${MR_OUT}/part-* | sort > ${MR_OUT}/all.psv
+  diff_test "${EXPECTED}" "${MR_OUT}/all.psv"
+}
+
 . "${COMMON}/build.sh"
 . "${COMMON}/versions.sh"
 

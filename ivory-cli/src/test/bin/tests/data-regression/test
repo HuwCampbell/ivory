@@ -28,13 +28,6 @@ $V1 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
 $IVORY cat-dictionary | tail -n +2 | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
 diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
 
-diff_test_mr() {
-  EXPECTED=$1
-  MR_OUT=$2
-  cat ${MR_OUT}/part-* | sort > ${MR_OUT}/all.psv
-  diff_test "${EXPECTED}" "${MR_OUT}/all.psv"
-}
-
 ### SNAPSHOT ###
 
 [ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "0" ]

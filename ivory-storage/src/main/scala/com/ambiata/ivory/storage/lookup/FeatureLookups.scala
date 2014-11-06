@@ -47,6 +47,9 @@ object FeatureLookups {
     lookup
   }
 
+  def entityFilter(features: List[FeatureId], entities: List[String]): EntityFilterLookup =
+    new EntityFilterLookup(features.map(_.toString).asJava, entities.asJava)
+
   def sparseMapToArray[A : scala.reflect.ClassTag](map: List[(Int, A)], default: A): Array[A] = {
     val max = map.map(_._1).max
     val array = Array.fill(max + 1)(default)

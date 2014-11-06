@@ -56,12 +56,12 @@ object SquashReducerLookup {
       cg.virtual.flatMap(_._2.window).map(Window.startingDate(_)(date)).sorted.headOption
         .map(d => Days.daysBetween(d.localDate, date.localDate).getDays).map(fid ->)
     }
-    val totalDays = windowSizes.values.sum
+    val totalDays = windowSizes.map(_._2).sum
     // Create a sub-index for all of the window features so they don't overlap on the reducers
     new ReducerLookup(windowSizes.zipWithIndex.map {
       case ((fid, days), i) =>
         lookup.ids.get(fid.toString) -> Int.box(FeatureReducerOffset(i.toShort, Math.max(1, days / totalDays * reducers).toShort).toInt)
-    }.asJava)
+    }.toMap.asJava)
   }
 }
 

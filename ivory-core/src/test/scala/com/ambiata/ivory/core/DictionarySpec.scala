@@ -13,12 +13,14 @@ Indexing:
   By feature index (reverse) contains matching entries           $byFeatureIndexReverse
   By feature index matches reverse index                         $symmetricalFeatureIndex
   By concrete contains all features                              $byConcrete
+  By concrete is lossless                                        $byConcreteLossless
 
 Indexing count cross checks:
   By feature id contains same count as dictionary                $byFeatureIdCount
   By feature index contains same count as dictionary             $byFeatureIndexCount
   By feature index (reverse) contains same count as dictionary   $byFeatureIndexReverseCount
   By concrete index contains same count as dictionary            $byConcreteCount
+  By concrete feature index (reverse) is the same as dictionary  $byConcreteFeatureIndexReverse
 
 Filtering:
   By namespace leaves only definitions for that namespace        $filterNamespace
@@ -45,15 +47,19 @@ Exists:
 
   def byFeatureIndexReverse = prop((dictionary: Dictionary) =>
     seqToResult(dictionary.definitions.map(d =>
-      dictionary.byFeatureIndexReverse.get(d) must beSome)))
+      dictionary.byFeatureIndexReverse.get(d.featureId) must beSome)))
 
   def symmetricalFeatureIndex = prop((dictionary: Dictionary) =>
     seqToResult(dictionary.definitions.map(d =>
-      dictionary.byFeatureIndexReverse.get(d).flatMap(n =>
+      dictionary.byFeatureIndexReverse.get(d.featureId).flatMap(n =>
        dictionary.byFeatureIndex.get(n)) must beSome(d))))
 
   def byConcrete = prop((dictionary: Dictionary) =>
     dictionary.byConcrete.sources.flatMap(f => f._1 :: f._2.virtual.map(_._1)).toSet ==== dictionary.byFeatureId.keySet
+  )
+
+  def byConcreteLossless = prop((dictionary: Dictionary) =>
+    dictionary.byConcrete.dictionary.byFeatureId ==== dictionary.byFeatureId
   )
 
   def byFeatureIdCount = prop((dictionary: Dictionary) =>
@@ -68,6 +74,11 @@ Exists:
   def byConcreteCount = prop((dictionary: Dictionary) =>
     dictionary.byConcrete.sources.map(1 + _._2.virtual.size).sum ==== dictionary.size
   )
+
+  def byConcreteFeatureIndexReverse = prop { (dictionary: Dictionary) =>
+    val conc = dictionary.byConcrete
+    conc.byFeatureIndexReverse == dictionary.forFeatureIds(conc.sources.keySet).byFeatureIndexReverse
+  }
 
   def filterNamespace = prop((dictionary: Dictionary, n: Int) => (n > 0 && dictionary.size > 0) ==> {
     val namespace = dictionary.definitions(n % dictionary.size).featureId.namespace

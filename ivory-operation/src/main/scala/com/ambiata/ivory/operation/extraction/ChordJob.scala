@@ -100,7 +100,7 @@ object ChordJob {
   }
 
   def featureIdLookup(dict: Dictionary): FeatureIdLookup =
-    new FeatureIdLookup(dict.byFeatureIndexReverse.map({ case (k, v) => (k.featureId.toString, Int.box(v)) }).asJava)
+    new FeatureIdLookup(dict.byFeatureIndexReverse.map({ case (k, v) => (k.toString, Int.box(v)) }).asJava)
 
   def setupEntities(thriftCache: ThriftCache, configuration: Configuration): Entities = {
     val chordEntities = new ChordEntities
