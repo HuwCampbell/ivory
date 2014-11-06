@@ -70,15 +70,18 @@ class MutableDateSet(offset: Int, offsets: Array[Int], f: DateOffsetLookup) {
   def foreachBackwardsBuckets(size: Int)(f: Int => Unit): Unit = {
     val rem = size - 1
     var i = offsets.length - 1
+    // It's essential we have something that mods with size starting at 0, otherwise the "weeks" will be off
+    var j = 0
     var count = 0
     while (i >= 0) {
       val v = offsets(i)
       if (v != -1) {
         count += v
-        if (i % size == rem) {
+        if (j % size == rem) {
           f(count)
           count = 0
         }
+        j += 1
       }
       i -= 1
     }

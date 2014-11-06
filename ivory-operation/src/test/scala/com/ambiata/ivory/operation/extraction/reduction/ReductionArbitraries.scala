@@ -26,6 +26,15 @@ object ReductionArbitraries {
 
     lazy val noOfWeeksFloor: Int =
       noOfDays / 7
+
+    // We ignore the days not contained in a full week
+    // NOTE: This is date _before_ the full week, and comparisons should be > _not_ >=
+    // So for 14/2/2014 with 2 full week range this would be 31/1/2014, which lies on the same day of the week
+    lazy val dateBeforeFirstFullWeek: Date =
+      dates.lastOption.map(_._2).map(_.localDate.minusDays(noOfWeeksFloor * 7)).map(Date.fromLocalDate).getOrElse(Date.minValue)
+
+    lazy val datesWithFullWeeks: List[(Short, Date)] =
+      dates.filter(_._2.int > dateBeforeFirstFullWeek.int)
   }
 
   implicit def ArbitraryDatesOfCount: Arbitrary[DatesOfCount] = Arbitrary(for {
