@@ -109,14 +109,9 @@ object ChordArbitraries {
     ))
     // If the oldest chord has no facts then don't capture a snapshot (it will error at the moment)
     // https://github.com/ambiata/ivory/issues/343
-    lazy val takeSnapshot: Boolean = factAndMeta.meta.mode match {
-      // Currently the priority/window in snapshots/sets is slightly off - we keep more than we need
-      // Disabling snapshots here is easier than complicating the "expected" code with that logic
-      // https://github.com/ambiata/ivory/issues/376
-      case Mode.Set => false
-      case Mode.State => ces.sortBy(_.dates.headOption.map(_._1).getOrElse(Date.maxValue)).headOption
+    lazy val takeSnapshot: Boolean =
+      ces.sortBy(_.dates.headOption.map(_._1).getOrElse(Date.maxValue)).headOption
         .flatMap(_.dates.headOption).flatMap(_._2.headOption).isDefined
-    }
     lazy val expectedSquash: List[Fact] = ces.sortBy(_.entity).flatMap {
       ce => ce.toFacts(factAndMeta.fact, factAndMeta.meta.mode) { (d, fs, prev) =>
         val sd = window.map(Window.startingDate(_)(d)).getOrElse(Date.minValue)
@@ -132,6 +127,9 @@ object ChordArbitraries {
       }
     }
     lazy val chord = Entities.fromChordEntities(new ChordEntities(ces.map(ce => ce.entity -> ce.dateArray).toMap.asJava))
+
+    def withMode(mode: Mode): ChordFacts =
+      copy(factAndMeta = factAndMeta.copy(meta = factAndMeta.meta.copy(mode = Mode.State)))
   }
 
   implicit def ChordFactArbitrary: Arbitrary[ChordFact] = Arbitrary(for {
