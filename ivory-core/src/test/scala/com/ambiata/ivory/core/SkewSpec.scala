@@ -47,7 +47,7 @@ Skew Tests
     checkAll(Dictionary(featureIdsWithLargeFeature.map(fake.toDefinition)), largeNamespace)
 
   def checkSpread(dict: Dictionary, namespace: List[(Name, BytesQuantity)]): Result = {
-    val (nb, r) = Skew.calculate(dict, namespace, optimalSize)
+    val (_, r) = Skew.calculate(dict, namespace, optimalSize)
     seqToResult(namespace.map { case (name, size) =>
       val all = r.filter(_._1 == name)
       val reducers = all.groupBy(_._3.offset).values.map(_.map(_._3.count).max).sum.toInt
@@ -71,6 +71,8 @@ Skew Tests
   def allFeatures = prop { (features: NonEmptyList[(ConcreteGroupFeature, Int)]) =>
     val dict = features.list.foldLeft(Dictionary.empty)(_ append _._1.dictionary)
     val namespace = features.list.map { case (cgf, size) => cgf.fid.namespace -> (size & (Int.MaxValue - 1) + 1).bytes }
+      // Remove any duplicate namespaces
+      .toMap.toList
     checkAll(dict, namespace)
   }
 
