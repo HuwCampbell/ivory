@@ -191,7 +191,7 @@ object SquashReducerState {
     reducers.foreach {
       case (fr, date, state) =>
         // We have captured the largest window, and we now need to filter by date per virtual feature
-        if (date.underlying <= fact.date.underlying) {
+        if (date.underlying < fact.date.underlying) {
           state.update(fact)
         }
     }
