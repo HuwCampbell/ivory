@@ -13,20 +13,23 @@ import com.ambiata.ivory.core.Fact
 class IntervalReducer[A, B](dates: DateOffsets, r: ReductionFoldWithDate[A, Long, B], to: ReductionValueTo[B]) extends Reduction {
   val value           = new ThriftFactValue
   var lastDate        = -1
+  var first           = true
   var a               = r.initial
 
   def clear(): Unit = {
     value.clear()
     lastDate  = -1
+    first     = true
     a         = r.initial
   }
 
   def update(fact: Fact): Unit = {
     if (!fact.isTombstone) {
       val x = dates.get(fact.date).value
-      if (lastDate != -1) {
+      if (!first) {
         a = r.foldWithDate(a, x - lastDate, fact.date)
-      }
+      } else
+        first = false
       lastDate = x
     }
   }
