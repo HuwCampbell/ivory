@@ -15,13 +15,18 @@ import scalaz._, Scalaz._
 case class FactsetInfo(version: FactsetVersion, factConverter: VersionedFactConverter, priority: Priority)
 
 object FactsetInfo {
-  def fromMr(thriftCache: ThriftCache, factsetLookupKey: ThriftCache.Key, factsetVersionLookupKey: ThriftCache.Key,
-             configuration: Configuration, inputSplit: InputSplit): FactsetInfo = {
+  def getBaseInfo(inputSplit: InputSplit): (FactsetId, Partition) = {
     val path = FilePath.unsafe(MrContext.getSplitPath(inputSplit).toString)
-    val (factsetId, partition) = Factset.parseFile(path) match {
+    Factset.parseFile(path) match {
       case Success(r) => r
       case Failure(e) => Crash.error(Crash.DataIntegrity, s"Can not parse factset path ${e}")
     }
+  }
+
+
+  def fromMr(thriftCache: ThriftCache, factsetLookupKey: ThriftCache.Key, factsetVersionLookupKey: ThriftCache.Key,
+             configuration: Configuration, inputSplit: InputSplit): FactsetInfo = {
+    val (factsetId, partition) = getBaseInfo(inputSplit)
 
     val versionLookup = new FactsetVersionLookup <| (fvl => thriftCache.pop(configuration, factsetVersionLookupKey, fvl))
     val rawVersion = versionLookup.versions.get(factsetId.render)

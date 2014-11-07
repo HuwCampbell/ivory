@@ -1,7 +1,6 @@
 package com.ambiata.ivory.cli.extract
 
 import com.ambiata.ivory.api.Ivory.{OutputFormat, OutputFormats}
-import com.ambiata.ivory.cli.ScoptReaders.charRead
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import scopt.OptionParser

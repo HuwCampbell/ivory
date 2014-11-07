@@ -5,6 +5,7 @@ import scalaz.{DList => _, Value => _, _}, Scalaz._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.repository.HdfsGlobs.FactsetPartitionsGlob
 import com.ambiata.ivory.mr._
 import FactFormats._
 
@@ -12,8 +13,8 @@ object FactDiff {
 
   def partitionFacts(input1: HdfsIvoryLocation, input2: HdfsIvoryLocation, outputPath: HdfsIvoryLocation): ScoobiAction[Unit] = {
     for {
-      dlist1 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(input1.toHdfs+"/*/*/*/*")).flatMap(parseError)
-      dlist2 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(input2.toHdfs+"/*/*/*/*")).flatMap(parseError)
+      dlist1 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(s"${input1.toHdfs}/${FactsetPartitionsGlob}")).flatMap(parseError)
+      dlist2 <- PartitionFactThriftStorageV2.loadScoobiFromPaths(List(s"${input2.toHdfs}/${FactsetPartitionsGlob}")).flatMap(parseError)
       _      <- scoobiJob(dlist1, dlist2, outputPath)
     } yield ()
   }

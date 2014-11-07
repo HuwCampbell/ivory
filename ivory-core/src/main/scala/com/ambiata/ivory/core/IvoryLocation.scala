@@ -115,8 +115,10 @@ object IvoryLocation {
   }
 
   def readLines(location: IvoryLocation): ResultTIO[List[String]] = location match {
-    case l @ LocalIvoryLocation(LocalLocation(path))            => Files.readLines(l.filePath).map(_.toList)
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).getLines.executeT(s3Client)
+    case l @ LocalIvoryLocation(LocalLocation(path)) =>
+      Files.readLines(l.filePath).map(_.toList)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
+      S3Address(bucket, key).getLines.executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
       Hdfs.isDirectory(new Path(path)).flatMap { isDirectory =>
         if (isDirectory)
