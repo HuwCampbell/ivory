@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.extraction.reduction
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
-import scalaz._
+import scalaz._, Scalaz._
 
 class FilterReducer(reduction: Reduction, expression: FilterReductionExpression) extends Reduction {
 
@@ -36,6 +36,38 @@ object FilterReducer {
         case DoubleValue(v)   => new FilterValueReducer(new FilterReducerEquals(v), ReductionValueDouble)
         case DateValue(v)     => new FilterValueReducer(new FilterReducerEquals(v.int), ReductionValueDate)
       }
+      case FilterLessThan(value) => value match {
+        case StringValue(v)   => new FilterValueReducer(new FilterReducerLessThan(v), ReductionValueString)
+        case BooleanValue(v)  => new FilterValueReducer(new FilterReducerLessThan(v), ReductionValueBoolean)
+        case IntValue(v)      => new FilterValueReducer(new FilterReducerLessThan(v), ReductionValueInt)
+        case LongValue(v)     => new FilterValueReducer(new FilterReducerLessThan(v), ReductionValueLong)
+        case DoubleValue(v)   => new FilterValueReducer(new FilterReducerLessThan(v), ReductionValueDouble)
+        case DateValue(v)     => new FilterValueReducer(new FilterReducerLessThan(v.int), ReductionValueDate)
+      }
+      case FilterLessThanOrEqual(value) => value match {
+        case StringValue(v)   => new FilterValueReducer(new FilterReducerLessThanOrEqual(v), ReductionValueString)
+        case BooleanValue(v)  => new FilterValueReducer(new FilterReducerLessThanOrEqual(v), ReductionValueBoolean)
+        case IntValue(v)      => new FilterValueReducer(new FilterReducerLessThanOrEqual(v), ReductionValueInt)
+        case LongValue(v)     => new FilterValueReducer(new FilterReducerLessThanOrEqual(v), ReductionValueLong)
+        case DoubleValue(v)   => new FilterValueReducer(new FilterReducerLessThanOrEqual(v), ReductionValueDouble)
+        case DateValue(v)     => new FilterValueReducer(new FilterReducerLessThanOrEqual(v.int), ReductionValueDate)
+      }
+      case FilterGreaterThan(value) => value match {
+        case StringValue(v)   => new FilterValueReducer(new FilterReducerGreaterThan(v), ReductionValueString)
+        case BooleanValue(v)  => new FilterValueReducer(new FilterReducerGreaterThan(v), ReductionValueBoolean)
+        case IntValue(v)      => new FilterValueReducer(new FilterReducerGreaterThan(v), ReductionValueInt)
+        case LongValue(v)     => new FilterValueReducer(new FilterReducerGreaterThan(v), ReductionValueLong)
+        case DoubleValue(v)   => new FilterValueReducer(new FilterReducerGreaterThan(v), ReductionValueDouble)
+        case DateValue(v)     => new FilterValueReducer(new FilterReducerGreaterThan(v.int), ReductionValueDate)
+      }
+      case FilterGreaterThanOrEqual(value) => value match {
+        case StringValue(v)   => new FilterValueReducer(new FilterReducerGreaterThanOrEqual(v), ReductionValueString)
+        case BooleanValue(v)  => new FilterValueReducer(new FilterReducerGreaterThanOrEqual(v), ReductionValueBoolean)
+        case IntValue(v)      => new FilterValueReducer(new FilterReducerGreaterThanOrEqual(v), ReductionValueInt)
+        case LongValue(v)     => new FilterValueReducer(new FilterReducerGreaterThanOrEqual(v), ReductionValueLong)
+        case DoubleValue(v)   => new FilterValueReducer(new FilterReducerGreaterThanOrEqual(v), ReductionValueDouble)
+        case DateValue(v)     => new FilterValueReducer(new FilterReducerGreaterThanOrEqual(v.int), ReductionValueDate)
+      }
     }, {
       (name, exp) => exp match {
         case FilterEquals(value) => value match {
@@ -45,6 +77,38 @@ object FilterReducer {
           case LongValue(v)     => new FilterStructReducer(name, new FilterReducerEquals(v), ReductionValueLong)
           case DoubleValue(v)   => new FilterStructReducer(name, new FilterReducerEquals(v), ReductionValueDouble)
           case DateValue(v)     => new FilterStructReducer(name, new FilterReducerEquals(v.int), ReductionValueDate)
+        }
+        case FilterLessThan(value) => value match {
+          case StringValue(v)   => new FilterStructReducer(name, new FilterReducerLessThan(v), ReductionValueString)
+          case BooleanValue(v)  => new FilterStructReducer(name, new FilterReducerLessThan(v), ReductionValueBoolean)
+          case IntValue(v)      => new FilterStructReducer(name, new FilterReducerLessThan(v), ReductionValueInt)
+          case LongValue(v)     => new FilterStructReducer(name, new FilterReducerLessThan(v), ReductionValueLong)
+          case DoubleValue(v)   => new FilterStructReducer(name, new FilterReducerLessThan(v), ReductionValueDouble)
+          case DateValue(v)     => new FilterStructReducer(name, new FilterReducerLessThan(v.int), ReductionValueDate)
+        }
+        case FilterLessThanOrEqual(value) => value match {
+          case StringValue(v)   => new FilterStructReducer(name, new FilterReducerLessThanOrEqual(v), ReductionValueString)
+          case BooleanValue(v)  => new FilterStructReducer(name, new FilterReducerLessThanOrEqual(v), ReductionValueBoolean)
+          case IntValue(v)      => new FilterStructReducer(name, new FilterReducerLessThanOrEqual(v), ReductionValueInt)
+          case LongValue(v)     => new FilterStructReducer(name, new FilterReducerLessThanOrEqual(v), ReductionValueLong)
+          case DoubleValue(v)   => new FilterStructReducer(name, new FilterReducerLessThanOrEqual(v), ReductionValueDouble)
+          case DateValue(v)     => new FilterStructReducer(name, new FilterReducerLessThanOrEqual(v.int), ReductionValueDate)
+        }
+        case FilterGreaterThan(value) => value match {
+          case StringValue(v)   => new FilterStructReducer(name, new FilterReducerGreaterThan(v), ReductionValueString)
+          case BooleanValue(v)  => new FilterStructReducer(name, new FilterReducerGreaterThan(v), ReductionValueBoolean)
+          case IntValue(v)      => new FilterStructReducer(name, new FilterReducerGreaterThan(v), ReductionValueInt)
+          case LongValue(v)     => new FilterStructReducer(name, new FilterReducerGreaterThan(v), ReductionValueLong)
+          case DoubleValue(v)   => new FilterStructReducer(name, new FilterReducerGreaterThan(v), ReductionValueDouble)
+          case DateValue(v)     => new FilterStructReducer(name, new FilterReducerGreaterThan(v.int), ReductionValueDate)
+        }
+        case FilterGreaterThanOrEqual(value) => value match {
+          case StringValue(v)   => new FilterStructReducer(name, new FilterReducerGreaterThanOrEqual(v), ReductionValueString)
+          case BooleanValue(v)  => new FilterStructReducer(name, new FilterReducerGreaterThanOrEqual(v), ReductionValueBoolean)
+          case IntValue(v)      => new FilterStructReducer(name, new FilterReducerGreaterThanOrEqual(v), ReductionValueInt)
+          case LongValue(v)     => new FilterStructReducer(name, new FilterReducerGreaterThanOrEqual(v), ReductionValueLong)
+          case DoubleValue(v)   => new FilterStructReducer(name, new FilterReducerGreaterThanOrEqual(v), ReductionValueDouble)
+          case DateValue(v)     => new FilterStructReducer(name, new FilterReducerGreaterThanOrEqual(v.int), ReductionValueDate)
         }
       }
     }) {
@@ -98,11 +162,6 @@ class FilterValueReducer[A](pred: FilterReducerPredicate[A], from: ReductionValu
     pred.eval(from.from(fact.toThrift.getValue))
 }
 
-class FilterValueReducerDate(pred: FilterReducerPredicate[Date]) extends FilterReductionExpression {
-  def eval(fact: Fact): Boolean =
-    pred.eval(Date.unsafeFromInt(fact.toThrift.getValue.getDate))
-}
-
 /* Structs */
 
 class FilterStructReducer[A](field: String, pred: FilterReducerPredicate[A], from: ReductionValueFromPrim[A]) extends FilterReductionExpression {
@@ -120,4 +179,20 @@ trait FilterReducerPredicate[@specialized(Boolean, Int, Long, Double) A] {
 
 class FilterReducerEquals[A](a: A) extends FilterReducerPredicate[A] {
   def eval(v: A): Boolean = a == v
+}
+
+class FilterReducerLessThan[A](a: A)(implicit O: Order[A]) extends FilterReducerPredicate[A] {
+  def eval(v: A): Boolean = O.lessThan(v, a)
+}
+
+class FilterReducerGreaterThan[A](a: A)(implicit O: Order[A]) extends FilterReducerPredicate[A] {
+  def eval(v: A): Boolean = O.greaterThan(v, a)
+}
+
+class FilterReducerGreaterThanOrEqual[A](a: A)(implicit O: Order[A]) extends FilterReducerPredicate[A] {
+  def eval(v: A): Boolean = O.greaterThanOrEqual(v, a)
+}
+
+class FilterReducerLessThanOrEqual[A](a: A)(implicit O: Order[A]) extends FilterReducerPredicate[A] {
+  def eval(v: A): Boolean = O.lessThanOrEqual(v, a)
 }

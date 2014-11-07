@@ -23,4 +23,4 @@ expression:days_since_latest_by|source=expression:string|window=2 months|express
 expression:count_unique|source=expression:string|window=2 months|expression=count_unique
 expression:proportion|source=expression:string|window=2 months|expression=proportion,a
 filter:age|encoding=int
-filter:adult|source=filter:age|expression=count|window=2 months|filter=or,(and,18),19,(and,20)|tombstone=T
+filter:adult|source=filter:age|expression=count|window=2 months|filter=or,(and,18),19,(and,(>=,20),(<,25))|tombstone=T
