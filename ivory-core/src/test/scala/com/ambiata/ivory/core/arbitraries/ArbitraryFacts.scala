@@ -51,6 +51,24 @@ trait ArbitraryFacts {
       // This is probably going to get pretty hairy when we add more filter operations
       v = d.filter.fold({
         case FilterEquals(ev) => ev
+        case FilterLessThan(ev) => ev match {
+          case StringValue(vv)  => StringValue((vv.charAt(0) - 1).toChar.toString ++ vv.substring(1))
+          case IntValue(vv)     => IntValue(vv - 1)
+          case LongValue(vv)    => LongValue(vv - 1)
+          case DoubleValue(vv)  => DoubleValue(Double.MinValue)
+          case BooleanValue(vv) => BooleanValue(vv)
+          case DateValue(vv)    => DateValue(Date.fromLocalDate(vv.localDate.minusDays(1)))
+        }
+        case FilterLessThanOrEqual(ev) => ev
+        case FilterGreaterThan(ev) => ev match {
+          case StringValue(vv)  => StringValue(vv + "a")
+          case IntValue(vv)     => IntValue(vv + 1)
+          case LongValue(vv)    => LongValue(vv + 1)
+          case DoubleValue(vv)  => DoubleValue(Double.MaxValue)
+          case BooleanValue(vv) => BooleanValue(vv)
+          case DateValue(vv)    => DateValue(Date.fromLocalDate(vv.localDate.plusDays(1)))
+        }
+        case FilterGreaterThanOrEqual(ev) => ev
       })(identity, (k, v) => StructValue(Map(k -> v))) {
         case (op, h :: t) => op.fold(t.foldLeft(h) {
           case (StructValue(m1), StructValue(m2)) => StructValue(m1 ++ m2)

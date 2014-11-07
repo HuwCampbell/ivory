@@ -119,7 +119,18 @@ trait ArbitraryFeatures {
       valueOfPrim(encoding).flatMap {
         case StringValue(s) => Gen.identifier.map(StringValue.apply) // Just for now keep this _really_ simple
         case v              => Gen.const(v)
-      }.map(FilterEquals.apply)
+      }.flatMap { x => if (x match {
+        // It's a little tricky to do anything else
+        case BooleanValue(v) => false
+        // Make sure we don't make the < or > impossible
+        case DoubleValue(v)  => Double.MinValue <  v && v < Double.MaxValue
+        case IntValue(v)     => Int.MinValue < v && v < Int.MaxValue
+        case LongValue(v)    => Long.MinValue < v && v < Long.MinValue
+        case DateValue(v)    => Date.minValue < v && v < Date.maxValue
+        case StringValue(v)  => v != ""
+      }) Gen.oneOf(
+        FilterEquals(x), FilterLessThan(x), FilterLessThanOrEqual(x), FilterGreaterThan(x), FilterGreaterThanOrEqual(x)
+      ) else Gen.const(FilterEquals(x))}
 
     cd.encoding match {
       case se: StructEncoding =>

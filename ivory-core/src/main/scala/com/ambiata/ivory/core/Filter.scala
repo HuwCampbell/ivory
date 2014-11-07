@@ -39,6 +39,10 @@ case object FilterOpOr extends FilterOp
 
 sealed trait FilterExpression
 case class FilterEquals(value: PrimitiveValue) extends FilterExpression
+case class FilterLessThan(value: PrimitiveValue) extends FilterExpression
+case class FilterLessThanOrEqual(value: PrimitiveValue) extends FilterExpression
+case class FilterGreaterThan(value: PrimitiveValue) extends FilterExpression
+case class FilterGreaterThanOrEqual(value: PrimitiveValue) extends FilterExpression
 
 /**
  * Current format is _intentionally_ crippled to set expectations that it will change _very_ shortly.
@@ -67,39 +71,58 @@ object FilterTextV0 {
 
   object FilterExpressionTextV0 {
 
-    // Among many things, we're assuming that values to compare can never equal a tombstone
-    def parse(encoding: PrimitiveEncoding, value: String): String \/ FilterExpression =
-       Value.parsePrimitive(encoding, value).disjunction.map(FilterEquals.apply)
- 
-    /** This won't make any sense until we add more expression types */
-    def asString(exp: FilterExpression): String = exp match {
-      case FilterEquals(value) => Value.toStringPrimitive(value)
+    def asString(exp: FilterExpression): String =  {
+      def asOpString(op: String, v: PrimitiveValue): String =
+        "(" + List(op, Value.toStringPrimitive(v)).mkString(",") + ")"
+      exp match {
+        case FilterEquals(value)             => Value.toStringPrimitive(value)
+        case FilterLessThan(value)           => asOpString("<", value)
+        case FilterLessThanOrEqual(value)    => asOpString("<=", value)
+        case FilterGreaterThan(value)        => asOpString(">", value)
+        case FilterGreaterThanOrEqual(value) => asOpString(">=", value)
+      }
     }
   }
 
   def encode(filter: Filter, encoding: Encoding): String \/ FilterEncoded = {
-    def part(fe: List[FExp]): (List[String], List[FExpNode]) = {
-      val (l, r) = fe.collect {
+    def splitNodes(f: List[FExp]): (List[String], List[FExpNode]) =
+      f.map {
         case FExpS(s) => s.left
-        case FExpL(f) => f.right
-      }.partition(_.isLeft)
-      (l.flatMap(_.swap.toOption), r.flatMap(_.toOption))
+        case FExpL(n) => n.right
+      }.separate
+
+    // Among many things, we're assuming that values to compare can never equal a tombstone
+    def parseExp(encoding: PrimitiveEncoding, fexp: FExp): String \/ FilterExpression = fexp match {
+      case FExpS(s) =>
+        Value.parsePrimitive(encoding, s).disjunction.map(FilterEquals.apply)
+      case FExpL(f) => f.v match {
+        case List(FExpS(s)) => Value.parsePrimitive(encoding, s).disjunction.flatMap(v => PartialFunction.condOpt(f.op) {
+          case "="  => FilterEquals(v)
+          case "<"  => FilterLessThan(v)
+          case "<=" => FilterLessThanOrEqual(v)
+          case ">"  => FilterGreaterThan(v)
+          case ">=" => FilterGreaterThanOrEqual(v)
+        }.toRightDisjunction(s"Invalid filter: Unknown conditional: ${f.op}"))
+        case _ => "Process elsewhere".left
+      }
     }
     new SimpleExpParser(filter.render).parse.flatMap { fel =>
       encoding match {
         case StructEncoding(values) =>
           def struct(l: FExpNode): String \/ FilterStructOp =
             for {
-              op     <- FilterOpTextV0.parse(l.op)
-              (tail, exps) = part(l.v)
-              fields <- tail.grouped(2).toList.traverseU {
-                case List(field, value) =>
+              op          <- FilterOpTextV0.parse(l.op)
+              (exps, ops)  = l.v.grouped(2).toList.map {
+                case List(FExpS(field), value) =>
                   values.get(field)
                     .toRightDisjunction(s"Invalid filter: struct field $field not found")
-                    .flatMap(se => FilterExpressionTextV0.parse(se.encoding, value).map(field ->))
-                case _ => "Invalid filter: struct filters require name/value pairs".left
-              }
-              children <- exps.traverseU(struct)
+                    .flatMap(se => parseExp(se.encoding, value).map(field ->)).right
+                case tail => tail.left
+              }.separate
+              fields      <- ops.sequenceU
+              (rest, nodes) = splitNodes(exps.flatten)
+              _           <- if (rest.isEmpty) ().right else ("Invalid left-over struct fields: " + rest.mkString(",")).left
+              children    <- nodes.traverseU(struct)
             } yield FilterStructOp(op, fields, children)
 
           struct(fel).map(FilterStruct)
@@ -107,12 +130,15 @@ object FilterTextV0 {
           def values(l: FExpNode): String \/ FilterValuesOp =
             for {
               op <- FilterOpTextV0.parse(l.op)
-              (tail, exps) = part(l.v)
-              fields <- tail.traverseU(FilterExpressionTextV0.parse(pe, _))
-              children <- exps.traverseU(values)
+              // Do a first pass and find all of the valid operations
+              (exps, fields) = l.v.map(exp => parseExp(pe, exp).leftMap(_ => exp)).separate
+              (rest, nodes) = splitNodes(exps)
+              _        <- if (rest.isEmpty) ().right else ("Invalid left-over fields: " + rest.mkString(",")).left
+              children <- nodes.traverseU(values)
             } yield FilterValuesOp(op, fields, children)
           values(fel).map(FilterValues)
-        case _: ListEncoding => "Filtering lists is not yet supported".left
+        case ListEncoding(_) =>
+          "Filtering lists is not yet supported".left
       }
     }
   }
