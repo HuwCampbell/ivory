@@ -65,7 +65,7 @@ SnapshotReducerSpec
     val (oldFacts, newFacts) = dts.list.distinct.sortBy(_.long)
       .map(dt => fact.withDate(dt.date).withTime(dt.time))
       .zipWithIndex.map(f => f._1.withValue(IntValue(f._2)))
-      .partition(_.date.int < date.int)
+      .partition(!Window.isFactWithinWindow(date, _))
     def facts: List[Fact] = oldFacts ++ newFacts
     def factsDupe: List[Fact] = dupe(oldFacts) ++ dupe(newFacts)
     def expected: List[Fact] = oldFacts.lastOption.toList ++ newFacts

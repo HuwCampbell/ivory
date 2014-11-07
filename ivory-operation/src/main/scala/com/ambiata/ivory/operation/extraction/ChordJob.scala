@@ -398,7 +398,7 @@ object ChordReducer {
       var i = offset
       // For window features _always_ emit the last fact before the window (for state-based features)
       // Keep in mind that this will _also_ handily emit the previous fact when it _is_ in the window
-      var canEmit = windowStarts != null && windowStarts(i) <= date.underlying
+      var canEmit = windowStarts != null && Window.withinWindow(Date.unsafeFromInt(windowStarts(i)), date)
       while (i >= 0 && date.underlying > dates(i)) {
         // For both types of features we _always_ want to emit the last fact for a given chord (it may be the only one)
         canEmit = true
