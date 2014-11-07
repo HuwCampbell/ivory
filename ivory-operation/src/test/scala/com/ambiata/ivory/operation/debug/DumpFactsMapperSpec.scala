@@ -1,7 +1,8 @@
 package com.ambiata.ivory.operation.debug
 
 import org.specs2._
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 
 class DumpFactsMapperSpec extends Specification with ScalaCheck { def is = s2"""
 
