@@ -5,7 +5,6 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.notion.core.{TemporaryType => TT}
 import com.ambiata.ivory.core.{TemporaryLocations => T, _}
 import com.ambiata.ivory.core.arbitraries._
-import com.ambiata.ivory.core.Arbitraries._
 
 import com.ambiata.ivory.operation.extraction.Snapshots
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
