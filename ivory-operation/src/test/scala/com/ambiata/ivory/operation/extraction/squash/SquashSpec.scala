@@ -39,7 +39,7 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
       postProcess(expectedFacts),
       true
     ))
-  }).set(minTestsOk = 1, maxDiscardRatio = 10)
+  }).set(minTestsOk = 3, maxDiscardRatio = 10)
 
   def dump = prop((sf: SquashFactsMultiple) => {
     // Take a subset of the entities and virtual features (one from each SquashFacts)
@@ -59,5 +59,5 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
       }).toSet)
     } yield dump
     } must beOkValue(sf.allFacts.flatMap(f => entities.get(f.entity).toList.flatten.map(f.entity ->)).toSet)
-  }).set(minTestsOk = 1, maxDiscardRatio = 10)
+  }).set(minTestsOk = 3, maxDiscardRatio = 10)
 }
