@@ -119,7 +119,7 @@ object ChordArbitraries {
         val sd = window.map(Window.startingDate(_)(d)).getOrElse(Date.minValue)
         val pfs = prev ++ fs
         val last = pfs.lastOption
-        val inWindow = pfs.filter(_.date.int >= sd.int)
+        val inWindow = pfs.filter(_.date.int > sd.int)
         (last.map { f =>
           val cfid = factAndMeta.fact.featureId
           Fact.newFact("", cfid.namespace.name, cfid.name, d, Time(0), f.value)
