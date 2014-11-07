@@ -1,7 +1,6 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.ivory.core.arbitraries._
-import ArbitraryValues._
+import com.ambiata.ivory.core.arbitraries._, Arbitraries._
 
 import org.specs2._
 import org.scalacheck._, Arbitrary._

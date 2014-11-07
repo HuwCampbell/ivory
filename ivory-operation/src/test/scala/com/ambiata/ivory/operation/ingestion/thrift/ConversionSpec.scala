@@ -1,6 +1,7 @@
 package com.ambiata.ivory.operation.ingestion.thrift
 
-import com.ambiata.ivory.core.arbitraries._, ArbitraryFacts._, ArbitraryValues._
+import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import org.joda.time.DateTimeZone
 import org.specs2.{ScalaCheck, Specification}
 

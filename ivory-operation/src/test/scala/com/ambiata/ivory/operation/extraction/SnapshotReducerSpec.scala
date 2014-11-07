@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.lookup.FeatureIdLookup
 import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable.KeyState

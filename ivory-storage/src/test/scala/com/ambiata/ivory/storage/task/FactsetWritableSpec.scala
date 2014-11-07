@@ -3,7 +3,7 @@ package com.ambiata.ivory.storage.task
 import java.io.{ByteArrayOutputStream, DataOutputStream}
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import org.specs2.execute.Result
 import org.specs2.{ScalaCheck, Specification}
 
@@ -13,6 +13,7 @@ class FactsetWritableSpec extends Specification with ScalaCheck { def is = s2"""
   Feature Id                                          $featureId
   Date                                                $date
   Entity hash                                         $entityHash
+
 """
 
   def comparator = prop((f1: Fact, f2: Fact) => {

@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.operation.extraction.reduction.ReductionArbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import org.specs2.{ScalaCheck, Specification}
 import org.specs2.matcher._
 import org.scalacheck.{Gen, Arbitrary}
@@ -17,16 +17,16 @@ class GradientReducerSpec extends Specification with ScalaCheck { def is = s2"""
   implicit def SaneDoubleArbitrary: Arbitrary[SaneDouble] =
     Arbitrary(Gen.choose(-10000.0, 10000.0).map(SaneDouble.apply))
 
-  def gradientDouble = prop((xs: List[(SaneDouble, TestDate)]) =>
+  def gradientDouble = prop((xs: List[(SaneDouble, Date)]) =>
     gradient(xs.map(td => td._1.d -> td._2))
   )
 
-  def gradientInt = prop((xs: List[(Int, TestDate)]) =>
+  def gradientInt = prop((xs: List[(Int, Date)]) =>
     gradient(xs.map(td => td._1.toLong -> td._2))
   )
 
-  def gradient[A: Numeric](xs: List[(A, TestDate)]): MatchResult[Double] = {
-    val ds = xs.map(td => td._1 -> td._2.d).sortBy(_._2)
+  def gradient[A: Numeric](xs: List[(A, Date)]): MatchResult[Double] = {
+    val ds = xs.map(td => td._1 -> td._2).sortBy(_._2)
     val dateOffsets = ReducerUtil.buildDateOffsets(ds)
     ReducerUtil.runWithDates(new GradientReducer[A](dateOffsets), ds) must beCloseTo(
       ReducerMathsHelpers.gradient(ds)

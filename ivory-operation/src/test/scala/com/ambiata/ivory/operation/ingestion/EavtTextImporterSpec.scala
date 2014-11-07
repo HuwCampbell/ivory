@@ -1,6 +1,7 @@
 package com.ambiata.ivory.operation.ingestion
 
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.mr.{FactFormats, SequenceUtil, TestConfigurations}
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import FactFormats._

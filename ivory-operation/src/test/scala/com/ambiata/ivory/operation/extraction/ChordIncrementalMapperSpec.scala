@@ -1,6 +1,7 @@
 package com.ambiata.ivory.operation.extraction
 
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.io._

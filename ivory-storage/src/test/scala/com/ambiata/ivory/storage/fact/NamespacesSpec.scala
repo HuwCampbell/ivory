@@ -2,9 +2,7 @@ package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
-import ArbitraryFeatures._
-import ArbitraryMetadata._
-
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.ScalaCheckManagedProperties
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
@@ -38,20 +36,20 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
     namespaceSizesSingle(new Path(factsetPath, "ns1"), Name("namespace")).run(new Configuration)
   } must beOkValue((Name("namespace"), 4.bytes))
 
-  def e3 = managed { temp: TemporaryDirPath => (nsInc: Set[FeatureNamespace], nsExc: Set[FeatureNamespace], fsInc: FactsetIdList, fsExc: FactsetIdList) =>
+  def e3 = managed { temp: TemporaryDirPath => (nsInc: Set[Name], nsExc: Set[Name], fsInc: FactsetIds, fsExc: FactsetIds) =>
     !nsInc.exists(nsExc.contains) ==> {
       val sc = ScoobiConfiguration()
       val repo = HdfsRepository(HdfsLocation(temp.dir.path), IvoryConfiguration.fromScoobiConfiguration(sc))
-      val namespaces = (nsInc ++ nsExc).toList.flatMap(ns => (fsInc.ids ++ fsExc.ids).map(fs => fs -> ns.namespace)).map {
+      val namespaces = (nsInc ++ nsExc).toList.flatMap(ns => (fsInc.ids ++ fsExc.ids).map(fs => fs -> ns)).map {
         case (fs, ns) => Repository.namespace(fs, ns)
       }
       val computNamespaces =
         (for {
           _ <- namespaces.traverse(k => Hdfs.mkdir(repo.toIvoryLocation(k).toHdfsPath).run(sc.configuration))
           _ <- namespaces.map(_ / "f1").traverse(createFile(repo))
-          sizes <- allNamespaceSizes(repo, nsInc.toList.map(_.namespace), fsInc.ids).run(sc.configuration)
+          sizes <- allNamespaceSizes(repo, nsInc.toList, fsInc.ids).run(sc.configuration)
         } yield sizes).map(_.toSet) must
-          beOkValue(nsInc.map(ns => ns.namespace -> (fsInc.ids.length * 4).bytes))
+          beOkValue(nsInc.map(ns => ns -> (fsInc.ids.length * 4).bytes))
     }
   }.set(maxSize = 5, minTestsOk = 5)
 

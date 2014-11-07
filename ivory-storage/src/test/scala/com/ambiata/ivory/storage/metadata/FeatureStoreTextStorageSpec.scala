@@ -10,7 +10,7 @@ import org.specs2._
 import scalaz._, Scalaz._
 import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.arbitraries._
-import ArbitraryMetadata._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 
 class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with ScalaCheckManagedProperties { def is = s2"""
@@ -42,13 +42,13 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
       beOkLike(_ must_== delimitedString(fstore.factsetIds))
   }
 
-  def listFeatureStorIds = managed { temp: TemporaryDirPath => ids: SmallFeatureStoreIdList =>
+  def listFeatureStorIds = managed { temp: TemporaryDirPath => ids: FeatureStoreIds =>
     val repo = LocalRepository.create(temp.dir)
     writeFeatureStoreIds(repo, ids.ids) >>
     Metadata.listFeatureStoreIds(repo).map(_.toSet) must beOkValue(ids.ids.toSet)
   }
 
-  def latestFeatureStoreIs = managed { temp: TemporaryDirPath => ids: SmallFeatureStoreIdList =>
+  def latestFeatureStoreIs = managed { temp: TemporaryDirPath => ids: FeatureStoreIds =>
     val repo = LocalRepository.create(temp.dir)
     writeFeatureStoreIds(repo, ids.ids) >>
     Metadata.latestFeatureStoreId(repo) must beOkValue(ids.ids.sortBy(_.id).lastOption)

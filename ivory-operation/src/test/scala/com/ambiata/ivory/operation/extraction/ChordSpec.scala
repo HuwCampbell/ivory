@@ -3,7 +3,8 @@ package com.ambiata.ivory.operation.extraction
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.operation.extraction.chord.ChordArbitraries._
 import com.ambiata.ivory.operation.extraction.squash.SquashConfig

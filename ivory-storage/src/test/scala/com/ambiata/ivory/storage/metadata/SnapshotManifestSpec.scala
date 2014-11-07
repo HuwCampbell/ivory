@@ -1,18 +1,20 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.{Factsets, FeatureStoreGlob}
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
-import com.ambiata.ivory.storage.Arbitraries._
+import com.ambiata.ivory.storage.arbitraries._
+import com.ambiata.ivory.storage.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core.{KeyName, Key}
-import com.ambiata.ivory.core.arbitraries._
 
 import org.specs2._
-import org.scalacheck._, Arbitrary._, Arbitraries._
+import org.scalacheck._, Arbitrary._
 import org.specs2.execute.AsResult
 import org.specs2.matcher.{Matcher, ThrownExpectations}
 import com.ambiata.mundane.testing.ResultTIOMatcher._
@@ -100,7 +102,7 @@ SnapshotManifest Properties
 
   // Replace with better tests when RepositoryScenario is merged in.
 
-  def latest = prop { (snapshots: SnapshotManifestList, date1: Date) =>
+  def latest = prop { (snapshots: SnapshotManifests, date1: Date) =>
     RepositoryBuilder.using { repo =>
       for {
         _                <- snapshots.metas.traverse(storeSnapshotManifest(repo, _))
@@ -112,7 +114,7 @@ SnapshotManifest Properties
 
   // This only checks the legacy snapshot manifests, as the new ones will involve looking up the commit in the metadata,
   // which wont be in the repo built.
-  def uptodate = prop { (snapshots: SnapshotMetaList, dates: UniqueDates) =>
+  def uptodate = prop { (snapshots: SnapshotMetas, dates: UniqueDates) =>
     RepositoryBuilder.using { repo =>
       val factsetDate = dates.later
 

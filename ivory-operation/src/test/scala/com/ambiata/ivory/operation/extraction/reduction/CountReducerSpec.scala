@@ -1,6 +1,7 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core.thrift.ThriftFactValue
 import org.specs2.{ScalaCheck, Specification}
 

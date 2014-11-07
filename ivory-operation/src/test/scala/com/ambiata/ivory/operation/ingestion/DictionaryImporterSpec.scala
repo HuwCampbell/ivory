@@ -1,9 +1,9 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.arbitraries._, ArbitraryDictionaries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.operation.ingestion.DictionaryImporter._
-import com.ambiata.ivory.storage.Arbitraries.StoreTypeArbitrary
+import com.ambiata.ivory.storage.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._

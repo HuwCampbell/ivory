@@ -12,7 +12,6 @@ import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
-import scalaz.{Name => _, _}, Scalaz._
 
 class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is = s2"""
 
@@ -45,9 +44,11 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
   def dump = prop((sf: SquashFactsMultiple) => {
     // Take a subset of the entities and virtual features (one from each SquashFacts)
     // Note that it's possible to generate the same entity for different features
+    val entityKeys = sf.facts.list.map(_.facts.head.entity).toSet
     val entities: Map[String, List[FeatureId]] = sf.facts.list
-      .flatMap(f => f.facts.list.headOption.map(_.entity) tuple f.dict.cg.virtual.headOption.map(_._1))
-      .groupBy(_._1).mapValues(_.map(_._2))
+      .flatMap(f => (f.facts.head.entity :: f.facts.list.map(_.entity).filter(entityKeys.contains))
+        .flatMap(e => f.dict.cg.virtual.headOption.map(e -> _._1))
+      ).groupBy(_._1).mapValues(_.map(_._2))
     RepositoryBuilder.using { repo => for {
       _    <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
       res  <- Snapshots.takeSnapshot(repo, sf.date)

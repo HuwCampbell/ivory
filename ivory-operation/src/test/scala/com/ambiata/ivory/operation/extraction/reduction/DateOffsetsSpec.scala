@@ -1,6 +1,7 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.operation.extraction.reduction.ReductionArbitraries._
 import org.joda.time.{Days => JodaDays}
 import org.scalacheck.Arbitrary
@@ -14,27 +15,17 @@ class DateOffsetsSpec extends Specification with ScalaCheck { def is = s2"""
   Can increment the number of unit weeks in a range of dates                   $weekSetInc
 """
 
-  case class TestDates(earlier: Date, now: Date, later: Date)
-
-  implicit def TestDatesArbitrary: Arbitrary[TestDates] = Arbitrary(for {
-    d1 <- Arbitrary.arbitrary[TestDate].map(_.d)
-    d2 <- Arbitrary.arbitrary[TestDate].map(_.d)
-    d3 <- Arbitrary.arbitrary[TestDate].map(_.d)
-  } yield List(d1, d2, d3).sorted match {
-      case List(sd1, sd2, sd3) => TestDates(sd1, sd2, sd3)
-    })
-
-  def daysSparse = prop((tds: TestDates) => {
+  def daysSparse = prop((tds: UniqueDates) => {
     val offsets = DateOffsets.sparse(tds.earlier, tds.later)
     offsets.get(tds.now).value ==== DateTimeUtil.toDays(tds.now)
   })
 
-  def daysCompact = prop((tds: TestDates) => {
+  def daysCompact = prop((tds: UniqueDates) => {
     val offsets = DateOffsets.compact(tds.earlier, tds.later)
     offsets.get(tds.now).value ==== DateTimeUtil.toDays(tds.now)
   })
 
-  def untilEnd = prop((tds: TestDates) => {
+  def untilEnd = prop((tds: UniqueDates) => {
     val offsets = DateOffsets.compact(tds.earlier, tds.later)
     offsets.untilEnd(tds.now).value ==== JodaDays.daysBetween(tds.now.localDate, tds.later.localDate).getDays
   })

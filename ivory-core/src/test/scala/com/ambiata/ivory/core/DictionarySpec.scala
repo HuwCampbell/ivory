@@ -35,70 +35,70 @@ Append:
 Exists:
   Checking the existence of virtual features                     $hasVirtual
 """
-  import Arbitraries._
+  import arbitraries.Arbitraries._
 
-  def byFeatureId = prop((dictionary: Dictionary) =>
+  def byFeatureId = propNoShrink((dictionary: Dictionary) =>
     seqToResult(dictionary.definitions.map(d =>
       dictionary.byFeatureId.get(d.featureId) must beSome(d))))
 
-  def byFeatureIndex = prop((dictionary: Dictionary) =>
+  def byFeatureIndex = propNoShrink((dictionary: Dictionary) =>
     seqToResult((1 until dictionary.definitions.size).toList.map(n =>
       dictionary.byFeatureIndex.get(n) must beSome)))
 
-  def byFeatureIndexReverse = prop((dictionary: Dictionary) =>
+  def byFeatureIndexReverse = propNoShrink((dictionary: Dictionary) =>
     seqToResult(dictionary.definitions.map(d =>
       dictionary.byFeatureIndexReverse.get(d.featureId) must beSome)))
 
-  def symmetricalFeatureIndex = prop((dictionary: Dictionary) =>
+  def symmetricalFeatureIndex = propNoShrink((dictionary: Dictionary) =>
     seqToResult(dictionary.definitions.map(d =>
       dictionary.byFeatureIndexReverse.get(d.featureId).flatMap(n =>
        dictionary.byFeatureIndex.get(n)) must beSome(d))))
 
-  def byConcrete = prop((dictionary: Dictionary) =>
+  def byConcrete = propNoShrink((dictionary: Dictionary) =>
     dictionary.byConcrete.sources.flatMap(f => f._1 :: f._2.virtual.map(_._1)).toSet ==== dictionary.byFeatureId.keySet
   )
 
-  def byConcreteLossless = prop((dictionary: Dictionary) =>
+  def byConcreteLossless = propNoShrink((dictionary: Dictionary) =>
     dictionary.byConcrete.dictionary.byFeatureId ==== dictionary.byFeatureId
   )
 
-  def byFeatureIdCount = prop((dictionary: Dictionary) =>
+  def byFeatureIdCount = propNoShrink((dictionary: Dictionary) =>
     dictionary.definitions.size must_== dictionary.byFeatureId.size)
 
-  def byFeatureIndexCount = prop((dictionary: Dictionary) =>
+  def byFeatureIndexCount = propNoShrink((dictionary: Dictionary) =>
     dictionary.definitions.size must_== dictionary.byFeatureIndex.size)
 
-  def byFeatureIndexReverseCount = prop((dictionary: Dictionary) =>
+  def byFeatureIndexReverseCount = propNoShrink((dictionary: Dictionary) =>
     dictionary.definitions.size must_== dictionary.byFeatureIndexReverse.size)
 
-  def byConcreteCount = prop((dictionary: Dictionary) =>
+  def byConcreteCount = propNoShrink((dictionary: Dictionary) =>
     dictionary.byConcrete.sources.map(1 + _._2.virtual.size).sum ==== dictionary.size
   )
 
-  def byConcreteFeatureIndexReverse = prop { (dictionary: Dictionary) =>
+  def byConcreteFeatureIndexReverse = propNoShrink { (dictionary: Dictionary) =>
     val conc = dictionary.byConcrete
-    conc.byFeatureIndexReverse == dictionary.forFeatureIds(conc.sources.keySet).byFeatureIndexReverse
+    conc.byFeatureIndexReverse ==== dictionary.forFeatureIds(conc.sources.keySet).byFeatureIndexReverse
   }
 
-  def filterNamespace = prop((dictionary: Dictionary, n: Int) => (n > 0 && dictionary.size > 0) ==> {
+  def filterNamespace = propNoShrink((dictionary: Dictionary, n: Int) => (n > 0 && dictionary.size > 0) ==> {
     val namespace = dictionary.definitions(n % dictionary.size).featureId.namespace
     val filtered = dictionary.forNamespace(namespace)
     filtered.definitions.forall(_.featureId.namespace == namespace) && filtered.definitions.size >= 1
   })
 
-  def filterFeature = prop((dictionary: Dictionary, n: Int) => (n > 0 && dictionary.size > 0) ==> {
+  def filterFeature = propNoShrink((dictionary: Dictionary, n: Int) => (n > 0 && dictionary.size > 0) ==> {
     val featureId = dictionary.definitions(n % dictionary.size).featureId
     val filtered = dictionary.forFeatureIds(Set(featureId))
     filtered.definitions.forall(_.featureId == featureId) && filtered.definitions.size == 1
   })
 
-  def size = prop((dictionary: Dictionary) =>
+  def size = propNoShrink((dictionary: Dictionary) =>
     dictionary.definitions.size must_== dictionary.size)
 
-  def append = prop((d1: Dictionary, d2: Dictionary) =>
+  def append = propNoShrink((d1: Dictionary, d2: Dictionary) =>
     d1.append(d2) must_== Dictionary(d1.definitions ++ d2.definitions))
 
-  def hasVirtual = prop((d1: Dictionary) =>
+  def hasVirtual = propNoShrink((d1: Dictionary) =>
     d1.hasVirtual ==== d1.byConcrete.sources.values.exists(_.virtual.nonEmpty)
   )
 }

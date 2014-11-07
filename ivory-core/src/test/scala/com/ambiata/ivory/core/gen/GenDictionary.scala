@@ -1,73 +1,68 @@
-package com.ambiata.ivory.core
-package arbitraries
+package com.ambiata.ivory.core.gen
 
-import org.scalacheck.Arbitrary._
-import org.scalacheck.{Arbitrary, Gen}
+import com.ambiata.ivory.core._
 
-import scalaz.Scalaz._
-import ArbitraryValues._
-import ArbitraryDictionaries._
-import ArbitraryEncodings._
-import ArbitraryMetadata._
+import org.scalacheck._, Arbitrary.arbitrary
 
-/**
- * Arbitraries for generating features
- */
-trait ArbitraryFeatures {
+import scalaz._, Scalaz._
+import scalaz.scalacheck.ScalaCheckBinding._
 
-  implicit def FeatureNamespaceArbitrary: Arbitrary[FeatureNamespace] =
-    Arbitrary(genFeatureNamespace)
 
-  implicit def FeatureIdArbitrary: Arbitrary[FeatureId] =
-    Arbitrary(for {
-      ns <- arbitrary[Name]
-      name <- arbitrary[DictId].map(_.s)
-    } yield FeatureId(ns, name))
+object GenDictionary {
+  def mode: Gen[Mode] =
+    Gen.oneOf(Mode.State, Mode.Set)
 
-  implicit def ConcreteGroupFeatureArbitrary: Arbitrary[ConcreteGroupFeature] = Arbitrary(for {
-    fid <- arbitrary[FeatureId]
-    cd  <- arbitrary[ConcreteDefinition]
-    vi <- Gen.choose(0, 3)
-    vd <- Gen.listOfN(vi, virtualDefGen(fid -> cd))
-  } yield ConcreteGroupFeature(fid, ConcreteGroup(cd, vd.toMap.mapValues(_.copy(source = fid)).toList)))
+  def type_ : Gen[Type] =
+    Gen.oneOf(NumericalType, ContinuousType, CategoricalType, BinaryType)
 
-  implicit def DefinitionWithFilterArb: Arbitrary[DefinitionWithQuery] = Arbitrary(for {
-    cd <- concreteDefinitionGen(Gen.oneOf(arbitrary[PrimitiveEncoding], arbitrary[StructEncoding]))
-    e <- expressionArbitrary(cd)
-    f <- arbitraryFilter(cd)
-  } yield DefinitionWithQuery(cd, e, f.get))
+  def encoding: Gen[Encoding] =
+    Gen.oneOf(subEncoding, listEncoding)
 
-  implicit def WindowArbitrary: Arbitrary[Window] = Arbitrary(for {
+  def subEncoding: Gen[SubEncoding] =
+    Gen.oneOf(primitiveEncoding, structEncoding)
+
+  def listEncoding: Gen[ListEncoding] =
+    subEncoding.map(ListEncoding)
+
+  def primitiveEncoding: Gen[PrimitiveEncoding] =
+    Gen.oneOf(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding, DateEncoding)
+
+  def structEncoding: Gen[StructEncoding] =
+    Gen.choose(1, 5).flatMap(n => Gen.mapOfN[String, StructEncodedValue](n, for {
+      name <- GenString.name.map(_.name)
+      enc <- primitiveEncoding
+      optional <- arbitrary[Boolean]
+    } yield name -> StructEncodedValue(enc, optional)).map(StructEncoding))
+
+  def concrete: Gen[ConcreteDefinition] =
+    concreteWith(encoding)
+
+  def concreteWith(genc: Gen[Encoding]): Gen[ConcreteDefinition] = for {
+    e <- genc
+    m <- mode
+    t <- Gen.option(type_)
+    d <- GenString.sentence
+    x <- GenString.words
+  } yield ConcreteDefinition(e, m, t, d, x)
+
+  def window: Gen[Window] = for {
     length <- GenPlus.posNum[Int]
     unit <- Gen.oneOf(Days, Weeks, Months, Years)
-  } yield Window(length, unit))
+  } yield Window(length, unit)
 
-  implicit def ConcreteDefinitionArbitrary: Arbitrary[ConcreteDefinition] =
-    Arbitrary(concreteDefinitionGen(arbitrary[Encoding]))
+  def dictionary: Gen[Dictionary] = for {
+    n <- Gen.sized(s => Gen.choose(3, math.min(s, 20)))
+    i <- Gen.listOfN(n, GenIdentifier.feature).map(_.distinct)
+    c <- Gen.listOfN(i.length, concrete).map(cds => i.zip(cds))
+    // For every concrete definition there is a chance we may have a virtual feature
+    v <- c.traverse(x => Gen.frequency(
+      70 -> Gen.const(None)
+    , 30 -> virtual(x).map(some).map(_.filterNot(vd => i.contains(vd._1))))
+    ).map(_.flatten)
+  } yield Dictionary(c.map({ case (f, d) => d.toDefinition(f) }) ++ v.map({ case (f, d) => d.toDefinition(f) }))
 
-  def genFeatureNamespace: Gen[FeatureNamespace] =
-    NameArbitrary.arbitrary.map(FeatureNamespace.apply)
-
-  /* Generate a distinct list of FeatureNamespaces up to size n */
-  def genFeatureNamespaces(n: Gen[Int]): Gen[List[FeatureNamespace]] =
-    n.flatMap(n => Gen.listOfN(n, genFeatureNamespace).map(_.distinct))
-
-  def testEntityId(i: Int): String =
-    "T+%05d".format(i)
-
-  def testEntities(n: Int): List[String] =
-    (1 to n).toList.map(testEntityId)
-
-  def concreteDefinitionGen(genc: Gen[Encoding]): Gen[ConcreteDefinition] =
-    for {
-      enc <- genc
-      mode <- arbitrary[Mode]
-      ty <- arbitrary[Option[Type]]
-      desc <- arbitrary[DictDesc].map(_.s)
-      tombs <- Gen.listOf(arbitrary[DictTomb].map(_.s))
-    } yield ConcreteDefinition(enc, mode, ty, desc, tombs)
-
-  def expressionArbitrary(cd: ConcreteDefinition): Gen[Expression] = {
+  // FIX ARB Could do with some polish.
+  def expression(cd: ConcreteDefinition): Gen[Expression] = {
     val fallback = Gen.frequency(
       15 -> Gen.oneOf(Count, DaysSinceLatest, DaysSinceEarliest, MeanInDays, MaximumInDays, MinimumInDays,
         MeanInWeeks, MaximumInWeeks, MinimumInWeeks, CountDays, Interval(Min), Interval(Mean), Interval(Max), Interval(Gradient), Interval(StandardDeviation)),
@@ -80,7 +75,7 @@ trait ArbitraryFeatures {
     Gen.oneOf(fallback, cd.encoding match {
       case StructEncoding(values) =>
         val subexpGen = Gen.oneOf(values.toList).flatMap {
-          case (name, sve) => subExpressionArbitrary(sve.encoding).map(se => StructExpression(name, se))
+          case (name, sve) => subExpression(sve.encoding).map(se => StructExpression(name, se))
         }
         // SumBy and CountBySecondary are a little more complicated
         (for {
@@ -88,12 +83,12 @@ trait ArbitraryFeatures {
           ie <- values.find(v => v._1 != se && List(StringEncoding).contains(v._2.encoding)).map(ie => CountBySecondary(se, ie._1)) orElse
             values.find(v => List(IntEncoding, LongEncoding, DoubleEncoding).contains(v._2.encoding)).map(ie => SumBy(se, ie._1))
         } yield ie).cata(v => Gen.frequency(5 -> Gen.const(v), 5 -> subexpGen), subexpGen)
-      case p: PrimitiveEncoding   => subExpressionArbitrary(p).map(BasicExpression)
+      case p: PrimitiveEncoding   => subExpression(p).map(BasicExpression)
       case l: ListEncoding        => fallback
     })
   }
 
-  def subExpressionArbitrary(pe: PrimitiveEncoding): Gen[SubExpression] = {
+  def subExpression(pe: PrimitiveEncoding): Gen[SubExpression] = {
     val all = Gen.oneOf(Latest, NumFlips)
     val numeric = Gen.oneOf(Sum, Min, Mean, Max, Gradient, StandardDeviation)
     pe match {
@@ -111,12 +106,11 @@ trait ArbitraryFeatures {
     }
   }
 
-
   /** You can't generate a filter without first knowing what fields exist for this feature */
-  def arbitraryFilter(cd: ConcreteDefinition): Gen[Option[FilterEncoded]] = {
+  def filter(cd: ConcreteDefinition): Gen[Option[FilterEncoded]] = {
 
-    def arbitraryFilterExpression(encoding: PrimitiveEncoding): Gen[FilterExpression] =
-      valueOfPrim(encoding).flatMap {
+    def filterExpression(encoding: PrimitiveEncoding): Gen[FilterExpression] =
+      GenValue.valueOfPrim(encoding).flatMap {
         case StringValue(s) => Gen.identifier.map(StringValue.apply) // Just for now keep this _really_ simple
         case v              => Gen.const(v)
       }.flatMap { x => if (x match {
@@ -142,7 +136,7 @@ trait ArbitraryFeatures {
             // Make sure we have a at least one value
             sev    <- Gen.choose(1, left.size).flatMap(i => Gen.pick(i, left))
             fields <- Gen.sequence[Seq, (String, FilterExpression)](sev.map {
-              case (name, StructEncodedValue(enc, _)) => arbitraryFilterExpression(enc).map(name ->)
+              case (name, StructEncodedValue(enc, _)) => filterExpression(enc).map(name ->)
             }).map(_.toList)
             // For 'and' we can only see each key once
             cn     <- op.fold(Gen.const(1), Gen.choose(0, maxChildren))
@@ -158,7 +152,7 @@ trait ArbitraryFeatures {
             // Make sure we have at least one value
             // For non-struct values it's impossible to equal more than one value
             n      <- Gen.choose(1, op.fold(1, 3))
-            fields <- Gen.listOfN(n, arbitraryFilterExpression(pe))
+            fields <- Gen.listOfN(n, filterExpression(pe))
             cn     <- op.fold(Gen.const(0), Gen.choose(0, maxChildren))
             chlds  <- Gen.listOfN(cn, sub(maxChildren - 1))
           } yield FilterValuesOp(op, fields, chlds)
@@ -168,28 +162,11 @@ trait ArbitraryFeatures {
     }
   }
 
-  def virtualDefGen(gen: (FeatureId, ConcreteDefinition)): Gen[(FeatureId, VirtualDefinition)] = for {
-    fid <- arbitrary[FeatureId]
-    exp <- expressionArbitrary(gen._2)
-    filter <- arbitraryFilter(gen._2)
-    window <- arbitrary[Option[Window]]
+  def virtual(gen: (FeatureId, ConcreteDefinition)): Gen[(FeatureId, VirtualDefinition)] = for {
+    fid <- GenIdentifier.feature
+    exp <- expression(gen._2)
+    filter <- filter(gen._2)
+    window <- Gen.option(GenDictionary.window)
     query = Query(exp, filter.map(FilterTextV0.asString).map(_.render).map(Filter.apply))
   } yield (fid, VirtualDefinition(gen._1, query, window))
 }
-
-object ArbitraryFeatures extends ArbitraryFeatures
-
-/** namespace for features */
-case class FeatureNamespace(namespace: Name)
-/** namespace for features */
-case class DefinitionWithQuery(cd: ConcreteDefinition, expression: Expression, filter: FilterEncoded)
-/** Helpful wrapper around [[ConcreteGroup]] */
-case class ConcreteGroupFeature(fid: FeatureId, cg: ConcreteGroup) {
-
-  def withExpression(expression: Expression): ConcreteGroupFeature =
-    copy(cg = cg.copy(virtual = cg.virtual.map(vd => vd._1 -> vd._2.copy(query = vd._2.query.copy(expression = expression)))))
-
-  def dictionary: Dictionary =
-    Dictionary(cg.definition.toDefinition(fid) :: cg.virtual.map(vd => vd._2.toDefinition(vd._1)))
-}
-

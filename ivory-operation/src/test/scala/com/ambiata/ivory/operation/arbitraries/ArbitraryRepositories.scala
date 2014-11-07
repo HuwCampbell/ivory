@@ -2,9 +2,9 @@ package com.ambiata.ivory.operation
 package arbitraries
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries._
 import TemporaryLocations._
 import TemporaryRepositories._
-import arbitraries.ArbitraryFacts._
 import com.ambiata.ivory.operation.ingestion._
 import DictionaryImporter._
 import Ingest._
@@ -13,7 +13,7 @@ import com.ambiata.mundane.control._
 import ResultT._
 import com.ambiata.notion.core.TemporaryType
 import com.ambiata.notion.core.TemporaryType.{Hdfs, Posix, S3}
-import org.scalacheck.Arbitrary
+import org.scalacheck.Arbitrary, Arbitrary.arbitrary
 import org.scalacheck.Gen._
 import scalaz._, Scalaz._
 
@@ -41,7 +41,7 @@ trait ArbitraryRepositories {
   def temporaryRepositorySetupArbitrary(types: List[TemporaryType]): Arbitrary[TemporaryRepositorySetup[Repository]] = Arbitrary {
     for {
       repository          <- temporaryRepository(types).arbitrary
-      factsWithDictionary <- FactsWithDictionaryArbitrary.arbitrary
+      factsWithDictionary <- arbitrary[FactsWithDictionary]
       ingestNumber        <- choose(1, 3)
       setup      =
         createLocationDir(repository.repo.root) >>

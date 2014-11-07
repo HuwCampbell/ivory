@@ -2,7 +2,7 @@ package com.ambiata.ivory.mr
 
 import org.specs2._
 import org.scalacheck._, Arbitrary._
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import java.io._
 import com.ambiata.ivory.core._
 import com.nicta.scoobi._, Scoobi._

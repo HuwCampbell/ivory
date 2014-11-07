@@ -1,6 +1,7 @@
 package com.ambiata.ivory.storage.metadata
 
-import com.ambiata.ivory.core._, Arbitraries._
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._

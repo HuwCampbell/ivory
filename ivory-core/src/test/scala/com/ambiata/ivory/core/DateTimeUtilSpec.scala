@@ -1,6 +1,7 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries._, Arbitraries._
+import com.ambiata.ivory.core.gen.GenDate
 import org.joda.time.{Days => JodaDays, LocalDate => JodaLocalDate, LocalDateTime => JodaLocalDateTime, Seconds => JodaSeconds}
 import org.scalacheck.Arbitrary
 import org.specs2.{ScalaCheck, Specification}
@@ -15,12 +16,6 @@ class DateTimeUtilSpec extends Specification with ScalaCheck { def is = s2"""
   Can minus a number of years                                                  $minusYears
 
 """
-	
-  case class TestDate(d: Date)
-
-  /* The normal arbitrary goes to year 3000, which overflows the JodaTime test version (but not the actual version) */
-  implicit def TestDateArbitrary: Arbitrary[TestDate] =
-    Arbitrary(genDate(Date(1950, 1, 1), Date(2050, 12, 31)).map(TestDate.apply))
 
   def days = prop((d: Date) =>
     DateTimeUtil.toDays(d) ==== slowToD(d)
@@ -29,8 +24,8 @@ class DateTimeUtilSpec extends Specification with ScalaCheck { def is = s2"""
   def overflow =
     DateTimeUtil.toSeconds(DateTime(3000, 12, 31, 7200)) ==== 31588452000L
 
-  def seconds = prop((d: TestDate, t: Time) => {
-  	val q = d.d.addTime(t)
+  def seconds = prop((d: Date, t: Time) => {
+  	val q = d.addTime(t)
     DateTimeUtil.toSeconds(q) ==== slowToS(q)
   })
 

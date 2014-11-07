@@ -1,7 +1,8 @@
 package com.ambiata.ivory.operation.extraction.snapshot
 
-import com.ambiata.ivory.core.arbitraries._, ArbitraryDictionaries._, ArbitraryValues._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import org.specs2.{ScalaCheck, Specification}
 
 class SnapshotWindowsSpec extends Specification with ScalaCheck { def is = s2"""

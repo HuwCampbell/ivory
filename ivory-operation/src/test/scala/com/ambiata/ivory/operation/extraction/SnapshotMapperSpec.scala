@@ -1,12 +1,12 @@
 package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.Arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.FeatureIdLookup
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable.KeyState
 import com.ambiata.ivory.mr._
-import com.ambiata.ivory.storage.Arbitraries._
+import com.ambiata.ivory.storage.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.poacher.mr._
 
