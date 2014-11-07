@@ -19,7 +19,7 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
   A dump of reductions can be squashed out of a snapshot      $dump   ${tag("mr")}
 """
 
-  def count = prop((sf: SquashFactsMultiple) => {
+  def count = prop((sf: SquashFactsMultiple) => sf.hasVirtual ==> {
     def postProcess(results: List[Fact]): List[Fact] =
       results.sortBy(fact => (fact.entity, fact.featureId))
 
@@ -41,7 +41,7 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
     ))
   }).set(minTestsOk = 3, maxDiscardRatio = 10)
 
-  def dump = prop((sf: SquashFactsMultiple) => {
+  def dump = prop((sf: SquashFactsMultiple) => sf.hasVirtual ==> {
     // Take a subset of the entities and virtual features (one from each SquashFacts)
     // Note that it's possible to generate the same entity for different features
     val entityKeys = sf.facts.list.map(_.facts.head.entity).toSet

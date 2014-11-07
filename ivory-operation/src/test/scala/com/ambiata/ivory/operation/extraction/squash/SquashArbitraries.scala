@@ -35,6 +35,9 @@ object SquashArbitraries {
           if (fid == dict.fid) (oldFact ++ windowFacts).lastOption.filterNot(_.isTombstone).map(_.value).toList
           else                 LongValue(windowFacts.filterNot(_.isTombstone).size) :: Nil
       } yield Fact.newFact(e, fid.namespace.name, fid.name, date, Time(0), value)
+
+    def removeNonWindowFeatures: SquashFacts =
+      copy(dict = dict.copy(cg = dict.cg.copy(virtual = dict.cg.virtual.filter(_._2.window.isDefined))))
   }
 
   /** A snapshot date, and associated facts that are likely to be captured by a snapshot */
@@ -44,12 +47,15 @@ object SquashArbitraries {
       // Set the expression for all features to count for simplicity, we test all the expression logic elsewhere
       case (d, vd) => d append vd.withExpression(Count).dictionary
     }
+    lazy val hasVirtual = facts.list.exists(_.dict.dictionary.hasVirtual)
   }
 
   implicit def SquashFactMultipleArbitrary: Arbitrary[SquashFactsMultiple] = Arbitrary(for {
     d <- Arbitrary.arbitrary[Date]
     i <- Gen.choose(2, 5)
     l <- Gen.listOfN(i, squashFactsArbitraryFromDate(d))
+      // https://github.com/ambiata/ivory/issues/441
+      .map(_.map(_.removeNonWindowFeatures))
   } yield SquashFactsMultiple(d, NonEmptyList(l.head, l.tail: _*)))
 
   implicit def SquashFactsSingleArbitrary: Arbitrary[SquashFacts] =
