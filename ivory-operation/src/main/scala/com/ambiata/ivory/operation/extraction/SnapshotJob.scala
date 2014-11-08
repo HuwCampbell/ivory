@@ -365,7 +365,7 @@ object SnapshotReducer {
         // If the _current_ fact is in the window we still want to emit the _previous_ fact which may be
         // the last fact within the window, or another fact within the window
         // As such we can't do anything on the first fact
-        if (datetime != sentinelDateTime && windowStart.underlying <= fact.datetime.date.underlying) {
+        if (datetime != sentinelDateTime && Window.isFactWithinWindow(windowStart, fact)) {
           emitter.emit(kout, out)
         }
         datetime = fact.datetime

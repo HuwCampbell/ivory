@@ -21,7 +21,7 @@ object SquashArbitraries {
         ((dict.fid -> None) :: dict.cg.virtual.map(vd => vd._1 -> vd._2.window)).toMap.mapValues { window =>
           facts.sortBy(_.datetime.long)
             // Either filter by window, or get everything
-            .partition(ef => window.cata(Window.startingDate(_)(date) >= ef.date, false)) match {
+            .partition(ef => window.cata(w => !Window.isFactWithinWindow(Window.startingDate(w)(date), ef), false)) match {
             case (a, b) => (a.lastOption, b)
           }
         }

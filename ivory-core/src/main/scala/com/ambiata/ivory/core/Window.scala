@@ -41,6 +41,18 @@ object Window {
       case Months => d => DateTimeUtil.minusMonths(d, window.length)
       case Years  => d => DateTimeUtil.minusYears(d, window.length)
     }
+
+  /** This is preferred over [[withinWindow()]] to avoid any mixup with [[Date]] argument ordering */
+  def isFactWithinWindow(windowStartDate: Date, fact: Fact): Boolean =
+    withinWindow(windowStartDate, fact.date)
+
+  /**
+   * NOTE: This is _exclusive_ - the start date of the window does _not_ count
+   * For example we generate the starting date for 8/1, with a 1 week window, as 1/1.
+   * Facts on this date would should not be included in the window
+   */
+  def withinWindow(windowStartDate: Date, factDate: Date): Boolean =
+    windowStartDate.underlying < factDate.underlying
 }
 
 sealed trait WindowUnit

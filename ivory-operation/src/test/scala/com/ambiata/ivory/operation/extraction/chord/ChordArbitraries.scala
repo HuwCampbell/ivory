@@ -65,9 +65,9 @@ object ChordArbitraries {
         window.map(Window.startingDate(_)(d)).map {
           sd =>
             // _Always_ emit the last fact before the window (for state-based features)
-            (prev ++ fs).filter(_.date.int < sd.int).lastOption.toList ++
+            (prev ++ fs).filter(!Window.isFactWithinWindow(sd, _)).lastOption.toList ++
               // All the facts from the window
-              fs.filter(_.date.int >= sd.int)
+              fs.filter(Window.isFactWithinWindow(sd, _))
         }.getOrElse((prev ++ fs).lastOption.toList).map(_.withEntity(entity)).map(rewriteDate(rwDate, d))
 
     /** Squash will rewrite the date of the fact to be the same as the chord */
@@ -119,7 +119,7 @@ object ChordArbitraries {
         val sd = window.map(Window.startingDate(_)(d)).getOrElse(Date.minValue)
         val pfs = prev ++ fs
         val last = pfs.lastOption
-        val inWindow = pfs.filter(_.date.int > sd.int)
+        val inWindow = pfs.filter(Window.isFactWithinWindow(sd, _))
         (last.map { f =>
           val cfid = factAndMeta.fact.featureId
           Fact.newFact("", cfid.namespace.name, cfid.name, d, Time(0), f.value)
