@@ -13,6 +13,10 @@ object GenIdentifier {
     name <- GenString.sensible
   } yield FeatureId(ns, name)
 
+  // In many cases bad/strange things happen when using the same FeatureId for different Definitions
+  def featureUnique(other: Set[FeatureId]): Gen[FeatureId] =
+    feature.retryUntil(!other.contains(_))
+
   def identifier: Gen[Identifier] =
     Gen.choose(0, Int.MaxValue).map(Identifier.unsafe)
 

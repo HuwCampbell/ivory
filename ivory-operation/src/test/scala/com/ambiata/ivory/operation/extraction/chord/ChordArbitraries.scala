@@ -146,7 +146,7 @@ object ChordArbitraries {
     dates <- Gen.sequence[List, ChordEntity]((0 until n).map(chordEntityGen)).map(_.filter(!_.isEmpty))
     // Just generate one stub fact - we only care about the entity and date
     fact  <- Arbitrary.arbitrary[SparseEntities]
-    fid   <- Arbitrary.arbitrary[FeatureId]
+    fid   <- GenIdentifier.featureUnique(Set(fact.fact.featureId))
     win   <- Arbitrary.arbitrary[Option[Window]]
     // Generate other facts that aren't related in any way - they should be ignored
     o     <- Gen.choose(1, 3).flatMap(i => Gen.listOfN(i, Arbitrary.arbitrary[Fact]))
