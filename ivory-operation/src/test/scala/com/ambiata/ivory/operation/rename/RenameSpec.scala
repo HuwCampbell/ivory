@@ -90,11 +90,11 @@ Rename
   }).set(minTestsOk = 1, minSize = 1, maxSize = 5)
 
   def renameWithFacts(mapping: RenameMapping, dictionary: Dictionary, input: List[Seq[Fact]]): ResultTIO[(RenameStats, Seq[Fact])] =
-    RepositoryBuilder.using { repo => (for {
-        _      <- IvoryT.fromResultTIO(_ => RepositoryBuilder.createRepo(repo, dictionary, input.map(_.toList)))
-        result <- Rename.rename(mapping, 10.mb)
-        sc = repo.scoobiConfiguration
-        facts  <- IvoryT.fromResultT(_ => IvoryStorage.factsFromIvoryFactset(repo, result._1).run(sc).map(_.run(sc)))
-      } yield (result._3, facts.flatMap(_.toOption))).run(IvoryRead.testing(repo))
-    }
+      RepositoryBuilder.using { repo => RepositoryRead.fromRepository(repo).flatMap(r => (for {
+          _      <- RepositoryT.fromResultTIO(_ => RepositoryBuilder.createRepo(repo, dictionary, input.map(_.toList)))
+          result <- Rename.rename(mapping, 10.mb)
+          sc = repo.scoobiConfiguration
+          facts  <- RepositoryT.fromResultT(_ => IvoryStorage.factsFromIvoryFactset(repo, result._1).run(sc).map(_.run(sc)))
+
+        } yield (result._3, facts.flatMap(_.toOption))).run(r)) }
 }

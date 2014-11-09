@@ -41,9 +41,10 @@ object RepositoryBuilder {
       })(repo.scoobiConfiguration).persist(repo.scoobiConfiguration)
       factsetIds.head.next.get <:: factsetIds
     }.tail.reverse
-    (for {
-      _      <- IvoryStorage.writeFactsetVersionI(factsets)
-      stores <- factsets.map(_ :: Nil).traverse(Metadata.incrementFeatureStore)
-    } yield (stores.last, factsets)).run(IvoryRead.testing(repo))
+    RepositoryRead.fromRepository(repo).flatMap(r =>
+      (for {
+        _      <- IvoryStorage.writeFactsetVersionI(factsets)
+        stores <- factsets.map(_ :: Nil).traverse(Metadata.incrementFeatureStore)
+      } yield (stores.last, factsets)).run(r))
   }
 }

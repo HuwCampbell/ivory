@@ -23,7 +23,7 @@ object depend {
   ))
 
   val MUNDANE_VERSION ="1.2.1-20141024050817-e2b01b2"
-  val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse").map(c =>
+  val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-trace").map(c =>
                       "com.ambiata"          %% c                 % MUNDANE_VERSION) ++
                   Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")
 

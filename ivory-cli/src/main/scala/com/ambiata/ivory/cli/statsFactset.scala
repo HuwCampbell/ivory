@@ -3,6 +3,7 @@ package com.ambiata.ivory.cli
 import com.ambiata.ivory.api.IvoryRetire
 import com.ambiata.ivory.core.HdfsRepository
 import com.ambiata.ivory.core.FactsetId
+import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.control._
 
 import scalaz.effect._
@@ -24,11 +25,11 @@ object statsFactset extends IvoryApp {
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(""), { repo => configuration => c =>
 
-    for {
+    IvoryT.fromResultTIO { for {
       repo          <- HdfsRepository.fromUri(repo.root.show, configuration)
       factsetId     <- ResultT.fromOption[IO, FactsetId](FactsetId.parse(c.factSet), s"Could not parse FactsetId ${c.factSet}")
       res            = IvoryRetire.statsFacts(repo, factsetId)
       _             <- res.run(configuration.scoobiConfiguration)
-    } yield List("🎹 ")
+    } yield List("🎹 ") }
   })
 }

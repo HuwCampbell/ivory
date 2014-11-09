@@ -20,7 +20,7 @@ import scalaz.{Name => _, _}, scalaz.effect._
 import syntax.bind._
 
 
-class EavtTextImporterSpec extends Specification with ThrownExpectations with FileMatchers with FixtureExample[Setup] { def is = s2"""
+class FactImporterSpec extends Specification with ThrownExpectations with FileMatchers with FixtureExample[Setup] { def is = s2"""
 
  The Eavt text import can import text or Thrift facts
 
@@ -106,8 +106,8 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
     IvoryLocation.writeUtf8Lines(path </> "part", raw)
 
   def importAs(format: Format) =
-    EavtTextImporter(repository, namespace = None, optimal = 128.mb, format).
-        runJob(repository, dictionary, FactsetId.initial, input.toHdfsPath, errors.toHdfsPath, List(ns1 -> 1.mb), DateTimeZone.getDefault) >>
+    FactImporter
+      .runJob(repository, None, 128.mb, dictionary, format, FactsetId.initial, input.toHdfsPath, errors.toHdfsPath, List(ns1 -> 1.mb), DateTimeZone.getDefault) >>
     writeFactsetVersion(repository, List(FactsetId.initial)) must beOk
 
   def theImportMustBeOk =
@@ -117,20 +117,20 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
     valueFromSequenceFile[ParseError]((directory </> "errors").path).run(sc) must not(beEmpty)
 }
 
-class EavtTextImporterPureSpec extends Specification with ScalaCheck { def is = s2"""
+class FactImporterPureSpec extends Specification with ScalaCheck { def is = s2"""
 
   Validate namespaces success                        $validateNamespacesSuccess
   Validate namespaces fail                           $validateNamespacesFail
 """
 
   def validateNamespacesSuccess = prop((dict: Dictionary) => {
-    EavtTextImporter.validateNamespaces(dict, dict.byFeatureId.keys.toList.map(_.namespace)).toEither must beRight
+    FactImporter.validateNamespaces(dict, dict.byFeatureId.keys.toList.map(_.namespace)).toEither must beRight
   })
 
   def validateNamespacesFail = prop((dict: Dictionary, names: List[Name]) => {
     // Lazy way of create at least one name that isn't in the dictionary
     val name = Name.unsafe(dict.definitions.map(_.featureId.namespace.name).mkString)
     val allNames = (name :: names).filter(dict.forNamespace(_).definitions.isEmpty)
-    EavtTextImporter.validateNamespaces(dict, allNames).toEither must beLeft
+    FactImporter.validateNamespaces(dict, allNames).toEither must beLeft
   })
 }

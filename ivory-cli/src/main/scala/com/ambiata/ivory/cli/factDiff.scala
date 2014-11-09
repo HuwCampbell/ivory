@@ -2,7 +2,8 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.api.IvoryRetire
 import com.ambiata.ivory.core._
-import scalaz._, Scalaz._
+import com.ambiata.ivory.storage.control._
+import scalaz._, Scalaz._, effect.IO
 
 object factDiff extends IvoryApp {
 
@@ -29,7 +30,6 @@ object factDiff extends IvoryApp {
         _      <- IvoryRetire.diffFacts(input1, input2, output).run(configuration.scoobiConfiguration)
       } yield ()
 
-    action.as(List(s"Any differences can be found in '${c.output}'"))
-
+    IvoryT.fromResultTIO { action.as(List(s"Any differences can be found in '${c.output}'")) }
   })
 }

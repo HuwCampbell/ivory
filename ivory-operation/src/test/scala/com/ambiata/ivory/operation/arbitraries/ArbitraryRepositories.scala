@@ -3,6 +3,7 @@ package arbitraries
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.storage.control._
 import TemporaryLocations._
 import TemporaryRepositories._
 import com.ambiata.ivory.operation.ingestion._
@@ -62,8 +63,9 @@ trait ArbitraryRepositories {
   }
 
   def importFacts(repository: Repository, facts: List[Fact]): ResultTIO[Unit] = for {
-    factsetId <- Ingest.createNewFactsetId(repository)
-    _         <- updateFeatureStore(repository, factsetId)
+    r         <- IvoryRead.createIO
+    factsetId <- Ingest.createNewFactsetId(repository).run.run(r)
+    _         <- updateFeatureStore(repository, factsetId).run.run(r)
   } yield ()
 
 }

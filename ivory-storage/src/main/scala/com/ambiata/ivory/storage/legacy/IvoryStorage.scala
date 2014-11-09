@@ -31,8 +31,8 @@ object IvoryStorage {
   def writeFactsetVersion(repo: Repository, factsets: List[FactsetId]): ResultTIO[Unit] =
     Versions.writeAll(repo, factsets, factsetVersion)
 
-  def writeFactsetVersionI(factsets: List[FactsetId]): IvoryTIO[Unit] =
-    IvoryT.fromResultT(writeFactsetVersion(_, factsets))
+  def writeFactsetVersionI(factsets: List[FactsetId]): RepositoryTIO[Unit] =
+    RepositoryT.fromResultT(writeFactsetVersion(_, factsets))
 
   def factsFromIvoryFactset(repo: HdfsRepository, factset: FactsetId): ScoobiAction[DList[ParseError \/ Fact]] =
     factsFromIvoryFactsetFor(repo, factset, None, None)

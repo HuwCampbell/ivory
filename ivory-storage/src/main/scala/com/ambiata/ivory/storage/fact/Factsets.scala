@@ -2,6 +2,7 @@ package com.ambiata.ivory.storage
 package fact
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 
@@ -18,6 +19,9 @@ object Factsets {
     listIds(repository).map(_.sorted.lastOption)
 
   // TODO handle locking
+  def allocateFactsetIdI(repository: Repository): IvoryTIO[FactsetId] =
+    IvoryT.fromResultTIO { allocateFactsetId(repository) }
+
   def allocateFactsetId(repository: Repository): ResultTIO[FactsetId] = for {
     nextOpt <- latestId(repository).map(_.map(_.next).getOrElse(Some(FactsetId.initial)))
     next    <- ResultT.fromOption[IO, FactsetId](nextOpt, s"No more Factset Ids left!")

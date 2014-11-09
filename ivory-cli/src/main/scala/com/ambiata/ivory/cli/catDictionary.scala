@@ -3,7 +3,8 @@ package com.ambiata.ivory.cli
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.metadata._
-
+import com.ambiata.ivory.storage.control._
+import scalaz.effect.IO
 object catDictionary extends IvoryApp {
 
   case class CliArguments(name: Option[String])
@@ -21,13 +22,13 @@ object catDictionary extends IvoryApp {
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(None), repo => conf => {
     case CliArguments(nameOpt) =>
       val store = DictionaryThriftStorage(repo)
-      for {
+      IvoryT.fromResultTIO { for {
         dictionary <- nameOpt.flatMap(Identifier.parse) match {
           case Some(iid) => store.loadFromId(DictionaryId(iid)).flatMap(ResultT.fromOption(_, s"Dictionary '$iid' could not be found"))
           case None      => store.load
         }
       } yield List(
         DictionaryTextStorageV2.delimitedString(dictionary)
-      )
+      ) }
   })
 }

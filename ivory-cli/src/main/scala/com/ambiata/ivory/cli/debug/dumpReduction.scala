@@ -2,6 +2,7 @@ package com.ambiata.ivory.cli.debug
 
 import com.ambiata.ivory.cli._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.operation.extraction.squash.SquashDumpJob
 import com.ambiata.mundane.control._
 import scalaz._, Scalaz._, effect._
@@ -23,11 +24,11 @@ object dumpReduction extends IvoryApp {
   }
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(Nil, Nil, "", ""), { repo => conf => c =>
-    for {
+    IvoryT.fromResultTIO { for {
       sid <- ResultT.fromOption[IO, SnapshotId](SnapshotId.parse(c.snapshot), s"Invalid snapshot ${c.snapshot}")
       out <- ResultT.fromDisjunctionString[IO, IvoryLocation](IvoryLocation.parseUri(c.output, conf))
       fs  <- ResultT.fromDisjunctionString[IO, List[FeatureId]](c.features.traverseU(FeatureId.parse))
       _   <- SquashDumpJob.dump(repo, sid, out, fs, c.entities)
-    } yield Nil
+    } yield Nil }
   })
 }

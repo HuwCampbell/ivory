@@ -12,6 +12,7 @@ import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.storage.legacy.SampleFacts
 import com.ambiata.ivory.storage.metadata.DictionaryThriftStorage
 import com.ambiata.ivory.storage.repository.Repositories
+import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.control.ResultT
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
@@ -40,7 +41,7 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
           DictionaryThriftStorage(repository).store(dictionary) >>
           IvoryLocation.writeUtf8Lines(location </> "ns1" </> "2012" </> "10" </> "1" </> "part-r-00000", sampleFacts.flatten.map(toEavt)) >>
           IvoryLocation.writeUtf8Lines(location </> "ns1" </> "2012" </> "10" </> "1" </> "part-r-00001", sampleFacts.flatten.map(toEavt)) >>
-          Ingest.ingestFacts(repository, location, None, DateTimeZone.forID("Australia/Sydney"), 100.mb, TextFormat)
+          Ingest.ingestFacts(repository, location, None, DateTimeZone.forID("Australia/Sydney"), 100.mb, TextFormat).run.run(IvoryRead.create)
       }
     } must beOk
   }
@@ -52,7 +53,7 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
           DictionaryThriftStorage(repository).store(dictionary) >>
           IvoryLocation.writeUtf8Lines(location </> "part-r-00000", sampleFacts.flatten.map(toEavt)) >>
           IvoryLocation.writeUtf8Lines(location </> "part-r-00001", sampleFacts.flatten.map(toEavt)) >>
-          Ingest.ingestFacts(repository, location, Some(Name("ns1")), DateTimeZone.forID("Australia/Sydney"), 100.mb, TextFormat)
+          Ingest.ingestFacts(repository, location, Some(Name("ns1")), DateTimeZone.forID("Australia/Sydney"), 100.mb, TextFormat).run.run(IvoryRead.create)
       }
     } must beOk
   }
@@ -69,7 +70,7 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
       _   <- SequenceUtil.writeBytes(repository.toIvoryLocation(loc) </> "part-r-00000", None) {
         write => ResultT.safe((facts.facts ++ badFacts).foreach(fact => write(serialiser.toBytes(Conversion.fact2thrift(fact)))))
       }.run(repository.scoobiConfiguration)
-      fid <- Ingest.ingestFacts(repository, repository.toIvoryLocation(loc), Some(ns), DateTimeZone.forID("Australia/Sydney"), 100.mb, ThriftFormat)
+      fid <- Ingest.ingestFacts(repository, repository.toIvoryLocation(loc), Some(ns), DateTimeZone.forID("Australia/Sydney"), 100.mb, ThriftFormat).run.run(IvoryRead.create)
       } yield (
         valueFromSequenceFile[ThriftFact](repository.toIvoryLocation(Repository.namespace(fid, ns)).toHdfs + "/*/*/*/*").run(repository.scoobiConfiguration).toSet,
         valueFromSequenceFile[ThriftFact](repository.toIvoryLocation(Repository.errors).toHdfs + "/*/*").run(repository.scoobiConfiguration).size

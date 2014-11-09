@@ -3,11 +3,12 @@ package com.ambiata.ivory.cli
 import com.ambiata.ivory.core.Name._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.ingestion._
+import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.io._
 import org.joda.time.DateTimeZone
 
-import scalaz.{Name => _, DList => _}
+import scalaz.effect.IO
 
 object ingest extends IvoryApp {
 
@@ -40,7 +41,7 @@ object ingest extends IvoryApp {
   val cmd = IvoryCmd.withRepo[CliArguments](parser,
       CliArguments("", None, DateTimeZone.getDefault, 256.mb, TextFormat),
       repo => configuration => c => for {
-        input   <- IvoryLocation.fromUri(c.input, configuration)
+        input   <- IvoryT.fromResultTIO { IvoryLocation.fromUri(c.input, configuration) }
         factset <- Ingest.ingestFacts(repo, input, c.namespace, c.timezone, c.optimal, c.format)
       } yield List(s"Successfully imported '${c.input}' as $factset into '${repo}'"))
 }

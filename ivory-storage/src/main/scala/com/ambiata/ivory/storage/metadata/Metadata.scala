@@ -1,7 +1,7 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.control.IvoryT._
+import com.ambiata.ivory.storage.control.RepositoryT._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.control._
 import scalaz.effect.IO
@@ -13,7 +13,7 @@ object Metadata {
   def featureStoreFromIvory(repo: Repository, id: FeatureStoreId): ResultTIO[FeatureStore] =
     FeatureStoreTextStorage.fromId(repo, id)
 
-  def featureStoreFromIvoryT(id: FeatureStoreId): IvoryTIO[FeatureStore] =
+  def featureStoreFromRepositoryT(id: FeatureStoreId): RepositoryTIO[FeatureStore] =
     fromResultT(featureStoreFromIvory(_, id))
 
   def featureStoreToIvory(repo: Repository, featureStore: FeatureStore): ResultTIO[Unit] =
@@ -23,14 +23,14 @@ object Metadata {
    * This will read the latest FeatureStore, add the given FactsetId to it then persist
    * back to the repository with a new FeatureStoreId
    */
-  def incrementFeatureStore(factset: List[FactsetId]): IvoryTIO[FeatureStoreId] = IvoryT.fromResultTIO(repo =>
+  def incrementFeatureStore(factset: List[FactsetId]): RepositoryTIO[FeatureStoreId] = RepositoryT.fromResultTIO(repo =>
     FeatureStoreTextStorage.increment(repo, factset))
 
   def latestFeatureStoreId(repo: Repository): ResultTIO[Option[FeatureStoreId]] =
     FeatureStoreTextStorage.latestId(repo)
 
-  def latestFeatureStoreIdT: IvoryTIO[Option[FeatureStoreId]] =
-    IvoryT.fromResultTIO(latestFeatureStoreId)
+  def latestFeatureStoreIdT: RepositoryTIO[Option[FeatureStoreId]] =
+    RepositoryT.fromResultTIO(latestFeatureStoreId)
 
   /** @return the latest store or fail if there is none */
   def latestFeatureStoreOrFail(repository: Repository): ResultTIO[FeatureStore] =
@@ -58,13 +58,16 @@ object Metadata {
     latestDictionaryId <- ResultT.fromOption[IO, DictionaryId](latestDict, "Could not load a dictionary")
   } yield latestDictionaryId
 
-  def latestDictionaryFromIvoryT: IvoryTIO[Dictionary] =
+  def latestDictionaryFromRepositoryT: RepositoryTIO[Dictionary] =
     fromResultT(latestDictionaryFromIvory)
+
+  def latestDictionaryIdFromRepositoryT: RepositoryTIO[DictionaryId] =
+    fromResultT(latestDictionaryIdFromIvory)
 
   def dictionaryToIvory(repo: Repository, dictionary: Dictionary): ResultTIO[Unit] =
     DictionaryThriftStorage(repo).store(dictionary).void
 
-  def dictionaryToIvoryT(dictionary: Dictionary): IvoryTIO[Unit] =
+  def dictionaryToRepositoryT(dictionary: Dictionary): RepositoryTIO[Unit] =
     fromResultT(dictionaryToIvory(_, dictionary))
 
   def dictionaryLoadMigrate(repo: Repository): ResultTIO[Option[(DictionaryId, Dictionary)]] =
@@ -74,7 +77,7 @@ object Metadata {
   def listCommitIds(repo: Repository): ResultTIO[List[CommitId]] =
     CommitTextStorage.listIds(repo)
 
-  def listCommitIdsT(repo: Repository): IvoryTIO[List[CommitId]] =
+  def listCommitIdsT(repo: Repository): RepositoryTIO[List[CommitId]] =
     fromResultT(listCommitIds(_))
 
   def latestCommitId(repo: Repository): ResultTIO[Option[CommitId]] =
@@ -86,7 +89,7 @@ object Metadata {
       commitId <- CommitTextStorage.findOrCreateLatestId(repo, dictionaryId, store.id)
   } yield commitId
 
-  def latestCommitIdT(repo: Repository): IvoryTIO[Option[CommitId]] =
+  def latestCommitIdT(repo: Repository): RepositoryTIO[Option[CommitId]] =
     fromResultT(latestCommitId(_))
 
   def commitFromIvory(repo: Repository, commitId: CommitId): ResultTIO[Commit] =
@@ -105,6 +108,12 @@ object Metadata {
   def incrementCommitFeatureStore(repo: Repository, featureStoreId: FeatureStoreId): ResultTIO[CommitId] = for {
     latestDictionaryId <- latestDictionaryIdFromIvory(repo)
     commitId           <- CommitTextStorage.increment(repo, Commit(latestDictionaryId, featureStoreId))
+  } yield commitId
+
+  def incrementCommitFeatureStoreT(featureStoreId: FeatureStoreId): RepositoryTIO[CommitId] = for {
+    latestDictionaryId <- latestDictionaryIdFromRepositoryT
+    commitId           <- RepositoryT.fromResultTIO { repository =>
+      CommitTextStorage.increment(repository, Commit(latestDictionaryId, featureStoreId)) }
   } yield commitId
 
 }

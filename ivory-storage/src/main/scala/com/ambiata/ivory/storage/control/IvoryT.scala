@@ -2,7 +2,8 @@ package com.ambiata.ivory.storage.control
 
 import com.ambiata.ivory.core.Repository
 import com.ambiata.mundane.control._
-import scalaz._, Scalaz._
+import com.ambiata.mundane.trace._
+import scalaz._, Scalaz._, effect.IO
 
 /* Specialised Kleisli for doing common Ivory operations */
 case class IvoryT[F[_], A](run: Kleisli[F, IvoryRead, A]) {
@@ -15,19 +16,16 @@ case class IvoryT[F[_], A](run: Kleisli[F, IvoryRead, A]) {
 }
 
 object IvoryT {
+  def read[F[_]: Monad]: IvoryT[F, IvoryRead] =
+    IvoryT(Kleisli.ask[F, IvoryRead])
 
-  def repository[F[_]: Monad]: IvoryT[F, Repository] =
-     IvoryT(Kleisli.ask[F, IvoryRead].map(_.repository))
-
-  def fromResultT[F[_], A](f: Repository => ResultT[F, A]): IvoryT[({ type l[a] = ResultT[F, a] })#l, A] = {
+  def fromResultT[F[_], A](f: => ResultT[F, A]): IvoryT[({ type l[a] = ResultT[F, a] })#l, A] = {
     type X[B] = ResultT[F, B]
-    IvoryT[X, A](Kleisli[X, IvoryRead, A](r => f(r.repository)))
+    IvoryT[X, A](Kleisli[X, IvoryRead, A](r => f))
   }
 
-  def fromResultTIO[F[_], A](f: Repository => ResultTIO[A]): IvoryT[ResultTIO, A] = {
-    type X[B] = ResultTIO[B]
-    IvoryT[X, A](Kleisli[X, IvoryRead, A](r => f(r.repository)))
-  }
+  def fromResultTIO[A](f: => ResultTIO[A]): IvoryT[ResultTIO, A] =
+    fromResultT(f)
 
   implicit def IvoryTMonad[F[_]: Monad]: Monad[({ type l[a] = IvoryT[F, a] })#l] =
     new Monad[({ type l[a] = IvoryT[F, a] })#l] {
@@ -36,16 +34,18 @@ object IvoryT {
     }
 }
 
-/* Currently only holds a Repository, but will be extended to include trace/profile objects */
-case class IvoryRead(repository: Repository)
+case class IvoryRead(profiler: Profiler[ResultTIO], trace: Trace[ResultTIO])
 
 object IvoryRead {
+  // This needs more thought, it would be better to have more knobs around
+  // where and how trace gets generated. This will work in the short term
+  // though
+  def createIO: ResultT[IO, IvoryRead] = for {
+    profiler <- Profiler.tree
+    trace = Trace.stream(System.out)
+  } yield IvoryRead(profiler, trace)
 
-  // This will eventually have more arguments and we want to know what breaks
-  def prod(repository: Repository): IvoryRead =
-    IvoryRead(repository)
+  def create: IvoryRead =
+    IvoryRead(Profiler.empty, Trace.stream(System.out))
 
-  /* Do _NOT_ use this for non-test code - as we start adding more parameters we want compiler errors */
-  def testing(repository: Repository): IvoryRead =
-    IvoryRead(repository)
 }

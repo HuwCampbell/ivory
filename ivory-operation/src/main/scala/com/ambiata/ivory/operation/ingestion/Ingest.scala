@@ -1,13 +1,12 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.control.IvoryRead
+import com.ambiata.ivory.storage.control.IvoryTIO
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import IvoryStorage._
-import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.BytesQuantity
 import org.joda.time.DateTimeZone
 
@@ -56,11 +55,10 @@ object Ingest {
    * @param format text or thrift
    */
   def ingestFacts(repository: Repository, input: IvoryLocation, namespace: Option[Name],
-                  timezone: DateTimeZone, optimal: BytesQuantity, format: Format): ResultTIO[FactsetId] =
+                  timezone: DateTimeZone, optimal: BytesQuantity, format: Format): IvoryTIO[FactsetId] =
     for {
       factsetId <- createNewFactsetId(repository)
-      importer  =  EavtTextImporter(repository, namespace, optimal, format)
-      _         <- importer.importFacts(factsetId, input, timezone)
+      _         <- FactImporter.importFacts(repository, namespace, optimal, format, factsetId, input, timezone)
       _         <- updateFeatureStore(repository, factsetId)
     } yield factsetId
 
@@ -69,9 +67,9 @@ object Ingest {
    *  - create the repository if not created before
    *  - allocate a new factset id
    */
-  def createNewFactsetId(repository: Repository): ResultTIO[FactsetId] = for {
-    _         <- Repositories.create(repository)
-    factsetId <- Factsets.allocateFactsetId(repository)
+  def createNewFactsetId(repository: Repository): IvoryTIO[FactsetId] = for {
+    _         <- Repositories.createI(repository)
+    factsetId <- Factsets.allocateFactsetIdI(repository)
   } yield factsetId
 
   /**
@@ -79,10 +77,10 @@ object Ingest {
    *  - increment the feature store
    *  - write the factset version
    */
-  def updateFeatureStore(repository: Repository, factsetId: FactsetId): ResultTIO[FeatureStoreId] = for {
-    fs <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.prod(repository))
-    _  <- writeFactsetVersion(repository, List(factsetId))
-    _  <- Metadata.incrementCommitFeatureStore(repository, fs)
-  } yield fs
+  def updateFeatureStore(repository: Repository, factsetId: FactsetId): IvoryTIO[FeatureStoreId] = (for {
+    fs <- Metadata.incrementFeatureStore(List(factsetId))
+    _  <- writeFactsetVersionI(List(factsetId))
+    _  <- Metadata.incrementCommitFeatureStoreT(fs)
+  } yield fs).toIvoryT(repository)
 
 }
