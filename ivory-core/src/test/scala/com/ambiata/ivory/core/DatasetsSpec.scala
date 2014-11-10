@@ -54,5 +54,12 @@ Combinators
     ${ prop((ds: Datasets, p: Priority, f: FactsetId) =>
          ds.add(p, FactsetDataset(Factset(f, Nil))).prune.sets.forall(!_.value.isEmpty)) }
 
+Constructors
+------------
+
+  Empty is suprisingly enough just the empty list:
+
+    ${ Datasets.empty.sets ==== Nil }
+
 """
 }

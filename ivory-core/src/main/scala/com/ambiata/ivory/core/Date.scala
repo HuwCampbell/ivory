@@ -7,6 +7,9 @@ import com.ambiata.mundane.parse.ListParser
 
 /** a packed int | 16 bits: year represented as a short | 8 bits: month represented as a byte | 8 bits: day represented as a byte | */
 class Date private(val underlying: Int) extends AnyVal {
+  def components: (Short, Byte, Byte) =
+    (year, month, day)
+
   def year: Short =
     (underlying >>> 16).toShort
 
