@@ -20,6 +20,7 @@ case class FeatureStore(id: FeatureStoreId, factsets: List[Prioritized[Factset]]
   def filterByFactsetId(pred: FactsetId => Boolean): FeatureStore =
     filter(factset => pred(factset.id))
 
+  // FIX what is this? no .get
   def filter(f: Factset => Boolean): FeatureStore =
     FeatureStore.fromList(id, factsets.collect({ case Prioritized(_, factset) if f(factset) => factset })).get
 

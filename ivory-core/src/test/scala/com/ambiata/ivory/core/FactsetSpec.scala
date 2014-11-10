@@ -8,17 +8,17 @@ class FactsetSpec extends Specification with ScalaCheck { def is = s2"""
 Combinators
 -----------
 
-  filterByPartition is just a convenience on the underlying list of partitions.
+  `filterByPartition` is just a convenience on the underlying list of partitions.
 
     ${ prop((f: Factset, p: Partition) =>
          f.filterByPartition(_ == p).partitions ==== f.partitions.filter(_ == p)) }
 
-  filterByDate is just a convenience on the underlying list of partition dates.
+  `filterByDate` is just a convenience on the underlying list of partition dates.
 
     ${ prop((f: Factset, d: Date) =>
          f.filterByDate(_ > d).partitions ==== f.partitions.filter(_.date > d)) }
 
-  basic rules for filtering, i.e. const true is identity, const false is empty:
+  Basic rules for filtering, i.e. const true is identity, const false is empty:
 
     ${ prop((f: Factset) => f.filterByPartition(_ => true) ==== f) }
 
