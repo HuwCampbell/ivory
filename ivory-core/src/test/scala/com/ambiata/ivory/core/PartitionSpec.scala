@@ -29,10 +29,9 @@ Can create a Partition path as a:
   DirPath                 $key
   String                  $stringPath
 
-Can filter Partitions:
-  Between two dates       $between
-  Before a date           $before
-  After a date            $after
+Compress a Partition as intervals:
+  All input partitions appear in the output intervals $intervals
+  When indexed by name, both sides of the range should have the same namespace $indexed
 
 """
 
@@ -84,20 +83,26 @@ Can filter Partitions:
   def stringPath = prop((p: Partition) =>
     Partition.stringPath(p.namespace.name, p.date) ==== p.key.name)
 
-  def between = prop((partitions: Partitions, dates: UniqueDates) => {
-    val ps = partitions.partitions
-    val expected = ps.filter(p => p.date.isAfterOrEqual(dates.earlier) && p.date.isBeforeOrEqual(dates.later))
-    Partitions.pathsBetween(ps, dates.earlier, dates.later) must_== expected
-  })
+  def intervals = prop((ps: List[Partition]) => {
+    val result = Partition.intervals(ps)
+    ps.forall(p => result.exists({
+      case (min, max) =>
+        min.namespace == p.namespace &&
+          max.namespace == p.namespace &&
+          min.date >= p.date &&
+          max.date <= p.date
+    })) })
 
-  def before = prop((partitions: Partitions, date: Date) => {
-    val ps = partitions.partitions
-    Partitions.pathsBeforeOrEqual(ps, date) must_== ps.filter(_.date.isBeforeOrEqual(date))
-  })
 
-  def after = prop((partitions: Partitions, date: Date) => {
-    val ps = partitions.partitions
-    Partitions.pathsAfterOrEqual(ps, date) must_== ps.filter(_.date.isAfterOrEqual(date))
+  def indexed = prop((ps: List[Partition]) => {
+    val result = Partition.intervalsByNamespace(ps)
+    result.forall({
+      case (n, ps) =>
+        ps.toList.forall({
+          case (from, to) =>
+            from.namespace == n && to.namespace == n
+        })
+    })
   })
 
   def toDirPath(key: Key) =

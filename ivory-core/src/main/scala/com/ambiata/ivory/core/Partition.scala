@@ -1,6 +1,5 @@
 package com.ambiata.ivory.core
 
-import com.ambiata.mundane.control.{ResultTIO, ResultT}
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.mundane.parse.ListParser
@@ -27,6 +26,20 @@ object Partition {
 
   implicit def PartitionOrdering =
     PartitionOrder.toScalaOrdering
+
+  def intervalsByNamespace(ps: List[Partition]): Map[Name, NonEmptyList[(Partition, Partition)]] =
+    intervals(ps).groupBy1(_._1.namespace)
+
+  def intervals(ps: List[Partition]): List[(Partition, Partition)] =
+    ps.sorted.foldLeft[List[(Partition, Partition)]](Nil)({
+      case (Nil, el) =>
+        List(el -> el)
+      case ((min, max) :: t, el) =>
+        if (el.namespace == max.namespace && Date.fromLocalDate(max.date.localDate.plusDays(1)) == el.date)
+          (min, el) :: t
+        else
+          (el, el) :: (min, max) :: t
+    }).reverse
 
   def parseDir(dir: DirPath): Validation[String, Partition] =
     listParser.flatMap(p => ListParser.consumeRest.as(p)).run(dir.components.reverse)
@@ -59,38 +72,4 @@ object Partition {
 
   def key(namespace: Name, date: Date): Key =
     namespace.asKeyName / Key.unsafe("%4d/%02d/%02d".format(date.year, date.month, date.day))
-}
-
-case class Partitions(partitions: List[Partition]) {
-  def sorted: Partitions =
-    Partitions(partitions.sorted)
-
-  def isEmpty: Boolean =
-    partitions.isEmpty
-
-  def show = partitions.map(_.key.name).mkString("\n", "\n", "\n")
-
-  def filter(f: Partition => Boolean): Partitions =
-    Partitions(partitions.filter(f))
-}
-
-object Partitions {
-
-  /** Filter paths before or equal to a given date */
-  def pathsBeforeOrEqual(partitions: List[Partition], to: Date): List[Partition] =
-    partitions.filter(_.date.isBeforeOrEqual(to))
-
-  /** Filter paths after or equal to a given date */
-  def pathsAfterOrEqual(partitions: List[Partition], from: Date): List[Partition] =
-    partitions.filter(_.date.isAfterOrEqual(from))
-
-  /** Filter paths between two dates (inclusive) */
-  def pathsBetween(partitions: List[Partition], from: Date, to: Date): List[Partition] =
-    pathsBeforeOrEqual(pathsAfterOrEqual(partitions, from), to)
-
-  def getFromFactset(repository: Repository, factset: FactsetId): ResultTIO[Partitions] =
-    for {
-      keys       <- repository.store.list(Repository.factset(factset)).map(_.map(_.dropRight(1).drop(2)).filter(_ != Key.Root).distinct)
-      partitions <- keys.traverseU(key => ResultT.fromDisjunction[IO, Partition](Partition.parseNamespaceDateKey(key).disjunction.leftMap(This.apply)))
-    } yield Partitions(partitions.sorted)
 }

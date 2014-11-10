@@ -3,7 +3,7 @@ package com.ambiata.ivory.operation.extraction.output
 import com.ambiata.ivory.core._
 
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.data._
+import com.ambiata.mundane.data.{Lists => L}
 import com.ambiata.poacher.hdfs._
 
 import org.apache.hadoop.fs.Path
@@ -80,5 +80,5 @@ object DictionaryOutput {
 
   def writeToHdfs(output: Path, dictionary: Dictionary, missing: String, delimiter: Char): Hdfs[Unit] =
     Hdfs.writeWith(new Path(output, ".dictionary"), os =>
-      Streams.write(os, Lists.prepareForFile(indexedDictionaryLines(dictionary, missing, delimiter))))
+      Streams.write(os, L.prepareForFile(indexedDictionaryLines(dictionary, missing, delimiter))))
 }

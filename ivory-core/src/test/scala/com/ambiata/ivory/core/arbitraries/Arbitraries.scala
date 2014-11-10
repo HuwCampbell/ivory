@@ -20,6 +20,12 @@ trait Arbitraries {
   implicit def ConcreteDefinitionArbitrary: Arbitrary[ConcreteDefinition] =
     Arbitrary(GenDictionary.concrete)
 
+  implicit def DatasetArbitrary: Arbitrary[Dataset] =
+    Arbitrary(GenRepository.dataset)
+
+  implicit def DatasetsArbitrary: Arbitrary[Datasets] =
+    Arbitrary(GenRepository.datasets)
+
   implicit def DateArbitrary: Arbitrary[Date] =
     Arbitrary(GenDate.date)
 
@@ -71,9 +77,6 @@ trait Arbitraries {
   implicit def PartitionArbitrary: Arbitrary[Partition] =
     Arbitrary(GenRepository.partition)
 
-  implicit def PartitionsArbitrary: Arbitrary[Partitions] =
-    Arbitrary(GenRepository.partitions)
-
   implicit def PrimitiveEncodingArbitrary: Arbitrary[PrimitiveEncoding] =
     Arbitrary(GenDictionary.primitiveEncoding)
 
@@ -85,6 +88,9 @@ trait Arbitraries {
 
   implicit def SnapshotIdArbitrary: Arbitrary[SnapshotId] =
     Arbitrary(GenIdentifier.snapshot)
+
+  implicit def SnapshotArbitrary: Arbitrary[Snapshot] =
+    Arbitrary(GenRepository.snapshot)
 
   implicit def StructEncodingArbitrary: Arbitrary[StructEncoding] =
     Arbitrary(GenDictionary.structEncoding)

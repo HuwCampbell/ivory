@@ -4,12 +4,12 @@ import scalaz._, Scalaz._
 import org.joda.time.LocalDate
 import com.ambiata.mundane.parse.ListParser
 
-class Priority private(val underlying: Short) extends AnyVal {
-  def toShort =
-    underlying
-
+class Priority private(val toShort: Short) extends AnyVal {
   override def toString: String =
-    s"Priority($underlying)"
+    s"Priority($toShort)"
+
+  def next: Option[Priority] =
+    Priority.parseInt(toShort + 1)
 }
 
 object Priority {

@@ -10,6 +10,15 @@ import scala.util.Try
 
 
 object GenDate {
+  def year: Gen[Short] =
+    date.map(_.year)
+
+  def month: Gen[Byte] =
+    date.map(_.month)
+
+  def day: Gen[Byte] =
+    date.map(_.day)
+
   /** This date range is explicitly chosen to avoid out of range errors with joda,
       and to keep well with in the bounds of date to allow for neater offsets. */
   def date: Gen[Date] =
