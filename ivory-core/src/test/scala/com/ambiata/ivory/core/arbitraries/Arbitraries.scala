@@ -65,6 +65,9 @@ trait Arbitraries {
   implicit def IdentifierArbitrary: Arbitrary[Identifier] =
     Arbitrary(GenIdentifier.identifier)
 
+  implicit def IvoryVersionArbitrary: Arbitrary[IvoryVersion] =
+    Arbitrary(GenIdentifier.version)
+
   implicit def ListEncodingArbitrary: Arbitrary[ListEncoding] =
     Arbitrary(GenDictionary.listEncoding)
 

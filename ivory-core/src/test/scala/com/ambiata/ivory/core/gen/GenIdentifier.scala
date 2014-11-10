@@ -47,6 +47,9 @@ object GenIdentifier {
   def snapshots: Gen[List[SnapshotId]] =
     identifiers.map(_.map(SnapshotId.apply))
 
+  def version: Gen[IvoryVersion] =
+    Gen.identifier.map(IvoryVersion.apply)
+
   def identifiersTo(n: Int): List[Identifier] =
     (1 to n).scanLeft(Identifier.initial)((acc, _) => acc.next.get).toList
 }
