@@ -27,6 +27,9 @@ object Partition {
   implicit def PartitionOrdering =
     PartitionOrder.toScalaOrdering
 
+  def intervalsByNamespace(ps: List[Partition]): Map[Name, NonEmptyList[(Partition, Partition)]] =
+    intervals(ps).groupBy1(_._1.namespace)
+
   def intervals(ps: List[Partition]): List[(Partition, Partition)] =
     ps.sorted.foldLeft[List[(Partition, Partition)]](Nil)({
       case (Nil, el) =>

@@ -31,6 +31,7 @@ Can create a Partition path as a:
 
 Compress a Partition as intervals:
   All input partitions appear in the output intervals $intervals
+  When indexed by name, both sides of the range should have the same namespace $indexed
 
 """
 
@@ -91,6 +92,18 @@ Compress a Partition as intervals:
           min.date >= p.date &&
           max.date <= p.date
     })) })
+
+
+  def indexed = prop((ps: List[Partition]) => {
+    val result = Partition.intervalsByNamespace(ps)
+    result.forall({
+      case (n, ps) =>
+        ps.toList.forall({
+          case (from, to) =>
+            from.namespace == n && to.namespace == n
+        })
+    })
+  })
 
   def toDirPath(key: Key) =
     DirPath.unsafe(key.name)
