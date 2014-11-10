@@ -22,7 +22,7 @@ SnapshotReducerSpec
   window lookup to array                                            $windowLookupToArray
   window facts                                                      $window
   window respects priority                                          $windowPriority
-  window outputs all facts when isSet reguardless of priority       $windowIsSet
+  window outputs all facts when isSet regardless of priority        $windowIsSet
 
 """
 
@@ -40,23 +40,23 @@ SnapshotReducerSpec
 
   def window = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
     val facts = SnapshotFacts(dts, fact, date)
-    MockFactMutator.run(facts.facts) { (bytes, mutator, emitter, out) =>
+    MockFactMutator.runKeep(facts.facts) { (bytes, mutator, emitter, out) =>
       SnapshotReducer.reduce(createMutableFact, bytes, mutator, emitter, out, date, isSet = false)
-    } ==== facts.expected
+    } ==== (facts.expected -> facts.expected.size)
   }).set(maxSize = 10)
 
   def windowPriority = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
     val facts = SnapshotFacts(dts, fact, date)
-    MockFactMutator.run(facts.factsDupe) { (bytes, mutator, emitter, out) =>
+    MockFactMutator.runKeep(facts.factsDupe) { (bytes, mutator, emitter, out) =>
       SnapshotReducer.reduce(createMutableFact, bytes, mutator, emitter, out, date, isSet = false)
-    } ==== facts.expected
+    } ==== (facts.expected -> facts.expected.size)
   }).set(maxSize = 10)
 
   def windowIsSet = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
     val facts = SnapshotFacts(dts, fact, date)
-    MockFactMutator.run(facts.factsDupe) { (bytes, mutator, emitter, out) =>
+    MockFactMutator.runKeep(facts.factsDupe) { (bytes, mutator, emitter, out) =>
       SnapshotReducer.reduce(createMutableFact, bytes, mutator, emitter, out, date, isSet = true)
-    } ==== facts.expectedSet
+    } ==== (facts.expectedSet -> facts.expectedSet.size)
   }).set(maxSize = 10)
 
   /** We only care about the DateTime for reducing snapshots, so we reuse the same fact */
@@ -68,8 +68,8 @@ SnapshotReducerSpec
       .partition(!Window.isFactWithinWindow(date, _))
     def facts: List[Fact] = oldFacts ++ newFacts
     def factsDupe: List[Fact] = dupe(oldFacts) ++ dupe(newFacts)
-    def expected: List[Fact] = oldFacts.lastOption.toList ++ newFacts
-    def expectedSet: List[Fact] = dupe(oldFacts).lastOption.toList ++ dupe(newFacts)
+    lazy val expected: List[Fact] = oldFacts.lastOption.toList ++ newFacts
+    lazy val expectedSet: List[Fact] = dupe(oldFacts).lastOption.toList ++ dupe(newFacts)
     def dupe(f: List[Fact]): List[Fact] =
       f.zip(f).flatMap(fs => List(fs._1, fs._2.withValue(IntValue(fs._2.value match { case IntValue(x) => x + 10; case _ => 99 }))))
   }

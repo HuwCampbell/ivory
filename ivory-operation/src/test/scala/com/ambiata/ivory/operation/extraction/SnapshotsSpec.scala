@@ -5,6 +5,7 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._, arbitraries._, Arbitraries._
 
 import com.ambiata.ivory.mr.FactFormats._
+import com.ambiata.ivory.operation.extraction.snapshot.SnapshotStats
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
@@ -25,8 +26,12 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
   def snapshot =
     RepositoryBuilder.using { repo => for {
       _ <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
-      _ <- Snapshots.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now))
-    } yield ()} must beOk
+      m <- Snapshots.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now))
+      s <- SnapshotStats.load(repo, m.meta.snapshotId)
+    } yield s.factCount.keySet} must beOkValue(
+      // FIX: Capture "simple" snapshot logic which handles priority and set/state so we can check the counts
+      sampleFacts.flatten.map(_.featureId).toSet
+    )
 
   def windowing = propNoShrink((vdict: VirtualDictionaryWindow, fact: Fact) => {
     val facts = List(

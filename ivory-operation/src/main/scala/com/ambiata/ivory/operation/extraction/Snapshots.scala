@@ -85,9 +85,10 @@ object Snapshots {
       /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
       hr              <- repository.asHdfsRepository[IO]
       output          =  hr.toIvoryLocation(Repository.snapshot(newSnapshot.snapshotId))
-      _               <- job(hr, dictionary, previousSnapshot, newFactsetGlobs, date, output.toHdfsPath, windows, hr.codec).run(hr.configuration)
+      stats           <- job(hr, dictionary, previousSnapshot, newFactsetGlobs, date, output.toHdfsPath, windows, hr.codec).run(hr.configuration)
       _               <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(newSnapshot.snapshotId) / ".dictionary", dictionary)
       _               <- NewSnapshotManifest.save(repository, newSnapshot)
+      _               <- SnapshotStats.save(repository, newSnapshotId, stats)
     } yield ()
 
   def calculateGlobs(repo: Repository, dictionary: Dictionary, windows: SnapshotWindows, newSnapshot: NewSnapshotManifest,
@@ -109,7 +110,7 @@ object Snapshots {
    */
   def job(repository: HdfsRepository, dictionary: Dictionary, previousSnapshot: Option[SnapshotManifest],
                   factsetsGlobs: List[Prioritized[FactsetGlob]], snapshotDate: Date, outputPath: Path,
-                  windows: SnapshotWindows, codec: Option[CompressionCodec]): Hdfs[Unit] =
+                  windows: SnapshotWindows, codec: Option[CompressionCodec]): Hdfs[SnapshotStats] =
     for {
       conf            <- Hdfs.configuration
       incrementalPath =  previousSnapshot.map(meta => repository.toIvoryLocation(Repository.snapshot(meta.snapshotId)).toHdfsPath)
@@ -118,8 +119,8 @@ object Snapshots {
       _               <- Hdfs.log(s"Total input size: $size")
       reducers        =  size.toBytes.value / 2.gb.toBytes.value + 1 // one reducer per 2GB of input
       _               <- Hdfs.log(s"Number of reducers: $reducers")
-      _               <- Hdfs.safe(SnapshotJob.run(repository, conf, dictionary, reducers.toInt, snapshotDate, factsetsGlobs, outputPath, windows, incrementalPath, codec))
-    } yield ()
+      stats           <- Hdfs.fromResultTIO(SnapshotJob.run(repository, conf, dictionary, reducers.toInt, snapshotDate, factsetsGlobs, outputPath, windows, incrementalPath, codec))
+    } yield stats
 
   def dictionaryForSnapshot(repository: Repository, meta: SnapshotManifest): ResultTIO[Dictionary] =
     meta.storeOrCommitId.b.cata(

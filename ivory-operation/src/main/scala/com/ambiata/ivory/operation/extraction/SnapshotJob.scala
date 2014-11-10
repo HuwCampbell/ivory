@@ -7,6 +7,7 @@ import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.mr._
+import com.ambiata.mundane.control._
 import com.ambiata.poacher.mr._
 
 import java.lang.{Iterable => JIterable}
@@ -29,7 +30,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
  */
 object SnapshotJob {
   def run(repository: HdfsRepository, conf: Configuration, dictionary: Dictionary, reducers: Int, date: Date, inputs: List[Prioritized[FactsetGlob]], output: Path,
-          windows: SnapshotWindows, incremental: Option[Path], codec: Option[CompressionCodec]): Unit = {
+          windows: SnapshotWindows, incremental: Option[Path], codec: Option[CompressionCodec]): ResultTIO[SnapshotStats] = {
 
     val job = Job.getInstance(conf)
     val ctx = MrContext.newContext("ivory-snapshot", job)
@@ -91,10 +92,17 @@ object SnapshotJob {
       Crash.error(Crash.ResultTIO, "ivory snapshot failed.")
 
     // commit files to factset
-    Committer.commit(ctx, {
-      case "snap" => output
-    }, true).run(conf).run.unsafePerformIO
-    ()
+    for {
+      _ <- Committer.commit(ctx, {
+        case "snap" => output
+      }, true).run(conf)
+      now <- ResultT.fromIO(DateTime.now)
+    } yield {
+      val featureIdToName = featureIdLookup.ids.asScala.mapValues(_.toString).map(_.swap)
+      SnapshotStats(IvoryVersion.get, now, job.getCounters.getGroup(Keys.CounterFeatureGroup).iterator().asScala.flatMap {
+        c => featureIdToName.get(c.getName).flatMap(FeatureId.parse(_).toOption).map(_ -> c.getValue)
+      }.toMap)
+    }
   }
 
   def windowTable(dictionary: Dictionary, windows: SnapshotWindows): (FeatureIdLookup, SnapshotWindowLookup) = {
@@ -109,6 +117,7 @@ object SnapshotJob {
 
   object Keys {
     val SnapshotDate = "ivory.snapdate"
+    val CounterFeatureGroup = "snapshot-counter-features"
     val FeatureIdLookup = ThriftCache.Key("feature-id-lookup")
     val FactsetLookup = ThriftCache.Key("factset-lookup")
     val FactsetVersionLookup = ThriftCache.Key("factset-version-lookup")
@@ -318,6 +327,9 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
 
   /** Optimised array lookup to flag "Set" features vs "State" features. */
   var isSetLookup: Array[Boolean] = null
+  var feaureIdStrings: Array[String] = null
+
+  var featureCounter: LabelledCounter = null
 
   override def setup(context: ReducerContext): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
@@ -329,13 +341,19 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
     val isSetLookupThrift = new FlagLookup
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
     isSetLookup = FeatureLookups.isSetLookupToArray(isSetLookupThrift)
+
+    featureCounter = new MrLabelledCounter(SnapshotJob.Keys.CounterFeatureGroup, context)
+    // Kinda sucky for debugging - we're using ints for counters because Hadoop limits the size of counter names to 64
+    feaureIdStrings = FeatureLookups.sparseMapToArray(windowLookupThrift.getWindow.asScala.toList
+      .map { case (fid, _) => fid.intValue() -> fid.toString }, "")
   }
 
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
     emitter.context = context
     val feature = SnapshotWritable.GroupingEntityFeatureId.getFeatureId(key)
     val windowStart = Date.unsafeFromInt(windowLookup(feature))
-    SnapshotReducer.reduce(fact, iter.iterator, mutator, emitter, vout, windowStart, isSetLookup(feature))
+    val count = SnapshotReducer.reduce(fact, iter.iterator, mutator, emitter, vout, windowStart, isSetLookup(feature))
+    featureCounter.count(feaureIdStrings(feature), count)
   }
 }
 
@@ -352,9 +370,10 @@ object SnapshotReducer {
   val sentinelDateTime = DateTime.unsafeFromLong(-1)
 
   def reduce(fact: MutableFact, iter: JIterator[BytesWritable], mutator: FactByteMutator,
-             emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, windowStart: Date, isSet: Boolean): Unit = {
+             emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, windowStart: Date, isSet: Boolean): Int = {
     var datetime = sentinelDateTime
     val kout = NullWritable.get()
+    var count = 0
     while(iter.hasNext) {
       val next = iter.next
       mutator.from(next, fact)
@@ -366,15 +385,17 @@ object SnapshotReducer {
         // As such we can't do anything on the first fact
         if (datetime != sentinelDateTime && Window.isFactWithinWindow(windowStart, fact)) {
           emitter.emit(kout, out)
+          count += 1
         }
         datetime = fact.datetime
         // Store the current fact, which may or may not be emitted depending on the next fact
         mutator.pipe(next, out)
       }
-
     }
     // _Always_ emit the last fact, which will be within the window, or the last fact
     emitter.emit(kout, out)
+    count += 1
+    count
   }
 
   def windowLookupToArray(lookup: SnapshotWindowLookup): Array[Int] =
