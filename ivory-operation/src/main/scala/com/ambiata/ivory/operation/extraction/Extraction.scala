@@ -8,7 +8,7 @@ import scalaz.Scalaz._
 
 object Extraction {
 
-  def extract(formats: OutputFormats, input: IvoryLocation, dictionary: Dictionary): IvoryTIO[Unit] = IvoryT.fromResultTIO(repository =>
+  def extract(formats: OutputFormats, input: IvoryLocation, dictionary: Dictionary): RepositoryTIO[Unit] = RepositoryT.fromResultTIO(repository =>
     formats.outputs.traverse {
       case (DenseFormat(delim), output) =>
         println(s"Storing extracted data '$input' to '${output.show}'")

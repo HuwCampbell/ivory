@@ -3,7 +3,9 @@ package com.ambiata.ivory.cli.debug
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.debug._
 import com.ambiata.ivory.cli._, ScoptReaders._
+import com.ambiata.ivory.storage.control._
 import org.apache.hadoop.fs.Path
+import scalaz.effect.IO
 
 object dumpFacts extends IvoryApp {
   case class CliArguments(entities: List[String], attributes: List[String], factsets: List[FactsetId], snapshots: List[SnapshotId], output: String)
@@ -32,8 +34,8 @@ object dumpFacts extends IvoryApp {
     }
   }
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(Nil, Nil, Nil, Nil, "not-set"), { repository => conf => c => for {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(Nil, Nil, Nil, Nil, "not-set"), { repository => conf => c => IvoryT.fromResultTIO { for {
     output <- IvoryLocation.fromUri(c.output, conf)
     _      <- DumpFacts.dump(repository, DumpFactsRequest(c.factsets, c.snapshots, c.entities, c.attributes), output)
-  } yield Nil })
+  } yield Nil } })
 }

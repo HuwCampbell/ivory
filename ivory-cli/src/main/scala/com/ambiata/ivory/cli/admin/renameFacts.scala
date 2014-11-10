@@ -3,7 +3,7 @@ package com.ambiata.ivory.cli.admin
 import com.ambiata.ivory.cli._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.rename.{Rename, RenameMapping}
-import com.ambiata.ivory.storage.control.IvoryRead
+import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.parse.ListParser.string
@@ -32,11 +32,12 @@ object renameFacts extends IvoryApp {
       "Max size (in bytes) of a reducer used to copy Factsets"
   }
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(List(), None, None), { repo => conf => c => for {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(List(), None, None), { repo => conf => c => IvoryT.fromResultTIO { for {
     batch   <- c.batch.cata(parseBatchFile(_, conf), ResultT.ok[IO, RenameMapping](RenameMapping(Nil)))
     mapping <- ResultT.fromDisjunction[IO, RenameMapping](createMapping(c.mapping).leftMap(\&/.This.apply))
-    stats   <- Rename.rename(RenameMapping(batch.mapping ++ mapping.mapping), c.reducerSize.map(_.bytes).getOrElse(1.gb)).run(IvoryRead.prod(repo))
-  } yield List(s"Successfully renamed ${stats._3.facts} facts to new factset ${stats._1.render}")})
+    r       <- RepositoryRead.fromRepository(repo)
+    stats   <- Rename.rename(RenameMapping(batch.mapping ++ mapping.mapping), c.reducerSize.map(_.bytes).getOrElse(1.gb)).run(r)
+  } yield List(s"Successfully renamed ${stats._3.facts} facts to new factset ${stats._1.render}") } })
 
   def createMapping(mapping: List[(String, String)]): String \/ RenameMapping =
     mapping.traverseU { case (f, t) => FeatureId.parse(f) tuple FeatureId.parse(t) }.map(RenameMapping.apply)

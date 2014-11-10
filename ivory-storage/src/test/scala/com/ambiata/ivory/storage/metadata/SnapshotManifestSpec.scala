@@ -122,7 +122,8 @@ SnapshotManifest Properties
         _         <- snapshots.metas.traverse((lm: SnapshotMeta) => storeSnapshotManifest(repo, SnapshotManifest.snapshotManifestLegacy(lm)))
         factsetId <- Factsets.allocateFactsetId(repo)
         _         <- repo.store.utf8.write(Repository.factset(factsetId) / "ns" / Key.unsafe(factsetDate.slashed) / "part", "content")
-        store     <- Metadata.incrementFeatureStore(List(factsetId)).run(IvoryRead.testing(repo))
+        r         <- RepositoryRead.fromRepository(repo)
+        store     <- Metadata.incrementFeatureStore(List(factsetId)).run(r)
         _         <- writeFactsetVersion(repo, List(factsetId))
         snapshot  <- SnapshotManifest.latestUpToDateSnapshot(repo, dates.now).run
       } yield snapshot must beUpToDate(repo, dates.now)

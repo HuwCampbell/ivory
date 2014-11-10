@@ -2,8 +2,10 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core.{HdfsRepository, Repository}
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.io._
 import MemoryConversions._
+import scalaz.effect.IO
 
 object recreate extends IvoryApp {
   case class CliArguments(input: String, output: String, clean: Boolean, dry: Boolean, overwrite: Boolean, recreateData: List[RecreateData], maxNumber: Option[Int], reducerSize: Option[Long])
@@ -27,7 +29,7 @@ object recreate extends IvoryApp {
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments(input = "", output = "", clean = true, dry = false, overwrite = false, recreateData = RecreateData.ALL, maxNumber = None, reducerSize = None),
     IvoryRunner { configuration => c =>
-      for {
+      IvoryT.fromResultTIO { for {
         from  <- HdfsRepository.fromUri(c.input, configuration)
         to    <- HdfsRepository.fromUri(c.output, configuration)
         rconf =  RecreateConfig(from = from,
@@ -42,7 +44,7 @@ object recreate extends IvoryApp {
                                 maxNumber = c.maxNumber,
                                 logger = consoleLogging)
         _     <- Recreate.all.run(rconf)
-      } yield Nil
+      } yield Nil }
     })
 
 }

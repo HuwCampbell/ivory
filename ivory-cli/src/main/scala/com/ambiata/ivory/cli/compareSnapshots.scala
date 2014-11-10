@@ -1,7 +1,8 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.api.IvoryRetire._
-import scalaz._, Scalaz._
+import com.ambiata.ivory.storage.control._
+import scalaz._, Scalaz._, effect.IO
 
 object compareSnapshots extends IvoryApp {
 
@@ -32,6 +33,6 @@ object compareSnapshots extends IvoryApp {
                       |""".stripMargin
       println(banner)
 
-    compareHdfsSnapshots(c.snap1, c.snap2, c.output, configuration).as(List(banner, s"Output path: $c.output", "Status -- SUCCESS"))
+    IvoryT.fromResultTIO { compareHdfsSnapshots(c.snap1, c.snap2, c.output, configuration).as(List(banner, s"Output path: $c.output", "Status -- SUCCESS")) }
   })
 }

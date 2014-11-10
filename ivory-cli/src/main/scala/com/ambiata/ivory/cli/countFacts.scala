@@ -2,6 +2,8 @@ package com.ambiata.ivory.cli
 
 import org.apache.hadoop.fs.Path
 import com.ambiata.ivory.api.IvoryRetire
+import com.ambiata.ivory.storage.control._
+import scalaz.effect.IO
 
 object countFacts extends IvoryApp {
   case class CliArguments(path: String)
@@ -16,6 +18,6 @@ object countFacts extends IvoryApp {
   }
 
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), IvoryRunner { configuration => c =>
-    IvoryRetire.countFacts(new Path(c.path, "*")).run(configuration.scoobiConfiguration).map(count => List(count.toString))
+    IvoryT.fromResultTIO { IvoryRetire.countFacts(new Path(c.path, "*")).run(configuration.scoobiConfiguration).map(count => List(count.toString)) }
   })
 }

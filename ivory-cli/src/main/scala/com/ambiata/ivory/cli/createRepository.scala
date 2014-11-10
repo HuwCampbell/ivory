@@ -2,7 +2,8 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core.Repository
 import com.ambiata.ivory.storage.repository._
-import scalaz.syntax.bind._
+import com.ambiata.ivory.storage.control._
+import scalaz._, Scalaz._, effect.IO
 
 object createRepository extends IvoryApp {
 
@@ -23,7 +24,7 @@ object createRepository extends IvoryApp {
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments(), IvoryRunner { configuration => c =>
       println("Created configuration: " + configuration)
-      Repository.fromUri(c.path, configuration).>>=(Repositories.create)
-        .as(Nil)
+      IvoryT.fromResultTIO { Repository.fromUri(c.path, configuration).>>=(Repositories.create)
+        .as(Nil) }
   })
 }

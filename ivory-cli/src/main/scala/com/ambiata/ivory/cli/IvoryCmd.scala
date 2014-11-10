@@ -1,6 +1,7 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.repository.Codec
 import com.ambiata.mundane.control._
 import com.ambiata.saws.core.Clients
@@ -54,18 +55,19 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
     before ++ after.drop(2)
   }
 
-  private def parseAndRun(args: Seq[String], result: A => ResultTIO[List[String]]): IO[Option[Unit]] = {
+  private def parseAndRun(args: Seq[String], result: A => IvoryT[ResultTIO, List[String]]): IO[Option[Unit]] = {
     parser.parse(args, initial)
-      .traverse(result andThen {
-      _.run.map(_.fold(_.foreach(println), e => { println(s"Failed! - ${Result.asString(e)}"); sys.exit(1) }))
-    })
+      .traverseU(a => (for {
+        r <- IvoryRead.createIO
+        x <- result(a).run.run(r)
+      } yield x).run.map(_.fold(_.foreach(println), e => { println(s"Failed! - ${Result.asString(e)}"); sys.exit(1) })))
   }
 }
 
 object IvoryCmd {
 
   def withRepo[A](parser: scopt.OptionParser[A], initial: A,
-                  runner: Repository => IvoryConfiguration => A => ResultTIO[List[String]]): IvoryCmd[A] = {
+                  runner: Repository => IvoryConfiguration => A => IvoryT[ResultTIO, List[String]]): IvoryCmd[A] = {
     // Oh god this is an ugly/evil hack - the world will be a better place when we upgrade to Pirate
     // Composition, it's a thing scopt, look it up
     var repoArg: Option[String] = None
@@ -73,9 +75,9 @@ object IvoryCmd {
       "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"
     new IvoryCmd(parser, initial, IvoryRunner(config => c =>
       for {
-        repoPath <- ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
-          "-r|--repository was missing or environment variable IVORY_REPOSITORY not set")
-        repo     <- Repository.fromUri(repoPath, config)
+        repoPath <- IvoryT.fromResultTIO { ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
+          "-r|--repository was missing or environment variable IVORY_REPOSITORY not set") }
+        repo     <- IvoryT.fromResultTIO { Repository.fromUri(repoPath, config) }
         result   <- runner(repo)(config)(c)
       } yield result
     ))
@@ -85,7 +87,7 @@ object IvoryCmd {
 /**
  * Represents the run of an Ivory program, with all the necessary configuration
  */
-case class IvoryRunner[A](run: IvoryConfiguration => A => ResultTIO[List[String]])
+case class IvoryRunner[A](run: IvoryConfiguration => A => IvoryT[ResultTIO, List[String]])
 
 trait IvoryApp {
   // It's important this is a val, not a def, to ensure we don't mutate scopt twice accidentally
