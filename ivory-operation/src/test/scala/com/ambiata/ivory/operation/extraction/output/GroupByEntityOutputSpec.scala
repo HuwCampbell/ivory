@@ -62,7 +62,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
   }.set(minTestsOk = 1)
 
   def textEscaped = prop { (facts: FactsWithDictionaryMulti) =>
-    RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.DenseText('|', "NA", true)) {
+    RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.DenseText(Delimiter.Psv, "NA", TextEscaping.Escaped)) {
       (_, file) => IvoryLocation.readLines(file)
     }) must beOkLike {
       lines => seqToResult(lines.map(TextEscaping.split('|', _).length ==== facts.dictionary.size + 1))
@@ -114,7 +114,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
     }
 
   def createDenseText(facts: List[List[Fact]], dictionary: Dictionary)(repo: HdfsRepository): ResultTIO[(String, List[String])] =
-    createDense(facts, dictionary, GroupByEntityFormat.DenseText('|', "NA", false))((_, dense) => for {
+    createDense(facts, dictionary, GroupByEntityFormat.DenseText(Delimiter.Psv, "NA", TextEscaping.Delimited))((_, dense) => for {
         dictionaryLines  <- IvoryLocation.readLines(dense </> ".dictionary")
         denseLines       <- IvoryLocation.readLines(dense)
       } yield (denseLines.mkString("\n").trim, dictionaryLines)

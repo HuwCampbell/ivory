@@ -21,7 +21,7 @@ object GroupByEntityOutput {
 sealed trait GroupByEntityFormat
 
 object GroupByEntityFormat {
-  case class DenseText(delim: Char, missing: String, escaped: Boolean) extends GroupByEntityFormat
+  case class DenseText(delim: Delimiter, missing: String, escaping: TextEscaping) extends GroupByEntityFormat
   case object DenseThrift extends GroupByEntityFormat
   case object SparseThrift extends GroupByEntityFormat
 }

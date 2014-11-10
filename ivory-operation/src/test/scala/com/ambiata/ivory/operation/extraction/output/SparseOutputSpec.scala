@@ -8,10 +8,7 @@ import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.operation.extraction.Snapshots
-import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.notion.core._
-
-import org.apache.hadoop.fs.Path
 
 import org.specs2.matcher.ThrownExpectations
 import org.specs2._
@@ -27,20 +24,20 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
 """
 
   def eav =
-    RepositoryBuilder.using(extractSparse(sampleFacts, sampleDictionary, false)) must beOkValue(
+    RepositoryBuilder.using(extractSparse(sampleFacts, sampleDictionary, TextEscaping.Delimited)) must beOkValue(
       List("eid1|ns1|fid1|abc"
          , "eid2|ns1|fid2|11"
          , "eid3|ns2|fid3|true").sorted.mkString("\n") -> expectedDictionary
     )
 
   def escaped = prop { (facts: FactsWithDictionary) =>
-    RepositoryBuilder.using(extractSparse(List(facts.facts), facts.dictionary, true)).map(_._1) must beOkLike(
+    RepositoryBuilder.using(extractSparse(List(facts.facts), facts.dictionary, TextEscaping.Escaped)).map(_._1) must beOkLike(
       (text: String) => seqToResult(text.split("\n").map(TextEscaping.split('|', _).length ==== 4))
     )
   }.set(minTestsOk = 1)
 
   def matchDict = prop { (facts: FactsWithDictionary) =>
-    RepositoryBuilder.using(extractSparse(List(facts.facts), facts.dictionary, false)) must beOkLike {
+    RepositoryBuilder.using(extractSparse(List(facts.facts), facts.dictionary, TextEscaping.Delimited)) must beOkLike {
       case (out, dict) =>
         val namespaces = dict.map(_.split("\\|", -1) match { case l => l(1) -> l(2)})
         seqToResult(out.lines.toList.map(_.split("\\|", -1) match {
@@ -55,7 +52,7 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
     "2|ns2|fid3|boolean|categorical|desc|NA"
   )
 
-  def extractSparse(facts: List[List[Fact]], dictionary: Dictionary, escaped: Boolean)(repo: HdfsRepository): ResultTIO[(String, List[String])] =
+  def extractSparse(facts: List[List[Fact]], dictionary: Dictionary, escaping: TextEscaping)(repo: HdfsRepository): ResultTIO[(String, List[String])] =
     TemporaryDirPath.withDirPath { dir =>
       TemporaryIvoryConfiguration.withConf(conf =>
         for {
@@ -64,7 +61,7 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
           res             <- Snapshots.takeSnapshot(repo, Date.maxValue)
           meta            = res.meta
           input           = ShadowOutputDataset.fromIvoryLocation(repo.toIvoryLocation(Repository.snapshot(meta.snapshotId)))
-          _               <- SparseOutput.extractWithDictionary(repo, input, ShadowOutputDataset(HdfsLocation(eav.path)), dictionary, '|', "NA", escaped)
+          _               <- SparseOutput.extractWithDictionary(repo, input, ShadowOutputDataset(HdfsLocation(eav.path)), dictionary, Delimiter.Psv, "NA", escaping)
           dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, conf)
           dictionaryLines <- IvoryLocation.readLines(dictLocation)
           loc             <- IvoryLocation.fromUri(eav.path, conf)

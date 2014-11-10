@@ -67,7 +67,7 @@ object GroupByEntityOutputJob {
 
         // We only need these for text output
         job.getConfiguration.set(Keys.Missing, missing)
-        job.getConfiguration.set(Keys.Delimiter, delim.toString)
+        job.getConfiguration.set(Keys.Delimiter, delim.character.toString)
         TextEscaper.toConfiguration(job.getConfiguration, escaped)
       case DenseThrift =>
         job.setReducerClass(classOf[DenseReducerThriftList])

@@ -21,7 +21,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat
  */
 object SparseOutputJob {
   def run(conf: Configuration, dictionary: Dictionary, input: Path, output: Path, missing: String,
-          delimiter: Char, escaped: Boolean, codec: Option[CompressionCodec]): ResultTIO[Unit] = (for {
+          delimiter: Delimiter, escaping: TextEscaping, codec: Option[CompressionCodec]): ResultTIO[Unit] = (for {
     _ <- Hdfs.mustNotExistWithMessage(output, s"Output path '${output.toString}' already exists")
     job = Job.getInstance(conf)
     ctx = MrContextIvory.newContext("ivory-sparse", job)
@@ -55,8 +55,8 @@ object SparseOutputJob {
 
     // cache / config initializtion
     job.getConfiguration.set(Keys.Missing, missing)
-    job.getConfiguration.set(Keys.Delimiter, delimiter.toString)
-    TextEscaper.toConfiguration(job.getConfiguration, escaped)
+    job.getConfiguration.set(Keys.Delimiter, delimiter.character.toString)
+    TextEscaper.toConfiguration(job.getConfiguration, escaping)
 
     // run job
     if (!job.waitForCompletion(true))
