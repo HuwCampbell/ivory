@@ -108,7 +108,7 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
   def importAs(format: Format) =
     FactImporter
       .runJob(repository, None, 128.mb, dictionary, format, FactsetId.initial, input.toHdfsPath, errors.toHdfsPath,
-        List(ns1 -> 1.mb), DateTimeZone.getDefault, RepositoryConfig.testing.copy(timezone = DateTimeZone.getDefault)) >>
+        List(ns1 -> 1.mb), None, RepositoryConfig.testing.copy(timezone = DateTimeZone.getDefault)) >>
     writeFactsetVersion(repository, List(FactsetId.initial)) must beOk
 
   def theImportMustBeOk =

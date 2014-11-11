@@ -27,7 +27,7 @@ import org.joda.time.DateTimeZone
 object IngestJob {
   // FIX shouldn't need `root: Path` it is a workaround for poor namespace handling
   def run(conf: Configuration, dictionary: Dictionary, reducerLookups: ReducerLookups, ivoryZone: DateTimeZone,
-          ingestZone: DateTimeZone, root: Path, singleNamespace: Option[Name], paths: List[Path], target: Path,
+          ingestZone: Option[DateTimeZone], root: Path, singleNamespace: Option[Name], paths: List[Path], target: Path,
           errors: Path, format: Format, codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
@@ -50,7 +50,8 @@ object IngestJob {
 
     // cache / config initialization
     job.getConfiguration.set(Keys.IvoryZone, ivoryZone.getID)
-    job.getConfiguration.set(Keys.IngestZone, ingestZone.getID)
+    // At the last minute we use the same zone for ingest, Joda will (nicely) not do any extra conversion in this case
+    job.getConfiguration.set(Keys.IngestZone, ingestZone.getOrElse(ivoryZone).getID)
     job.getConfiguration.set(Keys.IngestBase, FileSystem.get(conf).getFileStatus(root).getPath.toString)
     singleNamespace.foreach(ns => job.getConfiguration.set(Keys.SingleNamespace, ns.name))
 

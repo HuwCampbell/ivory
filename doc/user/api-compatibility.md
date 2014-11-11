@@ -3,6 +3,10 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-fd377e3
+
+- Timezone for ingest is now optional and will fall back to using the timezone configured when Ivory is created.
+
 ## 1.0.0-*-226a694
 
 - Repositories now requires a timezone, which is mandated in `create-repository`.
