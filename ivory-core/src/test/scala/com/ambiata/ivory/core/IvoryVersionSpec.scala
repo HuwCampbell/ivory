@@ -1,19 +1,17 @@
 package com.ambiata.ivory.core
 
-import argonaut._, Argonaut._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import org.specs2._
+
+import scalaz.scalacheck.ScalazProperties
 
 class IvoryVersionSpec extends Specification with ScalaCheck { def is = s2"""
 
   Version is taken from the BuildInfo                        $version
-  Can read and write to json                                 $json
+  Equal laws                                                 ${ScalazProperties.equal.laws[IvoryVersion]}
+  Encode and decode as JSON                                  ${ArgonautProperties.encodedecode[IvoryVersion]}
 """
 
   def version =
     IvoryVersion.get.version ==== BuildInfo.version
-
-  def json = prop { (v: IvoryVersion) =>
-    Parse.decodeEither[IvoryVersion](v.asJson.spaces2).toEither must beRight(v)
-  }
 }
