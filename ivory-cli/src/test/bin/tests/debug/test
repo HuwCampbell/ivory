@@ -7,8 +7,8 @@ $IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 
 ### Ingest a factset directory with several namespaces
-$IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts-1"
-$IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts-2" -n HALIBUT
+$IVORY ingest -i "${INPUT}/facts-1"
+$IVORY ingest -i "${INPUT}/facts-2" -n HALIBUT
 $IVORY cat-facts "${REPOSITORY}/factsets/00000000/*/*/*/*/*" > "${TARGET}/cat-facts-1.psv"
 $IVORY cat-facts "${REPOSITORY}/factsets/00000001/*/*/*/*/*" > "${TARGET}/cat-facts-2.psv"
 

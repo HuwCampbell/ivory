@@ -13,7 +13,7 @@ commit_test 00000000
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 commit_test 00000001
 
-$IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts"  -n HALIBUT
+$IVORY ingest -i "${INPUT}/facts"  -n HALIBUT
 commit_test 00000002
 
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"

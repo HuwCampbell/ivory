@@ -7,7 +7,7 @@ $IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 
 ### Ingest a factset directory with several namespaces
-$IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts-1"
+$IVORY ingest -i "${INPUT}/facts-1"
 $IVORY cat-facts "${REPOSITORY}/factsets/00000000/*/*/*/*/*" | sort > "${TARGET}/all-facts.psv"
 diff_test "${DIR}/expected/all-facts.psv" "${TARGET}/all-facts.psv"
 # Check that errors are captured (in the right place)
@@ -15,9 +15,9 @@ $IVORY cat-errors "${REPOSITORY}/errors/*/*" > "${TARGET}/error-facts.psv"
 diff_test "${DIR}/expected/error-facts.psv" "${TARGET}/error-facts.psv"
 
 ### Ingest a factset directory with a single namespace
-$IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts-2" -n HALIBUT
+$IVORY ingest -i "${INPUT}/facts-2" -n HALIBUT
 $IVORY cat-facts "${REPOSITORY}/factsets/00000001/*/*/*/*/*" | sort > "${TARGET}/halibut-facts.psv"
 diff_test "${DIR}/expected/halibut-facts.psv" "${TARGET}/halibut-facts.psv"
 
 ### Ingest with an invalid namespace - should fail
-$IVORY ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts-2" -n invalid | grep "Unknown namespaces"
+$IVORY ingest -r "${REPOSITORY}" -i "${INPUT}/facts-2" -n invalid | grep "Unknown namespaces"

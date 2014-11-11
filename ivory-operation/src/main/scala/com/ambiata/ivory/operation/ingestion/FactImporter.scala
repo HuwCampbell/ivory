@@ -22,7 +22,7 @@ object FactImporter {
   , format: Format
   , factsetId: FactsetId
   , input: IvoryLocation
-  , timezone: DateTimeZone
+  , timezone: Option[DateTimeZone]
   ): IvoryTIO[Unit] = {
     val errorKey = Repository.errors / factsetId.asKeyName
 
@@ -41,7 +41,7 @@ object FactImporter {
 
   def runJob(hr: HdfsRepository, namespace: Option[Name], optimal: BytesQuantity, dictionary: Dictionary, format: Format,
              factsetId: FactsetId, inputPath: Path, errorPath: Path, partitions: List[(Name, BytesQuantity)],
-             timezone: DateTimeZone, config: RepositoryConfig): ResultTIO[Unit] = for {
+             timezone: Option[DateTimeZone], config: RepositoryConfig): ResultTIO[Unit] = for {
     paths      <- getAllInputPaths(namespace, inputPath, partitions.map(_._1))(hr.configuration)
     _          <- ResultT.safe[IO, Unit] {
       IngestJob.run(

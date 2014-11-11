@@ -54,7 +54,7 @@ object Ingest {
    * @param format text or thrift
    */
   def ingestFacts(repository: Repository, input: IvoryLocation, namespace: Option[Name],
-                  timezone: DateTimeZone, optimal: BytesQuantity, format: Format): IvoryTIO[FactsetId] =
+                  timezone: Option[DateTimeZone], optimal: BytesQuantity, format: Format): IvoryTIO[FactsetId] =
     for {
       factsetId <- Factsets.allocateFactsetIdI(repository)
       _         <- FactImporter.importFacts(repository, namespace, optimal, format, factsetId, input, timezone)
