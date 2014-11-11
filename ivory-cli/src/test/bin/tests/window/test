@@ -5,7 +5,7 @@ DIR=$(dirname $0)
 
 $IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
-$IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts"
+$IVORY ingest -i "${INPUT}/facts"
 
 snapshot() {
   $IVORY snapshot -d ${1}
