@@ -50,9 +50,6 @@ diff_test_mr "${DIR}/expected/snap-sparse.psv" "${TARGET}/snap-sparse"
 COUNT_FACTS_OUT=$($IVORY count-facts "${REPOSITORY}/snapshots/00000001")
 [ $(wc -l ${DIR}/expected/snapshot.psv | awk '{print $1}') = $COUNT_FACTS_OUT ]
 
-# Just make sure it exists - it has a timestamp which makes it very hard to diff test
-cat "${REPOSITORY}/snapshots/00000000/.stats"
-
 [ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "1" ]
 diff_test "${DIR}/expected/metadata/commits/00000000" "${REPOSITORY}/metadata/commits/00000000"
 

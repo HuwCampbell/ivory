@@ -10,6 +10,10 @@ $IVORY ingest -z "Australia/Sydney" -i "${INPUT}/facts"
 snapshot() {
   $IVORY snapshot -d ${1}
   $IVORY cat-facts "${REPOSITORY}/snapshots/0000000${2}" | sort > "${TARGET}/snapshot${2}.psv"
+
+  # Just make sure it exists - it has a timestamp which makes it very hard to diff test
+  cat "${REPOSITORY}/snapshots/0000000${2}/.stats"
+
   diff_test "${DIR}/expected/snapshot${2}.psv" "${TARGET}/snapshot${2}.psv"
 }
 
