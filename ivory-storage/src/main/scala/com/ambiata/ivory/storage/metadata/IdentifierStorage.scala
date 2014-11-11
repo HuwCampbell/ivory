@@ -44,11 +44,8 @@ object IdentifierStorage {
   def latestId(repository: Repository, key: Key): ResultTIO[Option[Identifier]] =
     listIds(repository, key).map(_.lastOption)
 
-  def latestIdOrInitial(repository: Repository, key: Key): ResultTIO[Identifier] =
-    latestId(repository, key).map(_.getOrElse(Identifier.initial))
-
   def nextIdOrFail(repository: Repository, key: Key): ResultTIO[Identifier] =
-    latestIdOrInitial(repository, key).map(_.next) >>= (id =>
+    latestId(repository, key).map(_.map(_.next).getOrElse(Some(Identifier.initial))) >>= (id =>
       ResultT.fromOption[IO, Identifier](id, s"No more identifiers left at ${key.name}!"))
 
   def listIds(repository: Repository, key: Key): ResultTIO[List[Identifier]] = for {
