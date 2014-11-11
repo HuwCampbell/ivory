@@ -6,7 +6,7 @@ import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._
 import com.ambiata.poacher.hdfs.{Hdfs => PoacherHdfs}
-import com.ambiata.saws.s3.{S3 => SawsS3, S3Address}
+import com.ambiata.saws.s3.S3Address
 import org.apache.hadoop.fs.Path
 
 import scalaz.{Store =>_,_}, Scalaz._
@@ -50,8 +50,9 @@ trait TemporaryLocations {
   def runWithCluster[A](cluster: Cluster)(f: Cluster => ResultTIO[A]): ResultTIO[A] =
     ResultT.using(TemporaryCluster(cluster).pure[ResultTIO])(tmp => f(tmp.cluster))
 
+  /** Please use this with care - we need to ensure we _always_ cleanup these files */
   def createUniquePath: DirPath =
-    DirPath.unsafe(System.getProperty("java.io.tmpdir", "/tmp")) </> tempUniquePath
+    DirPath.unsafe(System.getProperty("java.io.tmpdir", "/tmp")) </> DirPath.unsafe(s"temporary-${UUID.randomUUID()}")
 
   def createUniqueIvoryLocation = createUniqueHdfsLocation
 
@@ -85,8 +86,6 @@ trait TemporaryLocations {
   def s3TempPath: String =
     s"tests/temporary-${UUID.randomUUID()}"
 
-  def tempUniquePath: DirPath =
-    DirPath.unsafe(s"temporary-${UUID.randomUUID()}")
 }
 
 object TemporaryLocations extends TemporaryLocations

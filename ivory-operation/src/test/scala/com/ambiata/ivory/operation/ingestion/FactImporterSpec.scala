@@ -2,9 +2,10 @@ package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.mr.{FactFormats, SequenceUtil, TestConfigurations}
+import com.ambiata.ivory.mr.{FactFormats, SequenceUtil}
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import FactFormats._
+import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.io._
@@ -31,40 +32,42 @@ class FactImporterSpec extends Specification with ThrownExpectations with FileMa
 """
 
   def text = { setup: Setup =>
-    setup.saveTextInputFile
-    setup.importAs(TextFormat)
+    (for {
+      _ <- setup.saveTextInputFile
+      _ <- setup.importAs(TextFormat)
+    } yield ()) must beOk
     setup.theImportMustBeOk
   }
 
   def thrift = { setup: Setup =>
-    setup.saveThriftInputFile
-    setup.importAs(ThriftFormat)
+    (for {
+      _ <- setup.saveThriftInputFile
+      _ <- setup.importAs(ThriftFormat)
+    } yield ()) must beOk
     setup.theImportMustBeOk
   }
 
   def withErrors = { setup: Setup =>
-    // save an input file containing errors
-    setup.saveTextInputFileWithErrors
-    setup.importAs(TextFormat)
+    (for {
+      // save an input file containing errors
+      _ <- setup.saveTextInputFileWithErrors
+      _ <- setup.importAs(TextFormat)
+    } yield ()) must beOk
     setup.thereMustBeErrors
   }
 
   def fixture[R : AsResult](f: Setup => R): Result =
-    TemporaryDirPath.withDirPath { dir =>
-      ResultT.ok[IO, Result](AsResult(f(new Setup(dir))))
+    RepositoryBuilder.using { repo =>
+      ResultT.ok[IO, Result](AsResult(f(new Setup(repo))))
     } must beOkLike(r => r.isSuccess aka r.message must beTrue)
 }
 
-class Setup(val directory: DirPath) extends MustThrownMatchers {
-  implicit def sc: ScoobiConfiguration = TestConfigurations.scoobiConfiguration
-  val ivory = IvoryConfiguration.fromScoobiConfiguration(sc)
-  implicit lazy val fs = sc.fileSystem
+class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
 
-  lazy val base = directory
-  lazy val input = HdfsIvoryLocation.create(base </> "input", ivory)
+  implicit val sc = repository.scoobiConfiguration
+  lazy val input = repository.root </> "input"
   lazy val namespaced = input </> "ns1"
-  lazy val repository = HdfsRepository.create(directory </> "repo", ivory)
-  lazy val errors = HdfsIvoryLocation.create(base </> "errors", ivory)
+  lazy val errors = repository.root </> "errors"
   lazy val ns1 = Name("ns1")
 
   val dictionary =
@@ -79,43 +82,43 @@ class Setup(val directory: DirPath) extends MustThrownMatchers {
     IntFact(   "pid1", FeatureId(ns1, "fid2"), Date(2012, 10, 15), Time(20), 2),
     DoubleFact("pid1", FeatureId(ns1, "fid3"), Date(2012, 3, 20),  Time(30), 3.0))
 
-  def saveTextInputFile = {
+  def saveTextInputFile: ResultTIO[Unit] = {
     val raw = List("pid1|fid1|v1|2012-10-01 00:00:10",
                    "pid1|fid2|2|2012-10-15 00:00:20",
                    "pid1|fid3|3.0|2012-03-20 00:00:30")
-    save(namespaced, raw) must beOk
+    save(namespaced, raw)
   }
 
-  def saveThriftInputFile = {
+  def saveThriftInputFile: ResultTIO[Unit] = {
     import com.ambiata.ivory.operation.ingestion.thrift._
     val serializer = ThriftSerialiser()
 
-    SequenceUtil.writeBytes(HdfsIvoryLocation.create(directory </> "input" </> "ns1" </> FileName(java.util.UUID.randomUUID), IvoryConfiguration.Empty), None) {
+    SequenceUtil.writeBytes(namespaced </> FileName(java.util.UUID.randomUUID), None) {
       writer => ResultT.safe(expected.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
-    }.run(sc) must beOk
+    }.run(sc)
   }
 
-  def saveTextInputFileWithErrors = {
+  def saveTextInputFileWithErrors: ResultTIO[Unit] = {
     val raw = List("pid1|fid1|v1|2012-10-01 00:00:10",
                    "pid1|fid2|x|2012-10-15 00:00:20",
                    "pid1|fid3|3.0|2012-03-20 00:00:30")
-    save(namespaced, raw) must beOk
+    save(namespaced, raw)
   }
 
-  def save(path: IvoryLocation, raw: List[String]) =
+  def save(path: IvoryLocation, raw: List[String]): ResultTIO[Unit] =
     IvoryLocation.writeUtf8Lines(path </> "part", raw)
 
-  def importAs(format: Format) =
+  def importAs(format: Format): ResultTIO[Unit] =
     FactImporter
       .runJob(repository, None, 128.mb, dictionary, format, FactsetId.initial, input.toHdfsPath, errors.toHdfsPath,
         List(ns1 -> 1.mb), None, RepositoryConfig.testing.copy(timezone = DateTimeZone.getDefault)) >>
-    writeFactsetVersion(repository, List(FactsetId.initial)) must beOk
+    writeFactsetVersion(repository, List(FactsetId.initial))
 
   def theImportMustBeOk =
     factsFromIvoryFactset(repository, FactsetId.initial).map(_.run.collect { case \/-(r) => r }).run(sc) must beOkLike(_.toSet must_== expected.toSet)
 
   def thereMustBeErrors =
-    valueFromSequenceFile[ParseError]((directory </> "errors").path).run(sc) must not(beEmpty)
+    valueFromSequenceFile[ParseError](errors.toHdfs).run(sc) must not(beEmpty)
 }
 
 class FactImporterPureSpec extends Specification with ScalaCheck { def is = s2"""
