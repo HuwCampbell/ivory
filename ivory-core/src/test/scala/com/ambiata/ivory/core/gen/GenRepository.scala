@@ -61,7 +61,8 @@ object GenRepository {
 
   /* Generate a list of Partitions with the size up to n namespaces x n dates */
   def partitionsOf(nNamespaces: Int, nDates: Int): Gen[List[Partition]] = for {
-    namespaces <- Gen.listOfN(nNamespaces, GenString.name)
+    // Make sure we generate distinct namespaces here, so that the dates below are actually distinct
+    namespaces <- Gen.listOfN(nNamespaces, GenString.name).map(_.distinct)
     partitions <- namespaces.traverse(namespace => for {
       d <- Gen.listOfN(nDates * 2, GenDate.date)
     } yield d.distinct.map(Partition(namespace, _)))
