@@ -1,8 +1,9 @@
 package com.ambiata.ivory.core
 
-import org.joda.time.DateTimeZone
-import org.joda.time.format.DateTimeFormat
-import org.joda.time.{DateTime => JodaDateTime}
+import argonaut._, Argonaut._
+import org.joda.time.{DateTime => JodaDateTime, DateTimeZone}
+
+import scalaz._, Scalaz._, effect.IO
 
 /** a packed long | 16 bits: year represented as a short | 8 bits: month represented as a byte | 8 bits: day represented as a byte | 32 bits: seconds since start of day */
 class DateTime private(val underlying: Long) extends AnyVal {
@@ -55,6 +56,16 @@ object DateTime {
 
   def fromJoda(dt: JodaDateTime): DateTime =
     unsafe(dt.getYear.toShort, dt.getMonthOfYear.toByte, dt.getDayOfMonth.toByte, dt.getSecondOfDay)
+
+  def now: IO[DateTime] =
+    IO(fromJoda(JodaDateTime.now()))
+
+  implicit def DateTimeOrder: Order[DateTime] =
+    Order.order(_.underlying ?|? _.underlying)
+
+  implicit def DateTimeCodecJson: CodecJson[DateTime] = CodecJson.derived(
+    EncodeJson(_.iso8601(DateTimeZone.UTC).asJson),
+    DecodeJson.optionDecoder(_.string.flatMap(Dates.datetimezone(_, DateTimeZone.UTC)), "DateTime"))
 
   object Macros extends com.ambiata.ivory.reflect.MacrosCompat {
 

@@ -9,7 +9,10 @@ import scala.collection.JavaConverters._
 object MockFactMutator {
 
   /** For testing MR code that deals with a stream of fact bytes */
-  def run(facts: List[Fact])(f: (JIterator[BytesWritable], FactByteMutator, Emitter[NullWritable, BytesWritable], BytesWritable) => Unit): List[Fact] = {
+  def run(facts: List[Fact])(f: (JIterator[BytesWritable], FactByteMutator, Emitter[NullWritable, BytesWritable], BytesWritable) => Unit): List[Fact] =
+    runKeep(facts)(f)._1
+
+  def runKeep[A](facts: List[Fact])(f: (JIterator[BytesWritable], FactByteMutator, Emitter[NullWritable, BytesWritable], BytesWritable) => A): (List[Fact], A) = {
     val outFacts = new collection.mutable.ListBuffer[Fact]
     val serialiser = ThriftSerialiser()
     val emitter = new Emitter[NullWritable, BytesWritable] {
@@ -18,8 +21,8 @@ object MockFactMutator {
         ()
       }
     }
-    iterateFactsAsBytes(facts)(iter => f(iter, new FactByteMutator, emitter, Writables.bytesWritable(4096)))
-    outFacts.toList
+    val result = iterateFactsAsBytes(facts)(iter => f(iter, new FactByteMutator, emitter, Writables.bytesWritable(4096)))
+    (outFacts.toList, result)
   }
 
   def runText(facts: List[Fact])(f: (JIterator[BytesWritable], Emitter[NullWritable, Text], Text) => Unit): List[String] = {
@@ -34,7 +37,7 @@ object MockFactMutator {
     lines.toList
   }
 
-  def iterateFactsAsBytes[A](facts: List[Fact])(f: JIterator[BytesWritable] => Unit): Unit = {
+  def iterateFactsAsBytes[A](facts: List[Fact])(f: JIterator[BytesWritable] => A): A = {
     // When in Rome. This is what Hadoop does
     val in = Writables.bytesWritable(4096)
     val serialiser = ThriftSerialiser()
