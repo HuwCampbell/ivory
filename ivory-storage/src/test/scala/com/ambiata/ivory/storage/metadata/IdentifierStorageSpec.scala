@@ -24,6 +24,7 @@ Identifier Storage Spec
   List Ids                                   $listIds          ${tag("store")}
   Next or fail                               $nextIdOrFailOk   ${tag("store")}
   Next or fail when it fails                 $nextIdOrFailFail ${tag("store")}
+  Next or fail first                         $nextIdOrFailFirst ${tag("store")}
 
 """
 
@@ -76,4 +77,9 @@ Identifier Storage Spec
         IdentifierStorage.nextIdOrFail(repository, Key.Root)
     } must beFail
   }
+
+  def nextIdOrFailFirst =
+    withRepository(Posix) { repository =>
+      IdentifierStorage.nextIdOrFail(repository, Key.Root)
+    } must beOkValue(Identifier.initial)
 }
