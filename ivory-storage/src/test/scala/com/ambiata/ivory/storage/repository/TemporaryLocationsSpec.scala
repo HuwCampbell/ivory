@@ -75,7 +75,7 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
   def withRepository(repository: Repository): MatchResult[ResultTIO[(Boolean, Boolean)]] =
     (for {
       x <- TemporaryLocations.runWithRepository(repository)(repo => for {
-        _ <- Repositories.create(repo)
+        _ <- Repositories.create(repo, RepositoryConfig.testing)
         x <- repo.store.exists(Repository.root / ".allocated")
       } yield x)
       y <- repository.store.exists(Repository.root / ".allocated")

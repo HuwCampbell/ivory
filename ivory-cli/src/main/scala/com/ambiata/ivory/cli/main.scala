@@ -11,6 +11,7 @@ object main {
     catErrors,
     catFacts,
     chord,
+    config,
     convertDictionary,
     countFacts,
     createRepository,

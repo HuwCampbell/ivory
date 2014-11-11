@@ -89,6 +89,12 @@ trait Arbitraries {
   implicit def PriorityArbitrary: Arbitrary[Priority] =
     Arbitrary(Gen.choose(Priority.Min.toShort, Priority.Max.toShort).map(Priority.unsafe))
 
+  implicit def RepositoryConfigArbitrary: Arbitrary[RepositoryConfig] =
+    Arbitrary(GenRepository.repositoryConfig)
+
+  implicit def RepositoryConfigArbitraryId: Arbitrary[RepositoryConfigId] =
+    Arbitrary(GenIdentifier.repositoryConfigId)
+
   implicit def SnapshotIdArbitrary: Arbitrary[SnapshotId] =
     Arbitrary(GenIdentifier.snapshot)
 

@@ -11,7 +11,6 @@ import shapeless._
 
 object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dictionary] {
 
-  val name = "dictionary"
   val DELIM = "|"
 
   def fromList(entries: List[(FeatureId, Definition)]): ValidationNel[String, Dictionary] =

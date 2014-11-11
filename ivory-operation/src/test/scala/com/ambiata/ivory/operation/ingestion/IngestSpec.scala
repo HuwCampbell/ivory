@@ -37,7 +37,7 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
   def partitionIngest = {
     withRepository(Hdfs) { repository: Repository =>
       withIvoryLocationDir(Hdfs) { location =>
-        Repositories.create(repository) >>
+        Repositories.create(repository, RepositoryConfig.testing) >>
           DictionaryThriftStorage(repository).store(dictionary) >>
           IvoryLocation.writeUtf8Lines(location </> "ns1" </> "2012" </> "10" </> "1" </> "part-r-00000", sampleFacts.flatten.map(toEavt)) >>
           IvoryLocation.writeUtf8Lines(location </> "ns1" </> "2012" </> "10" </> "1" </> "part-r-00001", sampleFacts.flatten.map(toEavt)) >>
@@ -49,7 +49,7 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
   def namespaceIngest = {
     withRepository(Hdfs) { repository: Repository =>
       withIvoryLocationDir(Hdfs) { location =>
-        Repositories.create(repository) >>
+        Repositories.create(repository, RepositoryConfig.testing) >>
           DictionaryThriftStorage(repository).store(dictionary) >>
           IvoryLocation.writeUtf8Lines(location </> "part-r-00000", sampleFacts.flatten.map(toEavt)) >>
           IvoryLocation.writeUtf8Lines(location </> "part-r-00001", sampleFacts.flatten.map(toEavt)) >>
@@ -64,7 +64,7 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
     //  Lazy, but guaranteed to be bad so we always have at least one error
     val badFacts = List(fact.withFeatureId(facts.cg.fid).withValue(StructValue(Map("" -> StringValue("")))))
     withHdfsRepository { repository: HdfsRepository => for {
-      _   <- Repositories.create(repository)
+      _   <- Repositories.create(repository, RepositoryConfig.testing)
       loc <- Repository.tmpDir(repository)
       _   <- DictionaryThriftStorage(repository).store(facts.dictionary)
       _   <- SequenceUtil.writeBytes(repository.toIvoryLocation(loc) </> "part-r-00000", None) {

@@ -10,8 +10,6 @@ import scalaz.{Value => _, _}, Scalaz._, effect._
 
 object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[Prioritized[FactsetId]]] {
 
-  val name = "feature store"
-
   /** Increment the latest FeatureStore by prepending the given FactsetId and creating a new FeatureStore */
   def increment(repo: Repository, factsetIds: List[FactsetId]): ResultTIO[FeatureStoreId] = for {
     latest      <- latestId(repo)

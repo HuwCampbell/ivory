@@ -2,16 +2,15 @@ package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.control._
-import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import com.ambiata.ivory.core._
 
-import scalaz.Scalaz._
+import scalaz._, Scalaz._
 
 object Repositories {
 
-  def initialKeys(repository: Repository): List[Key] = List(
+  val initialKeys: List[Key] = List(
     Repository.root,
     Repository.dictionaries,
     Repository.featureStores,
@@ -21,18 +20,20 @@ object Repositories {
     Repository.commits
   )
 
-  // A very termporary shim to allow incremental adoption of IvoryT.
-  def createI(repo: Repository): IvoryTIO[Unit] =
-    IvoryT.fromResultTIO { create(repo) }
+  // A very temporary shim to allow incremental adoption of IvoryT.
+  def create(repo: Repository, config: RepositoryConfig): ResultTIO[Unit] =
+    IvoryRead.createIO >>= createI(repo, config).run
 
-  def create(repo: Repository): ResultTIO[Unit] = for {
+  def createI(repo: Repository, config: RepositoryConfig): IvoryTIO[Unit] = IvoryT.read[ResultTIO] >>= (read => IvoryT.fromResultTIO(for {
     e <- repo.store.exists(Key(".allocated"))
     r <- ResultT.unless(e, for {
-      _     <- initialKeys(repo).traverse(key => repo.store.utf8.write(key / ".allocated", "")).void
+      _     <- initialKeys.traverse(key => repo.store.utf8.write(key / ".allocated", "")).void
+
+      cid   <- RepositoryConfigTextStorage.store(config).toIvoryT(repo).run(read)
       // Set the initial commit
       dict  <- DictionaryThriftStorage(repo).store(Dictionary.empty)
       store <- FeatureStoreTextStorage.increment(repo, Nil)
-      _     <- Metadata.incrementCommit(repo, dict, store)
+      _     <- Metadata.incrementCommit(repo, dict, store, cid)
     } yield ())
-  } yield r
+  } yield r))
 }

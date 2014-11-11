@@ -2,7 +2,6 @@ package com.ambiata.ivory.core.gen
 
 import com.ambiata.ivory.core._
 
-import org.joda.time.DateTimeZone
 import org.scalacheck._
 
 import scalaz.{Name => _, Value => _, _}, Scalaz._
@@ -29,7 +28,8 @@ object GenRepository {
   def commit: Gen[Commit] = for {
     d <- GenIdentifier.dictionary
     s <- GenIdentifier.store
-  } yield Commit(d, s)
+    c <- Gen.option(GenIdentifier.repositoryConfigId)
+  } yield Commit(d, s, c)
 
   def factset: Gen[Factset] =
     GenIdentifier.factset.flatMap(factsetWith)
@@ -66,4 +66,7 @@ object GenRepository {
       d <- Gen.listOfN(nDates * 2, GenDate.date)
     } yield d.distinct.map(Partition(namespace, _)))
   } yield partitions.flatten
+
+  def repositoryConfig: Gen[RepositoryConfig] =
+    GenDate.zone.map(RepositoryConfig.apply)
 }

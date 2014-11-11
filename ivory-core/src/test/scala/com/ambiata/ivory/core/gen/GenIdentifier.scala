@@ -35,6 +35,9 @@ object GenIdentifier {
   def commits: Gen[List[CommitId]] =
     identifiers.map(_.map(CommitId.apply))
 
+  def repositoryConfigId: Gen[RepositoryConfigId] =
+    identifier.map(RepositoryConfigId.apply)
+
   def store: Gen[FeatureStoreId] =
     identifier.map(FeatureStoreId.apply)
 

@@ -56,7 +56,7 @@ timeit() {
 
 timeit "start"
 
-$IVORY create-repository "${IVORY_REPOSITORY}"
+$IVORY create-repository -z Australia/Sydney "${IVORY_REPOSITORY}"
 timeit "create-repository"
 
 $IVORY import-dictionary -p "file://${PWD}/${DICTIONARY}"

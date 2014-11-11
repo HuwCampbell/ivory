@@ -26,7 +26,7 @@ object FactImporter {
   ): IvoryTIO[Unit] = {
     val errorKey = Repository.errors / factsetId.asKeyName
 
-    IvoryT.fromResultTIO { for {
+    IvoryT.read[ResultTIO] >>= (read => IvoryT.fromResultTIO { for {
       hr            <- repository.asHdfsRepository[IO]
       inputLocation <- input.asHdfsIvoryLocation[IO]
       dictionary    <- latestDictionaryFromIvory(repository)
@@ -34,18 +34,21 @@ object FactImporter {
       errorPath     =  hr.toIvoryLocation(errorKey).toHdfsPath
       partitions    <- namespace.fold(Namespaces.namespaceSizes(inputPath))(ns => Namespaces.namespaceSizesSingle(inputPath, ns).map(List(_))).run(hr.configuration)
       _             <- ResultT.fromDisjunction[IO, Unit](validateNamespaces(dictionary, partitions.map(_._1)).leftMap(\&/.This(_)))
-      _             <- runJob(hr, namespace, optimal, dictionary, format, factsetId, inputPath, errorPath, partitions, timezone)
-    } yield () }
+      config        <- configuration.toIvoryT(repository).run(read)
+      _             <- runJob(hr, namespace, optimal, dictionary, format, factsetId, inputPath, errorPath, partitions, timezone, config)
+    } yield () })
   }
 
-  def runJob(hr: HdfsRepository, namespace: Option[Name], optimal: BytesQuantity, dictionary: Dictionary, format: Format, factsetId: FactsetId, inputPath: Path, errorPath: Path, partitions: List[(Name, BytesQuantity)], timezone: DateTimeZone): ResultTIO[Unit] = for {
+  def runJob(hr: HdfsRepository, namespace: Option[Name], optimal: BytesQuantity, dictionary: Dictionary, format: Format,
+             factsetId: FactsetId, inputPath: Path, errorPath: Path, partitions: List[(Name, BytesQuantity)],
+             timezone: DateTimeZone, config: RepositoryConfig): ResultTIO[Unit] = for {
     paths      <- getAllInputPaths(namespace, inputPath, partitions.map(_._1))(hr.configuration)
     _          <- ResultT.safe[IO, Unit] {
       IngestJob.run(
         hr.configuration,
         dictionary,
         ReducerLookups.createLookups(dictionary, partitions, optimal),
-        timezone,
+        config.timezone,
         timezone,
         inputPath,
         namespace,
