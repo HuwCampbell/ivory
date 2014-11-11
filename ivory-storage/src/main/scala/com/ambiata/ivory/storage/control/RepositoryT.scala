@@ -28,6 +28,14 @@ object RepositoryT {
   def fromResultTIO[A](f: Repository => ResultTIO[A]): RepositoryT[ResultTIO, A] =
     RepositoryT[ResultTIO, A](Kleisli[ResultTIO, RepositoryRead, A](r => f(r.repository)))
 
+  def fromIvoryT[F[_], A](f: Repository => IvoryT[({ type l[a] = ResultT[F, a] })#l, A]): RepositoryT[({ type l[a] = ResultT[F, a] })#l, A] = {
+    type X[B] = ResultT[F, B]
+    RepositoryT[X, A](Kleisli[X, RepositoryRead, A](r => f(r.repository).run.run(r.ivory)))
+  }
+
+  def fromIvoryTIO[A](f: Repository => IvoryTIO[A]): RepositoryT[ResultTIO, A] =
+    RepositoryT[ResultTIO, A](Kleisli[ResultTIO, RepositoryRead, A](r => f(r.repository).run.run(r.ivory)))
+
   implicit def RepositoryTMonad[F[_]: Monad]: Monad[({ type l[a] = RepositoryT[F, a] })#l] =
     new Monad[({ type l[a] = RepositoryT[F, a] })#l] {
       def point[A](v: => A) = RepositoryT(Kleisli(_ => v.point[F]))
