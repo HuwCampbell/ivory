@@ -18,8 +18,10 @@ import org.apache.hadoop.mapreduce.Partitioner
 class FactsPartitioner extends BaseFactsPartitioner[BytesWritable] {
   def getFeatureId(k: BytesWritable): Int =
     FactsetWritable.getFeatureId(k)
-  def getEntityHash(k: BytesWritable): Int =
-    FactsetWritable.getEntityHash(k)
+  def getHash(k: BytesWritable): Int =
+    // Currently this is the date, but at some point we want to switch between date and entity depending on the feature
+    // https://github.com/ambiata/ivory/issues/455
+    FactsetWritable.getDate(k).int
 }
 
 trait BaseFactsPartitioner[A] extends Partitioner[A, BytesWritable] with Configurable {
@@ -37,8 +39,8 @@ trait BaseFactsPartitioner[A] extends Partitioner[A, BytesWritable] with Configu
     _conf
 
   def getPartition(k: A, v: BytesWritable, partitions: Int): Int =
-    FeatureReducerOffset.getReducer(lookup.reducers.get(getFeatureId(k)), getEntityHash(k)) % partitions
+    FeatureReducerOffset.getReducer(lookup.reducers.get(getFeatureId(k)), getHash(k)) % partitions
 
   def getFeatureId(k: A): Int
-  def getEntityHash(k: A): Int
+  def getHash(k: A): Int
 }
