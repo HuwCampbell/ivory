@@ -79,8 +79,13 @@ object SquashArbitraries {
       // NOTE: We're not testing snapshot logic here, so there's no point generating facts after the snapshot date
       fact => Gen.choose(0, 100).map(o => fact.withDate(Date.fromLocalDate(date.localDate.minusDays(o))))
     })
-    fa = NonEmptyList(f.head, f.tail: _*).map(_.withFeatureId(w.fid))
-  } yield SquashFacts(date, w, fa)
+    fs = f.map(_.withFeatureId(w.fid))
+    fa = w.cg.definition.mode.fold (
+      // For state it's impossible to have a duplicate entity + datetime (the result is non-deterministic)
+      fs.groupBy1(f => f.entity -> f.datetime).values.map(_.head).toList,
+      fs
+    )
+  } yield SquashFacts(date, w, NonEmptyList(fa.head, fa.tail: _*))
 
 
   def startingDate(vd: ConcreteGroupFeature, date: Date): Option[Date] =
