@@ -26,6 +26,7 @@ Rename
   rename of a multiple feature                       $renameAll            ${tag("mr")}
   rename of a one feature                            $renameOneFeature     ${tag("mr")}
   rename of a factset respect priority and time      $renamePriority       ${tag("mr")}
+  rename of a factset respect priority and time(set) $renamePrioritySet    ${tag("mr")}
   rename of a factset respect entity                 $renameEntity         ${tag("mr")}
 """
 
@@ -79,6 +80,26 @@ Rename
       Seq(f(1, 0, "2a", id), f(2, 1, "2d", id))
     )).map(r => r._1 -> r._2.toSet) must beOkValue(
       RenameStats(3) -> Set(f(2, 1, "2d", tid), f(2, 2, "1d", tid), f(1, 0, "2a", tid))
+    )
+  }
+
+  def renamePrioritySet = {
+    val id =    FeatureId(Name("ns1"), "fid1")
+    val tid =   FeatureId(Name("ns2"), "fid3")
+    def f(d: Int, t: Int, v: String, fid: FeatureId): Fact =
+      StringFact("eid1", fid, Date.fromLocalDate(new LocalDate(2012, 9, d)), Time.unsafe(t), v)
+    val mapping = RenameMapping(List(id -> tid))
+    val dictionary = Dictionary(List(
+      Definition.concrete(id, StringEncoding, Mode.Set, None, "", Nil),
+      Definition.concrete(tid, StringEncoding, Mode.Set, None, "", Nil)
+    ))
+    // Sets are different in that they keep facts with the same datetime value
+    val facts = List(
+      Seq(f(1, 0, "1a", id), f(2, 2, "1d", id)),
+      Seq(f(1, 0, "2a", id), f(2, 1, "2d", id))
+    )
+    renameWithFacts(mapping, dictionary, facts).map(r => r._1 -> r._2.toSet) must beOkValue(
+      RenameStats(4) -> facts.flatten.map(_.withFeatureId(tid)).toSet
     )
   }
 

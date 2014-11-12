@@ -17,15 +17,15 @@ import scalaz._, Scalaz._, effect._
 object Rename {
 
   def rename(mapping: RenameMapping, reducerSize: BytesQuantity): RepositoryTIO[(FactsetId, FeatureStoreId, RenameStats)] = for {
+    dictionary   <- Metadata.latestDictionaryFromRepositoryT
     globs        <- prepareGlobsFromLatestStore(mapping)
-    lookups      <- prepareLookups(mapping, globs.map(_.value.factset), reducerSize)
-    renameResult <- renameWithFactsets(mapping, globs, lookups)
+    lookups      <- prepareLookups(dictionary, mapping, globs.map(_.value.factset), reducerSize)
+    renameResult <- renameWithFactsets(dictionary, mapping, globs, lookups)
     (fsid, stats) = renameResult
     sid          <- Metadata.incrementFeatureStore(List(fsid))
   } yield (fsid, sid, stats)
 
-  def prepareLookups(mapping: RenameMapping, factsets: List[FactsetId], reducerSize: BytesQuantity): RepositoryTIO[ReducerLookups] = for {
-    dictionary <- Metadata.latestDictionaryFromRepositoryT
+  def prepareLookups(dictionary: Dictionary, mapping: RenameMapping, factsets: List[FactsetId], reducerSize: BytesQuantity): RepositoryTIO[ReducerLookups] = for {
     hdfs       <- getHdfs
     subdict     = renameDictionary(mapping, dictionary)
     namespaces  = subdict.byFeatureId.groupBy(_._1.namespace).keys.toList
@@ -43,11 +43,13 @@ object Rename {
     inputs     <- fromResultT(FeatureStoreGlob.filter(_, store, p => mapping.mapping.exists(_._1.namespace == p.namespace)))
   } yield inputs.globs
 
-  def renameWithFactsets(mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], reducerLookups: ReducerLookups): RepositoryTIO[(FactsetId, RenameStats)] = for {
+  def renameWithFactsets(dictionary: Dictionary, mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]],
+                         reducerLookups: ReducerLookups): RepositoryTIO[(FactsetId, RenameStats)] = for {
     factset    <- RepositoryT.fromResultTIO(repository => Factsets.allocateFactsetId(repository))
     hdfs       <- getHdfs
     output      = hdfs.toIvoryLocation(Repository.factset(factset)).toHdfsPath
-    stats      <- fromResultT(_ => RenameJob.run(hdfs, mapping, inputs, output, reducerLookups, hdfs.codec).run(ScoobiConfiguration(hdfs.configuration)))
+    stats      <- fromResultT(_ => RenameJob.run(hdfs, dictionary, mapping, inputs, output, reducerLookups, hdfs.codec)
+      .run(ScoobiConfiguration(hdfs.configuration)))
     _          <- IvoryStorage.writeFactsetVersionI(List(factset))
   } yield factset -> stats
 

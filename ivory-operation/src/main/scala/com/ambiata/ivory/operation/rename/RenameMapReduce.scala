@@ -6,7 +6,7 @@ import com.ambiata.ivory.core.Priority
 import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.operation.extraction._
-import com.ambiata.ivory.storage.lookup.ReducerLookups
+import com.ambiata.ivory.storage.lookup.{FeatureLookups, ReducerLookups}
 import com.ambiata.ivory.storage.task.FactsetJobKeys
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.poacher.mr._
@@ -84,35 +84,57 @@ class RenameReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, 
 
   val serializer = new ThriftSerialiser
 
+  var isSetLookup: Array[Boolean] = null
+
   override def setup(context: ReducerContext): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.NamespaceLookup, lookup)
     out = new MultipleOutputs(context)
     counter = context.getCounter("ivory", RenameJob.Keys.ReduceCounter)
+
+    val isSetLookupThrift = new FlagLookup
+    ctx.thriftCache.pop(context.getConfiguration, RenameJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
+    isSetLookup = FeatureLookups.isSetLookupToArray(isSetLookupThrift)
   }
 
   override def cleanup(context: ReducerContext): Unit =
     out.close()
 
   override def reduce(key: BytesWritable, iterable: JIterable[BytesWritable], context: ReducerContext): Unit = {
+    val featureId = RenameWritable.GroupingByFeatureIdDate.getFeatureId(key)
     // This is the most expensive part of this reducer, we need to calculate it as _little_ as possible
     val path = ReducerLookups.factsetPartitionForInt(lookup,
-      RenameWritable.GroupingByFeatureIdDate.getFeatureId(key),
+      featureId,
       RenameWritable.GroupingByFeatureIdDate.getDate(key))
-    var previousTime = -1
-    var previousEntity: String = null
     val iter = iterable.iterator()
+    val state = RenameReducerState(isSetLookup(featureId))
     while (iter.hasNext) {
       val next = iter.next
       // Make sure we don't clobber different entities with the same date + time
       serializer.fromBytesViewUnsafe(tfact, next.getBytes, 0, next.getLength)
-      // Because we are sorting by priority (ascending) we can ignore anything after the first unique time value
-      if (previousTime != tfact.getSeconds || previousEntity != tfact.getEntity) {
+      if (state.accept(tfact)) {
         out.write(FactsetJobKeys.Out, NullWritable.get, next, path)
-        previousTime = tfact.getSeconds
-        previousEntity = tfact.getEntity
+        state.update(tfact)
         counter.increment(1)
       }
     }
   }
+}
+
+class RenameReducerState(isSet: Boolean, var previousTime: Int, var previousEntity: String) {
+
+  // Because we are sorting by priority (ascending) we can ignore anything after the first unique time value
+  def accept(tfact: ThriftFact): Boolean =
+    isSet || previousTime != tfact.getSeconds || previousEntity != tfact.getEntity
+
+  def update(tfact: ThriftFact): Unit = {
+    previousTime = tfact.getSeconds
+    previousEntity = tfact.getEntity
+  }
+}
+
+object RenameReducerState {
+
+  def apply(isSet: Boolean): RenameReducerState =
+    new RenameReducerState(isSet, -1, "")
 }

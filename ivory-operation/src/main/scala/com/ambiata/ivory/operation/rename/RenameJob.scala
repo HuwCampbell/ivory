@@ -3,7 +3,7 @@ package com.ambiata.ivory.operation.rename
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.extraction.SnapshotJob
 import com.ambiata.ivory.storage.fact.FactsetGlob
-import com.ambiata.ivory.storage.lookup.{ReducerLookups, FactsetLookups}
+import com.ambiata.ivory.storage.lookup.{FactsetLookups, FeatureLookups, ReducerLookups}
 import com.ambiata.ivory.storage.task.FactsetJobKeys
 import com.ambiata.poacher.mr._
 import com.ambiata.poacher.scoobi.ScoobiAction
@@ -15,7 +15,8 @@ import org.apache.hadoop.mapreduce.lib.input.{MultipleInputs, SequenceFileInputF
 import org.apache.hadoop.mapreduce.lib.output._
 
 object RenameJob {
-  def run(repository: HdfsRepository, mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], target: Path, reducerLookups: ReducerLookups,
+  def run(repository: HdfsRepository, dictionary: Dictionary, mapping: RenameMapping,
+          inputs: List[Prioritized[FactsetGlob]], target: Path, reducerLookups: ReducerLookups,
           codec: Option[CompressionCodec]): ScoobiAction[RenameStats] = for {
     conf  <- ScoobiAction.scoobiConfiguration
     job = Job.getInstance(conf.configuration)
@@ -68,6 +69,7 @@ object RenameJob {
       ctx.thriftCache.push(job, ReducerLookups.Keys.NamespaceLookup, reducerLookups.namespaces)
       ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,   reducerLookups.reducers)
       ctx.thriftCache.push(job, SnapshotJob.Keys.FactsetVersionLookup, FactsetLookups.versionTable(inputs.map(_.value)))
+      ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(dictionary))
 
       /* run job */
       if (!job.waitForCompletion(true))
@@ -83,6 +85,7 @@ object RenameJob {
 
   object Keys {
     val Mapping = ThriftCache.Key("ivory.rename.mapping")
+    val FeatureIsSetLookup = ThriftCache.Key("feature-is-set-lookup")
     val MapCounter = "rename-map"
     val ReduceCounter = "rename-reduce"
   }
