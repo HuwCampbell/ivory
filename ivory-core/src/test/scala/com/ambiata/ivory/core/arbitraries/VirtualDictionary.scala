@@ -23,6 +23,6 @@ object VirtualDictionary {
   implicit def VirtualDictionaryArbitrary: Arbitrary[VirtualDictionary] = Arbitrary(for {
     cd  <- arbitrary[ConcreteDefinition]
     fid <- arbitrary[FeatureId]
-    vd  <- GenDictionary.virtual(fid -> cd)
+    vd  <- GenDictionary.virtual(fid -> cd, 0)
   } yield VirtualDictionary(cd, vd._1, vd._2))
 }
