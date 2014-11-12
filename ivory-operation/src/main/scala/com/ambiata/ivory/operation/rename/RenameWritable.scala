@@ -68,7 +68,7 @@ object RenameWritable {
   class PartitionerFeatureId extends BaseFactsPartitioner[BytesWritable] {
     def getFeatureId(bw: BytesWritable): Int =
       GroupingByFeatureIdDate.getFeatureId(bw)
-    def getEntityHash(bw: BytesWritable): Int =
+    def getHash(bw: BytesWritable): Int =
       GroupingByFeatureIdDate.getEntityHash(bw)
   }
 }
