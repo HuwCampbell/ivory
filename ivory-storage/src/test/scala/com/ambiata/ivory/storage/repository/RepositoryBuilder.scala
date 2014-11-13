@@ -19,6 +19,7 @@ object RepositoryBuilder {
   def using[A](f: HdfsRepository => ResultTIO[A]): ResultTIO[A] = TemporaryDirPath.withDirPath { dir =>
     val sc = ScoobiConfiguration()
     sc.set("hadoop.tmp.dir", dir.path)
+    sc.set("scoobi.dir", dir.path)
     val repo = HdfsRepository(HdfsLocation(dir.path), IvoryConfiguration.fromScoobiConfiguration(sc.configuration))
     f(repo)
   }
