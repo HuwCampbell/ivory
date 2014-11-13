@@ -34,6 +34,8 @@ class IntervalReducer[A, B](dates: DateOffsets, r: ReductionFoldWithDate[A, Long
     }
   }
 
+  def skip(f: Fact, reason: String): Unit = ()
+
   def save: ThriftFactValue = {
     to.to(r.aggregate(a), value)
     value

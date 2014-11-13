@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
 import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.ivory.operation.extraction.{ChordJob, Entities, Snapshots, SnapshotJob}
-import com.ambiata.ivory.storage.lookup.{ReducerLookups, ReducerSize, WindowLookup}
+import com.ambiata.ivory.storage.lookup.{FeatureLookups, ReducerLookups, ReducerSize, WindowLookup}
 import com.ambiata.ivory.storage.metadata.SnapshotManifest
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FileName
@@ -129,6 +129,7 @@ object SquashJob {
     ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,
       SquashReducerLookup.create(dictionary, featureIdLookup, reducers))
     ctx.thriftCache.push(job, Keys.ExpressionLookup, reductionLookup)
+    ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTableConcrete(dictionary))
 
     // run job
     if (!job.waitForCompletion(true))
@@ -165,7 +166,8 @@ object SquashJob {
 
   def concreteGroupToReductions(fid: FeatureId, cg: ConcreteGroup, latest: Boolean): List[FeatureReduction] = {
     // We use 'latest' reduction to output the concrete feature as well
-    val cr = latest.option(reductionToThriftExp(fid, Query.empty, cg.definition.encoding, None))
+    // NOTE: Only states have the concept of "latest" - it doesn't make sense for sets
+    val cr = (latest && cg.definition.mode.isState).option(reductionToThriftExp(fid, Query.empty, cg.definition.encoding, None))
     val vrs = cg.virtual.map((reductionToThrift(cg.definition.encoding) _).tupled)
     cr.toList ++ vrs
   }
@@ -187,5 +189,6 @@ object SquashJob {
     val ProfileTotalGroup = "squash-profile-total"
     val ProfileSaveGroup = "squash-profile-save"
     val ExpressionLookup = ThriftCache.Key("squash-expression-lookup")
+    val FeatureIsSetLookup = ThriftCache.Key("feature-is-set-lookup")
   }
 }

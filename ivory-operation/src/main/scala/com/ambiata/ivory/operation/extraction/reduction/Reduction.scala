@@ -21,21 +21,14 @@ trait Reduction {
   /** Update the state based on a single [[Fact]] */
   def update(f: Fact): Unit
 
+  /** Called when facts are skipped due to filtering of some kind */
+  def skip(f: Fact, reason: String): Unit
+
   /** Return a final thrift value based on the current state, or null to filter out */
   def save: ThriftFactValue
 }
 
 object Reduction {
-
-  /** This is a hack because of the lack of set vs state mode, eventually this (should) disappear */
-  def getWindowOverride(expression: Expression): Option[Date] = condOpt(expression) {
-    // For latest and days since reducers, we need to match all facts (to catch them before the window).
-    case BasicExpression(Latest)        => Date.minValue
-    case StructExpression(_, Latest)    => Date.minValue
-    // Days since is similar to latest, except an additional date operation is applied
-    case BasicExpression(DaysSince)     => Date.minValue
-    case StructExpression(_, DaysSince) => Date.minValue
-  }
 
   def compile(fr: FeatureReduction, exp: Expression, dates: DateOffsetsLazy, profile: Reduction => Reduction): Option[Reduction] = for {
     encoding <- DictionaryTextStorageV2.parseEncoding(fr.getEncoding).toOption
@@ -259,6 +252,8 @@ class ReductionFoldWrapper[A, @specialized(Int, Float, Double, Boolean) B, C](f:
     v.to(f.aggregate(a), value)
     value
   }
+
+  def skip(f: Fact, reason: String): Unit = ()
 }
 
 class ReductionFoldStructWrapper[A, @specialized(Int, Float, Double, Boolean) B, C](field: String, f: ReductionFoldWithDate[A, B, C], from: ReductionValueFromPrim[B], v: ReductionValueTo[C]) extends Reduction {
@@ -278,6 +273,7 @@ class ReductionFoldStructWrapper[A, @specialized(Int, Float, Double, Boolean) B,
     v.to(f.aggregate(a), value)
     value
   }
+  def skip(f: Fact, reason: String): Unit = ()
 }
 
 class ReductionFold2StructWrapper[A, @specialized(Int, Float, Double, Boolean) B1, @specialized(Int, Float, Double, Boolean) B2, C]
@@ -300,4 +296,5 @@ class ReductionFold2StructWrapper[A, @specialized(Int, Float, Double, Boolean) B
     v.to(f.aggregate(a), value)
     value
   }
+  def skip(f: Fact, reason: String): Unit = ()
 }

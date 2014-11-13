@@ -12,7 +12,12 @@ class FilterReducer(reduction: Reduction, expression: FilterReductionExpression)
   def update(fact: Fact): Unit =
     if(expression.eval(fact)) {
       reduction.update(fact)
+    } else {
+      reduction.skip(fact, "filter")
     }
+
+  def skip(f: Fact, reason: String): Unit =
+    reduction.skip(f, reason)
 
   def save: ThriftFactValue =
     reduction.save

@@ -17,6 +17,8 @@ class DateReduction[@specialized(Int, Long, Double) A](offsets: DateOffsets, red
   def update(f: Fact): Unit =
     if (!f.isTombstone) days.inc(f.date)
 
+  def skip(f: Fact, reason: String): Unit = ()
+
   def save: ThriftFactValue = {
     out.to(reducer.aggregate(days), value)
     value

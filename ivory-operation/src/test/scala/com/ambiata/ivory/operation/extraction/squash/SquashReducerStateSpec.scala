@@ -8,45 +8,72 @@ import org.specs2.{ScalaCheck, Specification}
 
 class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2"""
 
-  Squash a number of facts                                         $squash
-  Squash a number of facts for a chord                             $squashChord
+  Squash a number of facts (state)                                 $squashState
+  Squash a number of facts (set)                                   $squashSet
+  Squash a number of facts for a chord (state)                     $squashChordState
+  Squash a number of facts for a chord (set)                       $squashChordSet
   Dump trace for a squash                                          $dump
 """
 
-  def squash = prop((sf: SquashFacts) => {
-    val frs = ReducerPool.create(
-      SquashJob.concreteGroupToReductions(sf.dict.fid, sf.dict.withExpression(Count).cg, latest = true), (_, r) => r
+  def squashState = prop((sfWrongMode: SquashFacts) => {
+    val sf = sfWrongMode.withMode(Mode.State)
+    squash(sf) ==== sf.expectedFactsWithCountState.sortBy(_.entity)
+  })
+
+  def squashSet = prop((sfWrongMode: SquashFacts) => {
+    val sf = sfWrongMode.withMode(Mode.Set)
+    squash(sf) ==== sf.expectedFactsWithCountSet.sortBy(_.entity)
+  })
+
+  def squash(sf: SquashFacts): List[Fact] = {
+    val frs = ReducerPool.createTesting(
+      SquashJob.concreteGroupToReductions(sf.dict.fid, sf.dict.withExpression(Count).cg, latest = true),
+      sf.dict.cg.definition.mode.isSet
     )
 
     MockFactMutator.run(sf.factsSorted) { (bytes, mutator, emitter, out) =>
       val state = new SquashReducerStateSnapshot(sf.date)
       state.reduceAll(createMutableFact, createMutableFact, frs, mutator, bytes, emitter, out)
-    } ==== sf.expectedFactsWithCount.sortBy(_.entity)
+    }
+  }
+
+  def squashChordState = prop((cf2: ChordFacts) => cf2.facts.nonEmpty ==> {
+    val cf = cf2.withMode(Mode.State)
+    chord(cf) ==== cf.expectedSquashState
   })
 
-  def squashChord = prop((cf: ChordFacts) => cf.facts.nonEmpty ==> {
-    val pool = ReducerPool.create(
+  def squashChordSet = prop((cf2: ChordFacts) => cf2.facts.nonEmpty ==> {
+    val cf = cf2.withMode(Mode.Set)
+    chord(cf) ==== cf.expectedSquashSet
+  })
+
+  def chord(cf: ChordFacts): List[Fact] = {
+    val pool = ReducerPool.createTesting(
       SquashJob.concreteGroupToReductions(cf.factAndMeta.fact.featureId,
-        ConcreteGroup(cf.factAndMeta.meta, List(cf.fid -> VirtualDefinition(cf.factAndMeta.fact.featureId, Query(Count, None), cf.window)))
-      , latest = true), (_, r) => r
+        ConcreteGroup(cf.factAndMeta.meta, List(cf.fid -> VirtualDefinition(cf.factAndMeta.fact.featureId,
+          Query(Count, None), cf.window)))
+        , latest = true), cf.factAndMeta.meta.mode.isSet
     )
 
     val facts = cf.facts.sortBy(fact => (fact.entity, fact.datetime.long))
     MockFactMutator.run(facts) { (bytes, mutator, emitter, out) =>
       val state = new SquashReducerStateChord(cf.chord)
       state.reduceAll(createMutableFact, createMutableFact, pool, mutator, bytes, emitter, out)
-    } ==== cf.expectedSquash
-  })
+    }
+  }
 
   def dump = prop((sf: SquashFacts) => {
-    val frs = ReducerPool.create(
-      SquashJob.concreteGroupToReductions(sf.dict.fid, sf.dict.withExpression(Count).cg, latest = false), (_, r) => r
-    )
-
     val lines = MockFactMutator.runText(sf.factsSorted) { (bytes, emitter, out) =>
-      val state = new SquashReducerStateDump(sf.date, '|', "NA")
+      val frs = ReducerPool.create(
+        SquashJob.concreteGroupToReductions(sf.dict.fid, sf.dict.withExpression(Count).cg, latest = true), false,
+        SquashDump.wrap('|', "NA", _, _, { line =>
+          out.set(line)
+          emitter.emit(SquashReducerState.kout, out)
+        })
+      )
+      val state = new SquashReducerStateDump(sf.date)
       state.reduceAll(createMutableFact, createMutableFact, frs, new FactByteMutator, bytes, emitter, out)
     }
-    lines.size ==== sf.facts.size * sf.dict.cg.virtual.size
+    lines.map(_.split("\\|")(0)).toSet ==== sf.expected.keySet
   })
 }

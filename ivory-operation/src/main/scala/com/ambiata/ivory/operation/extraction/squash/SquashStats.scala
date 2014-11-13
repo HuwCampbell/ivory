@@ -62,6 +62,9 @@ class SquashProfileReduction(mod: Int, reduction: Reduction, updates: Counter, s
     count += 1
   }
 
+  def skip(f: Fact, reason: String): Unit =
+    reduction.skip(f, reason)
+
   def save: ThriftFactValue = {
     saves.count(1)
     // We could also have a separate sample rate, but this saves having two different values to worry about

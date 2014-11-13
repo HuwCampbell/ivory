@@ -1,9 +1,16 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
-import com.ambiata.ivory.core.Date
+import com.ambiata.ivory.core.thrift.ThriftFactValue
+import com.ambiata.ivory.core.{Fact, Date}
 import com.ambiata.ivory.operation.extraction.reduction.ReductionArbitraries.DatesOfCount
 
 object ReducerUtil {
+
+  def updateAll(r: Reduction, facts: List[Fact]): ThriftFactValue = {
+    r.clear()
+    facts.sortBy(_.datetime.underlying).foreach(r.update)
+    r.save
+  }
 
   def run[A, B, C](r: ReductionFold[A, B, C], l: List[B]): C =
     r.aggregate(l.foldLeft(r.initial) { (a, v) => r.fold(a, v) })

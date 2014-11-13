@@ -21,6 +21,8 @@ class DaysSinceEarliestReducer(dates: DateOffsets) extends Reduction {
       date = fv.date
   }
 
+  def skip(f: Fact, reason: String): Unit = ()
+
   def save: ThriftFactValue =
     if (date != sentinelDate) {
       value.setI(dates.untilEnd(date).value)

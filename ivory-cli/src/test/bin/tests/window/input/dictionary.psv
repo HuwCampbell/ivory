@@ -1,4 +1,4 @@
-halibut:swiss_cheese|encoding=double|tombstone=T
+halibut:swiss_cheese|encoding=double|tombstone=T|mode=set
 halibut:cooldown|source=halibut:swiss_cheese|window=1 month|expression=count
 halibut:latte|source=halibut:swiss_cheese|window=2 months|expression=count
 halibut:days_since_latest|source=halibut:swiss_cheese|window=2 months|expression=days_since_latest
@@ -15,12 +15,38 @@ halibut:sum|source=halibut:swiss_cheese|window=2 months|expression=sum
 halibut:gradient|source=halibut:swiss_cheese|window=2 months|expression=gradient
 halibut:std_dev|source=halibut:swiss_cheese|window=2 months|expression=std_dev
 halibut:mean|source=halibut:swiss_cheese|window=2 months|expression=mean
-expression:string|encoding=string|tombstone=T
+expression:string|encoding=string|tombstone=T|mode=set
 expression:num_flips|source=expression:string|window=2 months|expression=num_flips
 expression:count_by|source=expression:string|window=2 months|expression=count_by
 expression:days_since_earliest_by|source=expression:string|window=2 months|expression=days_since_earliest_by
 expression:days_since_latest_by|source=expression:string|window=2 months|expression=days_since_latest_by
 expression:count_unique|source=expression:string|window=2 months|expression=count_unique
 expression:proportion|source=expression:string|window=2 months|expression=proportion,a
-filter:age|encoding=int
+filter:age|encoding=int|mode=set
 filter:adult|source=filter:age|expression=count|window=2 months|filter=or,(and,18),19,(and,(>=,20),(<,25))|tombstone=T
+halibut_state:swiss_cheese|encoding=double|tombstone=T|mode=state
+halibut_state:cooldown|source=halibut_state:swiss_cheese|window=1 month|expression=count
+halibut_state:latte|source=halibut_state:swiss_cheese|window=2 months|expression=count
+halibut_state:days_since_latest|source=halibut_state:swiss_cheese|window=2 months|expression=days_since_latest
+halibut_state:days_since_earliest|source=halibut_state:swiss_cheese|window=2 months|expression=days_since_earliest
+halibut_state:mean_in_days|source=halibut_state:swiss_cheese|window=2 months|expression=mean_in_days
+halibut_state:mean_in_weeks|source=halibut_state:swiss_cheese|window=2 months|expression=mean_in_weeks
+halibut_state:maximum_in_days|source=halibut_state:swiss_cheese|window=2 months|expression=maximum_in_days
+halibut_state:maximum_in_weeks|source=halibut_state:swiss_cheese|window=2 months|expression=maximum_in_weeks
+halibut_state:minimum_in_days|source=halibut_state:swiss_cheese|window=2 months|expression=minimum_in_days
+halibut_state:minimum_in_weeks|source=halibut_state:swiss_cheese|window=2 months|expression=minimum_in_weeks
+halibut_state:quantile_in_days|source=halibut_state:swiss_cheese|window=2 months|expression=quantile_in_days,1,10
+halibut_state:quantile_in_weeks|source=halibut_state:swiss_cheese|window=2 months|expression=quantile_in_weeks,1,8
+halibut_state:sum|source=halibut_state:swiss_cheese|window=2 months|expression=sum
+halibut_state:gradient|source=halibut_state:swiss_cheese|window=2 months|expression=gradient
+halibut_state:std_dev|source=halibut_state:swiss_cheese|window=2 months|expression=std_dev
+halibut_state:mean|source=halibut_state:swiss_cheese|window=2 months|expression=mean
+expression_state:string|encoding=string|tombstone=T|mode=state
+expression_state:num_flips|source=expression_state:string|window=2 months|expression=num_flips
+expression_state:count_by|source=expression_state:string|window=2 months|expression=count_by
+expression_state:days_since_earliest_by|source=expression_state:string|window=2 months|expression=days_since_earliest_by
+expression_state:days_since_latest_by|source=expression_state:string|window=2 months|expression=days_since_latest_by
+expression_state:count_unique|source=expression_state:string|window=2 months|expression=count_unique
+expression_state:proportion|source=expression_state:string|window=2 months|expression=proportion,a
+filter_state:age|encoding=int|mode=state
+filter_state:adult|source=filter_state:age|expression=count|window=2 months|filter=or,(and,18),19,(and,(>=,20),(<,25))|tombstone=T

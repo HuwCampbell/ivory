@@ -114,24 +114,33 @@ object ChordArbitraries {
     lazy val takeSnapshot: Boolean =
       ces.sortBy(_.dates.headOption.map(_._1).getOrElse(Date.maxValue)).headOption
         .flatMap(_.dates.headOption).flatMap(_._2.headOption).isDefined
-    lazy val expectedSquash: List[Fact] = ces.sortBy(_.entity).flatMap {
+    lazy val expectedSquashState: List[Fact] = ces.sortBy(_.entity).flatMap {
       ce => ce.toFacts(factAndMeta.fact, factAndMeta.meta.mode) { (d, fs, prev) =>
-        val sd = window.map(Window.startingDate(_)(d)).getOrElse(Date.minValue)
+        val sd = window.map(Window.startingDate(_)(d)).getOrElse(d)
         val pfs = prev ++ fs
         val last = pfs.lastOption
-        val inWindow = pfs.filter(Window.isFactWithinWindow(sd, _))
+        val (beforeWindow, inWindow) = pfs.partition(!Window.isFactWithinWindow(sd, _))
+        // What the reducers actually see
+        val stateWindow = beforeWindow.lastOption.toList ++ inWindow
         (last.map { f =>
           val cfid = factAndMeta.fact.featureId
           Fact.newFact("", cfid.namespace.name, cfid.name, d, Time(0), f.value)
         }.toList ++
-          List(Fact.newFact("", fid.namespace.name, fid.name, d, Time(0), LongValue(inWindow.size)))
+          List(Fact.newFact("", fid.namespace.name, fid.name, d, Time(0), LongValue(stateWindow.size)))
         ).map(_.withEntity(ce.entity + ":" + d.hyphenated))
+      }
+    }
+    lazy val expectedSquashSet: List[Fact] = ces.sortBy(_.entity).flatMap {
+      ce => ce.toFacts(factAndMeta.fact, factAndMeta.meta.mode) { (d, fs, prev) =>
+        val sd = window.map(Window.startingDate(_)(d)).getOrElse(d)
+        val inWindow = (prev ++ fs).filter(Window.isFactWithinWindow(sd, _))
+        List(Fact.newFact("", fid.namespace.name, fid.name, d, Time(0), LongValue(inWindow.size))).map(_.withEntity(ce.entity + ":" + d.hyphenated))
       }
     }
     lazy val chord = Entities.fromChordEntities(new ChordEntities(ces.map(ce => ce.entity -> ce.dateArray).toMap.asJava))
 
     def withMode(mode: Mode): ChordFacts =
-      copy(factAndMeta = factAndMeta.copy(meta = factAndMeta.meta.copy(mode = Mode.State)))
+      copy(factAndMeta = factAndMeta.copy(meta = factAndMeta.meta.copy(mode = mode)))
   }
 
   implicit def ChordFactArbitrary: Arbitrary[ChordFact] = Arbitrary(for {
