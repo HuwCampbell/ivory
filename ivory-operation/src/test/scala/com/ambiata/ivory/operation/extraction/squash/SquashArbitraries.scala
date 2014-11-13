@@ -65,7 +65,7 @@ object SquashArbitraries {
     w <- Arbitrary.arbitrary[ConcreteGroupFeature].flatMap { w =>
       // Make sure we have _at least_ one virtual feature
       if (w.dictionary.hasVirtual) Gen.const(w)
-      else GenDictionary.virtual(w.fid -> w.cg.definition).map(virt => w.copy(cg = w.cg.copy(virtual = virt :: w.cg.virtual)))
+      else GenDictionary.virtual(w.fid -> w.cg.definition, 0).map(virt => w.copy(cg = w.cg.copy(virtual = virt :: w.cg.virtual)))
     }.map {
       // My kingdom for a lens :(
       // Disable filtering in squash tests, handled in FilterReductionSpec and window cli test

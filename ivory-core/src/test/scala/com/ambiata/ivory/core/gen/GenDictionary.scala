@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 
 import org.scalacheck._, Arbitrary.arbitrary
 
-import scalaz._, Scalaz._
+import scalaz.{Name => _, _}, Scalaz._
 import scalaz.scalacheck.ScalaCheckBinding._
 
 
@@ -57,8 +57,8 @@ object GenDictionary {
     // For every concrete definition there is a chance we may have a virtual feature
     v <- c.traverse(x => Gen.frequency(
       70 -> Gen.const(None)
-    , 30 -> virtual(x).map(some).map(_.filterNot(vd => i.contains(vd._1))))
-    ).map(_.flatten)
+    , 30 -> virtual(x, 0).map(some)
+    )).map(_.flatten)
   } yield Dictionary(c.map({ case (f, d) => d.toDefinition(f) }) ++ v.map({ case (f, d) => d.toDefinition(f) }))
 
   // FIX ARB Could do with some polish.
@@ -162,9 +162,11 @@ object GenDictionary {
     }
   }
 
-  def virtual(gen: (FeatureId, ConcreteDefinition)): Gen[(FeatureId, VirtualDefinition)] = for {
-    fid <- GenIdentifier.feature
+  /** Require an index for this definition to guarantee uniqueness of feature ids across the dictionary */
+  def virtual(gen: (FeatureId, ConcreteDefinition), featureIdOffset: Int): Gen[(FeatureId, VirtualDefinition)] = for {
     exp <- expression(gen._2)
+    // Also give the virtual feature a different namespace
+    fid  = FeatureId(Name.reviewed(gen._1.namespace.name + "_v"), gen._1.name + "_" + featureIdOffset)
     filter <- filter(gen._2)
     window <- Gen.option(GenDictionary.window)
     query = Query(exp, filter.map(FilterTextV0.asString).map(_.render).map(Filter.apply))
