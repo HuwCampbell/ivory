@@ -16,7 +16,8 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.mapreduce.lib.input;
+package com.ambiata.ivory.operation.hadoop;
+/* WAS: package org.apache.hadoop.mapreduce.lib.input; */
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,12 +38,13 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat; /* WAS not required in old package */
 import org.apache.hadoop.util.ReflectionUtils;
 
 /**
  * An {@link InputFormat} that delegates behavior of paths to multiple other
  * InputFormats.
- * 
+ *
  * @see MultipleInputs#addInputPath(Job, Path, Class, Class)
  */
 @InterfaceAudience.Private
@@ -50,12 +52,12 @@ import org.apache.hadoop.util.ReflectionUtils;
 public class DelegatingInputFormat<K, V> extends InputFormat<K, V> {
 
   @SuppressWarnings("unchecked")
-  public List<InputSplit> getSplits(JobContext job) 
+  public List<InputSplit> getSplits(JobContext job)
       throws IOException, InterruptedException {
     Configuration conf = job.getConfiguration();
     Job jobCopy =new Job(conf);
     List<InputSplit> splits = new ArrayList<InputSplit>();
-    Map<Path, InputFormat> formatMap = 
+    Map<Path, InputFormat> formatMap =
       MultipleInputs.getInputFormatMap(job);
     Map<Path, Class<? extends Mapper>> mapperMap = MultipleInputs
        .getMapperTypeMap(job);
@@ -71,7 +73,7 @@ public class DelegatingInputFormat<K, V> extends InputFormat<K, V> {
       formatPaths.get(entry.getValue().getClass()).add(entry.getKey());
     }
 
-    for (Entry<Class<? extends InputFormat>, List<Path>> formatEntry : 
+    for (Entry<Class<? extends InputFormat>, List<Path>> formatEntry :
         formatPaths.entrySet()) {
       Class<? extends InputFormat> formatClass = formatEntry.getKey();
       InputFormat format = (InputFormat) ReflectionUtils.newInstance(

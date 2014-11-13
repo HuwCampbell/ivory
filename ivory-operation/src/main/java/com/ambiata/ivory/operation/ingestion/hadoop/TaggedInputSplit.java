@@ -16,7 +16,8 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.mapreduce.lib.input;
+package com.ambiata.ivory.operation.hadoop;
+/* WAS: package org.apache.hadoop.mapreduce.lib.input; */
 
 import java.io.DataInput;
 import java.io.DataInputStream;
@@ -41,7 +42,7 @@ import org.apache.hadoop.util.StringInterner;
  * An {@link InputSplit} that tags another InputSplit with extra data for use
  * by {@link DelegatingInputFormat}s and {@link DelegatingMapper}s.
  */
-class TaggedInputSplit extends InputSplit implements Configurable, Writable {
+public /* WAS: package protected */ class TaggedInputSplit extends InputSplit implements Configurable, Writable {
 
   private Class<? extends InputSplit> inputSplitClass;
 
@@ -61,7 +62,7 @@ class TaggedInputSplit extends InputSplit implements Configurable, Writable {
 
   /**
    * Creates a new TaggedInputSplit.
-   * 
+   *
    * @param inputSplit The InputSplit to be tagged
    * @param conf The configuration to use
    * @param inputFormatClass The InputFormat class to use for this job
@@ -80,7 +81,7 @@ class TaggedInputSplit extends InputSplit implements Configurable, Writable {
 
   /**
    * Retrieves the original InputSplit.
-   * 
+   *
    * @return The InputSplit that was tagged
    */
   public InputSplit getInputSplit() {
@@ -89,7 +90,7 @@ class TaggedInputSplit extends InputSplit implements Configurable, Writable {
 
   /**
    * Retrieves the InputFormat class to use for this split.
-   * 
+   *
    * @return The InputFormat class to use
    */
   @SuppressWarnings("unchecked")
@@ -99,7 +100,7 @@ class TaggedInputSplit extends InputSplit implements Configurable, Writable {
 
   /**
    * Retrieves the Mapper class to use for this split.
-   * 
+   *
    * @return The Mapper class to use
    */
   @SuppressWarnings("unchecked")
@@ -143,7 +144,7 @@ class TaggedInputSplit extends InputSplit implements Configurable, Writable {
     Text.writeString(out, inputFormatClass.getName());
     Text.writeString(out, mapperClass.getName());
     SerializationFactory factory = new SerializationFactory(conf);
-    Serializer serializer = 
+    Serializer serializer =
           factory.getSerializer(inputSplitClass);
     serializer.open((DataOutputStream)out);
     serializer.serialize(inputSplit);

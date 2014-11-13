@@ -15,7 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.mapreduce.lib.input;
+package com.ambiata.ivory.operation.hadoop;
+/* WAS: package org.apache.hadoop.mapreduce.lib.input; */
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,22 +32,46 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.ReflectionUtils;
 
+/* WAS: these imports were not required, used for encode/decode */
+
+import com.owtelse.codec.Base64;
+import java.io.UnsupportedEncodingException;
+
 /**
  * This class supports MapReduce jobs that have multiple input paths with
- * a different {@link InputFormat} and {@link Mapper} for each path 
+ * a different {@link InputFormat} and {@link Mapper} for each path
  */
 @InterfaceAudience.Public
 @InterfaceStability.Stable
 public class MultipleInputs {
-  public static final String DIR_FORMATS = 
-    "mapreduce.input.multipleinputs.dir.formats";
-  public static final String DIR_MAPPERS = 
-    "mapreduce.input.multipleinputs.dir.mappers";
-  
+  public static final String DIR_FORMATS =
+      "ivory.multipleinputs.dir.formats";
+      /* WAS    "mapreduce.input.multipleinputs.dir.formats"; */
+  public static final String DIR_MAPPERS =
+      "ivory.input.multipleinputs.dir.mappers";
+      /* WAS    "mapreduce.input.multipleinputs.dir.mappers"; */
+
+
+  private static String encode(String s) {
+      try {
+          return Base64.encode(s.getBytes("UTF-8"), "UTF-8");
+      } catch (UnsupportedEncodingException e) {
+          throw new RuntimeException(e);
+      }
+  }
+
+  private static String decode(String s) {
+      try {
+          return Base64.decode(s.getBytes("UTF-8"), "UTF-8");
+      } catch (UnsupportedEncodingException e) {
+          throw new RuntimeException(e);
+      }
+  }
+
   /**
    * Add a {@link Path} with a custom {@link InputFormat} to the list of
    * inputs for the map-reduce job.
-   * 
+   *
    * @param job The {@link Job}
    * @param path {@link Path} to be added to the list of inputs for the job
    * @param inputFormatClass {@link InputFormat} class to use for this path
@@ -54,8 +79,8 @@ public class MultipleInputs {
   @SuppressWarnings("unchecked")
   public static void addInputPath(Job job, Path path,
       Class<? extends InputFormat> inputFormatClass) {
-    String inputFormatMapping = path.toString() + ";"
-       + inputFormatClass.getName();
+    /* WAS not encoded */
+    String inputFormatMapping = encode(path.toString() + ";" + inputFormatClass.getName());
     Configuration conf = job.getConfiguration();
     String inputFormats = conf.get(DIR_FORMATS);
     conf.set(DIR_FORMATS,
@@ -68,7 +93,7 @@ public class MultipleInputs {
   /**
    * Add a {@link Path} with a custom {@link InputFormat} and
    * {@link Mapper} to the list of inputs for the map-reduce job.
-   * 
+   *
    * @param job The {@link Job}
    * @param path {@link Path} to be added to the list of inputs for the job
    * @param inputFormatClass {@link InputFormat} class to use for this path
@@ -81,7 +106,8 @@ public class MultipleInputs {
 
     addInputPath(job, path, inputFormatClass);
     Configuration conf = job.getConfiguration();
-    String mapperMapping = path.toString() + ";" + mapperClass.getName();
+    /* WAS not encoded */
+    String mapperMapping = encode(path.toString() + ";" + mapperClass.getName());
     String mappers = conf.get(DIR_MAPPERS);
     conf.set(DIR_MAPPERS, mappers == null ? mapperMapping
        : mappers + "," + mapperMapping);
@@ -92,7 +118,7 @@ public class MultipleInputs {
   /**
    * Retrieves a map of {@link Path}s to the {@link InputFormat} class
    * that should be used for them.
-   * 
+   *
    * @param job The {@link JobContext}
    * @see #addInputPath(JobConf, Path, Class)
    * @return A map of paths to inputformats for the job
@@ -102,7 +128,9 @@ public class MultipleInputs {
     Map<Path, InputFormat> m = new HashMap<Path, InputFormat>();
     Configuration conf = job.getConfiguration();
     String[] pathMappings = conf.get(DIR_FORMATS).split(",");
-    for (String pathMapping : pathMappings) {
+    for (String pathMappingEncoded : pathMappings) {
+       /* WAS not decoded */
+      String pathMapping = decode(pathMappingEncoded);
       String[] split = pathMapping.split(";");
       InputFormat inputFormat;
       try {
@@ -119,26 +147,28 @@ public class MultipleInputs {
   /**
    * Retrieves a map of {@link Path}s to the {@link Mapper} class that
    * should be used for them.
-   * 
+   *
    * @param job The {@link JobContext}
    * @see #addInputPath(JobConf, Path, Class, Class)
    * @return A map of paths to mappers for the job
    */
   @SuppressWarnings("unchecked")
-  static Map<Path, Class<? extends Mapper>> 
+  static Map<Path, Class<? extends Mapper>>
       getMapperTypeMap(JobContext job) {
     Configuration conf = job.getConfiguration();
     if (conf.get(DIR_MAPPERS) == null) {
       return Collections.emptyMap();
     }
-    Map<Path, Class<? extends Mapper>> m = 
+    Map<Path, Class<? extends Mapper>> m =
       new HashMap<Path, Class<? extends Mapper>>();
     String[] pathMappings = conf.get(DIR_MAPPERS).split(",");
-    for (String pathMapping : pathMappings) {
+    for (String pathMappingEncoded : pathMappings) {
+       /* WAS not decoded */
+      String pathMapping = decode(pathMappingEncoded);
       String[] split = pathMapping.split(";");
       Class<? extends Mapper> mapClass;
       try {
-       mapClass = 
+       mapClass =
          (Class<? extends Mapper>) conf.getClassByName(split[1]);
       } catch (ClassNotFoundException e) {
        throw new RuntimeException(e);

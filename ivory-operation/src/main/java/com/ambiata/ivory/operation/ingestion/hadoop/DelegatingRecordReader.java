@@ -15,7 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.mapreduce.lib.input;
+
+package com.ambiata.ivory.operation.hadoop;
+/* WAS: package org.apache.hadoop.mapreduce.lib.input; */
 
 import java.io.IOException;
 
@@ -29,7 +31,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 
 /**
  * This is a delegating RecordReader, which delegates the functionality to the
- * underlying record reader in {@link TaggedInputSplit}  
+ * underlying record reader in {@link TaggedInputSplit}
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
@@ -38,10 +40,10 @@ public class DelegatingRecordReader<K, V> extends RecordReader<K, V> {
 
   /**
    * Constructs the DelegatingRecordReader.
-   * 
+   *
    * @param split TaggegInputSplit object
    * @param context TaskAttemptContext object
-   *  
+   *
    * @throws IOException
    * @throws InterruptedException
    */
