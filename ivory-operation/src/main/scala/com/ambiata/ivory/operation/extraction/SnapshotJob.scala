@@ -7,7 +7,6 @@ import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
 import com.ambiata.ivory.operation.hadoop.MultipleInputs
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
-import com.ambiata.ivory.storage.partition._
 import com.ambiata.ivory.mr._
 import com.ambiata.mundane.control._
 import com.ambiata.poacher.mr._
@@ -55,18 +54,7 @@ object SnapshotJob {
     job.setOutputValueClass(classOf[BytesWritable])
 
     // input
-    val mappers = inputs.map(p => (classOf[SnapshotFactsetMapper], p.value))
-    mappers.foreach({ case (clazz, factsetGlob) =>
-      Partitions.globs(repository, factsetGlob.factset, factsetGlob.partitions).foreach(glob => {
-        println(s"Input path: ${glob}")
-        MultipleInputs.addInputPath(job, new Path(glob), classOf[SequenceFileInputFormat[_, _]], clazz)
-      })
-    })
-
-    incremental.foreach(p => {
-      println(s"Incremental path: ${p}")
-      MultipleInputs.addInputPath(job, p, classOf[SequenceFileInputFormat[_, _]], classOf[SnapshotIncrementalMapper])
-    })
+    IvoryInputs.configure(job, repository, inputs, incremental, classOf[SnapshotFactsetMapper], classOf[SnapshotIncrementalMapper])
 
     // output
     val tmpout = new Path(ctx.output, "snap")
