@@ -354,8 +354,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable
     val feature = SnapshotWritable.GroupingEntityFeatureId.getFeatureId(key)
     val windowStart = Date.unsafeFromInt(windowLookup(feature))
     val count = SnapshotReducer.reduce(fact, iter.iterator, mutator, emitter, vout, windowStart, isSetLookup(feature))
-// FIX MAX COUNTERS    featureCounter.count(feaureIdStrings(feature), count)
-    ()
+    featureCounter.count(feaureIdStrings(feature), count)
   }
 }
 
