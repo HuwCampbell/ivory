@@ -4,8 +4,10 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, SnapshotWindowLookup, FlagLookup}
 import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
+import com.ambiata.ivory.operation.hadoop.MultipleInputs
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
+import com.ambiata.ivory.storage.partition._
 import com.ambiata.ivory.mr._
 import com.ambiata.mundane.control._
 import com.ambiata.poacher.mr._
@@ -21,7 +23,6 @@ import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce.{Counter => _, _}
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat
-import org.apache.hadoop.mapreduce.lib.input.MultipleInputs
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
 
@@ -56,9 +57,9 @@ object SnapshotJob {
     // input
     val mappers = inputs.map(p => (classOf[SnapshotFactsetMapper], p.value))
     mappers.foreach({ case (clazz, factsetGlob) =>
-      factsetGlob.keys.foreach(key => {
-        println(s"Input path: ${key.name}")
-        MultipleInputs.addInputPath(job, repository.toIvoryLocation(key).toHdfsPath, classOf[SequenceFileInputFormat[_, _]], clazz)
+      Partitions.globs(repository, factsetGlob.factset, factsetGlob.partitions).foreach(glob => {
+        println(s"Input path: ${glob}")
+        MultipleInputs.addInputPath(job, new Path(glob), classOf[SequenceFileInputFormat[_, _]], clazz)
       })
     })
 

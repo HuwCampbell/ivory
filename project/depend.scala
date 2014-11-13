@@ -9,6 +9,7 @@ object depend {
   val joda      = Seq("joda-time"            %  "joda-time"       % "2.1")
   val spire     = Seq("org.spire-math"       %% "spire"           % "0.8.2")
   val argonaut  = Seq("io.argonaut"          %% "argonaut"        % "6.1-M4")
+  val base64    = Seq("com.owtelse.codec"    %  "base64"          % "1.0.6")
 
   val specs2    = Seq("specs2-core", "specs2-junit", "specs2-html", "specs2-matcher-extra", "specs2-scalacheck").map(c =>
                       "org.specs2"           %% c                 % "2.4.8" % "test" excludeAll ExclusionRule(organization = "org.scalamacros"))
