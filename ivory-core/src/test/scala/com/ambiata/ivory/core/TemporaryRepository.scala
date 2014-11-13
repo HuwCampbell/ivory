@@ -29,7 +29,7 @@ object TemporaryLocationDir {
 }
 
 case class TemporaryLocationFile(location: IvoryLocation) {
-  def clean: ResultTIO[Unit] = IvoryLocation.deleteAll(location)
+  def clean: ResultTIO[Unit] = IvoryLocation.delete(location)
 }
 
 object TemporaryLocationFile {
