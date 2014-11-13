@@ -46,7 +46,6 @@ Helper functions
       withIvoryLocationFile(Posix)(location => {
         val dataset = InputDataset(location)
         for {
-          _      <- createLocationDir(dataset.location)
           shadow <- SyncIngest.inputDataSet(dataset, cluster)
           exists <- IvoryLocation.exists(shadow.location)
         } yield exists})
@@ -55,7 +54,7 @@ Helper functions
 
   def relativeFileToCluster = {
     withCluster(cluster => {
-      runWithIvoryLocationFile(cluster.root </> "foo")(location => {
+      runWithIvoryLocationDir(cluster.root </> "foo")(location => {
         val dataset = InputDataset(location)
         for {
           _      <- createLocationDir(location)
@@ -109,7 +108,7 @@ Helper functions
   }).set(minTestsOk = 10)
 
   def fileFromCluster = {
-    withIvoryLocationFile(Posix)(location => {
+    withIvoryLocationDir(Posix)(location => {
       withCluster(cluster => {
         val shadowRepository = ShadowRepository.fromCluster(cluster)
         val relativePath: FilePath = DirPath("shadowOutputDataset") </> DirPath(UUID.randomUUID) <|> "file"

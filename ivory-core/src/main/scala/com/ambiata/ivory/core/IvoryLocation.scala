@@ -104,7 +104,7 @@ object LocalIvoryLocation {
 object IvoryLocation {
   def deleteAll(location: IvoryLocation): ResultTIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Directories.delete(l.dirPath).void
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Prefix(bucket, key).delete.executeT(s3Client)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Pattern(bucket, key).delete.executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.deleteAll(new Path(path)).run(conf)
   }
 
