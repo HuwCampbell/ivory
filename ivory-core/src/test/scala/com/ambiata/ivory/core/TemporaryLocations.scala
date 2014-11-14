@@ -80,9 +80,6 @@ trait TemporaryLocations {
     case h @ HdfsIvoryLocation(HdfsLocation(p), configuration, _, _) => PoacherHdfs.mkdir(new Path(p)).void.run(configuration)
   }
 
-  def s3TempPath: String =
-    s"tests/temporary-${UUID.randomUUID()}"
-
 }
 
 object TemporaryLocations extends TemporaryLocations
