@@ -5,6 +5,7 @@ import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.operation.extraction.chord._
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable
+import com.ambiata.ivory.operation.hadoop.MultipleInputs
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.mr._
@@ -22,7 +23,6 @@ import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce.{Counter => _, _}
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat
-import org.apache.hadoop.mapreduce.lib.input.MultipleInputs
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
 
@@ -56,19 +56,7 @@ object ChordJob {
     job.setOutputKeyClass(classOf[NullWritable])
     job.setOutputValueClass(classOf[BytesWritable])
 
-    // input
-    val mappers = inputs.map(p => (classOf[ChordFactsetMapper], p.value))
-    mappers.foreach({ case (clazz, factsetGlob) =>
-      factsetGlob.keys.foreach(path => {
-        println(s"Input path: ${path.name}")
-        MultipleInputs.addInputPath(job, repository.toIvoryLocation(path).toHdfsPath, classOf[SequenceFileInputFormat[_, _]], clazz)
-      })
-    })
-
-    incremental.foreach(p => {
-      println(s"Incremental path: ${p}")
-      MultipleInputs.addInputPath(job, p, classOf[SequenceFileInputFormat[_, _]], classOf[ChordIncrementalMapper])
-    })
+    IvoryInputs.configure(job, repository, inputs, incremental, classOf[ChordFactsetMapper], classOf[ChordIncrementalMapper])
 
     // output
     val tmpout = new Path(ctx.output, "chord")
