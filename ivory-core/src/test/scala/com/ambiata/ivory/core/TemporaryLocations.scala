@@ -7,6 +7,7 @@ import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._
 import com.ambiata.poacher.hdfs.{Hdfs => PoacherHdfs}
 import com.ambiata.saws.s3.S3Address
+import com.ambiata.saws.testing.TemporaryS3._
 import org.apache.hadoop.fs.Path
 
 import scalaz.{Store =>_,_}, Scalaz._
@@ -14,10 +15,6 @@ import scalaz.{Store =>_,_}, Scalaz._
 trait TemporaryLocations {
 
   val conf = IvoryConfiguration.Empty
-
-  def testBucket: String = Option(System.getenv("AWS_TEST_BUCKET")).getOrElse("ambiata-dev-view")
-
-  def testBucketDir: DirPath = DirPath.unsafe(testBucket)
 
   def withIvoryLocationDir[A](temporaryType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] = {
     runWithIvoryLocationDir(createLocation(temporaryType))(f)
@@ -27,7 +24,7 @@ trait TemporaryLocations {
     val uniquePath = createUniquePath.path
     temporaryType match {
       case Posix  => LocalIvoryLocation(LocalLocation(uniquePath))
-      case S3     => S3IvoryLocation(S3Location(testBucket, uniquePath), conf.s3Client)
+      case S3     => S3IvoryLocation(S3Location(testBucket, s3TempPath), conf.s3Client)
       case Hdfs   => HdfsIvoryLocation(HdfsLocation(uniquePath), conf.configuration, conf.scoobiConfiguration, conf.codec)
     }
   }

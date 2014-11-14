@@ -17,10 +17,11 @@ object depend {
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20141105060008-aa522eb" excludeAll(
+  val sawsVersion = "1.2.1-20141105060008-aa522eb"
+  val saws      = Seq("com.ambiata"          %% "saws"            % sawsVersion excludeAll(
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec")
-  ))
+  ),                  "com.ambiata"          %% "saws-testing"    % sawsVersion)
 
   val MUNDANE_VERSION ="1.2.1-20141024050817-e2b01b2"
   val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-trace").map(c =>
