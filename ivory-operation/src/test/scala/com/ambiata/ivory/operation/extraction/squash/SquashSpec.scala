@@ -8,7 +8,6 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
@@ -33,12 +32,7 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
         ResultT.safe(postProcess(valueFromSequenceFile[Fact](repo.toIvoryLocation(key).toHdfs)
           .run(repo.scoobiConfiguration).toList))
       )
-      p <- IvoryLocation.readLines(out </> FileName.unsafe(".profile"))
-    } yield (f, p.size > 0)
-    } must beOkValue((
-      postProcess(expectedFacts),
-      true
-    ))
+    } yield f } must beOkValue(postProcess(expectedFacts))
   }).set(minTestsOk = 3, maxDiscardRatio = 10)
 
   def dump = prop((sf: SquashFactsMultiple) => sf.hasVirtual ==> {

@@ -27,8 +27,8 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
     RepositoryBuilder.using { repo => for {
       _ <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
       m <- Snapshots.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now))
-      s <- SnapshotStats.load(repo, m.meta.snapshotId)
-    } yield s.factCount.keySet} must beOkValue(
+      f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(m.meta.snapshotId)).toHdfs).run(repo.scoobiConfiguration)
+    } yield f.map(_.featureId).toSet} must beOkValue(
       // FIX: Capture "simple" snapshot logic which handles priority and set/state so we can check the counts
       sampleFacts.flatten.map(_.featureId).toSet
     )
