@@ -35,7 +35,8 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
   }
 
   def e4 = {
-    val location = IvoryLocation.fromFilePath("ivory-storage" </> "src" </> "test" </> "resources" <|> "good_dictionary.txt")
+    val resource = FilePath.unsafe(getClass.getClassLoader.getResource("good_dictionary.txt").getFile)
+    val location = IvoryLocation.fromFilePath(resource)
     DictionaryTextStorage.fromSingleFile(location).run.unsafePerformIO().toDisjunction must_== Dictionary(List(
      Definition.concrete(FeatureId(Name("demo"), "gender"), StringEncoding, Mode.State, Some(CategoricalType), "Gender", List("☠")),
      Definition.concrete(FeatureId(Name("widgets"), "count.1W"), IntEncoding, Mode.State, Some(NumericalType), "Count in the last week", List("☠")),
