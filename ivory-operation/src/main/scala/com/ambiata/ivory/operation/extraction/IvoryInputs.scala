@@ -18,15 +18,16 @@ object IvoryInputs {
   , factset: Class[_ <: Mapper[_, _, _, _]]
   , snapshot: Class[_ <: Mapper[_, _, _, _]]
   ): Unit = {
-
+    val factsets = inputs.map(_.value.factset).distinct.size
+    val partitions = inputs.map(_.value.partitions.size).sum
+    println(s"Adding input path for ${partitions} partitions across ${factsets} factsets.")
     inputs.foreach(pglob =>
       Partitions.globs(repository, pglob.value.factset, pglob.value.partitions).foreach(glob => {
-        println(s"Input path: ${glob}")
         MultipleInputs.addInputPath(job, new Path(glob), classOf[SequenceFileInputFormat[_, _]], factset)
       }))
 
     incremental.foreach(p => {
-      println(s"Incremental path: ${p}")
+      println(s"Adding input path snapshot at path ${p}.")
       MultipleInputs.addInputPath(job, p, classOf[SequenceFileInputFormat[_, _]], snapshot)
     })
   }
