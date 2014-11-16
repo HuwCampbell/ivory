@@ -45,6 +45,7 @@ object Chord {
     store               <- Metadata.latestFeatureStoreOrFail(repository)
     snapshot            <- if (takeSnapshot) Snapshots.takeSnapshot(repository, entities.earliestDate).map(_.meta.pure[Option])
                            else              SnapshotManifest.latestSnapshot(repository, entities.earliestDate).run
+    _                    = println(s"Using snapshot: ${snapshot.map(_.snapshotId)}.")
     out                 <- runChord(repository, store, entities, snapshot)
   } yield out
 
