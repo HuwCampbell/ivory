@@ -118,7 +118,10 @@ object SnapshotManifest {
     sids <- OptionT.optionT[ResultTIO](ids.traverseU((sid: Key) => SnapshotId.parse(sid.name)).pure[ResultTIO])
     metas <- sids.traverseU(fromIdentifier(repository, _))
     filtered = metas.filter(_.date isBeforeOrEqual date)
+    _ = println("Candidate snapshots: ")
+    _ = filtered.sorted.map(m => s"  - id: ${m.snapshotId}, date: ${m.date}.").foreach(println)
     meta <- OptionT.optionT[ResultTIO](filtered.sorted.lastOption.pure[ResultTIO])
+    _ = println(s"Selected: ${meta.snapshotId}")
   } yield meta
 
   def latestWithStoreId(repo: Repository, date: Date, featureStoreId: FeatureStoreId): OptionT[ResultTIO, SnapshotManifest] = for {

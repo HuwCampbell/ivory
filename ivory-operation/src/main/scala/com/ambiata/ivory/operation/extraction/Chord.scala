@@ -43,6 +43,8 @@ object Chord {
     _                    = println(s"Earliest date in chord file is '${entities.earliestDate}'")
     _                    = println(s"Latest date in chord file is '${entities.latestDate}'")
     store               <- Metadata.latestFeatureStoreOrFail(repository)
+    _                    = println(s"Latest store: ${store.id}")
+    _                    = println(s"Are we taking a snapshot? ${takeSnapshot}")
     snapshot            <- if (takeSnapshot) Snapshots.takeSnapshot(repository, entities.earliestDate).map(_.meta.pure[Option])
                            else              SnapshotManifest.latestSnapshot(repository, entities.earliestDate).run
     _                    = println(s"Using snapshot: ${snapshot.map(_.snapshotId)}.")
@@ -56,7 +58,9 @@ object Chord {
     for {
       featureStoreSnapshot <- incremental.traverseU(SnapshotManifest.featureStoreSnapshot(repository, _))
       dictionary           <- latestDictionaryFromIvory(repository)
+      _                     = println(s"Calculating globs using, store = ${store.id}, latest date = ${entities.latestDate}, snapshot: ${featureStoreSnapshot.map(_.snapshotId)}.")
       factsetGlobs         <- calculateGlobs(repository, store, entities.latestDate, featureStoreSnapshot)
+      _                     = println(s"Calculated ${factsetGlobs.size} globs.")
       outputPath           <- Repository.tmpDir(repository)
 
       /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
