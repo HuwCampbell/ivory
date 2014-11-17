@@ -115,8 +115,10 @@ object SnapshotManifest {
    */
   def latestSnapshot(repository: Repository, date: Date): OptionT[ResultTIO, SnapshotManifest] = for {
     ids <- repository.store.listHeads(Repository.snapshots).liftM[OptionT]
-    sids <- OptionT.optionT[ResultTIO](ids.traverseU((sid: Key) => SnapshotId.parse(sid.name)).pure[ResultTIO])
-    metas <- sids.traverseU(fromIdentifier(repository, _))
+    /* This looks fairly weird on first glance, but basically we should be ignoring snapshots that are invalid or
+       incomplete. In fact this is a totally normal situation (parallel or aborted snapshots). */
+    sids <- ids.flatMap(sid => SnapshotId.parse(sid.name).toList).pure[ResultTIO].liftM[OptionT]
+    metas <- sids.traverseU(fromIdentifier(repository, _).run).map(_.flatMap(_.toList)).liftM[OptionT]
     filtered = metas.filter(_.date isBeforeOrEqual date)
     _ = println("Candidate snapshots: ")
     _ = filtered.sorted.map(m => s"  - id: ${m.snapshotId}, date: ${m.date}.").foreach(println)

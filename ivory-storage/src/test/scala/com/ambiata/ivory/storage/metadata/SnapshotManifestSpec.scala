@@ -54,6 +54,8 @@ SnapshotManifest Properties
 
   then the snapshot is up to date $uptodate
 
+  Any invalid ids should be ignored $ignored
+
 """
 
   def encodeDecodeJson = prop((ns: NewSnapshotManifest) =>
@@ -130,6 +132,17 @@ SnapshotManifest Properties
 
     } must beOkResult
   }.set(minTestsOk = 10)
+
+  def ignored = prop { (snapshots: SnapshotManifests, date1: Date) =>
+    RepositoryBuilder.using { repo =>
+      for {
+        _                <- snapshots.metas.traverse(storeSnapshotManifest(repo, _))
+        _                <- repo.store.utf8.write(Repository.snapshots / "broke" / "n", "random stuff")
+        latestBeforeDate =  snapshots.metas.filter(_.date <= date1).sorted.lastOption
+        snapshot         <- SnapshotManifest.latestSnapshot(repo, date1).run
+      } yield snapshot must_== latestBeforeDate
+    } must beOkResult
+  }
 
   def storeSnapshotManifest(repo: Repository, meta: SnapshotManifest): ResultTIO[Unit] = meta.fold(SnapshotMeta.save(repo, _), NewSnapshotManifest.save(repo, _))
 
