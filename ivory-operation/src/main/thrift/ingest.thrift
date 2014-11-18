@@ -35,3 +35,15 @@ struct ThriftFact {
     3: ThriftFactValue value;
     4: string datetime;
 }
+
+/* Represents a dense-dense fact where every value is either set or a tombstone */
+struct ThriftFactDense {
+    1: string entity;
+    2: list<ThriftFactValue> value;
+}
+
+/* Represents a dense-sparse fact where the map only contains the value if they are set */
+struct ThriftFactSparse {
+    1: string entity;
+    2: map<string, ThriftFactValue> value;
+}

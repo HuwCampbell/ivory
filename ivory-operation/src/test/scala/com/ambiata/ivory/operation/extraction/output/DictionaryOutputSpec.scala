@@ -10,6 +10,6 @@ class DictionaryOutputSpec extends Specification with ScalaCheck { def is = s2""
 
   // This is just a sanity check for matching all the expressions because we can't trust scala exhaustive checking :(
   def index = prop((dict: Dictionary, t: String, delim: Char) => {
-    DictionaryOutput.indexedDictionaryLines(dict, t, delim) must haveLength(dict.definitions.length)
+    DictionaryOutput.indexedDictionaryLines(dict, Some(t), delim) must haveLength(dict.definitions.length)
   })
 }

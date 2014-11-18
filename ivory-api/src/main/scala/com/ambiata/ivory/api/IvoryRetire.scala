@@ -50,7 +50,7 @@ object IvoryRetire {
    */
   val takeSnapshot = com.ambiata.ivory.operation.extraction.Snapshots.takeSnapshot _
   val chord = com.ambiata.ivory.operation.extraction.Chord.createChordWithSquash _
-  val dense = com.ambiata.ivory.operation.extraction.output.DenseOutput.createWithDictionary _
+  val dense = com.ambiata.ivory.operation.extraction.output.GroupByEntityOutput.createWithDictionary _
   val sparse = com.ambiata.ivory.operation.extraction.output.SparseOutput.extractWithDictionary _
 
   val Codec = com.ambiata.ivory.storage.repository.Codec

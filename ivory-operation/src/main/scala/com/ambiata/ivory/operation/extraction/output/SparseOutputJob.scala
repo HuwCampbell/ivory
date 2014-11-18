@@ -61,7 +61,7 @@ object SparseOutputJob {
       case "eav" => output
     }, true).run(conf).run.unsafePerformIO()
 
-    DictionaryOutput.writeToHdfs(output, dictionary, missing, delimiter).run(conf).run.unsafePerformIO()
+    DictionaryOutput.writeToHdfs(output, dictionary, Some(missing), delimiter).run(conf).run.unsafePerformIO()
     ()
   }
 
