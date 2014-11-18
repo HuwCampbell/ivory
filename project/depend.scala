@@ -17,11 +17,11 @@ object depend {
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val sawsVersion = "1.2.1-20141105060008-aa522eb"
+  val sawsVersion = "1.2.1-20141117054942-d58a959"
   val saws      = Seq("com.ambiata"          %% "saws"            % sawsVersion excludeAll(
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec")
-  ),                  "com.ambiata"          %% "saws-testing"    % sawsVersion)
+  ))
 
   val MUNDANE_VERSION ="1.2.1-20141024050817-e2b01b2"
   val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-trace").map(c =>
@@ -30,10 +30,10 @@ object depend {
 
   def notion(version: String) =
     if (version.contains("cdh4"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141105062749-f2de40d") ++
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh4-20141118015440-e9262fd") ++
       hadoop(version)
     else if (version.contains("cdh5"))
-      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141105062749-f2de40d") ++
+      Seq("com.ambiata" %% "notion-core"     % "0.0.1-cdh5-20141118015450-e9262fd") ++
        hadoop(version)
     else
       sys.error(s"unsupported poacher version, can not build for $version")
