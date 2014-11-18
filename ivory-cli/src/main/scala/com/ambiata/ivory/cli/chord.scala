@@ -4,6 +4,7 @@ import com.ambiata.ivory.api.Ivory._
 import com.ambiata.ivory.cli.extract._
 import com.ambiata.ivory.core.IvoryLocation
 import com.ambiata.ivory.operation.extraction.Chord
+import com.ambiata.ivory.operation.extraction.output._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.control._
 import scalaz.effect.IO
@@ -32,6 +33,11 @@ object chord extends IvoryApp {
       ent  <- IvoryLocation.fromUri(c.entities, conf)
       of   <- Extract.parse(conf, c.formats)
       _    <- ResultT.when(of.outputs.isEmpty, ResultT.fail[IO, Unit]("No output/format specified"))
+      // The problem is that we should be outputting the output with a separate date - currently it's hacked into the entity
+      _    <- ResultT.when(of.outputs.map(_._1.format).exists {
+        case ThriftFile       => true
+        case DelimitedFile(_) => false
+      }, ResultT.fail[IO, Unit]("Thrift output for chord not currently supported"))
       r    <- RepositoryRead.fromRepository(repo)
       // TODO Should be using Ivory API here, but the generic return type is lost on the monomorphic function
       _    <- Chord.createChordWithSquash(repo, ent, c.takeSnapshot, c.squash, of.outputs.map(_._2))(
