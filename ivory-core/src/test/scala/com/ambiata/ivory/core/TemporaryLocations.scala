@@ -7,7 +7,7 @@ import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._
 import com.ambiata.poacher.hdfs.{Hdfs => PoacherHdfs}
 import com.ambiata.saws.s3.S3Address
-import com.ambiata.saws.testing.TemporaryS3._
+import com.ambiata.saws.s3.TemporaryS3._
 import org.apache.hadoop.fs.Path
 
 import scalaz.{Store =>_,_}, Scalaz._
