@@ -66,7 +66,8 @@ object build extends Build {
   , settings = standardSettings ++ lib("api") ++ mimaDefaultSettings ++ Seq[Settings](
       name := "ivory-api"
     , previousArtifact := Some("com.ambiata" %% "ivory-api" % "1.0.0-cdh5-20140703185823-2efc9c3")
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.slf4j)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.poacher(version.value) ++ depend.slf4j
+    )
   )
   .dependsOn(operation)
 
@@ -89,6 +90,7 @@ object build extends Build {
       name := "ivory-cli"
     , dist
     , mainClass in assembly := Some("com.ambiata.ivory.cli.main")
+    , jarTest <<= assembly.map({ case p => testJarSize(p) })
     , ProguardKeys.inputs in Proguard <<= (assembly).map(f => Seq(f))
     , ProguardKeys.libraries in Proguard := Seq()
     , ProguardKeys.options in Proguard  += """
@@ -252,4 +254,19 @@ object build extends Build {
     , base / ".." / "etc" / "thrift-NOTICE.txt" -> "thrift-NOTICE.txt"
     , base / ".." / "ivory-operation" / "src" / "main" / "thrift" / "ingest.thrift" -> "ivory.thrift"
     ) })
+
+  lazy val jarTest = taskKey[Unit]("Test jar size")
+
+  def testJarSize(pack: File) = {
+    val p = pack.getAbsolutePath
+    val s = s"jar tvf $p"
+    println(s" Running $s")
+    val i = (s #| "wc -l" !!).trim.toInt
+    val max = 65536
+    if (i > max)
+      sys.error(s"Jar is too fat! Number of files in jar is $i, needs to be less than $max")
+    else
+      println(s"Jar size is ok! Number of files in jar is $i (max: $max)")
+  }
+
 }
