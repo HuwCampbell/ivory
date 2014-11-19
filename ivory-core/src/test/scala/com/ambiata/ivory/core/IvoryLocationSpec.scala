@@ -97,8 +97,8 @@ IvoryLocation
       withIvoryLocationDir(temporaryType) { location =>
         IvoryLocation.writeUtf8(location </> "file1", "") >>
           IvoryLocation.writeUtf8(location </> "file2", "") >>
-          IvoryLocation.list(location).map(ls => (ls.map(_.show.split("/").last), List("file1", "file2")))
-      } must beOkLike { case (ls1, ls2) => ls1.toSet must_== ls2.toSet }
+          IvoryLocation.list(location).map(ls => (ls.map(_.show.split("/").last)).filter(!_.startsWith(".location")))
+      } must beOkLike { case (ls1) => ls1.toSet must_== Set("file1", "file2") }
     }
   }
 
