@@ -26,7 +26,7 @@ Sync operations to cluster
 ==========================
  syncing single file to ShadowInputDataset              $file
  syncing folder/prefix to ShadowInputDataset            $prefix
- synginc datasets to ShadowRepository                   $dataset
+ syncing datasets to ShadowRepository                   $dataset
 
 """
   def file = propNoShrink((data: String, locationType: TemporaryType) => {

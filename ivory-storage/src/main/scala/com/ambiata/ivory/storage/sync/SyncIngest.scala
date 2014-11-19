@@ -17,29 +17,31 @@ import scalaz._, Scalaz._, effect.IO
 object SyncIngest {
 
   /* How should this work one might ask?
-     Example
-     1. Given an `InputDataset(<base>/2012-04-01/facts.txt)`
-       <base>
-       └── 2014-04-01
-          └── facts.txt
-        Return a `ShadowInputDataset(<tmp>/<tmp_sync>/<uuid>/facts.txt)`
-       <repo_tmp>
-       └── <tmp_sync>
-          └── ffc748cc-f213-40dc-9f85-fee935adeec4
-             └── facts.txt
-      2. Give the structure
-        <base>
-        └── 2014-04-03
-           └── facts
-              └── factset
-         And the `InputDataset(<base>/2014-04-03/facts)`
-         Return `ShadowInputDataset(<tmp>/<tmp_sync>/<uuid>/facts/)` with
-         the following file strcutre
-        <repo_tmp>
-        └── <tmp_sync>
-           └── ffc748cc-f213-40dc-9f85-fee935adeec4
-              └── facts
-                 └── factset
+     File example:
+       Given the `InputDataset(<base>/2012-04-01/facts.txt)`
+         <base>
+         └── 2014-04-01
+            └── facts.txt
+       Return a `ShadowInputDataset(<tmp>/<tmp_sync>/<uuid>/facts.txt)`
+         <repo_tmp>
+         └── <tmp_sync>
+            └── ffc748cc-f213-40dc-9f85-fee935adeec4
+               └── facts.txt
+
+      Directory example:
+        Given the directory
+          <base>
+          └── 2014-04-03
+             └── facts
+                └── factset
+        And the `InputDataset(<base>/2014-04-03/facts)`
+        Return `ShadowInputDataset(<tmp>/<tmp_sync>/<uuid>/facts/)` with
+        the following directory structure
+          <repo_tmp>
+          └── <tmp_sync>
+             └── ffc748cc-f213-40dc-9f85-fee935adeec4
+                └── facts
+                   └── factset
                                                                                          */
   def inputDataset(input: InputDataset, cluster: Cluster): ResultTIO[ShadowInputDataset] = {
     val outputPath = DirPath.unsafe(s"tmp/shadow/${UUID.randomUUID()}")
@@ -51,7 +53,7 @@ object SyncIngest {
     }
 
     input.location match {
-      case LocalIvoryLocation(l @ LocalLocation(path)) => for {
+      case l @ LocalLocation(path) => for {
         files <- if (l.dirPath.toFile.isFile) ResultT.ok[IO, List[FilePath]](List(l.filePath))
                  else Directories.list(l.dirPath)
         c     = l.dirPath
@@ -60,7 +62,7 @@ object SyncIngest {
         r     <- ResultT.ok[IO, ShadowInputDataset](getOutput(c.components.lastOption))
       } yield r
 
-      case S3IvoryLocation(S3Location(bucket, key), _) => {
+      case S3Location(bucket, key) => {
         val pattern = S3Pattern(bucket, key)
         val keys = key.split("/").toList
         val prefix = S3Prefix(bucket, keys.init.mkString("/"))
@@ -71,7 +73,7 @@ object SyncIngest {
         } yield r
       }
 
-      case HdfsIvoryLocation(h @ HdfsLocation(_), _, _, _) =>
+      case h @ HdfsLocation(_) =>
         ResultT.ok(ShadowInputDataset(h))
     }
   }

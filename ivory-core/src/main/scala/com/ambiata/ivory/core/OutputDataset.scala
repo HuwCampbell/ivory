@@ -1,3 +1,5 @@
 package com.ambiata.ivory.core
 
-case class OutputDataset(location: IvoryLocation)
+import com.ambiata.notion.core._
+
+case class OutputDataset(location: Location)
