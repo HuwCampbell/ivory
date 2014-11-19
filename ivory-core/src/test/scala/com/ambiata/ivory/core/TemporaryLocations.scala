@@ -8,13 +8,22 @@ import com.ambiata.notion.core.TemporaryType._
 import com.ambiata.poacher.hdfs.{Hdfs => PoacherHdfs}
 import com.ambiata.saws.s3.S3Address
 import com.ambiata.saws.s3.TemporaryS3._
+
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 
 import scalaz.{Store =>_,_}, Scalaz._
 
 trait TemporaryLocations {
 
-  val conf = IvoryConfiguration.Empty
+  def conf = IvoryConfiguration.Empty
+
+  def withConf[A](f: IvoryConfiguration => ResultTIO[A]): ResultTIO[A] = TemporaryDirPath.withDirPath { dir =>
+    val c = new Configuration()
+    c.set("hadoop.tmp.dir", dir.path)
+    val conf = IvoryConfiguration.fromConfiguration(c)
+    f(conf)
+  }
 
   def withIvoryLocationDir[A](temporaryType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] = {
     val location = createLocation(temporaryType)
@@ -34,7 +43,9 @@ trait TemporaryLocations {
     runWithIvoryLocationFile(createLocation(temporaryType))(f)
 
   def withCluster[A](f: Cluster => ResultTIO[A]): ResultTIO[A] =
-    runWithCluster(Cluster.fromIvoryConfiguration(new Path(createUniquePath.path), conf, 1))(f)
+    withConf(c =>
+      runWithCluster(Cluster.fromIvoryConfiguration(new Path(createUniquePath.path), c, 1))(f)
+    )
 
   def runWithRepository[A, R <: Repository](repository: R)(f: R => ResultTIO[A]): ResultTIO[A] =
     ResultT.using(TemporaryRepository(repository).pure[ResultTIO])(tmp => f(tmp.repo))

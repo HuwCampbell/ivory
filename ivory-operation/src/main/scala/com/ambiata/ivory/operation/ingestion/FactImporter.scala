@@ -30,7 +30,7 @@ object FactImporter {
 
     IvoryT.read[ResultTIO] >>= (read => IvoryT.fromResultTIO { for {
       hr            <- repository.asHdfsRepository[IO]
-      inputLocation <- SyncIngest.inputDataset(InputDataset(input), cluster) // input.asHdfsIvoryLocation[IO] // todo shadow location
+      inputLocation <- SyncIngest.inputDataset(InputDataset(input.location), cluster) // input.asHdfsIvoryLocation[IO] // todo shadow location
       dictionary    <- latestDictionaryFromIvory(repository)
       inputPath     =  new Path(inputLocation.location.path)
       errorPath     =  hr.toIvoryLocation(errorKey).toHdfsPath
