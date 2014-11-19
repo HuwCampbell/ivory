@@ -90,8 +90,7 @@ object IvoryCmd {
       for {
         repoPath        <- IvoryT.fromResultTIO { ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
           "-r|--repository was missing or environment variable IVORY_REPOSITORY not set") }
-        shadowPath      <- IvoryT.fromResultTIO { ResultT.fromOption[IO, String](shadowRepoArg.orElse(sys.env.get("SHADOW_REPOSITORY")),
-          s"/tmp/ivory-${UUID.randomUUID()}") }
+        shadowPath      <- IvoryT.fromResultTIO[String] { ResultT.ok(shadowRepoArg.orElse(sys.env.get("SHADOW_REPOSITORY")).getOrElse(s"/tmp/ivory-shadow-${UUID.randomUUID()}")) }
         syncParallelism <- IvoryT.fromResultTIO { ResultT.ok[IO, Int](syncParallelismArg.getOrElse(20)) }
         cluster         = Cluster.fromIvoryConfiguration(new Path(shadowPath), config, syncParallelism)
         repo            <- IvoryT.fromResultTIO { Repository.fromUri(repoPath, config) }
