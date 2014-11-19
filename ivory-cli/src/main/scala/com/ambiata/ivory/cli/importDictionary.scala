@@ -31,9 +31,12 @@ object importDictionary extends IvoryApp {
         opts    = ImportOpts(if (c.update) Update else Override, c.force)
         result <- DictionaryImporter.importFromPath(repository, source, opts)
         _      <- result._1 match {
-          case Success(_)        => ResultT.unit[IO]
+          case Success(_) =>
+            ResultT.unit[IO]
             // Always print validation errors regardless of force
-          case f @ Failure(errors) => ResultT.safe[IO, Unit](errors.list.foreach(println))
+          case f @ Failure(errors) =>
+            ResultT.safe[IO, Unit](errors.list.foreach(println))
+
         }
         _       <- ResultT.fromOption[IO, DictionaryId](result._2, "Invalid dictionary")
       } yield List(s"Successfully imported dictionary ${c.path} into ${repository.root.show}") }

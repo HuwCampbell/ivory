@@ -3,6 +3,9 @@ package core
 
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core.Key
+import com.ambiata.poacher.hdfs._
+
+import org.apache.hadoop.fs.Path
 
 import scalaz.effect.{Resource, IO}
 import scalaz._, Scalaz._
@@ -39,7 +42,7 @@ object TemporaryLocationFile {
 }
 
 case class TemporaryCluster(cluster: Cluster) {
-  def clean: ResultTIO[Unit] = IvoryLocation.deleteAll(cluster.root)
+  def clean: ResultTIO[Unit] = Hdfs.deleteAll(cluster.root).run(cluster.hdfsConfiguration)
 }
 object TemporaryCluster {
   implicit val TemporaryClusterResource: Resource[TemporaryCluster] = new Resource[TemporaryCluster] {

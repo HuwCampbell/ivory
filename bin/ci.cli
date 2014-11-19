@@ -1,5 +1,8 @@
 #!/bin/sh
 
+: ${AWS_TEST_BUCKET:="ambiata-dev-view"}
+export AWS_TEST_BUCKET
+
 DIR=$(dirname $0)/..
 export PATH=${DIR}/bin:$PATH
 ${DIR}/ivory-cli/src/test/bin/run

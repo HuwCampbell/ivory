@@ -1,22 +1,24 @@
 package com.ambiata.ivory.operation.ingestion
 
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.Namespaces
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.metadata.Metadata._
-import com.ambiata.ivory.storage.control._
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.storage.sync._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.poacher.hdfs._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.joda.time.DateTimeZone
-import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
 
+import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
 
 object FactImporter {
   def importFacts(
     repository: Repository
+  , cluster: Cluster
   , namespace: Option[Name]
   , optimal: BytesQuantity
   , format: Format
@@ -28,9 +30,9 @@ object FactImporter {
 
     IvoryT.read[ResultTIO] >>= (read => IvoryT.fromResultTIO { for {
       hr            <- repository.asHdfsRepository[IO]
-      inputLocation <- input.asHdfsIvoryLocation[IO]
+      inputLocation <- SyncIngest.inputDataset(InputDataset(input), cluster) // input.asHdfsIvoryLocation[IO] // todo shadow location
       dictionary    <- latestDictionaryFromIvory(repository)
-      inputPath     =  inputLocation.toHdfsPath
+      inputPath     =  new Path(inputLocation.location.path)
       errorPath     =  hr.toIvoryLocation(errorKey).toHdfsPath
       partitions    <- namespace.fold(Namespaces.namespaceSizes(inputPath))(ns => Namespaces.namespaceSizesSingle(inputPath, ns).map(List(_))).run(hr.configuration)
       _             <- ResultT.fromDisjunction[IO, Unit](validateNamespaces(dictionary, partitions.map(_._1)).leftMap(\&/.This(_)))

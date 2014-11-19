@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.mr.{FactFormats, SequenceUtil}
+import com.ambiata.ivory.mr.{FactFormats}
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import FactFormats._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
@@ -10,8 +10,10 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.notion.core._
 import com.ambiata.poacher.mr.ThriftSerialiser
 import com.nicta.scoobi.Scoobi._
+import org.apache.hadoop.fs.Path
 import org.joda.time.DateTimeZone
 import org.specs2._
 import org.specs2.execute.{AsResult, Result}
@@ -92,10 +94,10 @@ class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
   def saveThriftInputFile: ResultTIO[Unit] = {
     import com.ambiata.ivory.operation.ingestion.thrift._
     val serializer = ThriftSerialiser()
-
-    SequenceUtil.writeBytes(namespaced </> FileName(java.util.UUID.randomUUID), None) {
+    val conf = IvoryConfiguration.Empty
+    SequenceUtil.writeHdfsBytes((namespaced </> "input" </> "ns1" </> FileName(java.util.UUID.randomUUID)).location, conf.configuration, None) {
       writer => ResultT.safe(expected.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
-    }.run(sc)
+    }.run(conf.configuration)
   }
 
   def saveTextInputFileWithErrors: ResultTIO[Unit] = {

@@ -17,7 +17,8 @@ trait TemporaryLocations {
   val conf = IvoryConfiguration.Empty
 
   def withIvoryLocationDir[A](temporaryType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] = {
-    runWithIvoryLocationDir(createLocation(temporaryType))(f)
+    val location = createLocation(temporaryType)
+    createLocationDir(location) >> runWithIvoryLocationDir(location)(f)
   }
 
   def createLocation(temporaryType: TemporaryType): IvoryLocation = {
@@ -33,7 +34,7 @@ trait TemporaryLocations {
     runWithIvoryLocationFile(createLocation(temporaryType))(f)
 
   def withCluster[A](f: Cluster => ResultTIO[A]): ResultTIO[A] =
-    runWithCluster(Cluster(createUniqueIvoryLocation))(f)
+    runWithCluster(Cluster.fromIvoryConfiguration(new Path(createUniquePath.path), conf, 1))(f)
 
   def runWithRepository[A, R <: Repository](repository: R)(f: R => ResultTIO[A]): ResultTIO[A] =
     ResultT.using(TemporaryRepository(repository).pure[ResultTIO])(tmp => f(tmp.repo))
@@ -79,7 +80,6 @@ trait TemporaryLocations {
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client)      => (S3Address(bucket, key) / ".location").put("").executeT(s3Client).void
     case h @ HdfsIvoryLocation(HdfsLocation(p), configuration, _, _) => PoacherHdfs.mkdir(new Path(p)).void.run(configuration)
   }
-
 }
 
 object TemporaryLocations extends TemporaryLocations

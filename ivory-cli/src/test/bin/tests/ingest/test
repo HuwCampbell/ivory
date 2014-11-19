@@ -19,5 +19,18 @@ $IVORY ingest -i "${INPUT}/facts-2" -n HALIBUT
 $IVORY cat-facts "${REPOSITORY}/factsets/00000001/*/*/*/*/*" | sort > "${TARGET}/halibut-facts.psv"
 diff_test "${DIR}/expected/halibut-facts.psv" "${TARGET}/halibut-facts.psv"
 
+### Ingest from S3
+if [ ! -z "${AWS_TEST_BUCKET-}" ]
+then
+  S3_INGEST="s3://${AWS_TEST_BUCKET}/tests/cli/$(random)"
+  aws s3 sync "${INPUT}/facts-2" ${S3_INGEST} --sse
+  $IVORY ingest -i ${S3_INGEST} -n HALIBUT
+  $IVORY cat-facts "${REPOSITORY}/factsets/00000001/*/*/*/*/*" | sort > "${TARGET}/halibut-facts-2.psv"
+  diff_test "${DIR}/expected/halibut-facts.psv" "${TARGET}/halibut-facts-2.psv"
+else
+  echo "Skipping S3 Ingest test. AWS_TEST_BUCKET is not set."
+fi
+
+
 ### Ingest with an invalid namespace - should fail
 $IVORY ingest -r "${REPOSITORY}" -i "${INPUT}/facts-2" -n invalid | grep "Unknown namespaces"

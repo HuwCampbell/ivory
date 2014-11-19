@@ -1,5 +1,7 @@
 package com.ambiata.ivory.cli
 
+import java.util.UUID
+
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.repository.Codec
@@ -8,6 +10,7 @@ import com.ambiata.saws.core.Clients
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.util.GenericOptionsParser
+import org.apache.hadoop.fs.Path
 
 import scalaz.effect.IO
 import scalaz._, Scalaz._
@@ -67,18 +70,31 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
 object IvoryCmd {
 
   def withRepo[A](parser: scopt.OptionParser[A], initial: A,
-                  runner: Repository => IvoryConfiguration => A => IvoryT[ResultTIO, List[String]]): IvoryCmd[A] = {
+                  runner: Repository => IvoryConfiguration => A => IvoryT[ResultTIO, List[String]]): IvoryCmd[A] =
+    withCluster(parser, initial, r => c => conf => a => runner(r)(conf)(a))
+
+  def withCluster[A](parser: scopt.OptionParser[A], initial: A,
+                     runner: Repository => Cluster  => IvoryConfiguration => A => IvoryT[ResultTIO, List[String]]): IvoryCmd[A] = {
     // Oh god this is an ugly/evil hack - the world will be a better place when we upgrade to Pirate
     // Composition, it's a thing scopt, look it up
     var repoArg: Option[String] = None
+    var syncParallelismArg: Option[Int] = None
+    var shadowRepoArg: Option[String] = None
     parser.opt[String]('r', "repository") action { (x, c) => repoArg = Some(x); c} text
       "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"
+    parser.opt[String]("shadow-repository") action { (x, c) => shadowRepoArg = Some(x); c} optional() text
+      "Path to a shadow repository, defaults to environment variable SHADOW_REPOSITORY if set"
+    parser.opt[Int]("sync-parallelism") action { (x, c) => syncParallelismArg = Some(x); c} optional() text
+      "Number of parallel nodes to run operations with, defaults to 20"
     new IvoryCmd(parser, initial, IvoryRunner(config => c =>
       for {
-        repoPath <- IvoryT.fromResultTIO { ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
+        repoPath        <- IvoryT.fromResultTIO { ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
           "-r|--repository was missing or environment variable IVORY_REPOSITORY not set") }
-        repo     <- IvoryT.fromResultTIO { Repository.fromUri(repoPath, config) }
-        result   <- runner(repo)(config)(c)
+        shadowPath      <- IvoryT.fromResultTIO[String] { ResultT.ok(shadowRepoArg.orElse(sys.env.get("SHADOW_REPOSITORY")).getOrElse(s"/tmp/ivory-shadow-${UUID.randomUUID()}")) }
+        syncParallelism <- IvoryT.fromResultTIO { ResultT.ok[IO, Int](syncParallelismArg.getOrElse(20)) }
+        cluster         = Cluster.fromIvoryConfiguration(new Path(shadowPath), config, syncParallelism)
+        repo            <- IvoryT.fromResultTIO { Repository.fromUri(repoPath, config) }
+        result          <- runner(repo)(cluster)(config)(c)
       } yield result
     ))
   }
