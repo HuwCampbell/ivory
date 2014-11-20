@@ -10,6 +10,20 @@ $V2 ingest -r "${REPOSITORY}" -i "${INPUT}/facts" -z "Australia/Sydney" -f "thri
 
 ### SNAPSHOT ###
 
-$IVORY snapshot
+$IVORY snapshot -o "dense:thrift=${TARGET}/dense.thrift" -o "sparse:thrift=${TARGET}/sparse.thrift"
 $IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
+
+diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dense.thrift/.dictionary"
+diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/sparse.thrift/.dictionary"
+
+cat_thrift() {
+  $IVORY cat-thrift -f "$1" -o "${TARGET}/$1.psv" "${TARGET}/$1.thrift"
+  diff_test_mr "${DIR}/expected/$1.psv" "${TARGET}/$1.psv"
+}
+
+cat_thrift "dense"
+cat_thrift "sparse"
+
+cp -r "${INPUT}/facts/halibut" "${TARGET}/fact.thrift"
+cat_thrift "fact"

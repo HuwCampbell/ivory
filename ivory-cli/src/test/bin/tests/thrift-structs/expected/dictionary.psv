@@ -1,0 +1,2 @@
+0|halibut|mandatory|(s:string,i:int,b:boolean,l:long,d:double)|||
+1|halibut|optional|(s:string*,i:int*,b:boolean*,l:long*,d:double*)|||

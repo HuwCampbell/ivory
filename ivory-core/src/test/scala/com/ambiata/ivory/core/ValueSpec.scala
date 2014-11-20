@@ -7,6 +7,7 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
 
   Can validate with correct encoding                     $valid
   Can validate with incorrect encoding                   $invalid
+  Can convert to and from thrift                         $thrift
 """
 
   def valid = prop((e: EncodingAndValue) =>
@@ -16,6 +17,10 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
   def invalid = prop((e: EncodingAndValue, e2: Encoding) => (e.enc != e2 && e.value != TombstoneValue && !isCompatible(e, e2)) ==> {
     Value.validateEncoding(e.value, e2).toEither must beLeft
   })
+
+  def thrift = prop { (v: Value) =>
+    Value.fromThrift(Value.toThrift(v)) ==== v
+  }
 
   // A small subset of  encoded values are valid for different optional/empty Structs/Lists
   private def isCompatible(e1: EncodingAndValue, e2: Encoding): Boolean =
