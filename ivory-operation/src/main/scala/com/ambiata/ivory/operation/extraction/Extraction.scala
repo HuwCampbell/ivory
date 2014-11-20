@@ -16,7 +16,7 @@ object Extraction {
 cps
  */
 
-  def extract(formats: OutputFormats, input: ShadowOutputDataset, dictionary: Dictionary): RepositoryTIO[Unit] = RepositoryT.fromResultTIO(repository => {
+  def extract(formats: OutputFormats, input: ShadowOutputDataset, dictionary: Dictionary, cluster: Cluster): RepositoryTIO[Unit] = RepositoryT.fromResultTIO(repository => {
     val tmpShadow: ShadowOutputDataset = ???
     formats.outputs.traverse {
       case (DenseFormat(format), output) =>
@@ -30,8 +30,7 @@ cps
         GroupByEntityOutput.createWithDictionary(repository, input, tmpShadow, dictionary, GroupByEntityFormat.SparseThrift)
       case (SparseFormat(DelimitedFile(delim)), output) =>
         println(s"Storing extracted data '$input' to '${output.location}'")
-//        SparseOutput.extractWithDictionary(repository, input, output, dictionary, delim, formats.missingValue)
-        ???
+        SparseOutput.extractWithDictionary(repository, input, tmpShadow, dictionary, delim, formats.missingValue)
     }.void
   })
 }
