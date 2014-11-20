@@ -26,10 +26,10 @@ cps
           case ThriftFile           => GroupByEntityFormat.DenseThrift
         })
       case (SparseFormat(ThriftFile), output) =>
-        println(s"Storing extracted data '$input' to '${output.location.path}'")
+        println(s"Storing extracted data '$input' to '${output.location}'")
         GroupByEntityOutput.createWithDictionary(repository, input, tmpShadow, dictionary, GroupByEntityFormat.SparseThrift)
       case (SparseFormat(DelimitedFile(delim)), output) =>
-        println(s"Storing extracted data '$input' to '${output.location.path}'")
+        println(s"Storing extracted data '$input' to '${output.location}'")
 //        SparseOutput.extractWithDictionary(repository, input, output, dictionary, delim, formats.missingValue)
         ???
     }.void
