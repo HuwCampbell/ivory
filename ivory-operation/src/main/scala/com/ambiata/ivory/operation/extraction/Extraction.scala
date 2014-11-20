@@ -2,6 +2,7 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
+import com.ambiata.ivory.storage.sync._
 import com.ambiata.ivory.operation.extraction.output._
 
 import scalaz.Scalaz._
@@ -18,19 +19,24 @@ cps
 
   def extract(formats: OutputFormats, input: ShadowOutputDataset, dictionary: Dictionary, cluster: Cluster): RepositoryTIO[Unit] = RepositoryT.fromResultTIO(repository => {
     val tmpShadow: ShadowOutputDataset = ???
-    formats.outputs.traverse {
+    (formats.outputs.traverse {
       case (DenseFormat(format), output) =>
         println(s"Storing extracted data '$input' to '${output.location}'")
         GroupByEntityOutput.createWithDictionary(repository, input, tmpShadow, dictionary, format match {
           case DelimitedFile(delim) => GroupByEntityFormat.DenseText(delim, formats.missingValue)
           case ThriftFile           => GroupByEntityFormat.DenseThrift
-        })
+        }) >>
+          SyncExtract.outputDataset(tmpShadow, cluster, output)
       case (SparseFormat(ThriftFile), output) =>
         println(s"Storing extracted data '$input' to '${output.location}'")
-        GroupByEntityOutput.createWithDictionary(repository, input, tmpShadow, dictionary, GroupByEntityFormat.SparseThrift)
+        GroupByEntityOutput.createWithDictionary(repository, input, tmpShadow, dictionary, GroupByEntityFormat.SparseThrift) >>
+        SyncExtract.outputDataset(tmpShadow, cluster, output)
+
       case (SparseFormat(DelimitedFile(delim)), output) =>
         println(s"Storing extracted data '$input' to '${output.location}'")
-        SparseOutput.extractWithDictionary(repository, input, tmpShadow, dictionary, delim, formats.missingValue)
-    }.void
+        SparseOutput.extractWithDictionary(repository, input, tmpShadow, dictionary, delim, formats.missingValue) >>
+        SyncExtract.outputDataset(tmpShadow, cluster, output)
+    }.void)
+
   })
 }
