@@ -18,145 +18,38 @@ object DateTimeUtil {
     , 31
   )
 
-  val monthDayArray: Array[Int] = Array(
-           0
-         , 31
-         , 59
-         , 90
-         , 120
-         , 151
-         , 181
-         , 212
-         , 243
-         , 273
-         , 304
-         , 334
-        )
+  /* Calculate the days since the year 1600-03-01, an alternative JodaTime version is included in the spec */
+  def toDays(date: Date): Int = {
+    var d = date.day.toInt
+    var m = date.month.toInt
+    var y = date.year.toInt - 1600
 
-  val monthSecondArray: Array[Int] = Array(
-           0
-         , 2678400
-         , 5097600
-         , 7776000
-         , 10368000
-         , 13046400
-         , 15638400
-         , 18316800
-         , 20995200
-         , 23587200
-         , 26265600
-         , 28857600
-        )
+    m = (m + 9) % 12
+    y = y - m/10
 
-  /* Calculate the seconds since the year 2000 */
-  // Warning, doesn't do daylight savings
-  def toSeconds(dt: DateTime): Long = {
-    var ret  = (dt.underlying & 0xffffffff).toInt.toLong
-    val date = dt.date
-    val d = date.day
-    val y = date.year
-    val m = date.month
-
-    if (m < 1 || m > 12)
-      Crash.error(Crash.Invariant, s"Incorrect month for datetime $dt")
-
-    ret += (d-1) * 86400 // 24 * 60 * 60
-    // Add the days for each month past
-    ret += monthSecondArray(m-1)
-
-    // Add a day if it's a leap year and we're past Feb
-    if (m > 2 && isLeapYear(y))
-      ret += 86400
-
-    // Add a day for each leap year since 2000, or subtract one for each before.
-    if (y > 2000) {
-      ret += (y-1997)/4 * 86400
-      ret -= (y-2001)/100 * 86400
-      ret += (y-2001)/400 * 86400
-    } else {
-      ret += (y-2000)/4 * 86400
-      ret -= (y-2000)/100 * 86400
-      ret += (y-2000)/400 * 86400      
-    }
-
-    ret += (y-2000).toLong * 31536000
-    ret
+    365*y + y/4 - y/100 + y/400 + (m*306 + 5)/10 + ( d - 1 )
   }
 
-  /* Calculate the days since the year 2001-01-01, an alternative JodaTime version is included in the spec */
-  def toDays(date: Date): Int = {
-    val d = date.day
-    val m = date.month
-    val y = date.year
-
-    if (m < 1 || m > 12)
-      Crash.error(Crash.Invariant, s"Incorrect month for date $date")
-
-    var ret = d - 1
-    // Add the days for each month past
-    ret += monthDayArray(m-1)
-
-    // Add a day if it's a leap year and we're past Feb
-    if (m > 2 && isLeapYear(y))
-        ret += 1
-
-    // Add a day for each leap year since 2000, or subtract one for each before.
-    if (y > 2000) {
-      ret += (y-1997)/4
-      ret -= (y-2001)/100
-      ret += (y-2001)/400
-    } else {
-      ret += (y-2000)/4
-      ret -= (y-2000)/100
-      ret += (y-2000)/400      
+  /* Calculate the date from a number of days since 1600-03-01 */
+  def fromDays(g: Int): Date = {
+    var y = ((10000L*g + 14780)/3652425).toInt
+    var ddd = g - (365*y + y/4 - y/100 + y/400)
+    if (ddd < 0) {
+      y = y - 1
+      ddd = g - (365*y + y/4 - y/100 + y/400)
     }
-
-    ret += (y-2000) * 365
-    ret
+    var mi = (100*ddd + 52)/3060
+    var mm = (mi + 2)%12 + 1
+    y = y + (mi + 2)/12
+    var dd = ddd - (mi*306 + 5)/10 + 1
+    Date.unsafe((y + 1600).toShort, mm.toByte, dd.toByte)
   }
 
   def isLeapYear(y: Short): Boolean =
     (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
 
   def minusDays(date: Date, offset: Int): Date = {
-
-    def daysInYear(y: Short, m: Int): Int =
-      monthDayArray(m - 1) + (if (m > 2 && isLeapYear(y)) 1 else 0)
-    def daysInMonth(y: Short, m: Int): Int =
-      monthLengths(m - 1) + (if (m == 2 && isLeapYear(y)) 1 else 0)
-
-    var y = date.year
-    var m = date.month.toInt
-    val d = date.day
-
-    // The special case where we're still in the same month
-    val d2 = if (offset < d) {
-      d - offset
-    } else {
-      var daysLeft = offset - d
-
-      var currentDays = daysInYear(y, m)
-      while (currentDays <= daysLeft) {
-        daysLeft -= currentDays
-        y = (y - 1).toShort
-        currentDays = if (isLeapYear(y)) 366 else 365
-        // Start from December, but not 12 because we always decrement one below
-        m = 13
-      }
-
-      // We're always going back _at least_ one month at this point
-      m -= 1
-
-      // Loop back through the months of this year until we run out of days
-      currentDays = daysInMonth(y, m)
-      while (currentDays <= daysLeft) {
-        daysLeft -= currentDays
-        m -= 1
-        currentDays = daysInMonth(y, m)
-      }
-      currentDays - daysLeft
-    }
-    Date.unsafe(y, m.toByte, d2.toByte)
+    fromDays(toDays(date) - offset)
   }
 
   def minusMonths(date: Date, offset: Int): Date = {

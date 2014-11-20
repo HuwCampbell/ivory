@@ -110,7 +110,7 @@ object Date {
     unsafe(3000.toShort, 12.toByte, 31.toByte)
 
   def minValue: Date =
-    unsafe(1000.toShort, 1.toByte, 1.toByte)
+    unsafe(1600.toShort, 3.toByte, 1.toByte)
 
   def min(date1: Date, date2: Date): Date =
     if (date1 isBefore date2) date1 else date2

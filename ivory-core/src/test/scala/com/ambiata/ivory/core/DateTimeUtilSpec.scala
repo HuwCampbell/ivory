@@ -8,8 +8,10 @@ import org.specs2.{ScalaCheck, Specification}
 
 class DateTimeUtilSpec extends Specification with ScalaCheck { def is = s2"""
   Can calculate the number of days since the turn of the century correctly     $days
-  Seconds do not overflow at the year 3000                                     $overflow
-  Can calculate the number of seconds since the turn of the century correctly  $seconds
+  Can calculate the date from a number of days since 1600-03-01                $dates
+
+  Days converions are symmetric                                                $daysSymmetry
+  Dates converions are symmetric                                               $datesSymmetry
 
   Can minus a number of days                                                   $minusDays
   Can minus a number of months                                                 $minusMonths
@@ -21,20 +23,26 @@ class DateTimeUtilSpec extends Specification with ScalaCheck { def is = s2"""
     DateTimeUtil.toDays(d) ==== slowToD(d)
   )
 
-  def overflow =
-    DateTimeUtil.toSeconds(DateTime(3000, 12, 31, 7200)) ==== 31588452000L
+  def dates = prop{ (d: Int) =>
+    // Number of days between Date.minValue and Date.maxValue is 511644
+    val days = Math.abs(d) % 511644
+    DateTimeUtil.fromDays(days) ==== slowFromD(days)
+  }
 
-  def seconds = prop((d: Date, t: Time) => {
-  	val q = d.addTime(t)
-    DateTimeUtil.toSeconds(q) ==== slowToS(q)
-  })
+  def datesSymmetry = prop((d: Date) =>
+    DateTimeUtil.fromDays(DateTimeUtil.toDays(d)) ==== d
+  ).set(minTestsOk = 1000)
+
+  def daysSymmetry = prop { (d: Int) =>
+    val days = Math.abs(d) % 511644
+    DateTimeUtil.toDays(DateTimeUtil.fromDays(days)) ==== days
+  }
 
   def slowToD(d: Date): Int =
-    JodaDays.daysBetween(new JodaLocalDate("2000-01-01"), new JodaLocalDate(d.year.toInt, d.month.toInt, d.day.toInt)).getDays
+    JodaDays.daysBetween(new JodaLocalDate("1600-03-01"), new JodaLocalDate(d.year.toInt, d.month.toInt, d.day.toInt)).getDays
 
-  def slowToS(dt: DateTime): Long =
-    JodaSeconds.secondsBetween(new JodaLocalDateTime("2000-01-01"), new JodaLocalDateTime(dt.date.year.toInt, dt.date.month.toInt,
-      dt.date.day.toInt, dt.time.hours, dt.time.minuteOfHour, dt.time.secondOfMinute)).getSeconds
+  def slowFromD(d: Int): Date =
+    Date.fromLocalDate(new JodaLocalDate("1600-03-01").plusDays(d))
 
   def minusDays = prop { (d: Date, s: Short) =>
     val i = Math.abs(s)
