@@ -59,8 +59,7 @@ object SyncIngest {
         c     = l.dirPath
         pr    = DirPath(c.names.init.toVector, c.isAbsolute)
         _     <- SyncLocal.toHdfs(pr, files, outputPath, cluster)
-        r     <- ResultT.ok[IO, ShadowInputDataset](getOutput(c.components.lastOption))
-      } yield r
+      } yield getOutput(c.components.lastOption)
 
       case S3Location(bucket, key) => {
         val pattern = S3Pattern(bucket, key)
@@ -69,8 +68,7 @@ object SyncIngest {
         for {
           files <- getS3Info(pattern).executeT(cluster.s3Client)
           _     <- SyncS3.toHdfs(prefix, files, outputPath, cluster)
-          r     <- ResultT.ok[IO, ShadowInputDataset](getOutput(keys.lastOption))
-        } yield r
+        } yield getOutput(keys.lastOption)
       }
 
       case h @ HdfsLocation(_) =>

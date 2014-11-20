@@ -20,7 +20,7 @@ Sync operations from cluster
  syncing folder from ShadowOutputDataset                $folder
  syncing ShadowOutputDataset handles failure            $handleFailure
 
- syncing datasets from ShadowRepositroy                 dataset
+ syncing datasets from ShadowRepositroy                 $dataset
 
 
 """
@@ -39,7 +39,7 @@ Sync operations from cluster
           val dataset = help(hdfs.location)
           for {
             _ <- IvoryLocation.writeUtf8(hdfs, data)
-            o = OutputDataset(output)
+            o = OutputDataset(output.location)
             _ <- SyncExtract.outputDataset(dataset, cluster, o)
             e <- IvoryLocation.exists(output)
             d <- IvoryLocation.readLines(output)
@@ -58,7 +58,7 @@ Sync operations from cluster
             _ <- IvoryLocation.deleteAll(output)
             _ <- IvoryLocation.writeUtf8(hdfs </> FilePath.unsafe("foo"), data)
             _ <- IvoryLocation.writeUtf8(hdfs </> DirPath.unsafe("foos") </> FilePath.unsafe("bar"), data)
-            o = OutputDataset(output)
+            o = OutputDataset(output.location)
             _ <- SyncExtract.outputDataset(dataset, cluster, o)
             f <- IvoryLocation.exists(output </> FilePath.unsafe("foo"))
             b <- IvoryLocation.exists(output </> DirPath.unsafe("foos") </> FilePath.unsafe("bar"))
@@ -75,13 +75,11 @@ Sync operations from cluster
       withIvoryLocationFile(TemporaryType.Hdfs)(hdfs => {
         withIvoryLocationFile(location)(output => {
           val dataset = help(hdfs.location)
-          SyncExtract.outputDataset(dataset, cluster, OutputDataset(output))
+          SyncExtract.outputDataset(dataset, cluster, OutputDataset(output.location))
         })
       })
     ) must beFail
   }).set(minTestsOk = 10)
 
-
-
-  def dataset = ???
+  def dataset = pending
 }
