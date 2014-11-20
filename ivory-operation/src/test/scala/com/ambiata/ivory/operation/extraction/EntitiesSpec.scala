@@ -35,8 +35,10 @@ class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations
 
   }.set(maxSize = 3, minTestsOk= 1000)
 
-  def keepBestFact = prop { (head: PrioritizedFact, tail: List[PrioritizedFact]) =>
-    val facts = head +: tail
+  def keepBestFact = prop { (h: PrioritizedFact, t: List[PrioritizedFact]) =>
+    val facts = (h +: t).sortBy(_._1)
+    val head = facts.head
+    val tail = facts.tail
 
     // create Entities from the existing facts
     val entities = createEntitiesFromFactsWithOneMoreDate(facts)
