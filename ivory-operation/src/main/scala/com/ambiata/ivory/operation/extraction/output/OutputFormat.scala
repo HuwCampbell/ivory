@@ -30,4 +30,4 @@ object OutputFormat {
   })
 }
 
-case class OutputFormats(outputs: List[(OutputFormat, IvoryLocation)], missingValue: String)
+case class OutputFormats(outputs: List[(OutputFormat, OutputDataset)], missingValue: String)
