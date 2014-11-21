@@ -47,12 +47,13 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
     TemporaryDirPath.withDirPath { dir =>
       for {
         _               <- RepositoryBuilder.createRepo(repo, dictionary, facts)
-        eav             <- IvoryLocation.fromUri((dir </> "eav").path, IvoryConfiguration.Empty)
+        conf            <- TemporaryIvoryConfiguration.getConf
+        eav             <- IvoryLocation.fromUri((dir </> "eav").path, conf)
         res             <- Snapshots.takeSnapshot(repo, Date.maxValue)
         meta            = res.meta
         input           = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
         _               <- SparseOutput.extractWithDictionary(repo, input, eav, dictionary, '|', "NA")
-        dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, IvoryConfiguration.Empty)
+        dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, conf)
         dictionaryLines <- IvoryLocation.readLines(dictLocation)
         eavLines        <- IvoryLocation.readLines(eav).map(_.sorted)
       } yield (eavLines.mkString("\n").trim, dictionaryLines)

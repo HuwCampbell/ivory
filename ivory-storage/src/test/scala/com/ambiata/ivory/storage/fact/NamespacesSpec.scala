@@ -57,7 +57,8 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
     val ns1 = KeyName.unsafe("ns1")
     val ns2 = KeyName.unsafe("ns2")
     for {
-      repository <- Repository.fromUri(dir.path, IvoryConfiguration.Empty)
+      conf       <- TemporaryIvoryConfiguration.getConf
+      repository <- Repository.fromUri(dir.path, conf)
       _          <- List(ns1 / "f1", ns2 / "f2", Key.Root / ".ignore").traverse(createFile(repository))
       result     <- f(new Path(dir.path))
     } yield result

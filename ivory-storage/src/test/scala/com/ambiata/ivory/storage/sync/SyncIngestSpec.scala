@@ -29,8 +29,6 @@ Sync operations to cluster
  synginc datasets to ShadowRepository                   $dataset
 
 """
-  val conf = IvoryConfiguration.Empty
-
   def file = propNoShrink((data: String, locationType: TemporaryType) => {
     withCluster(cluster => {
       withIvoryLocationFile(locationType)(location => {

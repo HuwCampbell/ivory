@@ -9,19 +9,20 @@ import com.ambiata.poacher.hdfs.{Hdfs => PoacherHdfs}
 import com.ambiata.saws.s3.S3Address
 import com.ambiata.saws.s3.TemporaryS3._
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.conf.Configuration
+import TemporaryIvoryConfiguration._
 
 import scalaz.{Store =>_,_}, Scalaz._
 
 trait TemporaryLocations {
 
-  val conf = IvoryConfiguration.Empty
+  def withIvoryLocationDir[A](temporaryType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] =
+    withConf(conf => {
+      val location = createLocation(temporaryType, conf)
+      createLocationDir(location) >> runWithIvoryLocationDir(location)(f)
+    })
 
-  def withIvoryLocationDir[A](temporaryType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] = {
-    val location = createLocation(temporaryType)
-    createLocationDir(location) >> runWithIvoryLocationDir(location)(f)
-  }
-
-  def createLocation(temporaryType: TemporaryType): IvoryLocation = {
+  def createLocation(temporaryType: TemporaryType, conf: IvoryConfiguration): IvoryLocation = {
     val uniquePath = createUniquePath.path
     temporaryType match {
       case Posix  => LocalIvoryLocation(LocalLocation(uniquePath))
@@ -31,10 +32,11 @@ trait TemporaryLocations {
   }
 
   def withIvoryLocationFile[A](temporaryType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] =
-    runWithIvoryLocationFile(createLocation(temporaryType))(f)
+    withConf(conf =>
+      runWithIvoryLocationFile(createLocation(temporaryType, conf))(f))
 
   def withCluster[A](f: Cluster => ResultTIO[A]): ResultTIO[A] =
-    runWithCluster(Cluster.fromIvoryConfiguration(new Path(createUniquePath.path), conf, 1))(f)
+    withConf(c => runWithCluster(Cluster.fromIvoryConfiguration(new Path(createUniquePath.path), c, 1))(f))
 
   def runWithRepository[A, R <: Repository](repository: R)(f: R => ResultTIO[A]): ResultTIO[A] =
     ResultT.using(TemporaryRepository(repository).pure[ResultTIO])(tmp => f(tmp.repo))
@@ -52,19 +54,17 @@ trait TemporaryLocations {
   def createUniquePath: DirPath =
     DirPath.unsafe(System.getProperty("java.io.tmpdir", "/tmp")) </> DirPath.unsafe(s"temporary-${UUID.randomUUID()}")
 
-  def createUniqueIvoryLocation = createUniqueHdfsLocation
-
   def createUniqueLocalLocation: LocalIvoryLocation = {
     val path = createUniquePath.path
     LocalIvoryLocation(LocalLocation(path))
   }
 
-  def createUniqueS3Location: S3IvoryLocation = {
+  def createUniqueS3Location(conf: IvoryConfiguration): S3IvoryLocation = {
     val path = createUniquePath.asRelative.path
     S3IvoryLocation(S3Location(testBucket, path), conf.s3Client)
   }
 
-  def createUniqueHdfsLocation: HdfsIvoryLocation = {
+  def createUniqueHdfsLocation(conf: IvoryConfiguration): HdfsIvoryLocation = {
     val path = createUniquePath.path
     HdfsIvoryLocation(HdfsLocation(path), conf.configuration, conf.scoobiConfiguration, conf.codec)
   }
