@@ -6,6 +6,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.ReducerLookup
 import com.ambiata.poacher.mr.{ByteWriter, Writables}
 import org.specs2.{ScalaCheck, Specification}
+import scala.collection.JavaConverters._
 
 class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -20,8 +21,9 @@ class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s
     val (lookup, _) = SquashJob.dictToLookup(dict, latest = true)
     val create = SquashReducerLookup.create(dict, lookup, reducers)
     val lookupV = create.reducers.get(lookup.ids.get(d.vdict.vd.source.toString))
-    // Just a santity test - we should do better though
-    FeatureReducerOffset.getReducer(lookupV, e & Int.MaxValue) must beGreaterThanOrEqualTo(0)
+    val windowReducers = create.reducers.values().asScala.map(_ & 0xffff).sum
+    windowReducers must beGreaterThan(reducers - d2.byConcrete.sources.size) and
+      (FeatureReducerOffset.getReducer(lookupV, e & Int.MaxValue) must beGreaterThanOrEqualTo(0))
   })
 
   def partitionNoWindow = prop((f: Fact, fids: Short, partitions: Short) => partitions != 0 ==> {
