@@ -60,7 +60,9 @@ object SquashReducerLookup {
     // Create a sub-index for all of the window features so they don't overlap on the reducers
     new ReducerLookup(windowSizes.zipWithIndex.map {
       case ((fid, days), i) =>
-        lookup.ids.get(fid.toString) -> Int.box(FeatureReducerOffset(i.toShort, Math.max(1, days / totalDays * reducers).toShort).toInt)
+        // The number of reducers for this window feature, which is proportional of the number of total window days
+        val count = Math.max(1, (days.toDouble / totalDays * reducers).toInt)
+        lookup.ids.get(fid.toString) -> Int.box(FeatureReducerOffset(i.toShort, count.toShort).toInt)
     }.toMap.asJava)
   }
 }
