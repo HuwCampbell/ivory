@@ -20,17 +20,17 @@ snapshot() {
 snapshot 2014-05-02 0
 snapshot 2014-07-01 1
 
-$IVORY snapshot -o "dense:psv=${TARGET}/pivot" --date 2014-07-01 --sample-rate 1
-diff_test "${DIR}/expected/pivot.psv" "${TARGET}/pivot/part-r-00000"
-diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/pivot/.dictionary"
+$IVORY snapshot -o "sparse:psv=${TARGET}/snapshot" --date 2014-07-01 --sample-rate 1
+diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot/part-m-00000"
+diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/snapshot/.dictionary"
 # It's a little hard to check the profile, but at least make sure it contains an entry for each feature
-cat "${TARGET}/pivot/.profile"
+cat "${TARGET}/snapshot/.profile"
 
 ## FIX MAX COUNTERS Disabled as counters are currently disabled.
-## [ $(wc -l "${TARGET}/pivot/.profile" | awk '{print $1}') = $(wc -l "${TARGET}/pivot/.dictionary" | awk '{print $1}') ]
+## [ $(wc -l "${TARGET}/snapshot/.profile" | awk '{print $1}') = $(wc -l "${TARGET}/snapshot/.dictionary" | awk '{print $1}') ]
 
-$IVORY chord -o "dense:psv=${TARGET}/chord" --entities "${INPUT}/chord.psv" --sample-rate 1
-diff_test "${DIR}/expected/chord.psv" "${TARGET}/chord/part-r-00000"
+$IVORY chord -o "sparse:psv=${TARGET}/chord" --entities "${INPUT}/chord.psv" --sample-rate 1
+diff_test "${DIR}/expected/chord.psv" "${TARGET}/chord/part-m-00000"
 
 $IVORY debug-dump-reduction -e "ID00000000" -e "ID00000001" -f "halibut:sum" -f "expression:count_by" -o "${TARGET}/dump" -s 00000001
 diff_test_mr "${DIR}/expected/dump.psv" "${TARGET}/dump/"
