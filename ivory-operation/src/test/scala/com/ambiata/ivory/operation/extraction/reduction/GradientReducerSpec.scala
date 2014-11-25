@@ -30,7 +30,7 @@ class GradientReducerSpec extends Specification with ScalaCheck { def is = s2"""
     val dateOffsets = ReducerUtil.buildDateOffsets(ds)
     ReducerUtil.runWithDates(new GradientReducer[A](dateOffsets), ds) must beCloseTo(
       ReducerMathsHelpers.gradient(ds)
-    , 2.significantFigures)
+    , 5.significantFigures)
   }
 }
 
@@ -47,9 +47,9 @@ object ReducerMathsHelpers {
   def gradient[A: Numeric](xs: List[(A, Date)]): Double = {
     if (xs.length < 2) 0.0 else {
       val meanValue = xs.map(_._1.toDouble()).sum / xs.length
-      val meanDate  = xs.map(x => DateTimeUtil.toDays(x._2).toLong).sum / xs.length
+      val meanDate  = xs.map(x => DateTimeUtil.toDays(x._2).toDouble).sum / xs.length
       val moment    = xs.map(x => (x._1.toDouble() - meanValue) * (DateTimeUtil.toDays(x._2) - meanDate)).sum
-      val square    = xs.map(x => DateTimeUtil.toDays(x._2).toLong - meanDate).map(x => x * x).sum
+      val square    = xs.map(x => DateTimeUtil.toDays(x._2).toDouble - meanDate).map(x => x * x).sum
       moment.toDouble() / square
     }
   }
