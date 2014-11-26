@@ -12,9 +12,6 @@ import TemporaryIvoryConfiguration._
  */
 trait TemporaryRepositories {
 
-//  def createTemporaryRepository(temporaryType: TemporaryType): TemporaryRepository[Repository] =
-//    TemporaryRepository(createRepository(temporaryType))
-
   def createRepository(temporaryType: TemporaryType, conf: IvoryConfiguration): Repository =
     temporaryType match {
       case Posix =>

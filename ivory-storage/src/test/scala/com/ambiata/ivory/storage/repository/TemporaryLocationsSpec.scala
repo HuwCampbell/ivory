@@ -57,19 +57,19 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
     withLocationFile(_ => createUniqueLocalLocation)
 
   def s3Location =
-    withLocationFile(c => createUniqueHdfsLocation(c))
+    withLocationFile(createUniqueHdfsLocation)
 
   def hdfsLocation =
-    withLocationFile(c => createUniqueHdfsLocation(c))
+    withLocationFile(createUniqueHdfsLocation)
 
   def localDirLocation =
     withLocationDir(_ => createUniqueLocalLocation)
 
   def hdfsDirLocation =
-    withLocationDir(c => createUniqueHdfsLocation(c))
+    withLocationDir(createUniqueHdfsLocation)
 
   def s3DirLocation =
-    withLocationDir(c => createUniqueS3Location(c))
+    withLocationDir(createUniqueS3Location)
 
   def withRepository(run: IvoryConfiguration => Repository): MatchResult[ResultTIO[(Boolean, Boolean)]] =
     (for {
