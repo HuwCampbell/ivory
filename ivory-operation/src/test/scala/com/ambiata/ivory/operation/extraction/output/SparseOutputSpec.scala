@@ -45,17 +45,18 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
 
   def extractSparse(facts: List[List[Fact]], dictionary: Dictionary)(repo: HdfsRepository): ResultTIO[(String, List[String])] =
     TemporaryDirPath.withDirPath { dir =>
-      for {
-        _               <- RepositoryBuilder.createRepo(repo, dictionary, facts)
-        conf            <- TemporaryIvoryConfiguration.getConf
-        eav             <- IvoryLocation.fromUri((dir </> "eav").path, conf)
-        res             <- Snapshots.takeSnapshot(repo, Date.maxValue)
-        meta            = res.meta
-        input           = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
-        _               <- SparseOutput.extractWithDictionary(repo, input, eav, dictionary, '|', "NA")
-        dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, conf)
-        dictionaryLines <- IvoryLocation.readLines(dictLocation)
-        eavLines        <- IvoryLocation.readLines(eav).map(_.sorted)
-      } yield (eavLines.mkString("\n").trim, dictionaryLines)
+      TemporaryIvoryConfiguration.withConf(conf =>
+        for {
+          _               <- RepositoryBuilder.createRepo(repo, dictionary, facts)
+          eav             <- IvoryLocation.fromUri((dir </> "eav").path, conf)
+          res             <- Snapshots.takeSnapshot(repo, Date.maxValue)
+          meta            = res.meta
+          input           = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
+          _               <- SparseOutput.extractWithDictionary(repo, input, eav, dictionary, '|', "NA")
+          dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, conf)
+          dictionaryLines <- IvoryLocation.readLines(dictLocation)
+          eavLines        <- IvoryLocation.readLines(eav).map(_.sorted)
+        } yield (eavLines.mkString("\n").trim, dictionaryLines)
+      )
     }
 }

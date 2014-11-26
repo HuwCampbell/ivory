@@ -72,41 +72,45 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
     withLocationDir(createUniqueS3Location)
 
   def withRepository(run: IvoryConfiguration => Repository): MatchResult[ResultTIO[(Boolean, Boolean)]] =
-    (for {
-      c <- getConf
-      r = run(c)
-      x <- TemporaryLocations.runWithRepository(r)(repo => for {
-        _ <- Repositories.create(repo, RepositoryConfig.testing)
-        x <- repo.store.exists(Repository.root / ".allocated")
-      } yield x)
-      y <- r.store.exists(Repository.root / ".allocated")
-    } yield (x,y)) must beOkValue(true -> false)
+    withConf(c => {
+      val repository = run(c)
+      (for {
+        x <- TemporaryLocations.runWithRepository(repository)(repo => for {
+          _ <- Repositories.create(repo, RepositoryConfig.testing)
+          x <- repo.store.exists(Repository.root / ".allocated")
+
+        } yield x)
+        y <- repository.store.exists(Repository.root / ".allocated")
+      } yield (x,y))
+    }) must beOkValue(true -> false)
 
   def withStore(run: IvoryConfiguration => Store[ResultTIO]): MatchResult[ResultTIO[(Boolean, Boolean)]] =
-    (for {
-      c <- getConf
-      s = run(c)
-      x <- TemporaryStore.runWithStore(s)(tmpStore => for {
-        _   <- tmpStore.utf8.write(Repository.root / "test", "")
-        dir <- tmpStore.exists(Repository.root / "test")
-      } yield dir)
-      y <- s.exists(Repository.root / "test")
-    } yield (x,y)) must beOkValue((true,false))
+    withConf(c => {
+      val s = run(c)
+      (for {
+        x <- TemporaryStore.runWithStore(s)(tmpStore => for {
+          _   <- tmpStore.utf8.write(Repository.root / "test", "")
+          dir <- tmpStore.exists(Repository.root / "test")
+        } yield dir)
+        y <- s.exists(Repository.root / "test")
+      } yield (x,y))
+    }) must beOkValue((true,false))
 
   def withLocationFile(run: IvoryConfiguration => IvoryLocation): MatchResult[ResultTIO[(Boolean, Boolean)]] =
-    (for {
-      c <- getConf
-      l = run(c)
-      x <- TemporaryLocations.runWithIvoryLocationFile(l)(loc => for {
-        _   <- loc match {
-          case l @ LocalIvoryLocation(LocalLocation(p)) => Files.write(l.filePath, "")
-          case s @ S3IvoryLocation(S3Location(b, k), _) => S3Address(b, k).put("").executeT(c.s3Client)
-          case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.writeWith(h.toHdfsPath, out => Streams.write(out, "")).run(c.configuration)
-        }
-        dir <- checkFileLocation(loc, c)
-      } yield dir)
-      y <- checkFileLocation(l, c)
-    } yield (x, y)) must beOkValue((true,false))
+    withConf(c => {
+      val l = run(c)
+      (for {
+        x <- TemporaryLocations.runWithIvoryLocationFile(l)(loc => for {
+          _   <- loc match {
+            case l @ LocalIvoryLocation(LocalLocation(p)) => Files.write(l.filePath, "")
+            case s @ S3IvoryLocation(S3Location(b, k), _) => S3Address(b, k).put("").executeT(c.s3Client)
+            case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.writeWith(h.toHdfsPath, out => Streams.write(out, "")).run(c.configuration)
+          }
+          dir <- checkFileLocation(loc, c)
+        } yield dir)
+        y <- checkFileLocation(l, c)
+      } yield (x, y))
+    }) must beOkValue((true,false))
 
 
   def checkFileLocation(location: IvoryLocation, conf: IvoryConfiguration): ResultTIO[Boolean] = location match {
@@ -116,19 +120,20 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
   }
 
   def withLocationDir(run: IvoryConfiguration => IvoryLocation): MatchResult[ResultTIO[(Boolean, Boolean)]] =
-    (for {
-      c <- getConf
-      l = run(c)
-      x <- TemporaryLocations.runWithIvoryLocationDir(l)(loc => for {
-        _   <- loc match {
-          case l @ LocalIvoryLocation(LocalLocation(p)) => Directories.mkdirs(l.dirPath)
-          case s @ S3IvoryLocation(S3Location(b, k), _) => S3Address(b, k+"/file").put("").executeT(c.s3Client)
-          case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.mkdir(h.toHdfsPath).run(c.configuration)
-        }
-        dir <- checkDirLocation(loc, c)
-      } yield dir)
-      y <- checkDirLocation(l, c)
-    } yield (x, y)) must beOkValue((true,false))
+    withConf(c => {
+      val l = run(c)
+      (for {
+        x <- TemporaryLocations.runWithIvoryLocationDir(l)(loc => for {
+          _   <- loc match {
+            case l @ LocalIvoryLocation(LocalLocation(p)) => Directories.mkdirs(l.dirPath)
+            case s @ S3IvoryLocation(S3Location(b, k), _) => S3Address(b, k+"/file").put("").executeT(c.s3Client)
+            case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.mkdir(h.toHdfsPath).run(c.configuration)
+          }
+          dir <- checkDirLocation(loc, c)
+        } yield dir)
+        y <- checkDirLocation(l, c)
+      } yield (x, y))
+    }) must beOkValue((true,false))
 
   def checkDirLocation(location: IvoryLocation, conf: IvoryConfiguration): ResultTIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(p)) => Directories.exists(l.dirPath)

@@ -1,6 +1,7 @@
 package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.TemporaryIvoryConfiguration._
 import com.ambiata.ivory.core.thrift.NamespacedThriftFact
 import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.storage.control._
@@ -17,11 +18,10 @@ import scalaz._, Scalaz._, effect.IO
 object RepositoryBuilder {
 
   def using[A](f: HdfsRepository => ResultTIO[A]): ResultTIO[A] = TemporaryDirPath.withDirPath { dir =>
-    val sc = ScoobiConfiguration()
-    sc.set("hadoop.tmp.dir", dir.path)
-    sc.set("scoobi.dir", dir.path + "/")
-    val repo = HdfsRepository(HdfsLocation(dir.path), IvoryConfiguration.fromScoobiConfiguration(sc.configuration))
-    f(repo)
+    runWithConf(dir, conf => {
+      val repo = HdfsRepository(HdfsLocation(dir.path), conf)
+      f(repo)
+    })
   }
 
   def createRepo(repo: HdfsRepository, dictionary: Dictionary, facts: List[List[Fact]]): ResultTIO[FeatureStoreId] = for {
