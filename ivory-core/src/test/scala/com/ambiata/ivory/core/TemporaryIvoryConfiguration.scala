@@ -4,19 +4,19 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import org.apache.hadoop.conf.Configuration
 import com.nicta.scoobi.Scoobi._
-import scalaz._, Scalaz._, effect.IO
+import scalaz._, effect.IO
 
 object TemporaryIvoryConfiguration {
+  def withConf[A](f: IvoryConfiguration => ResultTIO[A]): ResultTIO[A] = TemporaryDirPath.withDirPath { dir =>
+    runWithConf(dir, f)
+  }
 
-  def getConf: ResultTIO[IvoryConfiguration] = TemporaryDirPath.withDirPath { dir =>
+  def runWithConf[A](dir: DirPath, f: IvoryConfiguration => ResultTIO[A]): ResultTIO[A] = {
     val sc = ScoobiConfiguration()
     sc.set("hadoop.tmp.dir", dir.path)
     sc.set("scoobi.dir", dir.path + "/")
-    IvoryConfiguration.fromScoobiConfiguration(sc).pure[ResultTIO]
-  }
-
-  def withConf[A](f: IvoryConfiguration => ResultTIO[A]): ResultTIO[A] = TemporaryDirPath.withDirPath { dir =>
-    getConf >>= f
+    val conf = IvoryConfiguration.fromScoobiConfiguration(sc)
+    f(conf)
   }
 
   def withConfX[A](f: IvoryConfiguration => A): ResultTIO[A] = TemporaryDirPath.withDirPath { dir =>
