@@ -10,6 +10,7 @@ import org.specs2.matcher.{MustMatchers, ThrownExpectations}
 import org.specs2.specification.FixtureExample
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import scalaz._, Scalaz._
+import TemporaryIvoryConfiguration._
 
 class IvoryLocationSpec extends Specification with ForeachTemporaryType with ThrownExpectations { def is = s2"""
 
@@ -31,20 +32,24 @@ IvoryLocation
    exists         $exists
 """
   def local =
-    IvoryLocation.parseUri("file:///some/path", ivory).toEither must
-      beRight((_: IvoryLocation).location must_== LocalLocation("/some/path"))
+    withConfX(ivory =>
+      IvoryLocation.parseUri("file:///some/path", ivory)) must
+        beOkLike(_.map(_.location) ==== LocalLocation("/some/path").right)
 
   def localShort =
-    IvoryLocation.parseUri("file:///some/", ivory).toEither must
-      beRight((_: IvoryLocation).location must_== LocalLocation("/some/"))
+    withConfX(ivory =>
+      IvoryLocation.parseUri("file:///some/", ivory)) must
+        beOkLike(_.map(_.location) ==== LocalLocation("/some/").right)
 
   def hdfs =
-    IvoryLocation.parseUri("hdfs:///some/path", ivory).toEither must
-      beRight((_: IvoryLocation).location must_== HdfsLocation("/some/path"))
+    withConfX(ivory =>
+      IvoryLocation.parseUri("hdfs:///some/path", ivory)) must
+        beOkLike(_.map(_.location) ==== HdfsLocation("/some/path").right)
 
   def s3 =
-    IvoryLocation.parseUri("s3://bucket/key", ivory).toEither must
-      beRight((_: IvoryLocation).location must_== S3Location("bucket", "key"))
+    withConfX(ivory =>
+      IvoryLocation.parseUri("s3://bucket/key", ivory)) must
+        beOkLike(_.map(_.location) ==== S3Location("bucket", "key").right)
 
   def isDirectory = { temporaryType: TemporaryType =>
     "This location is a directory on "+temporaryType ==> {
@@ -110,9 +115,6 @@ IvoryLocation
       } must beOkValue(true)
     }
   }
-
-  val ivory = IvoryConfiguration.Empty
-
 
 }
 

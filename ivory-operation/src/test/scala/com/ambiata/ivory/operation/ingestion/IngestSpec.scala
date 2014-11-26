@@ -64,7 +64,6 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
   }).set(minTestsOk = 5)
 
   def thrift = prop {(facts: FactsWithDictionary, fact: Fact, tt: TemporaryType) =>
-    val conf = IvoryConfiguration.Empty.configuration
     val serialiser = ThriftSerialiser()
     val ns = facts.cg.fid.namespace
     //  Lazy, but guaranteed to be bad so we always have at least one error

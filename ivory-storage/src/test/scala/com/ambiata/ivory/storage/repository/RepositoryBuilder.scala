@@ -12,14 +12,14 @@ import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.nicta.scoobi.Scoobi._
 
-import scalaz._, Scalaz._
+import scalaz._, Scalaz._, effect.IO
 
 object RepositoryBuilder {
 
   def using[A](f: HdfsRepository => ResultTIO[A]): ResultTIO[A] = TemporaryDirPath.withDirPath { dir =>
     val sc = ScoobiConfiguration()
     sc.set("hadoop.tmp.dir", dir.path)
-    sc.set("scoobi.dir", dir.path)
+    sc.set("scoobi.dir", dir.path + "/")
     val repo = HdfsRepository(HdfsLocation(dir.path), IvoryConfiguration.fromScoobiConfiguration(sc.configuration))
     f(repo)
   }

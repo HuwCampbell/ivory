@@ -21,8 +21,6 @@ case class IvoryConfiguration(
 }
 
 object IvoryConfiguration {
-  val Empty = fromConfiguration(new Configuration)
-
   def fromConfiguration(configuration: Configuration): IvoryConfiguration =
     new IvoryConfiguration(
       arguments = List(),

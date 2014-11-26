@@ -36,29 +36,31 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
   def local = {
 
     val dict = Dictionary(List(Definition.concrete(FeatureId(Name("demo"), "postcode"), StringEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))))
-    TemporaryDirPath.withDirPath { dir =>
-      val repository = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), IvoryConfiguration.Empty)
-      val dictionaryPath = dir <|> "dictionary.psv"
+    TemporaryIvoryConfiguration.withConf(conf =>
+      TemporaryDirPath.withDirPath { dir =>
+        val repository = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf)
+        val dictionaryPath = dir <|> "dictionary.psv"
 
-      for {
-        _    <- Streams.write(new java.io.FileOutputStream(dictionaryPath.toFile), DictionaryTextStorageV2.delimitedString(dict))
-        _    <- DictionaryImporter.importFromPath(repository, IvoryLocation.fromFilePath(dictionaryPath), opts.copy(ty = Override))
-        out  <- latestDictionaryFromIvory(repository)
-      } yield out
-    } must beOkValue(dict)
+        for {
+          _    <- Streams.write(new java.io.FileOutputStream(dictionaryPath.toFile), DictionaryTextStorageV2.delimitedString(dict))
+          _    <- DictionaryImporter.importFromPath(repository, IvoryLocation.fromFilePath(dictionaryPath), opts.copy(ty = Override))
+          out  <- latestDictionaryFromIvory(repository)
+        } yield out
+    }) must beOkValue(dict)
   }
 
   def updated = {
     val dict1 = Dictionary(List(Definition.concrete(FeatureId(Name("a"), "b"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
     val dict2 = Dictionary(List(Definition.concrete(FeatureId(Name("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
-    TemporaryDirPath.withDirPath { dir =>
-      val repository = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), IvoryConfiguration.Empty)
-      for {
-        _    <- fromDictionary(repository, dict1, opts.copy(ty = Override))
-        _    <- fromDictionary(repository, dict2, opts.copy(ty = Update))
-        out  <- latestDictionaryFromIvory(repository)
-      } yield out
-    }.map(_.byFeatureId) must beOkValue(dict1.append(dict2).byFeatureId)
+    TemporaryIvoryConfiguration.withConf(conf =>
+      TemporaryDirPath.withDirPath { dir =>
+        val repository = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf)
+        for {
+          _    <- fromDictionary(repository, dict1, opts.copy(ty = Override))
+          _    <- fromDictionary(repository, dict2, opts.copy(ty = Update))
+          out  <- latestDictionaryFromIvory(repository)
+        } yield out
+    }).map(_.byFeatureId) must beOkValue(dict1.append(dict2).byFeatureId)
   }
 
   def invalidUpgrade(force: Boolean) = {

@@ -91,7 +91,8 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
     TemporaryDirPath.withDirPath { dir =>
       for {
         _     <- RepositoryBuilder.createRepo(repo, dictionary, facts)
-        dense <- IvoryLocation.fromUri((dir </> "dense").path, IvoryConfiguration.Empty)
+        conf  <- TemporaryIvoryConfiguration.getConf
+        dense <- IvoryLocation.fromUri((dir </> "dense").path, conf)
         res   <- Snapshots.takeSnapshot(repo, Date.maxValue)
 
         meta      = res.meta

@@ -60,7 +60,9 @@ class FactImporterSpec extends Specification with ThrownExpectations with FileMa
 
   def fixture[R : AsResult](f: Setup => R): Result =
     RepositoryBuilder.using { repo =>
-      ResultT.ok[IO, Result](AsResult(f(new Setup(repo))))
+      ResultT.ok[IO, Result]({
+        AsResult(f(new Setup(repo)))
+      })
     } must beOkLike(r => r.isSuccess aka r.message must beTrue)
 }
 
@@ -94,10 +96,11 @@ class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
   def saveThriftInputFile: ResultTIO[Unit] = {
     import com.ambiata.ivory.operation.ingestion.thrift._
     val serializer = ThriftSerialiser()
-    val conf = IvoryConfiguration.Empty
-    SequenceUtil.writeHdfsBytes((namespaced </> "input" </> "ns1" </> FileName(java.util.UUID.randomUUID)).location, conf.configuration, None) {
-      writer => ResultT.safe(expected.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
-    }.run(conf.configuration)
+    TemporaryIvoryConfiguration.withConf(conf =>
+      SequenceUtil.writeHdfsBytes((namespaced </> "input" </> "ns1" </> FileName(java.util.UUID.randomUUID)).location, conf.configuration, None) {
+        writer => ResultT.safe(expected.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
+      }.run(conf.configuration)
+    )
   }
 
   def saveTextInputFileWithErrors: ResultTIO[Unit] = {
