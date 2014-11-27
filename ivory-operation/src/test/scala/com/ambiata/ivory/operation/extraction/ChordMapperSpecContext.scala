@@ -12,7 +12,7 @@ case class ChordMapperSpecContext(facts: List[Fact], skipped: List[Fact], droppe
   val serializer = ThriftSerialiser()
   val ok = MemoryCounter()
   val skip = MemoryCounter()
-  val drop = MemoryLabelledCounter()
+  val drop = MemoryCounter()
   val lookup = new FeatureIdLookup(new java.util.HashMap[String, Integer])
   val emitter = TestEmitter()
   val entities = Entities(new java.util.HashMap)

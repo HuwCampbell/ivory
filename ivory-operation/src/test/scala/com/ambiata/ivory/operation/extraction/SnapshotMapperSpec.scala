@@ -36,7 +36,7 @@ SnapshotMapperSpec
     val emitter = TestEmitter()
     val okCounter = MemoryCounter()
     val skipCounter = MemoryCounter()
-    val dropCounter = MemoryLabelledCounter()
+    val dropCounter = MemoryCounter()
     val lookup = new FeatureIdLookup(new java.util.HashMap[String, Integer])
     fs.foreach(f => lookup.putToIds(f.featureId.toString, f.featureId.hashCode))
 
@@ -64,7 +64,7 @@ SnapshotMapperSpec
     val empty = new NamespacedThriftFact with NamespacedThriftFactDerived
     val emitter = TestEmitter()
     val okCounter = MemoryCounter()
-    val dropCounter = MemoryLabelledCounter()
+    val dropCounter = MemoryCounter()
     val lookup = new FeatureIdLookup(new java.util.HashMap[String, Integer])
     fs.foreach(f => lookup.putToIds(f.featureId.toString, f.featureId.hashCode))
 
@@ -78,12 +78,12 @@ SnapshotMapperSpec
     assertMapperOutput(emitter, okCounter, MemoryCounter(), dropCounter, fs, 0, dropped.length, Priority.Max, serializer)
   })
 
-  def assertMapperOutput(emitter: TestEmitter, okCounter: MemoryCounter, skipCounter: MemoryCounter, dropCounter: MemoryLabelledCounter, expectedFacts: List[Fact], expectedSkip: Int, expectedDropped: Int, priority: Priority, serializer: ThriftSerialiser): matcher.MatchResult[Any] = {
+  def assertMapperOutput(emitter: TestEmitter, okCounter: MemoryCounter, skipCounter: MemoryCounter, dropCounter: MemoryCounter, expectedFacts: List[Fact], expectedSkip: Int, expectedDropped: Int, priority: Priority, serializer: ThriftSerialiser): matcher.MatchResult[Any] = {
     emitter.emittedKeys.toList ==== expectedFacts.map(keyBytes(priority)) and
     emitter.emittedVals.toList.map(bytes => deserializeValue(bytes, serializer)) ==== expectedFacts and
     okCounter.counter ==== expectedFacts.length and
     skipCounter.counter ==== expectedSkip and
-    dropCounter.counters.values.sum ==== expectedDropped
+    dropCounter.counter ==== expectedDropped
   }
 
   def deserializeValue(bytes: Array[Byte], serializer: ThriftSerialiser): Fact =

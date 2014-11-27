@@ -161,7 +161,7 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
   var skipCounter: Counter = null
 
   /** Class to count number of dropped facts that don't appear in dictionary anymore, created once per mapper */
-  var dropCounter: LabelledCounter = null
+  var dropCounter: Counter = null
 
   /** Thrift object provided from sub class, created once per mapper */
   val tfact = new ThriftFact
@@ -181,7 +181,7 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     priority = factsetInfo.priority
     okCounter = MrCounter("ivory", s"snapshot.v${factsetInfo.version}.ok", context)
     skipCounter = MrCounter("ivory", s"snapshot.v${factsetInfo.version}.skip", context)
-    dropCounter = MrLabelledCounter("ivory.drop", context)
+    dropCounter = MrCounter("ivory", "drop", context)
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
   }
 
@@ -203,14 +203,14 @@ object SnapshotFactsetMapper {
 
   def map[A <: ThriftLike](tfact: ThriftFact, date: Date, converter: VersionedFactConverter, input: BytesWritable,
                            priority: Priority, kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable],
-                           okCounter: Counter, skipCounter: Counter, dropCounter: LabelledCounter, deserializer: ThriftSerialiser,
+                           okCounter: Counter, skipCounter: Counter, dropCounter: Counter, deserializer: ThriftSerialiser,
                            featureIdLookup: FeatureIdLookup) {
     deserializer.fromBytesViewUnsafe(tfact, input.getBytes, 0, input.getLength)
     val f = converter.convert(tfact)
     val name = f.featureId.toString
     val featureId = featureIdLookup.getIds.get(name)
     if (featureId == null)
-      dropCounter.count(name, 1)
+      dropCounter.count(1)
     else if (f.date > date)
       skipCounter.count(1)
     else {
@@ -248,7 +248,7 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
   var okCounter: Counter = null
 
   /** Class to count number of dropped facts that don't appear in dictionary anymore, created once per mapper */
-  var dropCounter: LabelledCounter = null
+  var dropCounter: Counter = null
 
   val featureIdLookup = new FeatureIdLookup
 
@@ -257,7 +257,7 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
     okCounter = MrCounter("ivory", "snapshot.incr.ok", context)
-    dropCounter = MrLabelledCounter("ivory.drop", context)
+    dropCounter = MrCounter("ivory", "drop", context)
   }
 
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
@@ -269,12 +269,12 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
 object SnapshotIncrementalMapper {
   def map(fact: NamespacedThriftFact with NamespacedThriftFactDerived, bytes: BytesWritable, priority: Priority,
           kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter,
-          dropCounter: LabelledCounter, serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup) {
+          dropCounter: Counter, serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup) {
     serializer.fromBytesViewUnsafe(fact, bytes.getBytes, 0, bytes.getLength)
     val name = fact.featureId.toString
     val featureId = featureIdLookup.getIds.get(name)
     if (featureId == null)
-      dropCounter.count(name, 1)
+      dropCounter.count(1)
     else {
       okCounter.count(1)
       KeyState.set(fact, priority, kout, featureId)

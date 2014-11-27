@@ -16,14 +16,14 @@ class ChordIncrementalMapperSpec extends Specification with ScalaCheck { def is 
 
   def counters = prop((context: ChordMapperSpecContext, priority: Priority) => {
     context.all.foreach(map(_, context, priority))
-    (context.ok.counter + context.skip.counter + context.drop.counters.values.sum) ==== context.all.size
+    (context.ok.counter + context.skip.counter + context.drop.counter) ==== context.all.size
   })
 
   def totals = prop((context: ChordMapperSpecContext, priority: Priority) => {
     context.all.foreach(map(_, context, priority))
     context.ok.counter ==== context.facts.size and
      context.skip.counter ==== context.skipped.size and
-     context.drop.counters.values.sum ==== context.dropped.size
+     context.drop.counter ==== context.dropped.size
   })
 
   def map(f: Fact, context: ChordMapperSpecContext, priority: Priority): Unit = {
