@@ -150,7 +150,7 @@ class ChordFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWritab
   var skipCounter: MrCounter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = null
 
   /** Class to count number of dropped facts that don't appear in dictionary anymore, created once per mapper */
-  var dropCounter: LabelledCounter = null
+  var dropCounter: Counter = null
 
   /** Thrift object provided from sub class, created once per mapper */
   val tfact = new ThriftFact
@@ -170,7 +170,7 @@ class ChordFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWritab
     priority = factsetInfo.priority
     okCounter = MrCounter("ivory", s"chord.v${factsetInfo.version}.ok", context)
     skipCounter = MrCounter("ivory", s"chord.v${factsetInfo.version}.skip", context)
-    dropCounter = MrLabelledCounter("ivory.drop", context)
+    dropCounter = MrCounter("ivory", "drop", context)
     ctx.thriftCache.pop(context.getConfiguration, ChordJob.Keys.FeatureIdLookup, featureIdLookup)
     entities = ChordJob.setupEntities(ctx.thriftCache, context.getConfiguration)
   }
@@ -194,14 +194,14 @@ object ChordFactsetMapper {
   // FIX VersionedFactConverter doesn't make sense, it is being called after deserialization into thrift????
   def map(tfact: ThriftFact, converter: VersionedFactConverter, input: BytesWritable, priority: Priority,
           kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable],
-          okCounter: Counter, skipCounter: Counter, dropCounter: LabelledCounter, deserializer: ThriftSerialiser,
+          okCounter: Counter, skipCounter: Counter, dropCounter: Counter, deserializer: ThriftSerialiser,
           featureIdLookup: FeatureIdLookup, entities: Entities) {
     deserializer.fromBytesViewUnsafe(tfact, input.getBytes, 0, input.getLength)
     val f = converter.convert(tfact)
     val name = f.featureId.toString
     val featureId = featureIdLookup.getIds.get(name)
     if (featureId == null)
-      dropCounter.count(name, 1)
+      dropCounter.count(1)
     else if (!entities.keep(f))
       skipCounter.count(1)
     else {
@@ -242,7 +242,7 @@ class ChordIncrementalMapper extends Mapper[NullWritable, BytesWritable, BytesWr
   var skipCounter: Counter =  null
 
   /** Class to count number of dropped facts that don't appear in dictionary anymore, created once per mapper */
-  var dropCounter: LabelledCounter = null
+  var dropCounter: Counter = null
 
   val featureIdLookup = new FeatureIdLookup
 
@@ -255,7 +255,7 @@ class ChordIncrementalMapper extends Mapper[NullWritable, BytesWritable, BytesWr
     entities = ChordJob.setupEntities(ctx.thriftCache, context.getConfiguration)
     okCounter = MrCounter("ivory", "chord.incr.ok", context)
     skipCounter = MrCounter("ivory", "chord.incr.skip", context)
-    dropCounter = MrLabelledCounter("ivory.drop", context)
+    dropCounter = MrCounter("ivory", "drop", context)
   }
 
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
@@ -268,12 +268,12 @@ object ChordIncrementalMapper {
 
   def map(fact: NamespacedThriftFact with NamespacedThriftFactDerived, bytes: BytesWritable, priority: Priority,
           kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter,
-          skipCounter: Counter, dropCounter: LabelledCounter, serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup, entities: Entities) {
+          skipCounter: Counter, dropCounter: Counter, serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup, entities: Entities) {
     serializer.fromBytesViewUnsafe(fact, bytes.getBytes, 0, bytes.getLength)
     val name = fact.featureId.toString
     val featureId = featureIdLookup.getIds.get(name)
     if (featureId == null)
-      dropCounter.count(name, 1)
+      dropCounter.count(1)
     else if(!entities.keep(fact))
       skipCounter.count(1)
     else {
