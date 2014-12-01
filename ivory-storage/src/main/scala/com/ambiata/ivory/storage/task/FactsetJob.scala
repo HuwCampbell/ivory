@@ -2,6 +2,7 @@ package com.ambiata.ivory.storage.task
 
 import com.ambiata.ivory.core.Dictionary
 import com.ambiata.ivory.core.thrift.DictionaryThriftConversion
+import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.fs.Path
@@ -35,7 +36,7 @@ import scalaz.{\/-, -\/}
 object FactsetJob {
 
   def configureJob(name: String, job: Job, dictionary: Dictionary, reducerLookups: ReducerLookups, inputPaths: List[Path], targetPath: Path, codec: Option[CompressionCodec]): MrContext = {
-    val ctx = MrContext.newContext(name, job)
+    val ctx = MrContextIvory.newContext(name, job)
 
     job.setJarByClass(classOf[FactsPartitioner])
     job.setJobName(ctx.id.value)

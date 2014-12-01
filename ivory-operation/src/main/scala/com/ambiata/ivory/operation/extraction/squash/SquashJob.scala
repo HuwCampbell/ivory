@@ -2,6 +2,7 @@ package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
+import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.ivory.operation.extraction.{ChordJob, Entities, Snapshots, SnapshotJob}
 import com.ambiata.ivory.storage.lookup.{ReducerLookups, ReducerSize, WindowLookup}
 import com.ambiata.ivory.storage.metadata.SnapshotManifest
@@ -67,7 +68,7 @@ object SquashJob {
 
   def initSnapshotJob(conf: Configuration, date: Date): ResultTIO[(Job, MrContext)] = ResultT.safe {
     val job = Job.getInstance(conf)
-    val ctx = MrContext.newContext("ivory-squash-snapshot", job)
+    val ctx = MrContextIvory.newContext("ivory-squash-snapshot", job)
     job.setReducerClass(classOf[SquashReducerSnapshot])
     job.getConfiguration.set(SnapshotJob.Keys.SnapshotDate, date.int.toString)
     (job, ctx)
@@ -75,7 +76,7 @@ object SquashJob {
 
   def initChordJob(conf: Configuration, chord: Entities): ResultTIO[(Job, MrContext)] = ResultT.safe {
     val job = Job.getInstance(conf)
-    val ctx = MrContext.newContext("ivory-squash-chord", job)
+    val ctx = MrContextIvory.newContext("ivory-squash-chord", job)
     job.setReducerClass(classOf[SquashReducerChord])
     ctx.thriftCache.push(job, ChordJob.Keys.ChordEntitiesLookup, Entities.toChordEntities(chord))
     (job, ctx)

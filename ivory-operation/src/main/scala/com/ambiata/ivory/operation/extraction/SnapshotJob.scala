@@ -31,7 +31,7 @@ object SnapshotJob {
           windows: SnapshotWindows, incremental: Option[Path], codec: Option[CompressionCodec]): ResultTIO[SnapshotStats] = {
 
     val job = Job.getInstance(conf)
-    val ctx = MrContext.newContext("ivory-snapshot", job)
+    val ctx = MrContextIvory.newContext("ivory-snapshot", job)
 
     job.setJarByClass(classOf[SnapshotReducer])
     job.setJobName(ctx.id.value)

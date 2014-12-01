@@ -1,6 +1,7 @@
 package com.ambiata.ivory.operation.rename
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.ivory.operation.extraction.SnapshotJob
 import com.ambiata.ivory.storage.fact.FactsetGlob
 import com.ambiata.ivory.storage.lookup.{ReducerLookups, FactsetLookups}
@@ -19,7 +20,7 @@ object RenameJob {
           codec: Option[CompressionCodec]): ScoobiAction[RenameStats] = for {
     conf  <- ScoobiAction.scoobiConfiguration
     job = Job.getInstance(conf.configuration)
-    ctx = MrContext.newContext("ivory-rename", job)
+    ctx = MrContextIvory.newContext("ivory-rename", job)
     stats <- ScoobiAction.safe {
 
       job.setJarByClass(classOf[RenameReducer])

@@ -35,7 +35,7 @@ object ChordJob {
           dictionary: Dictionary, incremental: Option[Path], codec: Option[CompressionCodec]): ResultTIO[Unit] = {
 
     val job = Job.getInstance(repository.configuration)
-    val ctx = MrContext.newContext("ivory-chord", job)
+    val ctx = MrContextIvory.newContext("ivory-chord", job)
 
     job.setJarByClass(classOf[ChordReducer])
     job.setJobName(ctx.id.value)

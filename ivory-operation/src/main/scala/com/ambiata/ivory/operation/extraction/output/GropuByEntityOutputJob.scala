@@ -2,6 +2,7 @@ package com.ambiata.ivory.operation.extraction.output
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup._
+import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.ivory.operation.extraction.output.GroupByEntityFormat._
 import com.ambiata.ivory.storage.lookup._
 import com.ambiata.poacher.mr._
@@ -31,7 +32,7 @@ object GropuByEntityOutputJob {
       case DenseThrift => "dense-thrift"
       case SparseThrift  => "sparse-thrift"
     }
-    val ctx = MrContext.newContext("ivory-" + name, job)
+    val ctx = MrContextIvory.newContext("ivory-" + name, job)
 
     job.setJarByClass(classOf[GroupByEntityMapper])
     job.setJobName(ctx.id.value)

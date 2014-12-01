@@ -1,6 +1,7 @@
 package com.ambiata.ivory.operation.debug
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.ivory.operation.ingestion.thrift._
 import com.ambiata.mundane.control._
 import com.ambiata.poacher.mr._
@@ -25,7 +26,7 @@ object CatThrift {
   def job(configuration: Configuration, entities: List[String], input: Path, format: CatThriftFormat, output: Path,
           codec: Option[CompressionCodec]): ResultTIO[Unit] = for {
     job <- ResultT.io { Job.getInstance(configuration) }
-    ctx <- ResultT.io { MrContext.newContext("ivory-cat-thrift", job) }
+    ctx <- ResultT.io { MrContextIvory.newContext("ivory-cat-thrift", job) }
     r   <- ResultT.io {
         job.setJarByClass(classOf[CatThriftDenseMapper])
         job.setJobName(ctx.id.value)

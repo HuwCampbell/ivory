@@ -2,6 +2,7 @@ package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.EntityFilterLookup
+import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.ivory.operation.extraction.SnapshotJob
 import com.ambiata.ivory.storage.lookup.FeatureLookups
 import com.ambiata.ivory.storage.metadata.{Metadata, SnapshotManifest}
@@ -39,7 +40,7 @@ object SquashDumpJob {
   def initDumpJob(conf: Configuration, date: Date, input: Path, dictionary: Dictionary, lookup: EntityFilterLookup): ResultTIO[(Job, MrContext)] = ResultT.safe {
 
     val job = Job.getInstance(conf)
-    val ctx = MrContext.newContext("ivory-squash-dump", job)
+    val ctx = MrContextIvory.newContext("ivory-squash-dump", job)
 
     job.getConfiguration.set(SnapshotJob.Keys.SnapshotDate, date.int.toString)
     ctx.thriftCache.push(job, Keys.Filter, lookup)
