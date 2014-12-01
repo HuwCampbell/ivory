@@ -18,13 +18,13 @@ import scala.collection.JavaConverters._
 class GroupByEntityOutputSpec extends Specification with SampleFacts with ThrownExpectations with ScalaCheck { def is = s2"""
 
  A Sequence file containing feature values can be
-   pivoted as a row-oriented file, example 1           dense       ${tag("mr")}
-   pivoted as a row-oriented file, example 2           dense2      ${tag("mr")}
+   pivoted as a row-oriented file, example 1           $dense       ${tag("mr")}
+   pivoted as a row-oriented file, example 2           $dense2      ${tag("mr")}
    pivoted as a row-oriented text file escaped         $textEscaped ${tag("mr")}
-   pivoted as a row-oriented dense thrift file         thriftList  ${tag("mr")}
-   pivoted as a row-oriented sparse thrift file        thriftMap   ${tag("mr")}
+   pivoted as a row-oriented dense thrift file         $thriftList  ${tag("mr")}
+   pivoted as a row-oriented sparse thrift file        $thriftMap   ${tag("mr")}
 
- A dense file must must the dictionary output          matchDict   ${tag("mr")}
+ A dense file must must the dictionary output          $matchDict   ${tag("mr")}
 
 """
   def dense =
