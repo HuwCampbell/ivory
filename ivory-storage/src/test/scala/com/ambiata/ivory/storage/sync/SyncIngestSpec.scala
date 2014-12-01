@@ -26,15 +26,15 @@ Sync operations to cluster
 ==========================
  syncing single file to ShadowInputDataset              $file
  syncing folder/prefix to ShadowInputDataset            $prefix
- synginc datasets to ShadowRepository                   $dataset
+ syncing datasets to ShadowRepository                   $dataset
 
 """
   def file = propNoShrink((data: String, locationType: TemporaryType) => {
     withCluster(cluster => {
       withIvoryLocationFile(locationType)(location => {
-        val dataset = InputDataset(location)
+        val dataset = InputDataset(location.location)
         for {
-          _      <- saveLocationFile(dataset.location, data)
+          _      <- saveLocationFile(location, data)
           shadow <- SyncIngest.inputDataset(dataset, cluster)
           p      = new Path(shadow.location.path)
           dir    <- Hdfs.isDirectory(p).run(cluster.hdfsConfiguration)
@@ -48,7 +48,7 @@ Sync operations to cluster
   def prefix = prop((data: String, locationType: TemporaryType) => {
     withCluster(cluster => {
       withIvoryLocationDir(locationType)(dir => {
-        val dataset = InputDataset(dir)
+        val dataset = InputDataset(dir.location)
         for {
           _      <- saveLocationFile(dir </> FilePath.unsafe("foo"), data)
           shadow <- SyncIngest.inputDataset(dataset, cluster)
