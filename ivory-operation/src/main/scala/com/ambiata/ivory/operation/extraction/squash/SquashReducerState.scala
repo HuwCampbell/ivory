@@ -169,7 +169,7 @@ class SquashReducerStateDump(date: Date, delim: Char, missing: String) extends S
             // Update the fact with the current reduction value
             val value = r.save
             emitFact.getFact.setValue(value)
-            buffer.append(if (value != null) Value.toStringWithStruct(emitFact.value, missing) else missing)
+            TextEscaping.escapeAppend(delim, if (value != null) Value.toStringWithStruct(emitFact.value, missing) else missing, buffer)
             out.set(buffer.toString())
             emitter.emit(SquashReducerState.kout, out)
         }
