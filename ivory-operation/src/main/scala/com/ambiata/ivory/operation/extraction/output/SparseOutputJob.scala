@@ -1,6 +1,7 @@
 package com.ambiata.ivory.operation.extraction.output
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.poacher.mr._
 
 import org.apache.hadoop.fs.Path
@@ -21,7 +22,7 @@ object SparseOutputJob {
           delimiter: Char, codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
-    val ctx = MrContext.newContext("ivory-sparse", job)
+    val ctx = MrContextIvory.newContext("ivory-sparse", job)
 
     job.setJarByClass(classOf[SparseOutputMapper])
     job.setJobName(ctx.id.value)

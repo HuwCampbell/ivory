@@ -4,6 +4,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
+import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.repository.HdfsGlobs.FactsetPartitionsGlob
 import com.ambiata.poacher.mr._
@@ -29,7 +30,7 @@ object DumpFactsJob {
   , codec: Option[CompressionCodec]
   ): ResultT[IO, Unit] = for {
     job <- ResultT.io { Job.getInstance(repository.configuration) }
-    ctx <- ResultT.io { MrContext.newContext("ivory-dump-facts", job) }
+    ctx <- ResultT.io { MrContextIvory.newContext("ivory-dump-facts", job) }
     r   <- ResultT.io {
         job.setJarByClass(classOf[DumpFactsSnapshotMapper])
         job.setJobName(ctx.id.value)
