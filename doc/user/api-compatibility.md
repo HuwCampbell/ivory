@@ -7,6 +7,7 @@ This document serves as a list of changes to the Ivory API, both in the file for
 
 - Introduced `dense:escaped:thrift` and `sparse:escaped:thrift` output formats for snapshot, and `text:escaped` format
   to ingest. These are symmetrical and result in newlines and the delimited character to be escaped with a backslash `\`.
+  `cat-facts` and `debug-*` commands will now always be escaped.
 
 ## 1.0.0-*-ed57711
 

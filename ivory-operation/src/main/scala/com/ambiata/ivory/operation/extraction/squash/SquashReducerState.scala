@@ -164,7 +164,7 @@ class SquashReducerStateDump(date: Date, delim: Char, missing: String) extends S
             // Output the time first so it's easier to eyeball the original and reduced values
             buffer.append(fact.datetime.localIso8601)
             buffer.append(delim)
-            buffer.append(Value.toStringWithStruct(fact.value, missing))
+            TextEscaping.escapeAppend(delim, Value.toStringWithStruct(fact.value, missing), buffer)
             buffer.append(delim)
             // Update the fact with the current reduction value
             val value = r.save
