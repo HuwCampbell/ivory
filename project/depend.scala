@@ -29,8 +29,8 @@ object depend {
                   Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")
 
   def notion(version: String) = {
-    val cdh4Version = "0.0.1-cdh4-20141128001428-570a6c0"
-    val cdh5Version = "0.0.1-cdh5-20141128001429-570a6c0"
+    val cdh4Version = "0.0.1-cdh4-20141201032901-c000399"
+    val cdh5Version = "0.0.1-cdh5-20141201032901-c000399"
     if (version.contains("cdh4"))
       Seq("com.ambiata" %% "notion-core"     % cdh4Version) ++
       Seq("com.ambiata" %% "notion-distcopy" % cdh4Version) ++
@@ -62,8 +62,8 @@ object depend {
   }
 
   def poacher(version: String) =
-  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141127040235-0857851")
-  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141127035941-0857851")
+  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141201025602-143ae9b")
+  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141201025414-143ae9b")
   else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 
