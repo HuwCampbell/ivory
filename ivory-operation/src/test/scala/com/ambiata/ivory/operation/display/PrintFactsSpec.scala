@@ -26,7 +26,7 @@ class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""
       _         <- ResultT.fromIO(PrintFacts.print(
         List(repo.toIvoryLocation(Repository.snapshot(snapshot1.meta.snapshotId)).toHdfsPath),
         repo.configuration,
-        delim = "|",
+        delim = '|',
         tombstone = "NA",
         version = FactsetVersion.latest).execute(stringBufferLogging)
       )

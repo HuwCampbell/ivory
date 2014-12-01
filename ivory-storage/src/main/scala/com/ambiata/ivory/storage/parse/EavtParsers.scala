@@ -9,14 +9,17 @@ import scalaz.{Name => _, Value => _, _}, Scalaz._
 
 // FIX should be in storage.fact
 object EavtParsers {
+
+  val delim = '|'
+
   def splitLine(line: String): List[String] =
-    line.split('|').toList match {
+    line.split(delim).toList match {
       case e :: a :: v :: t :: Nil => List(e, a, v, t.trim)
       case other                   => other
     }
 
-  def parse(line: String, dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): Validation[String, Fact] =
-    fact(dictionary, namespace, ivoryTimezone, ingestTimezone).run(splitLine(line))
+  def parser(dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] =
+    fact(dictionary, namespace, ivoryTimezone, ingestTimezone)
 
   def fact(dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] =
     for {

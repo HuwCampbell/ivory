@@ -1,0 +1,16 @@
+#!/bin/sh -eux
+
+DIR=$(dirname $0)
+. "${DIR}/../../setup.sh"
+
+$IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
+$IVORY import-dictionary -p "${INPUT}/dictionary.psv"
+
+$IVORY ingest -i "${INPUT}/facts" -n "halibut" -f "text:escaped"
+
+$IVORY cat-facts "${REPOSITORY}/factsets/00000000/*/*/*/*/*" | sort > "${TARGET}/factsets.psv"
+diff_test "${DIR}/expected/factsets.psv" "${TARGET}/factsets.psv"
+
+$IVORY snapshot -o "dense:escaped:psv=${TARGET}/snapshot-dense" -o "sparse:escaped:psv=${TARGET}/snapshot-sparse"
+diff_test_mr "${DIR}/expected/snapshot-dense.psv" "${TARGET}/snapshot-dense"
+diff_test_mr "${DIR}/expected/snapshot-sparse.psv" "${TARGET}/snapshot-sparse"

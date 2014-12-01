@@ -15,20 +15,27 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
 
  A Sequence file containing feature values can be
    extracted as EAV                                      $eav       ${tag("mr")}
+   extracted as EAV (escaped)                            $escaped   ${tag("mr")}
 
  An EAV file matches the dictionary output               $matchDict ${tag("mr")}
 
 """
 
   def eav =
-    RepositoryBuilder.using(extractSparse(sampleFacts, sampleDictionary)) must beOkValue(
+    RepositoryBuilder.using(extractSparse(sampleFacts, sampleDictionary, false)) must beOkValue(
       List("eid1|ns1|fid1|abc"
          , "eid2|ns1|fid2|11"
          , "eid3|ns2|fid3|true").sorted.mkString("\n") -> expectedDictionary
     )
 
+  def escaped = prop { (facts: FactsWithDictionary) =>
+    RepositoryBuilder.using(extractSparse(List(facts.facts), facts.dictionary, true)).map(_._1) must beOkLike(
+      (text: String) => seqToResult(text.split("\n").map(TextEscaping.split('|', _).length ==== 4))
+    )
+  }.set(minTestsOk = 1)
+
   def matchDict = prop { (facts: FactsWithDictionary) =>
-    RepositoryBuilder.using(extractSparse(List(facts.facts), facts.dictionary)) must beOkLike {
+    RepositoryBuilder.using(extractSparse(List(facts.facts), facts.dictionary, false)) must beOkLike {
       case (out, dict) =>
         val namespaces = dict.map(_.split("\\|", -1) match { case l => l(1) -> l(2)})
         seqToResult(out.lines.toList.map(_.split("\\|", -1) match {
@@ -43,7 +50,7 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
     "2|ns2|fid3|boolean|categorical|desc|NA"
   )
 
-  def extractSparse(facts: List[List[Fact]], dictionary: Dictionary)(repo: HdfsRepository): ResultTIO[(String, List[String])] =
+  def extractSparse(facts: List[List[Fact]], dictionary: Dictionary, escaped: Boolean)(repo: HdfsRepository): ResultTIO[(String, List[String])] =
     TemporaryDirPath.withDirPath { dir =>
       TemporaryIvoryConfiguration.withConf(conf =>
         for {
@@ -52,7 +59,7 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
           res             <- Snapshots.takeSnapshot(repo, Date.maxValue)
           meta            = res.meta
           input           = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
-          _               <- SparseOutput.extractWithDictionary(repo, input, eav, dictionary, '|', "NA")
+          _               <- SparseOutput.extractWithDictionary(repo, input, eav, dictionary, '|', "NA", escaped)
           dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, conf)
           dictionaryLines <- IvoryLocation.readLines(dictLocation)
           eavLines        <- IvoryLocation.readLines(eav).map(_.sorted)
