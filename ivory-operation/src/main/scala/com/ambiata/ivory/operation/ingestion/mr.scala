@@ -35,16 +35,16 @@ object IngestJob {
 
     // map
     job.setMapperClass(format match {
-      case TextDelimitedFormat        => classOf[TextIngestMapper]
-      case TextEscapedFormat => classOf[TextIngestMapper]
-      case ThriftFormat      => classOf[ThriftIngestMapper]
+      case TextDelimitedFormat => classOf[TextIngestMapper]
+      case TextEscapedFormat   => classOf[TextIngestMapper]
+      case ThriftFormat        => classOf[ThriftIngestMapper]
     })
 
     // input
     job.setInputFormatClass(format match {
-      case TextDelimitedFormat        => classOf[TextInputFormat]
-      case TextEscapedFormat => classOf[TextInputFormat]
-      case ThriftFormat      => classOf[SequenceFileInputFormat[_, _]]
+      case TextDelimitedFormat => classOf[TextInputFormat]
+      case TextEscapedFormat   => classOf[TextInputFormat]
+      case ThriftFormat        => classOf[SequenceFileInputFormat[_, _]]
     })
 
     // output
@@ -200,8 +200,9 @@ class TextIngestMapper extends IngestMapper[LongWritable, Text] {
     super.setup(context)
     splitter =
       if (context.getConfiguration.getBoolean(IngestJob.Keys.TextEscaped, false))
-        TextEscaping.split('|', _)
-      else EavtParsers.splitLine
+        TextEscaping.split(EavtParsers.delim, _)
+      else
+        EavtParsers.splitLine
   }
 
   override def parse(namespace: Name, value: Text): Validation[ParseError, Fact] = {
