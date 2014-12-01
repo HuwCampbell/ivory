@@ -8,6 +8,7 @@ import com.ambiata.ivory.api.Ivory.{Date => _, _}
 import com.ambiata.ivory.operation.extraction.squash.SquashJob
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.metadata._
+import com.ambiata.notion.core._
 import org.joda.time.LocalDate
 import java.util.{Calendar, UUID}
 
@@ -33,8 +34,8 @@ object snapshot extends IvoryApp {
       s"Optional date to take snapshot from, default is now."
   })(c => f => c.copy(formats = f(c.formats)))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(LocalDate.now(), SquashConfig.default, ExtractOutput()), {
-    repo => configuration => c =>
+  val cmd = IvoryCmd.withCluster[CliArguments](parser, CliArguments(LocalDate.now(), SquashConfig.default, ExtractOutput()), {
+    repo => cluster => configuration => c =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
                       |
@@ -52,8 +53,8 @@ object snapshot extends IvoryApp {
         res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date))
         meta = res.meta
         r    <- RepositoryRead.fromRepository(repo)
-        _    <- SquashJob.squashFromSnapshotWith(repo, meta, c.squash, of.outputs.map(_._2)) { (input, dictionary) =>
-          Extraction.extract(of, repo.toIvoryLocation(input), dictionary).run(r)
+        _    <- SquashJob.squashFromSnapshotWith(repo, meta, c.squash, of.outputs.map(_._2), cluster) { (input, dictionary) =>
+          Extraction.extract(of, ShadowOutputDataset(input), dictionary, cluster).run(r)
         }
       } yield List(
         banner,

@@ -23,16 +23,18 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
       results.sortBy(fact => (fact.entity, fact.featureId))
 
     val expectedFacts = sf.facts.list.flatMap(_.expectedFactsWithCount)
-    RepositoryBuilder.using { repo => for {
-      _ <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
-      res <- Snapshots.takeSnapshot(repo, sf.date)
-      s     = res.meta
-      out   = repo.toIvoryLocation(Key(KeyName.unsafe("out"))): IvoryLocation
-      f <- SquashJob.squashFromSnapshotWith(repo, s, SquashConfig.testing, List(out))((key, _) =>
-        ResultT.safe(postProcess(valueFromSequenceFile[Fact](repo.toIvoryLocation(key).toHdfs)
-          .run(repo.scoobiConfiguration).toList))
-      )
-    } yield f } must beOkValue(postProcess(expectedFacts))
+    TemporaryLocations.withCluster { cluster =>
+      RepositoryBuilder.using { repo => for {
+        _ <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
+        res <- Snapshots.takeSnapshot(repo, sf.date)
+        s     = res.meta
+        out   = OutputDataset.fromIvoryLocation(repo.toIvoryLocation(Key(KeyName.unsafe("out"))))
+        f <- SquashJob.squashFromSnapshotWith(repo, s, SquashConfig.testing, List(out), cluster)((key, _) =>
+          ResultT.safe(postProcess(valueFromSequenceFile[Fact](repo.toIvoryLocation(key).toHdfs)
+            .run(repo.scoobiConfiguration).toList))
+        )
+      } yield f }
+    } must beOkValue(postProcess(expectedFacts))
   }).set(minTestsOk = 3, maxDiscardRatio = 10)
 
   def dump = prop((sf: SquashFactsMultiple) => sf.hasVirtual ==> {

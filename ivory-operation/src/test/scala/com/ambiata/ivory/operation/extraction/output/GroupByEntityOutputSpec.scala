@@ -9,6 +9,7 @@ import com.ambiata.ivory.operation.ingestion.thrift.{ThriftFactDense, ThriftFact
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.operation.extraction.Snapshots
+import com.ambiata.notion.core._
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.io.thrift._
 import org.specs2.matcher.ThrownExpectations
@@ -100,14 +101,15 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
     TemporaryDirPath.withDirPath { dir =>
       for {
         // Filter out tombstones to simplify the assertions - we're not interested in the snapshot logic here
-        _     <- RepositoryBuilder.createRepo(repo, dictionary, facts.map(_.filter(!_.isTombstone)))
-        dense <- TemporaryIvoryConfiguration.withConf(conf => IvoryLocation.fromUri((dir </> "dense").path, conf))
-        res   <- Snapshots.takeSnapshot(repo, Date.maxValue)
-
-        meta      = res.meta
-        input     = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
-        _                <- GroupByEntityOutput.createWithDictionary(repo, input, dense, dictionary, format)
-        out   <- f(repo, dense)
+        _      <- RepositoryBuilder.createRepo(repo, dictionary, facts.map(_.filter(!_.isTombstone)))
+        dense  <- TemporaryIvoryConfiguration.withConf(conf => IvoryLocation.fromUri((dir </> "dense").path, conf))
+        res    <- Snapshots.takeSnapshot(repo, Date.maxValue)
+        meta   = res.meta
+        input  = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
+        inputS = ShadowOutputDataset(HdfsLocation(input.show))
+        denseS = ShadowOutputDataset(HdfsLocation(dense.show))
+        _      <- GroupByEntityOutput.createWithDictionary(repo, inputS, denseS, dictionary, format)
+        out    <- f(repo, dense)
       } yield out
     }
 

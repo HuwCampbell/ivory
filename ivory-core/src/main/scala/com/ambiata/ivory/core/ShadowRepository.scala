@@ -24,5 +24,13 @@ object ShadowRepository {
           , () => None)
     )
 
-  def toRepository(shadow: ShadowRepository): Repository = HdfsRepository(HdfsIvoryLocation(HdfsLocation(shadow.root.toString), shadow.ivory))
+  def toRepository(shadow: ShadowRepository): Repository =
+    HdfsRepository(HdfsIvoryLocation(HdfsLocation(shadow.root.toString), shadow.ivory))
+
+  def fromRepository(repo: Repository, conf: IvoryConfiguration): ShadowRepository = repo match {
+    case HdfsRepository(r) =>
+      ShadowRepository(r.toHdfsPath, conf)
+    case _ =>
+      Crash.error(Crash.CodeGeneration, "Only HdfsRepository's are supported at this time")
+  }
 }

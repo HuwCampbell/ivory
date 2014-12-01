@@ -45,20 +45,23 @@ ChordSpec
   }).set(minTestsOk = 1)
 
   def run(facts: ChordFacts, dictionary: Dictionary): ResultTIO[List[Fact]] =
-    TemporaryDirPath.withDirPath { directory =>
-      RepositoryBuilder.using { repo =>
-        val entities = facts.ces.flatMap(ce => ce.dates.map(ce.entity + "|" + _._1.hyphenated))
-        implicit val sc = repo.scoobiConfiguration
-        for {
-          _                <- RepositoryBuilder.createRepo(repo, dictionary, facts.allFacts)
-          entitiesLocation =  IvoryLocation.fromDirPath(directory </> "entities")
-          _                <- IvoryLocation.writeUtf8Lines(entitiesLocation, entities)
-          out              <- Repository.tmpDir(repo).map(repo.toIvoryLocation)
-          facts            <- Chord.createChordWithSquash(repo, entitiesLocation, takeSnapshot = facts.takeSnapshot,
-            SquashConfig.testing, List(out))((outPath, _) => ResultT.safe[IO, List[Fact]](
-            valueFromSequenceFile[Fact](repo.toIvoryLocation(outPath).toHdfs).run.toList
-          ))
-        } yield facts
+    TemporaryLocations.withCluster { cluster =>
+      TemporaryDirPath.withDirPath { directory =>
+        RepositoryBuilder.using { repo =>
+          val entities = facts.ces.flatMap(ce => ce.dates.map(ce.entity + "|" + _._1.hyphenated))
+          implicit val sc = repo.scoobiConfiguration
+          for {
+            _                <- RepositoryBuilder.createRepo(repo, dictionary, facts.allFacts)
+            entitiesLocation =  IvoryLocation.fromDirPath(directory </> "entities")
+            _                <- IvoryLocation.writeUtf8Lines(entitiesLocation, entities)
+            out              <- Repository.tmpDir(repo).map(repo.toIvoryLocation)
+            output           = OutputDataset(out.location)
+            facts            <- Chord.createChordWithSquash(repo, entitiesLocation, takeSnapshot = facts.takeSnapshot,
+              SquashConfig.testing, List(output), cluster)((outPath, _) => ResultT.safe[IO, List[Fact]](
+                valueFromSequenceFile[Fact](repo.toIvoryLocation(outPath).toHdfs).run.toList
+              ))
+          } yield facts
+        }
       }
     }
 }

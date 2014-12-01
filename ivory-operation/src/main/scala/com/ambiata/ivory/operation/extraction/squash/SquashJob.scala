@@ -23,13 +23,13 @@ import scalaz._, Scalaz._, effect.IO
 
 object SquashJob {
 
-  def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotManifest, conf: SquashConfig, out: List[IvoryLocation])
+  def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotManifest, conf: SquashConfig, out: List[OutputDataset], cluster: Cluster)
                                (f: (Key, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
     dictionary <- Snapshots.dictionaryForSnapshot(repository, snapmeta)
     in          = Repository.snapshot(snapmeta.snapshotId)
     hr         <- repository.asHdfsRepository[IO]
     job        <- SquashJob.initSnapshotJob(hr.configuration, snapmeta.date)
-    result     <- squashMeMaybe(dictionary, out)(f(in, dictionary), squash(repository, dictionary, in, conf, out, job)(f(_, dictionary)))
+    result     <- squashMeMaybe(dictionary, out)(f(in, dictionary), squash(repository, dictionary, in, conf, out, job, cluster)(f(_, dictionary)))
   } yield result
 
   /**
@@ -37,7 +37,7 @@ object SquashJob {
    * For snapshots the input can be re-used as the output.
    * For chords there is a potential optimisation to bypass the squash, but the chord will need to alter its output.
    */
-  def squashMeMaybe[A](dictionary: Dictionary, out: List[IvoryLocation])(noSquash: => A, squash: => A): A =
+  def squashMeMaybe[A](dictionary: Dictionary, out: List[OutputDataset])(noSquash: => A, squash: => A): A =
     if (!out.isEmpty && dictionary.hasVirtual) squash
     else noSquash
 
@@ -53,7 +53,7 @@ object SquashJob {
    *    date for every possible entity date, and then look that up per entity on the reducer.
    */
   def squash[A](repository: Repository, dictionary: Dictionary, input: Key, conf: SquashConfig,
-                out: List[IvoryLocation], job: (Job, MrContext))(f: Key => ResultTIO[A]): ResultTIO[A] = for {
+                out: List[OutputDataset], job: (Job, MrContext), cluster: Cluster)(f: Key => ResultTIO[A]): ResultTIO[A] = for {
     key    <- Repository.tmpDir(repository)
     hr     <- repository.asHdfsRepository[IO]
     inPath =  hr.toIvoryLocation(input).toHdfsPath
@@ -63,7 +63,8 @@ object SquashJob {
     prof   <- run(job._1, job._2, rs, dictionary, hr.toIvoryLocation(key).toHdfsPath, hr.codec, conf, latest = true)
     a      <- f(key)
     _      <- repository.store.deleteAll(key)
-    _      <- out.traverseU(output => IvoryLocation.writeUtf8Lines(output </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof)))
+    _      <- out.traverseU(output =>
+      IvoryLocation.writeUtf8Lines(IvoryLocation.fromLocation(output.location, Cluster.ivoryConfiguration(cluster)) </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof)))
   } yield a
 
   def initSnapshotJob(conf: Configuration, date: Date): ResultTIO[(Job, MrContext)] = ResultT.safe {

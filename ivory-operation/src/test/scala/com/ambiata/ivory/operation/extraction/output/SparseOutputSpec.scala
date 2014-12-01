@@ -8,6 +8,11 @@ import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.operation.extraction.Snapshots
+import com.ambiata.poacher.hdfs.Hdfs
+import com.ambiata.notion.core._
+
+import org.apache.hadoop.fs.Path
+
 import org.specs2.matcher.ThrownExpectations
 import org.specs2._
 
@@ -55,15 +60,15 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
       TemporaryIvoryConfiguration.withConf(conf =>
         for {
           _               <- RepositoryBuilder.createRepo(repo, dictionary, facts)
-          eav             <- IvoryLocation.fromUri((dir </> "eav").path, conf)
+          eav             = dir </> DirPath.unsafe("eav")
           res             <- Snapshots.takeSnapshot(repo, Date.maxValue)
           meta            = res.meta
-          input           = repo.toIvoryLocation(Repository.snapshot(meta.snapshotId))
-          _               <- SparseOutput.extractWithDictionary(repo, input, eav, dictionary, '|', "NA", escaped)
-          dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, conf)
-          dictionaryLines <- IvoryLocation.readLines(dictLocation)
-          eavLines        <- IvoryLocation.readLines(eav).map(_.sorted)
-        } yield (eavLines.mkString("\n").trim, dictionaryLines)
+          input           = ShadowOutputDataset.fromIvoryLocation(repo.toIvoryLocation(Repository.snapshot(meta.snapshotId)))
+          _               <- SparseOutput.extractWithDictionary(repo, input, ShadowOutputDataset(HdfsLocation(eav.path)), dictionary, '|', "NA", escaped)
+          dictionaryLines <- Hdfs.readLines(new Path((eav </> FilePath.unsafe(".dictionary")).path)).run(conf.configuration)
+          eavLines        <- IvoryLocation.readHdfsLines(new Path(eav.path)).run(conf.configuration).map(_.sorted)
+        } yield (eavLines.mkString("\n").trim, dictionaryLines.toList)
       )
     }
+
 }

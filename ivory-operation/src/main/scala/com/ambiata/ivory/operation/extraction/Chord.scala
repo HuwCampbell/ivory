@@ -27,14 +27,14 @@ object Chord {
    * If takeSnapshot = true, take a snapshot first, otherwise use the latest available snapshot
    */
   def createChordWithSquash[A](repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean,
-                               config: SquashConfig, outs: List[IvoryLocation])(f: (Key, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
+                               config: SquashConfig, outs: List[OutputDataset], cluster: Cluster)(f: (Key, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
     entities <- Entities.readEntitiesFrom(entitiesLocation)
     out      <- createChordRaw(repository, entities, takeSnapshot)
     hr       <- repository.asHdfsRepository[IO]
     job      <- SquashJob.initChordJob(hr.configuration, entities)
     // We always need to squash because the entities need to be rewritten, which is _only_ handled by squash
     // This can technically be optimized to do the entity rewriting in the reducer - see the Git history for an example
-    a        <- SquashJob.squash(repository, out._2, out._1, config, outs, job)(f(_, out._2))
+    a        <- SquashJob.squash(repository, out._2, out._1, config, outs, job, cluster)(f(_, out._2))
   } yield a
 
   /** Create the raw chord, which is now unusable without the squash step */

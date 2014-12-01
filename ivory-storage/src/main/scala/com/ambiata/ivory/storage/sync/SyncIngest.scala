@@ -44,6 +44,7 @@ object SyncIngest {
                    └── factset
                                                                                          */
   def inputDataset(input: InputDataset, cluster: Cluster): ResultTIO[ShadowInputDataset] = {
+    // This should be inside the tmp directory of the shadow repository on the cluster
     val outputPath = DirPath.unsafe(s"tmp/shadow/${UUID.randomUUID()}")
     def getOutput(opt: Option[String]): ShadowInputDataset = opt match {
       case Some(v) =>

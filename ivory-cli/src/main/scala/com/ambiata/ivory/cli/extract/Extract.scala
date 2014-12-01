@@ -3,9 +3,11 @@ package com.ambiata.ivory.cli.extract
 import com.ambiata.ivory.api.Ivory.{OutputFormat, OutputFormats}
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
+import com.ambiata.notion.core._
 import scopt.OptionParser
 
 import scalaz._, Scalaz._, scalaz.effect._
+import scalaz.\&/._
 
 case class ExtractOutput(formats: List[(String, String)] = Nil, missing: String = "NA")
 
@@ -26,7 +28,10 @@ object Extract {
         .toRightDisjunction(\&/.This(s"Unsupported format $format"): \&/[String, Throwable])
     })
     out2 <- out1.traverseU {
-      case (format, path) => IvoryLocation.fromUri(path, conf).map(format ->)
+      case (format, path) => ResultT.fromDisjunction[IO, (OutputFormat, OutputDataset)](
+        Location.fromUri(path)
+          .bimap(s => This(s), s => format -> OutputDataset(s))
+      )
     }
   } yield OutputFormats(out2, output.missing)
 }

@@ -120,13 +120,7 @@ object IvoryLocation {
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
       S3Address(bucket, key).getLines.executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
-      Hdfs.isDirectory(new Path(path)).flatMap { isDirectory =>
-        if (isDirectory)
-          Hdfs.globFilesRecursively(new Path(path)).filterHidden
-            .flatMap(_.traverseU(Hdfs.readLines)).map(_.toList.flatten)
-        else
-          Hdfs.readLines(new Path(path)).map(_.toList)
-      }.run(conf)
+      readHdfsLines(new Path(path)).run(conf)
   }
 
   def readUnsafe(location: IvoryLocation)(f: java.io.InputStream => ResultTIO[Unit]): ResultTIO[Unit] = {
@@ -212,14 +206,19 @@ object IvoryLocation {
         // https://github.com/ambiata/ivory/issues/87
         HdfsIvoryLocation(HdfsLocation(new File(uri.getPath).getAbsolutePath), ivory.configuration, ivory.scoobiConfiguration, ivory.codec).right
 
-      case _ => Location.fromUri(s).map {
-        case l: LocalLocation  => LocalIvoryLocation(l)
-        case s: S3Location     => S3IvoryLocation(s, ivory.s3Client)
-        case h: HdfsLocation   => HdfsIvoryLocation(h, ivory.configuration, ivory.scoobiConfiguration, ivory.codec)
-      }
+      case _ => Location.fromUri(s).map(l => fromLocation(l, ivory))
     }
   } catch {
     case e: java.net.URISyntaxException =>
       e.getMessage.left
+  }
+
+  def fromLocation(loc: Location, ivory: IvoryConfiguration): IvoryLocation = loc match {
+    case l: LocalLocation =>
+      LocalIvoryLocation(l)
+    case s: S3Location =>
+      S3IvoryLocation(s, ivory.s3Client)
+    case h: HdfsLocation =>
+      HdfsIvoryLocation(h, ivory.configuration, ivory.scoobiConfiguration, ivory.codec)
   }
 }
