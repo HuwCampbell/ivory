@@ -23,7 +23,7 @@ object catThrift extends IvoryApp {
     opt[String]('o', "output") required() action {
       (x, c) => c.copy(output = x)
     }
-    opt[String]('f', "format") required() action {
+    opt[String]('f', "format") required() text s"""The type of thrift format. Supported formats are [${CatThriftFormat.formats.keys.mkString(", ")}].""" action {
       (x, c) => c.copy(format = x)
     }
     arg[String]("INPUT_PATH") required() text "Glob path to thrift sequence files or parent dir" action {
@@ -32,14 +32,7 @@ object catThrift extends IvoryApp {
   }
 
   val cmd =  new IvoryCmd[CliArguments](parser, CliArguments(Nil, "not-set", "not-set", "not-set"), IvoryRunner { conf => c => IvoryT.fromResultTIO { for {
-    format <- ResultT.fromOption[IO, CatThriftFormat](parseFormat(c.format), s"Unknown thrift format '${c.format}'")
+    format <- ResultT.fromOption[IO, CatThriftFormat](CatThriftFormat.parseFormat(c.format), s"Unknown thrift format '${c.format}'")
     _      <- CatThrift.run(conf.configuration, c.entities, c.input, format, c.output, conf.codec)
   } yield Nil } })
-
-  def parseFormat(input: String): Option[CatThriftFormat] =
-    PartialFunction.condOpt(input.toLowerCase) {
-      case "fact"   => CatThriftFact
-      case "dense"  => CatThriftDense
-      case "sparse" => CatThriftSparse
-    }
 }

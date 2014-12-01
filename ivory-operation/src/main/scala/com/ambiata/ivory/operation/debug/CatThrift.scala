@@ -65,6 +65,18 @@ case object CatThriftFact extends CatThriftFormat
 case object CatThriftDense extends CatThriftFormat
 case object CatThriftSparse extends CatThriftFormat
 
+object CatThriftFormat {
+
+  val formats: Map[String, CatThriftFormat] = Map(
+    "fact" -> CatThriftFact,
+    "dense" -> CatThriftDense,
+    "sparse" -> CatThriftSparse
+  )
+
+  def parseFormat(input: String): Option[CatThriftFormat] =
+    formats.get(input.toLowerCase)
+}
+
 abstract class CatThriftMapper[A](implicit ev: A <:< ThriftLike) extends Mapper[NullWritable, BytesWritable, NullWritable, Text] {
 
   val serializer = ThriftSerialiser()
