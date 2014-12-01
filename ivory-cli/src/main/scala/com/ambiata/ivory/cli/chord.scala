@@ -37,6 +37,7 @@ object chord extends IvoryApp {
       _    <- ResultT.when(of.outputs.map(_._1.format).exists {
         case ThriftFile       => true
         case DelimitedFile(_) => false
+        case EscapedFile(_)   => false
       }, ResultT.fail[IO, Unit]("Thrift output for chord not currently supported"))
       r    <- RepositoryRead.fromRepository(repo)
       // TODO Should be using Ivory API here, but the generic return type is lost on the monomorphic function

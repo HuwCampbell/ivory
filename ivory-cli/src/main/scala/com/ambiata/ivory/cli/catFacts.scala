@@ -5,11 +5,12 @@ import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.api.Ivory.printFacts
+import com.ambiata.ivory.cli.ScoptReaders._
 import com.ambiata.ivory.storage.control._
-import scalaz._, Scalaz._, effect.IO
+import scalaz._, Scalaz._
 
 object catFacts extends IvoryApp {
-  case class CliArguments(delimiter: String = "|", tombstone: String = "NA", paths: List[String] = Nil, version: FactsetVersion = FactsetVersion.latest)
+  case class CliArguments(delimiter: Char = '|', tombstone: String = "NA", paths: List[String] = Nil, version: FactsetVersion = FactsetVersion.latest)
 
   val parser = new scopt.OptionParser[CliArguments]("cat-facts") {
     head("""
@@ -21,7 +22,7 @@ object catFacts extends IvoryApp {
     help("help") text "shows this usage text"
     arg[String]("INPUT_PATH")       action { (x, c) => c.copy(paths = x :: c.paths) } required() unbounded() text
       "Glob path to snapshot facts sequence files or parent dir"
-    opt[String]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) }        optional()             text
+    opt[Char]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) }          optional()             text
       "Delimiter (`|` by default)"
     opt[String]('t', "tombstone")   action { (x, c) => c.copy(tombstone = x) }        optional()             text
       "Tombstone (NA by default)"

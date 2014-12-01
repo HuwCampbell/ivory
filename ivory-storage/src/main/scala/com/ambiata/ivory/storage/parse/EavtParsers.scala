@@ -15,8 +15,8 @@ object EavtParsers {
       case other                   => other
     }
 
-  def parse(line: String, dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): Validation[String, Fact] =
-    fact(dictionary, namespace, ivoryTimezone, ingestTimezone).run(splitLine(line))
+  def parser(dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] =
+    fact(dictionary, namespace, ivoryTimezone, ingestTimezone)
 
   def fact(dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] =
     for {

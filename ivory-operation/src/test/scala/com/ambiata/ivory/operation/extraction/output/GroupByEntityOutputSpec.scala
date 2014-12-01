@@ -18,12 +18,13 @@ import scala.collection.JavaConverters._
 class GroupByEntityOutputSpec extends Specification with SampleFacts with ThrownExpectations with ScalaCheck { def is = s2"""
 
  A Sequence file containing feature values can be
-   pivoted as a row-oriented file, example 1           $dense       ${tag("mr")}
-   pivoted as a row-oriented file, example 2           $dense2      ${tag("mr")}
-   pivoted as a row-oriented dense thrift file         $thriftList  ${tag("mr")}
-   pivoted as a row-oriented sparse thrift file        $thriftMap   ${tag("mr")}
+   pivoted as a row-oriented file, example 1           dense       ${tag("mr")}
+   pivoted as a row-oriented file, example 2           dense2      ${tag("mr")}
+   pivoted as a row-oriented text file escaped         $textEscaped ${tag("mr")}
+   pivoted as a row-oriented dense thrift file         thriftList  ${tag("mr")}
+   pivoted as a row-oriented sparse thrift file        thriftMap   ${tag("mr")}
 
- A dense file must must the dictionary output          $matchDict   ${tag("mr")}
+ A dense file must must the dictionary output          matchDict   ${tag("mr")}
 
 """
   def dense =
@@ -56,6 +57,14 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
   def matchDict = prop {(facts: FactsWithDictionary) =>
     RepositoryBuilder.using(createDenseText(List(facts.facts), facts.dictionary)) must beOkLike {
       case (out, dict) => seqToResult(out.lines.toList.map(_.split("\\|", -1).size - 1 ==== dict.size))
+    }
+  }.set(minTestsOk = 1)
+
+  def textEscaped = prop { (facts: FactsWithDictionaryMulti) =>
+    RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.DenseText('|', "NA", true)) {
+      (_, file) => IvoryLocation.readLines(file)
+    }) must beOkLike {
+      lines => seqToResult(lines.map(TextEscaping.split('|', _).length ==== facts.dictionary.size + 1))
     }
   }.set(minTestsOk = 1)
 
@@ -102,7 +111,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
     }
 
   def createDenseText(facts: List[List[Fact]], dictionary: Dictionary)(repo: HdfsRepository): ResultTIO[(String, List[String])] =
-    createDense(facts, dictionary, GroupByEntityFormat.DenseText('|', "NA"))((_, dense) => for {
+    createDense(facts, dictionary, GroupByEntityFormat.DenseText('|', "NA", false))((_, dense) => for {
         dictionaryLines  <- IvoryLocation.readLines(dense </> ".dictionary")
         denseLines       <- IvoryLocation.readLines(dense)
       } yield (denseLines.mkString("\n").trim, dictionaryLines)

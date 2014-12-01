@@ -36,7 +36,7 @@ class FactImporterSpec extends Specification with ThrownExpectations with FileMa
   def text = { setup: Setup =>
     (for {
       _ <- setup.saveTextInputFile
-      _ <- setup.importAs(TextFormat)
+      _ <- setup.importAs(TextDelimitedFormat)
     } yield ()) must beOk
     setup.theImportMustBeOk
   }
@@ -53,7 +53,7 @@ class FactImporterSpec extends Specification with ThrownExpectations with FileMa
     (for {
       // save an input file containing errors
       _ <- setup.saveTextInputFileWithErrors
-      _ <- setup.importAs(TextFormat)
+      _ <- setup.importAs(TextDelimitedFormat)
     } yield ()) must beOk
     setup.thereMustBeErrors
   }

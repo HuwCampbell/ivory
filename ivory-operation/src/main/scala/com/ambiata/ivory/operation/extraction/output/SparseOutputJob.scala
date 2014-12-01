@@ -18,7 +18,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat
  */
 object SparseOutputJob {
   def run(conf: Configuration, dictionary: Dictionary, input: Path, output: Path, missing: String,
-          delimiter: Char, codec: Option[CompressionCodec]): Unit = {
+          delimiter: Char, escaped: Boolean, codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
     val ctx = MrContext.newContext("ivory-sparse", job)
@@ -52,6 +52,7 @@ object SparseOutputJob {
     // cache / config initializtion
     job.getConfiguration.set(Keys.Missing, missing)
     job.getConfiguration.set(Keys.Delimiter, delimiter.toString)
+    TextEscaper.toConfiguration(job.getConfiguration, escaped)
 
     // run job
     if (!job.waitForCompletion(true))
@@ -101,10 +102,12 @@ class SparseOutputMapper extends Mapper[NullWritable, BytesWritable, NullWritabl
   /** Running output buffer for a row. */
   val buffer = new StringBuilder(4096)
 
+  var escapeAppend: TextEscaper.Append = null
+
   override def setup(context: Mapper[NullWritable, BytesWritable, NullWritable, Text]#Context): Unit = {
-    val ctx = MrContext.fromConfiguration(context.getConfiguration)
     missing = context.getConfiguration.get(SparseOutputJob.Keys.Missing)
     delimiter = context.getConfiguration.get(SparseOutputJob.Keys.Delimiter).charAt(0)
+    escapeAppend = TextEscaper.fromConfiguration(context.getConfiguration, delimiter)
   }
 
   /** Read and pass through, extracting entity and feature id for sort phase. */
@@ -118,7 +121,7 @@ class SparseOutputMapper extends Mapper[NullWritable, BytesWritable, NullWritabl
     buffer.append(delimiter)
     buffer.append(fact.feature)
     buffer.append(delimiter)
-    buffer.append(Value.toStringWithStruct(fact.value, missing))
+    escapeAppend(buffer, Value.toStringWithStruct(fact.value, missing))
 
     vout.set(buffer.toString())
     context.write(kout, vout)

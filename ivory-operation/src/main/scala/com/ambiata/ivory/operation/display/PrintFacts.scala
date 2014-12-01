@@ -6,7 +6,7 @@ import com.ambiata.ivory.storage.legacy._
 
 import scalaz.{\/-, -\/}
 import scalaz.concurrent.Task
-import com.ambiata.ivory.core.{TextError, ThriftError, Value, Partition, Fact}
+import com.ambiata.ivory.core._
 import com.ambiata.mundane.io.{IOActions, IOAction, Logger, FilePath}
 import scalaz.std.anyVal._
 import com.ambiata.ivory.mr._
@@ -21,7 +21,7 @@ import com.ambiata.poacher.hdfs.Hdfs
  */
 object PrintFacts {
 
-  def print(paths: List[Path], config: Configuration, delim: String, tombstone: String, version: FactsetVersion): IOAction[Unit] = for {
+  def print(paths: List[Path], config: Configuration, delim: Char, tombstone: String, version: FactsetVersion): IOAction[Unit] = for {
     logger           <- IOActions.ask
     isPartitionPath  <- paths.traverseU(isPartition(config)).map(_.contains(true))
     _                <-
@@ -31,7 +31,7 @@ object PrintFacts {
         Print.printPathsWith(paths, config, SeqSchemas.factSeqSchema, printFact(delim, tombstone, logger))
   } yield ()
 
-  private def printThriftFact(delim: String, tombstone: String, logger: Logger, version: FactsetVersion)(path: Path, tf: ThriftFact): Task[Unit] = Task.delay {
+  private def printThriftFact(delim: Char, tombstone: String, logger: Logger, version: FactsetVersion)(path: Path, tf: ThriftFact): Task[Unit] = Task.delay {
     PartitionFactThriftStorage.parseThriftFact(version, path.toString)(tf) match {
       case -\/(e) => Task.now(logger("Error! "+e.message+ (e.data match {
         case TextError(line) => ": " + line
@@ -41,13 +41,13 @@ object PrintFacts {
     }
   }.flatMap(identity)
 
-  private def printFact(delim: String, tombstone: String, logger: Logger)(path: Path, f: Fact): Task[Unit] = Task.delay {
+  private def printFact(delim: Char, tombstone: String, logger: Logger)(path: Path, f: Fact): Task[Unit] = Task.delay {
      val logged =
        Seq(f.entity,
          f.namespace.name,
          f.feature,
-         Value.toStringWithStruct(f.value, tombstone),
-         f.date.hyphenated+delim+f.time.hhmmss).mkString(delim)
+         TextEscaping.escape(delim, Value.toStringWithStruct(f.value, tombstone)),
+         f.date.hyphenated+delim+f.time.hhmmss).mkString(delim.toString)
 
      logger(logged).unsafePerformIO
   }
