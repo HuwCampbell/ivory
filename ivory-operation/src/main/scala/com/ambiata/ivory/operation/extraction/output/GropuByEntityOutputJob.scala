@@ -28,7 +28,7 @@ object GropuByEntityOutputJob {
 
     val job = Job.getInstance(conf)
     val name = format match {
-      case DenseText(_, _) => "dense-text"
+      case DenseText(_, _, _) => "dense-text"
       case DenseThrift => "dense-thrift"
       case SparseThrift  => "sparse-thrift"
     }
@@ -58,13 +58,14 @@ object GropuByEntityOutputJob {
     // output
     val tmpout = new Path(ctx.output, "dense")
     val (delim, missing) = format match {
-      case DenseText(delim, missing) =>
+      case DenseText(delim, missing, escaped) =>
         job.setReducerClass(classOf[DenseReducerText])
         job.setOutputFormatClass(classOf[TextOutputFormat[_, _]])
 
         // We only need these for text output
         job.getConfiguration.set(Keys.Missing, missing)
         job.getConfiguration.set(Keys.Delimiter, delim.toString)
+        TextEscaper.toConfiguration(job.getConfiguration, escaped)
         (delim, Some(missing))
       case DenseThrift =>
         job.setReducerClass(classOf[DenseReducerThriftList])
@@ -237,10 +238,13 @@ class DenseReducerText extends DenseReducer[Text] {
   /** delimiter value to use in output. */
   var delimiter = '?'
 
+  var escapeAppend: TextEscaper.Append = null
+
   override def setup(context: Reducer[BytesWritable, BytesWritable, NullWritable, Text]#Context): Unit = {
     super.setup(context)
     missing = context.getConfiguration.get(GropuByEntityOutputJob.Keys.Missing)
     delimiter = context.getConfiguration.get(GropuByEntityOutputJob.Keys.Delimiter).charAt(0)
+    escapeAppend = TextEscaper.fromConfiguration(context.getConfiguration, delimiter)
   }
 
   val out = new DenseFactOutput[Text] {
@@ -266,7 +270,7 @@ class DenseReducerText extends DenseReducer[Text] {
     def outputValue(featureId: String, fact: Fact): Unit = {
       buffer.append(delimiter)
       // Values can now be structs due to expressions
-      buffer.append(Value.toStringWithStruct(fact.value, missing))
+      escapeAppend(buffer, Value.toStringWithStruct(fact.value, missing))
       ()
     }
 

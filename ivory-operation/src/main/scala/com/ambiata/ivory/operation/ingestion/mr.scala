@@ -35,14 +35,16 @@ object IngestJob {
 
     // map
     job.setMapperClass(format match {
-      case TextFormat   => classOf[TextIngestMapper]
-      case ThriftFormat => classOf[ThriftIngestMapper]
+      case TextDelimitedFormat => classOf[TextIngestMapper]
+      case TextEscapedFormat   => classOf[TextIngestMapper]
+      case ThriftFormat        => classOf[ThriftIngestMapper]
     })
 
     // input
     job.setInputFormatClass(format match {
-      case TextFormat   => classOf[TextInputFormat]
-      case ThriftFormat => classOf[SequenceFileInputFormat[_, _]]
+      case TextDelimitedFormat => classOf[TextInputFormat]
+      case TextEscapedFormat   => classOf[TextInputFormat]
+      case ThriftFormat        => classOf[SequenceFileInputFormat[_, _]]
     })
 
     // output
@@ -53,6 +55,10 @@ object IngestJob {
     // At the last minute we use the same zone for ingest, Joda will (nicely) not do any extra conversion in this case
     job.getConfiguration.set(Keys.IngestZone, ingestZone.getOrElse(ivoryZone).getID)
     job.getConfiguration.set(Keys.IngestBase, FileSystem.get(conf).getFileStatus(root).getPath.toString)
+    format match {
+      case TextEscapedFormat => job.getConfiguration.setBoolean(Keys.TextEscaped, true)
+      case _ =>
+    }
     singleNamespace.foreach(ns => job.getConfiguration.set(Keys.SingleNamespace, ns.name))
 
     // run job
@@ -72,6 +78,7 @@ object IngestJob {
     val IngestZone = "ivory.ingest.tz"
     val IngestBase = "ivory.ingest.base"
     val SingleNamespace = "ivory.ingest.singlenamespace"
+    val TextEscaped = "ivory.ingest.textescaped"
     val Err = "err"
   }
 }
@@ -187,9 +194,20 @@ trait IngestMapper[K, I] extends Mapper[K, I, BytesWritable, BytesWritable] {
 
 class TextIngestMapper extends IngestMapper[LongWritable, Text] {
 
+  var splitter: String => List[String] = null
+
+  override def setup(context: Mapper[LongWritable, Text, BytesWritable, BytesWritable]#Context): Unit = {
+    super.setup(context)
+    splitter =
+      if (context.getConfiguration.getBoolean(IngestJob.Keys.TextEscaped, false))
+        TextEscaping.split(EavtParsers.delim, _)
+      else
+        EavtParsers.splitLine
+  }
+
   override def parse(namespace: Name, value: Text): Validation[ParseError, Fact] = {
     val line = value.toString
-    EavtParsers.parse(line, dict, namespace, ivoryZone, ingestZone).leftMap(ParseError(_, TextError(line)))
+    EavtParsers.parser(dict, namespace, ivoryZone, ingestZone).run(splitter(line)).leftMap(ParseError(_, TextError(line)))
   }
 }
 
