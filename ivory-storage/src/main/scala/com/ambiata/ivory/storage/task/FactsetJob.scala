@@ -5,7 +5,7 @@ import com.ambiata.ivory.core.thrift.DictionaryThriftConversion
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.io.{NullWritable, BytesWritable, LongWritable}
+import org.apache.hadoop.io.{NullWritable, BytesWritable}
 import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.hadoop.mapreduce.Job
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
