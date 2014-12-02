@@ -234,7 +234,7 @@ object NewSnapshotManifest {
 
   def save(repository: Repository, meta: NewSnapshotManifest): ResultTIO[Unit] = repository.store.utf8.write(
     Repository.snapshot(meta.snapshotId) / NewSnapshotManifest.metaKeyName,
-    meta.asJson.nospaces)
+    meta.asJson.spaces2)
 
   // instances
 
