@@ -19,6 +19,8 @@ class LatestReducer extends Reduction {
     tombstone = fv.isTombstone
   }
 
+  def skip(f: Fact, reason: String): Unit = ()
+
   def save: ThriftFactValue =
     if (!tombstone) value else null
 }

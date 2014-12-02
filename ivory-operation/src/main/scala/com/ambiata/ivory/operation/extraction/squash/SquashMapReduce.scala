@@ -4,9 +4,11 @@ import java.lang.{Iterable => JIterable}
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift.NamespacedThriftFact
-import com.ambiata.ivory.lookup.{ChordEntities, EntityFilterLookup, FeatureIdLookup, FeatureReductionLookup}
+import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.mr._
+import com.ambiata.ivory.operation.extraction.reduction.Reduction
 import com.ambiata.ivory.operation.extraction.{ChordJob, Entities, SnapshotJob}
+import com.ambiata.ivory.storage.lookup.FeatureLookups
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.io.{BytesWritable, NullWritable, Text, Writable}
 import org.apache.hadoop.mapreduce.{Mapper, Reducer}
@@ -77,6 +79,7 @@ trait SquashReducer[A <: Writable] extends Reducer[BytesWritable, BytesWritable,
 
   val factEmitter = new FactByteMutator
   val lookup = new FeatureReductionLookup()
+  var isSetLookup: Array[Boolean] = null
   val fact = createMutableFact
   val emitFact = createMutableFact
   var state: SquashReducerState[A] = null
@@ -94,16 +97,25 @@ trait SquashReducer[A <: Writable] extends Reducer[BytesWritable, BytesWritable,
     tracer = new SquashProfiler(traceMod, newCounter(SquashJob.Keys.CounterTotalGroup), newCounter(SquashJob.Keys.CounterSaveGroup),
       newCounter(SquashJob.Keys.ProfileTotalGroup), newCounter(SquashJob.Keys.ProfileSaveGroup))
     state = createState(context)
+
+    val isSetLookupThrift = new FlagLookup
+    ctx.thriftCache.pop(context.getConfiguration, SquashJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
+    isSetLookup = FeatureLookups.isSetLookupToArray(isSetLookupThrift)
   }
 
   override def reduce(key: BytesWritable, iterable: JIterable[BytesWritable], context: ReducerContext): Unit = {
     emitter.context = context
 
+    val featureId = SquashWritable.GroupingByFeatureId.getFeatureId(key)
+    val isSet = isSetLookup(featureId)
     // Compiling an expression is (eventually) going to get more expensive, and so we only want to do it on demand
     // For this reason we sort by featureId and compile once here, and process all the entities
-    val pool = ReducerPool.create(lookup.getReductions.get(SquashWritable.GroupingByFeatureId.getFeatureId(key)).asScala.toList, (_, r) => r /* FIX MAX COUNTERS tracer.wrap */)
+    val pool = ReducerPool.create(lookup.getReductions.get(featureId).asScala.toList, isSet, trace)
     state.reduceAll(fact, emitFact, pool, factEmitter, iterable.iterator, emitter, vout)
   }
+
+  def trace(fr: FeatureReduction, r: Reduction): Reduction =
+    r /* FIX MAX COUNTERS tracer.wrap */
 }
 
 class SquashReducerSnapshot extends SquashReducer[BytesWritable] {
@@ -136,6 +148,13 @@ class SquashReducerDump extends SquashReducer[Text] {
   override def createState(context: ReducerContext): SquashReducerState[Text] = {
     val strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     val date = Date.fromInt(strDate.toInt).getOrElse(Crash.error(Crash.DataIntegrity, s"Invalid snapshot date '$strDate'"))
-    new SquashReducerStateDump(date, '|', "NA")
+    new SquashReducerStateDump(date)
   }
+
+  override def trace(fr: FeatureReduction, r: Reduction): Reduction =
+    SquashDump.wrap('|', "NA", fr, r, {
+      line =>
+        vout.set(line)
+        emitter.emit(SquashReducerState.kout, vout)
+    })
 }

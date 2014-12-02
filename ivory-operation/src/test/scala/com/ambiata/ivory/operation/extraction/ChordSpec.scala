@@ -18,19 +18,19 @@ class ChordSpec extends Specification with ScalaCheck { def is = s2"""
 ChordSpec
 ---------
 
-  Can extract expected facts                          $normal         ${tag("mr")}
+  Can extract expected facts (state)                  $normal         ${tag("mr")}
   Can extract expected facts with windowing (state)   $windowingState ${tag("mr")}
   Can extract expected facts with windowing (set)     $windowingSet   ${tag("mr")}
 """
 
   def normal = prop((cf: ChordFacts) => cf.expected.nonEmpty ==> {
-    val facts = cf.copy(window = None)
+    val facts = cf.copy(window = None).withMode(Mode.State)
     run(facts.copy(window = None), facts.dictionary) must beOkLike(_ must containTheSameElementsAs(facts.expected))
   }).set(minTestsOk = 1)
 
   def windowingState = prop((cf: ChordFacts, window: Window) => cf.expected.nonEmpty ==> {
     val facts = cf.copy(window = Some(window)).withMode(Mode.State)
-    run(facts, facts.dictionaryWithCount) must beOkLike(_ must containTheSameElementsAs(facts.expectedSquash))
+    run(facts, facts.dictionaryWithCount) must beOkLike(_ must containTheSameElementsAs(facts.expectedSquashState))
   }).set(minTestsOk = 1)
 
   def windowingSet = prop((cf: ChordFacts, window: Window) => cf.expected.nonEmpty ==> {
@@ -41,7 +41,7 @@ ChordSpec
     def filterCount(f: Fact): Boolean = f.value match { case LongValue(_) => true case _ => false }
     val facts = cf.copy(window = Some(window)).withMode(Mode.Set)
     run(facts, facts.dictionaryWithCount) must
-      beOkLike(_.filter(filterCount) must containTheSameElementsAs(facts.expectedSquash.filter(filterCount)))
+      beOkLike(_.filter(filterCount) must containTheSameElementsAs(facts.expectedSquashSet.filter(filterCount)))
   }).set(minTestsOk = 1)
 
   def run(facts: ChordFacts, dictionary: Dictionary): ResultTIO[List[Fact]] =

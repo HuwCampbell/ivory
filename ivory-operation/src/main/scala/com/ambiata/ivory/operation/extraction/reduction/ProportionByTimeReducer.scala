@@ -27,6 +27,8 @@ class ProportionByTimeReducer(start: Time, end: Time) extends Reduction {
     total += 1
   }
 
+  def skip(f: Fact, reason: String): Unit = ()
+
   def save: ThriftFactValue = {
     value.setD(if (total == 0) 0 else count / total.toDouble)
     value

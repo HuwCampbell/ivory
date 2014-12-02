@@ -13,6 +13,7 @@ class DateOffsetsSpec extends Specification with ScalaCheck { def is = s2"""
   Can calculate the number of days until the end of the date range             $untilEnd
   Can increment the number of unit days in a range of dates                    $dateSetInc
   Can increment the number of unit weeks in a range of dates                   $weekSetInc
+  Offset should return the window offset as a minimum for earlier dates        $dateBefore
 """
 
   def daysSparse = prop((tds: UniqueDates) => {
@@ -46,5 +47,9 @@ class DateOffsetsSpec extends Specification with ScalaCheck { def is = s2"""
       count += 1
     }
     (sum, count) ==== ((doc.datesWithFullWeeks.map(_._1).sum, doc.noOfWeeksFloor))
+  })
+
+  def dateBefore = prop((doc: DatesOfCount) => {
+    doc.offsets.get(Date.minValue).value ==== doc.offsets.offsets(0)
   })
 }

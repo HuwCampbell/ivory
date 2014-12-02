@@ -19,6 +19,10 @@ isSetTable
 
     $sets
 
+  There should be a flag entry for each concrete feature.
+
+    $isSetTableConcrete
+
 
 featureIdTable
 --------------
@@ -62,6 +66,10 @@ spareMapToArray
        case Virtual(_, _) =>
          false
      }).size)
+
+  def isSetTableConcrete = prop((d: Dictionary) =>
+    FeatureLookups.isSetTableConcrete(d.byConcrete).getFlags.size() ==== (d.byConcrete.byFeatureIndexReverse.values.max + 1)
+  )
 
   def size = prop((d: Dictionary) =>
     FeatureLookups.featureIdTable(d).getIds.size ====

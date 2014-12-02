@@ -15,19 +15,24 @@ object SquashArbitraries {
 
     lazy val factsSorted = facts.list.sortBy(fact => (fact.entity, fact.datetime.long))
 
+    def withMode(mode: Mode): SquashFacts =
+      copy(dict = dict.copy(cg = dict.cg.copy(definition = dict.cg.definition.copy(mode = mode))))
+
     /** Return the squashed view of entities to their expected facts for each feature, given the window */
-    def expected: Map[String, Map[FeatureId, (Option[Fact], List[Fact])]] =
+    def expected: Map[String, Map[FeatureId, (Option[Fact], List[Fact])]] = {
+      val windows = dict.cg.definition.mode.fold(List(dict.fid -> None), Nil) ++ dict.cg.virtual.map(vd => vd._1 -> vd._2.window)
       facts.list.groupBy(_.entity).mapValues { facts =>
-        ((dict.fid -> None) :: dict.cg.virtual.map(vd => vd._1 -> vd._2.window)).toMap.mapValues { window =>
+        windows.toMap.mapValues { window =>
           facts.sortBy(_.datetime.long)
             // Either filter by window, or get everything
-            .partition(ef => window.cata(w => !Window.isFactWithinWindow(Window.startingDate(w)(date), ef), false)) match {
+            .partition(ef => window.cata(w => !Window.isFactWithinWindow(Window.startingDate(w)(date), ef), true)) match {
             case (a, b) => (a.lastOption, b)
           }
         }
       }
+    }
 
-    def expectedFactsWithCount: List[Fact] =
+    def expectedFactsWithCountSet: List[Fact] =
       for {
         (e, fs)                       <- expected.toList
         (fid, (oldFact, windowFacts)) <- fs.toList
@@ -35,6 +40,19 @@ object SquashArbitraries {
           if (fid == dict.fid) (oldFact ++ windowFacts).lastOption.filterNot(_.isTombstone).map(_.value).toList
           else                 LongValue(windowFacts.filterNot(_.isTombstone).size) :: Nil
       } yield Fact.newFact(e, fid.namespace.name, fid.name, date, Time(0), value)
+
+    def expectedFactsWithCountState: List[Fact] = {
+      for {
+        (e, fs)                       <- expected.toList
+        (fid, (oldFact, windowFacts)) <- fs.toList
+        value                         <-
+        if (fid == dict.fid) (oldFact ++ windowFacts).lastOption.filterNot(_.isTombstone).map(_.value).toList
+        else                 LongValue((oldFact ++ windowFacts).filterNot(_.isTombstone).size) :: Nil
+      } yield Fact.newFact(e, fid.namespace.name, fid.name, date, Time(0), value)
+    }
+
+    def expectedFactsWithCount: List[Fact] =
+      dict.cg.definition.mode.fold(expectedFactsWithCountState, expectedFactsWithCountSet)
 
     def removeNonWindowFeatures: SquashFacts =
       copy(dict = dict.copy(cg = dict.cg.copy(virtual = dict.cg.virtual.filter(_._2.window.isDefined))))

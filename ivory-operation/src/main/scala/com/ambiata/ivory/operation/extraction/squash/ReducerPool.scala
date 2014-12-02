@@ -12,13 +12,17 @@ trait ReducerPool {
    *
    * The returning function takes an offset into the pool.
    */
-  def compile(dates: Array[Date]): Int => List[(FeatureReduction, Date, Reduction)]
+  def compile(dates: Array[Date]): Int => List[(FeatureReduction, Reduction)]
 }
 
 object ReducerPool {
 
-  def create(reductions: List[FeatureReduction], profile: (FeatureReduction, Reduction) => Reduction): ReducerPool = new ReducerPool {
-    override def compile(dates: Array[Date]): Int => List[(FeatureReduction, Date, Reduction)] =
+  def createTesting(reductions: List[FeatureReduction], isSet: Boolean): ReducerPool =
+    create(reductions, isSet, (_, r) => r)
+
+  def create(reductions: List[FeatureReduction], isSet: Boolean,
+             profile: (FeatureReduction, Reduction) => Reduction): ReducerPool = new ReducerPool {
+    override def compile(dates: Array[Date]): Int => List[(FeatureReduction, Reduction)] =
       dates.map(date =>
         for {
           fr <- reductions
@@ -26,13 +30,13 @@ object ReducerPool {
           // https://github.com/ambiata/ivory/issues/380
           exp <- Expression.parse(fr.getExpression).toOption
           win  = WindowLookup.fromInt(fr.window)
-          dove = Reduction.getWindowOverride(exp)
-          // If no window is specified the only functions we should be applying will deal with a single value,
-          // and should _always_ apply; hence the min date
-          srt  = (dove orElse win.map(Window.startingDate(_)(date))).getOrElse(Date.minValue)
+          // If there is no starting date update the one provided, which will either be a snapshot or chord date
+          // This is especially important for chord where it's used to calculate the "latest" date within a window
+          srt  = win.map(Window.startingDate(_)(date)).getOrElse(date)
           of   = DateOffsets.calculateLazyCompact(srt, date)
           r   <- Reduction.compile(fr, exp, of, profile(fr, _))
-        } yield (fr, srt, r)
+          r2   = if (isSet) new SetReduction(srt, date, r) else new StateReduction(srt, date, r)
+        } yield (fr, r2)
       )
   }
 }

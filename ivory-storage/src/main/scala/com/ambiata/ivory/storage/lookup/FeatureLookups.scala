@@ -16,6 +16,17 @@ object FeatureLookups {
     isSet
   }
 
+  def isSetTableConcrete(dictionary: DictionaryConcrete): FlagLookup = {
+    val isSet = new FlagLookup
+    dictionary.sources.foreach {
+      case (fid, cd) =>
+        dictionary.byFeatureIndexReverse.get(fid).foreach {
+          n => isSet.putToFlags(n, cd.definition.mode.isSet)
+        }
+    }
+    isSet
+  }
+
   def featureIdTable(dictionary: Dictionary): FeatureIdLookup = {
     val features = new FeatureIdLookup()
     dictionary.byFeatureIndex.foreach({

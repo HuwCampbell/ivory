@@ -4,8 +4,11 @@ import com.ambiata.ivory.core.{Date, DateTimeUtil}
 
 case class DateOffsets(start: Int, end: Date, val count: Int, val offsets: Array[Int], f: DateOffsetLookup) {
 
-  def get(d: Date): DateOffset =
-    new DateOffset(offsets(f(d) - start))
+  def get(d: Date): DateOffset = {
+    val i = f(d) - start
+    // It's possible for states to ask for the date before the window - return the lowest offset
+    new DateOffset(offsets(Math.max(i, 0)))
+  }
 
   def untilEnd(d: Date): DateOffset =
     new DateOffset(get(end).value - get(d).value)
@@ -33,8 +36,18 @@ class MutableDateSet(offset: Int, offsets: Array[Int], f: DateOffsetLookup) {
     }
   }
 
-  def inc(d: Date): Unit =
-    offsets(f(d) - offset) += 1
+  def inc(d: Date): Unit = {
+    val i = f(d) - offset
+    // This is to support date expressions with state, which by definition will call this function.
+    // The big danger here is that we silently drop invalid values that flag incorrect/bad behaviour.
+    // Some of these expressions may/should not be possible for states, which will also help.
+    // https://github.com/ambiata/ivory/issues/448
+    // The real fix will be to use an optimised date format which allows for int arithmetic.
+    // https://github.com/ambiata/ivory/issues/380
+    if (i >= 0) {
+      offsets(i) += 1
+    }
+  }
 
   // WARNING: We require a function allocation for the callback
 

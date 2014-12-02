@@ -42,6 +42,11 @@ object Window {
       case Years  => d => DateTimeUtil.minusYears(d, window.length)
     }
 
+  def isFactWithinWindowRange(windowStartDate: Date, windowEndDate: Date, fact: Fact): Boolean = {
+    val date = fact.date
+    withinWindow(windowStartDate, date) && date <= windowEndDate
+  }
+
   /** This is preferred over [[withinWindow()]] to avoid any mixup with [[Date]] argument ordering */
   def isFactWithinWindow(windowStartDate: Date, fact: Fact): Boolean =
     withinWindow(windowStartDate, fact.date)
