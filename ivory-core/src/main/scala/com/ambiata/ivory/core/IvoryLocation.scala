@@ -186,14 +186,19 @@ object IvoryLocation {
         // https://github.com/ambiata/ivory/issues/87
         HdfsIvoryLocation(HdfsLocation(new File(uri.getPath).getAbsolutePath), ivory.configuration, ivory.scoobiConfiguration, ivory.codec).right
 
-      case _ => Location.fromUri(s).map {
-        case l: LocalLocation  => LocalIvoryLocation(l)
-        case s: S3Location     => S3IvoryLocation(s, ivory.s3Client)
-        case h: HdfsLocation   => HdfsIvoryLocation(h, ivory.configuration, ivory.scoobiConfiguration, ivory.codec)
-      }
+      case _ => Location.fromUri(s).map(l => fromLocation(l, ivory))
     }
   } catch {
     case e: java.net.URISyntaxException =>
       e.getMessage.left
+  }
+
+  def fromLocation(loc: Location, ivory: IvoryConfiguration): IvoryLocation = loc match {
+    case l: LocalLocation =>
+      LocalIvoryLocation(l)
+    case s: S3Location =>
+      S3IvoryLocation(s, ivory.s3Client)
+    case h: HdfsLocation =>
+      HdfsIvoryLocation(h, ivory.configuration, ivory.scoobiConfiguration, ivory.codec)
   }
 }

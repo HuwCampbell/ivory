@@ -3,6 +3,7 @@ package com.ambiata.ivory.cli.extract
 import com.ambiata.ivory.api.Ivory.{OutputFormat, OutputFormats}
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
+import com.ambiata.notion.core._
 import scopt.OptionParser
 
 import scalaz._, Scalaz._, scalaz.effect._
@@ -25,8 +26,8 @@ object Extract {
       case (format, path) => OutputFormat.fromString(format).map(_ -> path)
         .toRightDisjunction(\&/.This(s"Unsupported format $format"): \&/[String, Throwable])
     })
-    out2 <- out1.traverseU {
-      case (format, path) => IvoryLocation.fromUri(path, conf).map(format ->)
+    out2 = out1.map {
+      case (format, path) => format -> OutputDataset(HdfsLocation(path))//IvoryLocation.fromUri(path, conf).map(format ->)
     }
   } yield OutputFormats(out2, output.missing)
 }

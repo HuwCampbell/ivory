@@ -27,7 +27,7 @@ object Chord {
    * If takeSnapshot = true, take a snapshot first, otherwise use the latest available snapshot
    */
   def createChordWithSquash[A](repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean,
-                               config: SquashConfig, outs: List[IvoryLocation])(f: (Key, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
+                               config: SquashConfig, outs: List[OutputDataset])(f: (Key, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
     entities <- Entities.readEntitiesFrom(entitiesLocation)
     out      <- createChordRaw(repository, entities, takeSnapshot)
     hr       <- repository.asHdfsRepository[IO]
