@@ -9,7 +9,11 @@ import Arbitraries._
 
 
 // FIX ARB Name? looks like this has moved on...
-case class PrimitiveSparseEntities(meta: ConcreteDefinition, fact: Fact, zone: DateTimeZone)
+case class PrimitiveSparseEntities(meta: ConcreteDefinition, fact: Fact, zone: DateTimeZone) {
+
+  lazy val dictionary: Dictionary =
+    Dictionary(List(meta.toDefinition(fact.featureId)))
+}
 
 object PrimitiveSparseEntities {
   implicit def PrimitiveSparseEntitiesArbitrary: Arbitrary[PrimitiveSparseEntities] =

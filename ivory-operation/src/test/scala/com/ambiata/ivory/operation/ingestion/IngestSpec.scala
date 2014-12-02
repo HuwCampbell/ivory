@@ -63,22 +63,22 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
     } must beOk
   }).set(minTestsOk = 5)
 
-  def escapedText = prop((facts: FactsWithDictionary, tt: TemporaryType) => {
+  def escapedText = prop((facts: PrimitiveSparseEntities, tt: TemporaryType) => {
     withRepository(Hdfs) { repository: Repository =>
       withCluster { cluster: Cluster =>
         withIvoryLocationDir(tt) { location =>
           for {
             _  <- Repositories.create(repository, RepositoryConfig.testing)
             _  <- DictionaryThriftStorage(repository).store(facts.dictionary)
-            _  <- IvoryLocation.writeUtf8Lines(location </> "part-r-00000", facts.facts.map(toEavtEscaped))
-            _  <- Ingest.ingestFacts(repository, cluster, location, Some(Name("ns1")), None, 100.mb, TextEscapedFormat).run.run(IvoryRead.create)
+            _  <- IvoryLocation.writeUtf8Lines(location </> "part-r-00000", List(facts.fact).map(toEavtEscaped))
+            _  <- Ingest.ingestFacts(repository, cluster, location, Some(facts.fact.namespace), None, 100.mb, TextEscapedFormat).run.run(IvoryRead.create)
             r  <- repository.asHdfsRepository[IO]
-            l  <- repository.toIvoryLocation(Repository.namespace(FactsetId.initial, Name("ns1"))).asHdfsIvoryLocation[IO]
-          } yield facts.facts -> valueFromSequenceFile[Fact](l.toHdfs + "/" + HdfsGlobs.FactsetPartitionsGlob).run(r.scoobiConfiguration).toList
+            l  <- repository.toIvoryLocation(Repository.namespace(FactsetId.initial, facts.fact.namespace)).asHdfsIvoryLocation[IO]
+          } yield List(facts.fact.toThrift) -> valueFromSequenceFile[ThriftFact](l.toHdfs + "/" + HdfsGlobs.FactsetPartitionsGlob).run(r.scoobiConfiguration).toList
         }
       }
     } must beOkLike(f => f._1 ==== f._2)
-  }).set(minTestsOk = 1)
+  }).set(minTestsOk = 2)
 
   def thrift = prop {(facts: FactsWithDictionary, fact: Fact, tt: TemporaryType) =>
     val serialiser = ThriftSerialiser()
@@ -108,7 +108,7 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
    List(fact.entity, fact.featureId.name, Value.toString(fact.value, None).get, toString(fact.datetime)).mkString("|")
 
   def toEavtEscaped(fact: Fact) =
-    TextEscaping.mkString('|', List(fact.entity, fact.featureId.name, Value.toString(fact.value, None).get, toString(fact.datetime)))
+    TextEscaping.mkString('|', List(fact.entity, fact.featureId.name, Value.toStringWithStruct(fact.value, "NA"), fact.datetime.localIso8601))
 
   def toString(datetime: DateTime) =
     "2012-09-01T00:00:00"
