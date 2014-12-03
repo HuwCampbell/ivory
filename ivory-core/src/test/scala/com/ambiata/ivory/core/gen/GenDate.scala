@@ -44,11 +44,8 @@ object GenDate {
   def dateTimeWithZone: Gen[(DateTime, DateTimeZone)] = for {
     dt <- dateTime
     z <- zone
-    r <- Try(dt.joda(z)).toOption match {
-      case None =>
-        dateTimeWithZone
-      case Some(_) =>
-        Gen.const(dt -> z)
-    }
+    // There are issues with this specific timezone before 1980
+    skip = z == DateTimeZone.forID("Africa/Monrovia") && dt.date.year <= 1980
+    r <- if (skip || Try(dt.joda(z)).toOption.isEmpty) dateTimeWithZone else Gen.const(dt -> z)
   } yield r
 }
