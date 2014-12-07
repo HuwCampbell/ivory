@@ -1,5 +1,5 @@
 
-HADOOP=hadoop-2.2.0-cdh5.0.0-beta-2
+HADOOP=${HADOOP:-hadoop-2.2.0-cdh5.0.0-beta-2}
 
 export AWS_DEFAULT_REGION=ap-southeast-2
 # For hadoop - needs JAVA_HOME set, but only for the 'java' command. :(
