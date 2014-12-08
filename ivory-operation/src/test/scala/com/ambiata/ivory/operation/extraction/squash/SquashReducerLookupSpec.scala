@@ -11,11 +11,35 @@ import scala.collection.JavaConverters._
 class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s2"""
 
   Can calculate the number of reducers for a virtual feature      $lookup
-  Can get the partition for a feature when no window              $partitionNoWindow
-  Can get the partition for a feature based on the entity         $partitionEntity
+  Can get the partition for a feature when no window              partitionNoWindow
+  Can get the partition for a feature based on the entity         partitionEntity
 """
 
-  def lookup = prop((d: VirtualDictionaryWindow, d2: Dictionary, s: Short, e: Int) => {
+  def lookup = {
+    val reducers = 200
+    val dict = Dictionary(List(
+      Concrete(FeatureId(Name("pixel"), "pixel"), ConcreteDefinition(StringEncoding, Mode.Set, None, "", Nil)),
+      Virtual(FeatureId(Name("a"), "v"), VirtualDefinition(FeatureId(Name("pixel"), "pixel"), Query.empty, Some(Window(12, Weeks)))),
+      Concrete(FeatureId(Name("c"), "c"), ConcreteDefinition(StringEncoding, Mode.Set, None, "", Nil)),
+      Virtual(FeatureId(Name("c"), "v"), VirtualDefinition(FeatureId(Name("c"), "c"), Query.empty, Some(Window(4, Weeks)))),
+      Concrete(FeatureId(Name("b"), "b"), ConcreteDefinition(StringEncoding, Mode.Set, None, "", Nil)),
+      Virtual(FeatureId(Name("b"), "v"), VirtualDefinition(FeatureId(Name("b"), "b"), Query.empty, Some(Window(2, Years))))
+    ))
+    val (lookup, _) = SquashJob.dictToLookup(dict.byConcrete, latest = true)
+    val create = SquashReducerLookup.create(dict.byConcrete, lookup, reducers)
+    def blah(lookup: Int): Unit= {
+      val count = lookup & 0xffff
+      println(count)
+    }
+    println(lookup)
+    println(blah(create.reducers.get(0)))
+    println(blah(create.reducers.get(1)))
+    println(blah(create.reducers.get(2)))
+    println(create)
+    true
+  }
+
+  def lookup2 = prop((d: VirtualDictionaryWindow, d2: Dictionary, s: Short, e: Int) => {
     val reducers = s & (Short.MaxValue - 1)
     val dict = (d.vd.dictionary append d2).byConcrete
     val (lookup, _) = SquashJob.dictToLookup(dict, latest = true)
