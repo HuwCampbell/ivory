@@ -3,7 +3,7 @@ package com.ambiata.ivory.core
 import com.ambiata.ivory.core.arbitraries._, Arbitraries._
 
 import org.specs2._
-import org.scalacheck._, Arbitrary._
+import org.scalacheck._
 import org.joda.time._, format.DateTimeFormat
 import scalaz._, Scalaz._
 import argonaut._, Argonaut._
@@ -112,7 +112,7 @@ Generic Time Format Parsing
     (Dates.date("2001-02-29") must beNone)
   }
 
-  def zonesymmetric = prop((dz: DateTimeWithZone, ivory: DateTimeZone) => runExample(dz.datetime, dz.zone, ivory) ==> {
+  def zonesymmetric = prop((dz: DateTimeWithZone, ivory: DateTimeZone) => {
     val d = dz.datetime
     val local = dz.zone
     (Dates.datetimezone(d.iso8601(local), local) must beSome(d)) and
@@ -127,7 +127,7 @@ Generic Time Format Parsing
     }))
   }).set(minTestsOk = 10000)
 
-  def timesymmetric = prop((dz: DateTimeWithZone, ivory: DateTimeZone) => runExample(dz.datetime, dz.zone, ivory) ==> {
+  def timesymmetric = prop((dz: DateTimeWithZone, ivory: DateTimeZone) => {
     val d = dz.datetime
     val local = dz.zone
     (Dates.datetime(d.localIso8601, local, local) must beSome(d)) and
@@ -141,9 +141,6 @@ Generic Time Format Parsing
       DateTime.fromJoda(jdt) must_== d
     }))
   }).set(minTestsOk = 10000)
-
-  def runExample(d: DateTime, local: DateTimeZone, ivory: DateTimeZone): Boolean =
-    (local.toString != "Africa/Monrovia" || d.date.year > 1980) // for some reason there are issues with this specific timezone before 1980
 
   def parsedate = prop((dtz: DateTimeWithZone) =>
     Dates.parse(dtz.datetime.date.hyphenated, dtz.zone, dtz.zone) must beSome((nd: Date \/ DateTime) => nd.toEither must beLeft(dtz.datetime.date))
