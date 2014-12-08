@@ -13,8 +13,8 @@ object GroupByEntityOutput {
   def createWithDictionary(repository: Repository, input: ShadowOutputDataset, output: ShadowOutputDataset, dictionary: Dictionary,
                            format: GroupByEntityFormat): ResultTIO[Unit] = for {
     hdfsRepo       <- repository.asHdfsRepository[IO]
-    in             =  new Path(input.location.path)
-    out            =  new Path(output.location.path)
+    in             =  input.hdfsPath
+    out            =  output.hdfsPath
     reducers       <- ReducerSize.calculate(in, 256.mb).run(hdfsRepo.configuration)
     _              <- GroupByEntityOutputJob.run(hdfsRepo.configuration, dictionary, in, out, format, reducers, hdfsRepo.codec)
   } yield ()

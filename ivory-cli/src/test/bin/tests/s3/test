@@ -1,4 +1,4 @@
-#!/bin/sh -eux
+#!/bin/sh -eu
 
 DIR=$(dirname $0)
 . "${DIR}/../../setup.sh"
@@ -6,9 +6,10 @@ DIR=$(dirname $0)
 $IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 
-### Ingest from S3
 if [ ! -z "${AWS_TEST_BUCKET:-}" ]
 then
+## INGEST
+
   S3_INGEST_1="s3://${AWS_TEST_BUCKET}/tests/cli/$(random)"
   aws s3 sync "${INPUT}/facts-3" ${S3_INGEST_1} --sse
   $IVORY ingest -i ${S3_INGEST_1}
@@ -20,6 +21,29 @@ then
   $IVORY ingest -i ${S3_INGEST_2} -n HALIBUT
   $IVORY cat-facts "${REPOSITORY}/factsets/00000001/*/*/*/*/*" | sort > "${TARGET}/halibut-facts-s3.psv"
   diff_test "${DIR}/expected/halibut-s3-facts.psv" "${TARGET}/halibut-facts-s3.psv"
+
+
+## EXTRACT
+  S3_EXTRACT="s3://${AWS_TEST_BUCKET}/tests/cli/$(random)"
+  S3_EXTRACT_SNAPSHOT="${S3_EXTRACT}/snapshot"
+  EXTRACT_SNAPSHOT="${REPOSITORY}/tmp/check/snap-$(random)"
+  S3_EXTRACT_CHORD="${S3_EXTRACT}/chord"
+  EXTRACT_CHORD="${REPOSITORY}/tmp/check/chord-$(random)"
+
+  mkdir -p "${EXTRACT_SNAPSHOT}"
+  mkdir -p "${EXTRACT_CHORD}"
+
+# snapshot
+  $IVORY snapshot -r "${REPOSITORY}"  -o "sparse:psv=${S3_EXTRACT_SNAPSHOT}/snap-sparse"
+  aws s3 sync "${S3_EXTRACT_SNAPSHOT}/snap-sparse" "${EXTRACT_SNAPSHOT}"
+  diff_test_mr "${DIR}/expected/snap-sparse.psv" "${EXTRACT_SNAPSHOT}"
+
+# chord
+  $IVORY chord  -r "${REPOSITORY}" -c "${INPUT}/chord.psv" -o "sparse:psv=${S3_EXTRACT_CHORD}/chord-sparse"
+  aws s3 sync "${S3_EXTRACT_CHORD}/chord-sparse" "${EXTRACT_CHORD}"
+  diff_test_mr "${DIR}/expected/chord-sparse.psv" "${EXTRACT_CHORD}"
+
+
 else
-  echo "Skipping S3 Ingest test. AWS_TEST_BUCKET is not set."
+  echo "Skipping S3 test. AWS_TEST_BUCKET is not set."
 fi

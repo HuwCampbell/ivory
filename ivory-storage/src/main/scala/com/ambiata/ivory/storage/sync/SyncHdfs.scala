@@ -26,7 +26,7 @@ object SyncHdfs {
             }
           }).run(cluster.hdfsConfiguration)
         case None =>
-          ResultT.failIO[Unit](s"Source file ($f) does not share the common path (base)")
+          ResultT.failIO[Unit](s"Source file ($f) does not share the common path ($base)")
       }
     )
   } yield ()
@@ -46,7 +46,7 @@ object SyncHdfs {
         case Some(p) =>
           ResultT.ok[IO, Mapping](UploadMapping(new Path(f.path), baseOutput | p.path))
         case None =>
-          ResultT.failIO[Mapping](s"Source file ($f) does not share the common path (base)")
+          ResultT.failIO[Mapping](s"Source file ($f) does not share the common path ($base)")
       }
     })
     _ <- DistCopyJob.run(Mappings(m.toVector), cluster.conf)

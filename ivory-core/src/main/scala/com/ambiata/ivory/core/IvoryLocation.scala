@@ -120,7 +120,13 @@ object IvoryLocation {
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
       S3Address(bucket, key).getLines.executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
-      readHdfsLines(new Path(path)).run(conf)
+      Hdfs.isDirectory(new Path(path)).flatMap { isDirectory =>
+        if (isDirectory)
+          Hdfs.globFilesRecursively(new Path(path)).filterHidden
+            .flatMap(_.traverseU(Hdfs.readLines)).map(_.toList.flatten)
+        else
+          Hdfs.readLines(new Path(path)).map(_.toList)
+      }.run(conf)
   }
 
   def readUnsafe(location: IvoryLocation)(f: java.io.InputStream => ResultTIO[Unit]): ResultTIO[Unit] = {
