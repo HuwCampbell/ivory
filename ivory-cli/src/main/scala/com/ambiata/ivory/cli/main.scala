@@ -28,6 +28,7 @@ object main {
   )
 
   def main(args: Array[String]): Unit = {
+    handleVersionAndExit(args)
     val program = for {
       (progName, argsRest) <- args.headOption.map(_ -> args.tail)
       command <- commands.find(_.cmd.parser.programName == progName)
@@ -42,4 +43,13 @@ object main {
     println(s"Usage: {$cmdNames}")
     sys.exit(1)
   }
+
+  // We could also mutate the scopt OptionParser, but this is a little more obvious
+  def handleVersionAndExit(args: Array[String]): Unit =
+    args match {
+      case Array("--version") =>
+        println(s"Ivory ${BuildInfo.version}")
+        sys.exit(0)
+      case _ =>
+    }
 }
