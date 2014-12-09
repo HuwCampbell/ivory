@@ -15,7 +15,7 @@ import scalaz._, Scalaz._, effect.IO
 
 object snapshot extends IvoryApp {
 
-  case class CliArguments(date: LocalDate, squash: SquashConfig, formats: ExtractOutput)
+  case class CliArguments(date: LocalDate, squash: SquashConfig, formats: ExtractOutput, input: Option[String])
 
   val parser = Extract.options(new scopt.OptionParser[CliArguments]("snapshot") {
     head("""
@@ -31,9 +31,11 @@ object snapshot extends IvoryApp {
         "WARNING: Decreasing this number will degrade performance."
     opt[Calendar]('d', "date")  action { (x, c) => c.copy(date = LocalDate.fromCalendarFields(x)) } text
       s"Optional date to take snapshot from, default is now."
+    opt[String]('i', "squash-input")  action { (x, c) => c.copy(input = Some(x)) } text
+      "HACK: Squash input file."
   })(c => f => c.copy(formats = f(c.formats)))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(LocalDate.now(), SquashConfig.default, ExtractOutput()), {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(LocalDate.now(), SquashConfig.default, ExtractOutput(), None), {
     repo => configuration => c =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
@@ -52,9 +54,15 @@ object snapshot extends IvoryApp {
         res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date))
         meta = res.meta
         r    <- RepositoryRead.fromRepository(repo)
-        _    <- SquashJob.squashFromSnapshotWith(repo, meta, c.squash, of.outputs.map(_._2)) { (input, dictionary) =>
+        _    <- c.input.cata(in => for {
+          loc <- IvoryLocation.fromUri(in, configuration)
+          _    = println(s"WARNING: Using squash input file ${in}, which is going to bypass the snapshot")
+          d   <- Metadata.latestDictionaryFromIvory(repo)
+          _   <- Extraction.extract(of, loc, d).run(r)
+        } yield (),
+          SquashJob.squashFromSnapshotWith(repo, meta, c.squash, of.outputs.map(_._2)) { (input, dictionary) =>
           Extraction.extract(of, repo.toIvoryLocation(input), dictionary).run(r)
-        }
+        })
       } yield List(
         banner,
         s"Output path: ${meta.snapshotId}",
