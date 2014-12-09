@@ -7,12 +7,15 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.api.Ivory.{Date => _, _}
 import com.ambiata.ivory.operation.extraction.squash.SquashJob
 import com.ambiata.ivory.storage.control._
+import com.ambiata.ivory.storage.metadata.Metadata
 import org.joda.time.LocalDate
 import java.util.{Calendar, UUID}
 
+import scalaz._, Scalaz._
+
 object snapshot extends IvoryApp {
 
-  case class CliArguments(date: LocalDate, squash: SquashConfig, formats: ExtractOutput)
+  case class CliArguments(date: LocalDate, squash: SquashConfig, formats: ExtractOutput, input: Option[String])
 
   val parser = Extract.options(new scopt.OptionParser[CliArguments]("snapshot") {
     head("""
@@ -28,9 +31,11 @@ object snapshot extends IvoryApp {
         "WARNING: Decreasing this number will degrade performance."
     opt[Calendar]('d', "date")  action { (x, c) => c.copy(date = LocalDate.fromCalendarFields(x)) } text
       s"Optional date to take snapshot from, default is now."
+    opt[String]('i', "squash-input")  action { (x, c) => c.copy(input = Some(x)) } text
+      "HACK: Squash input file."
   })(c => f => c.copy(formats = f(c.formats)))
 
-  val cmd = IvoryCmd.withCluster[CliArguments](parser, CliArguments(LocalDate.now(), SquashConfig.default, ExtractOutput()), {
+  val cmd = IvoryCmd.withCluster[CliArguments](parser, CliArguments(LocalDate.now(), SquashConfig.default, ExtractOutput(), None), {
     repo => cluster => configuration => flags => c =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
@@ -47,10 +52,17 @@ object snapshot extends IvoryApp {
       IvoryT.fromRIO { for {
         of        <- Extract.parse(configuration, c.formats)
         snapshot  <- IvoryRetire.takeSnapshot(repo, flags, Date.fromLocalDate(c.date))
-        x         <- SquashJob.squashFromSnapshotWith(repo, snapshot.toMetadata, c.squash, cluster)
-        (output, dictionary) = x
-        r         <- RepositoryRead.fromRepository(repo)
-        _         <- Extraction.extract(of, output, dictionary, cluster).run(r)
+        r    <- RepositoryRead.fromRepository(repo)
+        _    <- c.input.cata(in => for {
+          loc  <- IvoryLocation.fromUri(in, configuration)
+          hloc <- loc.asHdfsIvoryLocation
+          _    = println(s"WARNING: Using squash input file ${in}, which is going to bypass the snapshot")
+          d    <- Metadata.latestDictionaryFromIvory(repo)
+          _    <- Extraction.extract(of, ShadowOutputDataset.fromIvoryLocation(hloc), d, cluster).run(r)
+        } yield (),
+          SquashJob.squashFromSnapshotWith(repo, snapshot.toMetadata, c.squash, cluster).flatMap { case (output, dictionary) =>
+          Extraction.extract(of, output, dictionary, cluster).run(r)
+        })
       } yield List(banner, s"Snapshot complete: ${snapshot.id}") }
   })
 }

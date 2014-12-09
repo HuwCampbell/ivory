@@ -52,7 +52,7 @@ object SquashReducerLookup {
     // The actual date doesn't matter - we're just using it to calculate the rough size of the window
     val date = Date.maxValue
     val windowSizes = dictionary.sources.flatMap { case (fid, cg) =>
-      if (fid == FeatureId(Name("pixel"), "pixel")) {
+      if (fid == FeatureId(Namespace("pixel"), "pixel")) {
         List(fid -> Short.MaxValue.toInt)
       } else {
         cg.virtual.flatMap(_._2.window).map(Window.startingDate(_, date)).sorted.headOption
