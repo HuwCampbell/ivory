@@ -18,12 +18,12 @@ class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s
   def lookup = {
     val reducers = 200
     val dict = Dictionary(List(
-      Concrete(FeatureId(Name("pixel"), "pixel"), ConcreteDefinition(StringEncoding, Mode.Set, None, "", Nil)),
-      Virtual(FeatureId(Name("a"), "v"), VirtualDefinition(FeatureId(Name("pixel"), "pixel"), Query.empty, Some(Window(12, Weeks)))),
-      Concrete(FeatureId(Name("c"), "c"), ConcreteDefinition(StringEncoding, Mode.Set, None, "", Nil)),
-      Virtual(FeatureId(Name("c"), "v"), VirtualDefinition(FeatureId(Name("c"), "c"), Query.empty, Some(Window(4, Weeks)))),
-      Concrete(FeatureId(Name("b"), "b"), ConcreteDefinition(StringEncoding, Mode.Set, None, "", Nil)),
-      Virtual(FeatureId(Name("b"), "v"), VirtualDefinition(FeatureId(Name("b"), "b"), Query.empty, Some(Window(2, Years))))
+      Concrete(FeatureId(Namespace("pixel"), "pixel"), ConcreteDefinition(StringEncoding, Mode.Set, None, "", Nil)),
+      Virtual(FeatureId(Namespace("a"), "v"), VirtualDefinition(FeatureId(Namespace("pixel"), "pixel"), Query.empty, Some(Window(12, Weeks)))),
+      Concrete(FeatureId(Namespace("c"), "c"), ConcreteDefinition(StringEncoding, Mode.Set, None, "", Nil)),
+      Virtual(FeatureId(Namespace("c"), "v"), VirtualDefinition(FeatureId(Namespace("c"), "c"), Query.empty, Some(Window(4, Weeks)))),
+      Concrete(FeatureId(Namespace("b"), "b"), ConcreteDefinition(StringEncoding, Mode.Set, None, "", Nil)),
+      Virtual(FeatureId(Namespace("b"), "v"), VirtualDefinition(FeatureId(Namespace("b"), "b"), Query.empty, Some(Window(2, Years))))
     ))
     val (lookup, _) = SquashJob.dictToLookup(dict.byConcrete, latest = true)
     val create = SquashReducerLookup.create(dict.byConcrete, lookup, reducers)
