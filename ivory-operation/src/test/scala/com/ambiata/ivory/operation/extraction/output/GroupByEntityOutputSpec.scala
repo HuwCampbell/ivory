@@ -66,7 +66,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
     }) must beOkLike {
       lines => seqToResult(lines.map(TextEscaping.split('|', _).length ==== facts.dictionary.size + 1))
     }
-  }.set(minTestsOk = 1)
+  }.set(minTestsOk = 2, maxDiscardRatio = 10)
 
   def thriftList = prop { (facts: FactsWithDictionaryMulti) =>
     RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.DenseThrift) {
@@ -77,7 +77,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
         (denseFacts.map(_.getEntity).sorted, denseFacts.map(_.getValue.size()).max) ====
         (facts.facts.groupBy(_.entity).keySet.toList.sorted -> facts.dictionary.size)
     }
-  }.set(minTestsOk = 1)
+  }.set(minTestsOk = 2, maxDiscardRatio = 10)
 
   def thriftMap = prop { (facts: FactsWithDictionaryMulti) =>
     RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.SparseThrift) {
@@ -88,7 +88,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
         denseFacts.map(f => f.getEntity -> f.getValue.keySet.asScala.toSet).toMap ====
           facts.facts.groupBy(_.entity).mapValues(_.filter(!_.isTombstone).map(_.featureId.toString).toSet)
     }
-  }.set(minTestsOk = 1)
+  }.set(minTestsOk = 2, maxDiscardRatio = 10)
 
   def expectedDictionary = List(
     "0|ns1|fid1|string|categorical|desc|NA",
@@ -99,7 +99,8 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
   def createDense[A](facts: List[List[Fact]], dictionary: Dictionary, format: GroupByEntityFormat)(f: (HdfsRepository, IvoryLocation) => ResultTIO[A])(repo: HdfsRepository): ResultTIO[A] =
     TemporaryDirPath.withDirPath { dir =>
       for {
-        _     <- RepositoryBuilder.createRepo(repo, dictionary, facts)
+        // Filter out tombstones to simplify the assertions - we're not interested in the snapshot logic here
+        _     <- RepositoryBuilder.createRepo(repo, dictionary, facts.map(_.filter(!_.isTombstone)))
         dense <- TemporaryIvoryConfiguration.withConf(conf => IvoryLocation.fromUri((dir </> "dense").path, conf))
         res   <- Snapshots.takeSnapshot(repo, Date.maxValue)
 
