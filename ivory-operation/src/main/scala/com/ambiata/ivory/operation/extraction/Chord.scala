@@ -26,8 +26,8 @@ object Chord {
    * Create a chord from a list of entities
    * If takeSnapshot = true, take a snapshot first, otherwise use the latest available snapshot
    */
-  def createChordWithSquash[A](repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean,
-                               config: SquashConfig, outs: List[OutputDataset], cluster: Cluster)(f: (Key, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
+  def createChordWithSquash[A](repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean, config: SquashConfig,
+                               outs: List[OutputDataset], cluster: Cluster)(f: (ShadowOutputDataset, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
     entities <- Entities.readEntitiesFrom(entitiesLocation)
     out      <- createChordRaw(repository, entities, takeSnapshot)
     hr       <- repository.asHdfsRepository[IO]
@@ -38,7 +38,7 @@ object Chord {
   } yield a
 
   /** Create the raw chord, which is now unusable without the squash step */
-  def createChordRaw(repository: Repository, entities: Entities, takeSnapshot: Boolean): ResultTIO[(Key, Dictionary)] = for {
+  def createChordRaw(repository: Repository, entities: Entities, takeSnapshot: Boolean): ResultTIO[(ShadowOutputDataset, Dictionary)] = for {
     _                   <- checkThat(repository, repository.isInstanceOf[HdfsRepository], "Chord only works on HDFS repositories at this stage.")
     _                    = println(s"Earliest date in chord file is '${entities.earliestDate}'")
     _                    = println(s"Latest date in chord file is '${entities.latestDate}'")
@@ -54,7 +54,8 @@ object Chord {
   /**
    * Run the chord extraction on Hdfs, returning the [[Key]] where the chord was written to.
    */
-  def runChord(repository: Repository, store: FeatureStore, entities: Entities, incremental: Option[SnapshotManifest]): ResultTIO[(Key, Dictionary)] = {
+  def runChord(repository: Repository, store: FeatureStore, entities: Entities,
+               incremental: Option[SnapshotManifest]): ResultTIO[(ShadowOutputDataset, Dictionary)] = {
     for {
       featureStoreSnapshot <- incremental.traverseU(SnapshotManifest.featureStoreSnapshot(repository, _))
       dictionary           <- latestDictionaryFromIvory(repository)
@@ -62,11 +63,11 @@ object Chord {
       factsetGlobs         <- calculateGlobs(repository, store, entities.latestDate, featureStoreSnapshot)
       _                     = println(s"Calculated ${factsetGlobs.size} globs.")
       outputPath           <- Repository.tmpDir(repository)
-
+      out = ShadowOutputDataset.fromIvoryLocationUnsafe(repository.toIvoryLocation(outputPath))
       /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
       hr                   <- repository.asHdfsRepository[IO]
       _                    <- job(hr, dictionary, factsetGlobs, outputPath, entities, featureStoreSnapshot, hr.codec).run(hr.configuration)
-    } yield (outputPath, dictionary)
+    } yield (out, dictionary)
   }
 
   def calculateGlobs(repository: Repository, featureStore: FeatureStore, latestDate: Date,

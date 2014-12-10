@@ -9,7 +9,6 @@ import com.ambiata.ivory.storage.metadata.SnapshotManifest
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FileName
 import com.ambiata.mundane.io.MemoryConversions._
-import com.ambiata.notion.core._
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
@@ -24,11 +23,10 @@ import scalaz._, Scalaz._, effect.IO
 object SquashJob {
 
   def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotManifest, conf: SquashConfig, out: List[OutputDataset], cluster: Cluster)
-                               (f: (Key, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
+                               (f: (ShadowOutputDataset, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
     dictionary <- Snapshots.dictionaryForSnapshot(repository, snapmeta)
-    in          = Repository.snapshot(snapmeta.snapshotId)
-    hr         <- repository.asHdfsRepository[IO]
-    job        <- SquashJob.initSnapshotJob(hr.configuration, snapmeta.date)
+    in         = ShadowOutputDataset.fromIvoryLocationUnsafe(repository.toIvoryLocation(Repository.snapshot(snapmeta.snapshotId)))
+    job        <- SquashJob.initSnapshotJob(cluster.hdfsConfiguration, snapmeta.date)
     result     <- squashMeMaybe(dictionary, out)(f(in, dictionary), squash(repository, dictionary, in, conf, out, job, cluster)(f(_, dictionary)))
   } yield result
 
@@ -52,17 +50,17 @@ object SquashJob {
    * 2. From a chord, where a single entity may have one or more dates. It will be important to pre-calculate a starting
    *    date for every possible entity date, and then look that up per entity on the reducer.
    */
-  def squash[A](repository: Repository, dictionary: Dictionary, input: Key, conf: SquashConfig,
-                out: List[OutputDataset], job: (Job, MrContext), cluster: Cluster)(f: Key => ResultTIO[A]): ResultTIO[A] = for {
-    key    <- Repository.tmpDir(repository)
-    hr     <- repository.asHdfsRepository[IO]
-    inPath =  hr.toIvoryLocation(input).toHdfsPath
+  def squash[A](repository: Repository, dictionary: Dictionary, input: ShadowOutputDataset, conf: SquashConfig,
+                out: List[OutputDataset], job: (Job, MrContext), cluster: Cluster)(f: ShadowOutputDataset => ResultTIO[A]): ResultTIO[A] = for {
     // This is about the best we can do at the moment, until we have more size information about each feature
-    rs     <- ReducerSize.calculate(inPath, 1.gb).run(hr.configuration)
-    _      <- initJob(job._1, inPath)
-    prof   <- run(job._1, job._2, rs, dictionary, hr.toIvoryLocation(key).toHdfsPath, hr.codec, conf, latest = true)
-    a      <- f(key)
-    _      <- repository.store.deleteAll(key)
+    rs     <- ReducerSize.calculate(input.hdfsPath, 1.gb).run(cluster.hdfsConfiguration)
+    _      <- initJob(job._1, input.hdfsPath)
+    tmp    <- Repository.tmpDir(repository)
+    hr     <- repository.asHdfsRepository[IO]
+    iloc   = hr.toIvoryLocation(tmp)
+    prof   <- run(job._1, job._2, rs, dictionary, iloc.toHdfsPath, cluster.codec, conf, latest = true)
+    a      <- f(ShadowOutputDataset.fromIvoryLocation(iloc))
+    _      <- repository.store.deleteAll(tmp)
     _      <- out.traverseU(output =>
       IvoryLocation.writeUtf8Lines(IvoryLocation.fromLocation(output.location, Cluster.ivoryConfiguration(cluster)) </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof)))
   } yield a

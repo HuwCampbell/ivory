@@ -1,11 +1,20 @@
 package com.ambiata.ivory.core
 
+import com.ambiata.notion.core._
 import com.ambiata.notion.distcopy.DistCopyConfiguration
 import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 import org.apache.hadoop.fs.Path
 
 case class ShadowRepository(root: Path, ivory: IvoryConfiguration, source: Repository) {
   def configuration       = ivory.configuration
+
+  def toShadowOutputDataset(key: Key): ShadowOutputDataset = // Unsafe, test
+    ShadowOutputDataset(HdfsLocation(root.toString + "/" + key.name))
+
+  def tmpDir: ShadowOutputDataset =
+    ShadowOutputDataset(HdfsLocation(root.toString + s"/tmp/${java.util.UUID.randomUUID}"))
+
+
 }
 
 object ShadowRepository {

@@ -8,7 +8,6 @@ import com.ambiata.ivory.operation.extraction.Chord
 import com.ambiata.ivory.operation.extraction.output._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.control._
-import com.ambiata.notion.core._
 import scalaz.effect.IO
 
 object chord extends IvoryApp {
@@ -44,7 +43,7 @@ object chord extends IvoryApp {
       r    <- RepositoryRead.fromRepository(repo)
       // TODO Should be using Ivory API here, but the generic return type is lost on the monomorphic function
       _    <- Chord.createChordWithSquash(repo, ent, c.takeSnapshot, c.squash, of.outputs.map(_._2), cluster)(
-        (out, dict) => Extraction.extract(of, ShadowOutputDataset(HdfsLocation(out.name)), dict, cluster).run(r)
+        (out, dict) => Extraction.extract(of, out, dict, cluster).run(r)
       )
     } yield List(s"Successfully extracted chord from '${repo.root.show}'") }
   })
