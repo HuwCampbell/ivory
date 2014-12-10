@@ -2,14 +2,18 @@ package com.ambiata.ivory.operation.extraction
 
 import java.util.HashMap
 
-import com.ambiata.ivory.core.{Priority, Date, Fact}
+import com.ambiata.ivory.core.TemporaryLocations._
+import com.ambiata.ivory.core.{Date, Fact}
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.operation.extraction.Chord.PrioritizedFact
+import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.notion.core.TemporaryType
 import org.scalacheck.{Arbitrary, Gen}, Arbitrary.arbitrary
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.{ScalaCheck, Specification}
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
+import scalaz._, Scalaz._
 
 class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations { def is = s2"""
 
@@ -20,6 +24,8 @@ class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations
 
    the keepBest method finds facts in a list of facts that have the closest datetime
     to the required date and the best priority $keepBestFact
+
+ Read the entities file from a location $readEntities
 """
 
   def keepFact = prop { (fact: Fact, o: Byte) =>
@@ -29,7 +35,7 @@ class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations
     val diagnostic = Seq(
       s"safeDate is $safeDate",
       s"fact is ${(fact.entity, fact.date, fact.date.int)}",
-      s"entities are ${entities.entities.map { case (e, ds) => (e, ds.mkString(",")) }.mkString("\n") }").mkString("\n", "\n", "\n")
+      s"entities are ${entities.entities.asScala.map { case (e, ds) => (e, ds.mkString(",")) }.mkString("\n") }").mkString("\n", "\n", "\n")
 
     entities.keep(fact) aka diagnostic must beTrue
 
@@ -85,7 +91,8 @@ class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations
     id          <- arbitrary[Entity]
     datesNumber <- Gen.choose(1, 4)
     dates       <- Gen.listOfN(datesNumber, DateArbitrary.arbitrary)
-  } yield (id, dates)
+    // Make sure we sort the result in the way that is expected
+  } yield (id, dates.sorted.reverse)
 
   def genEntities: Gen[Entities] = Gen.sized { n =>
     Gen.listOfN(n + 1, genEntityDates).map { list =>
@@ -97,4 +104,12 @@ class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations
 
   implicit def EntitiesArbitrary: Arbitrary[Entities] =
     Arbitrary(genEntities)
+
+  def readEntities = prop { entities: Entities =>
+    def toMapForEquals(e: Entities) = e.entities.asScala.mapValues(_.toList).toMap
+    withIvoryLocationFile(TemporaryType.Hdfs) { location =>
+      Entities.writeEntitiesTesting(entities, location) >>
+        Entities.readEntitiesFrom(location).map(toMapForEquals)
+    } must beOkValue(toMapForEquals(entities))
+  }.set(minTestsOk = 10)
 }
