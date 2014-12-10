@@ -89,8 +89,8 @@ object SyncIngest {
         ResultT.unit[IO]
     }).as(source match {
       case HdfsRepository(HdfsIvoryLocation(h, _, _, _)) =>
-        ShadowRepository.fromDistCopyConfiguration(new Path(h.path), cluster.conf)
+        ShadowRepository.fromDistCopyConfiguration(new Path(h.path), cluster.conf, source)
       case _ =>
-        ShadowRepository.fromDistCopyConfiguration(cluster.root, cluster.conf)
+        ShadowRepository.fromDistCopyConfiguration(cluster.root, cluster.conf, source)
     })
 }
