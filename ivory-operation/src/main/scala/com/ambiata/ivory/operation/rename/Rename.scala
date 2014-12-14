@@ -4,24 +4,22 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.control.RepositoryT._
 import com.ambiata.ivory.storage.fact._
-import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.BytesQuantity
 import com.nicta.scoobi.impl.ScoobiConfiguration
-import org.apache.hadoop.conf.Configuration
 
 import scalaz._, Scalaz._, effect._
 
 object Rename {
 
-  def rename(mapping: RenameMapping, reducerSize: BytesQuantity): RepositoryTIO[(FactsetId, FeatureStoreId, RenameStats)] = for {
+  def rename(mapping: RenameMapping, reducerSize: BytesQuantity): RepositoryTIO[(FactsetId, Option[FeatureStoreId], RenameStats)] = for {
     globs        <- prepareGlobsFromLatestStore(mapping)
     lookups      <- prepareLookups(mapping, globs.map(_.value.factset), reducerSize)
     renameResult <- renameWithFactsets(mapping, globs, lookups)
     (fsid, stats) = renameResult
-    sid          <- Metadata.incrementFeatureStore(List(fsid))
+    sid          <- Factsets.updateFeatureStore(fsid)
   } yield (fsid, sid, stats)
 
   def prepareLookups(mapping: RenameMapping, factsets: List[FactsetId], reducerSize: BytesQuantity): RepositoryTIO[ReducerLookups] = for {
@@ -48,7 +46,6 @@ object Rename {
     hdfs       <- getHdfs
     output      = hdfs.toIvoryLocation(Repository.factset(factset)).toHdfsPath
     stats      <- fromResultT(_ => RenameJob.run(hdfs, mapping, inputs, output, reducerLookups, hdfs.codec).run(ScoobiConfiguration(hdfs.configuration)))
-    _          <- IvoryStorage.writeFactsetVersionI(List(factset))
   } yield factset -> stats
 
   def getHdfs: RepositoryTIO[HdfsRepository] =

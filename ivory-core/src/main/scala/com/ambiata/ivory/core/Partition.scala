@@ -1,5 +1,7 @@
 package com.ambiata.ivory.core
 
+import argonaut._, Argonaut._
+
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.mundane.parse.ListParser
@@ -72,4 +74,7 @@ object Partition {
 
   def key(namespace: Name, date: Date): Key =
     namespace.asKeyName / Key.unsafe("%4d/%02d/%02d".format(date.year, date.month, date.day))
+
+  implicit def PartitionCodecJson: CodecJson[Partition] =
+    casecodec2(Partition.apply, Partition.unapply)("name", "date")
 }

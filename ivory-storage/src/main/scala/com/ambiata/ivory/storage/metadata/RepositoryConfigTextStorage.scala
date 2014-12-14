@@ -51,10 +51,14 @@ object RepositoryConfigTextStorage {
   def toJson(config: RepositoryConfig): String =
     config.asJson.spaces2
 
-  implicit def RepositoryConfigCodecJson : CodecJson[RepositoryConfig] = CodecJson(
-    config => ("timezone" := config.timezone) ->: jEmptyObject,
-    c => (c --\ "timezone").as[DateTimeZone].map(RepositoryConfig.apply)
-  )
+  implicit def RepositoryConfigCodecJson: EncodeJson[RepositoryConfig] =
+    EncodeJson(config => Json("version" := config.metadata, "timezone" := config.timezone))
+
+  implicit def RepositoryConfigDecodeJson: DecodeJson[RepositoryConfig] =
+    DecodeJson(c => for {
+      v <- c.get[Option[MetadataVersion]]("version")
+      t <- c.get[DateTimeZone]("timezone")
+    } yield RepositoryConfig(v.getOrElse(MetadataVersion.V0), t))
 
   implicit def DateTimeZoneCodecJson: CodecJson[DateTimeZone] = CodecJson.derived(
     EncodeJson(_.getID.asJson),

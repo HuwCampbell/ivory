@@ -5,6 +5,7 @@ import java.util.UUID
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.repository.Codec
+import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.mundane.control._
 import com.ambiata.saws.core.Clients
 import com.nicta.scoobi.Scoobi._
@@ -19,7 +20,6 @@ import scalaz._, Scalaz._
  * Parse command line arguments and run a program with the IvoryRunner
  */
 case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryRunner[A]) {
-
   def run(args: Array[String]): IO[Option[Unit]] = {
     val repositoryConfiguration = createIvoryConfiguration(args)
     parseAndRun(repositoryConfiguration.arguments, runner.run(repositoryConfiguration))
@@ -70,34 +70,66 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
 object IvoryCmd {
 
   def withRepo[A](parser: scopt.OptionParser[A], initial: A,
-                  runner: Repository => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[A] =
-    withCluster(parser, initial, r => c => conf => a => runner(r)(conf)(a))
+                  runner: Repository => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
+    withRepoBypassVersionCheck(parser, initial, repo => config => c =>
+      checkVersion.toIvoryT(repo) >> runner(repo)(config)(c))
+  }
 
-  def withCluster[A](parser: scopt.OptionParser[A], initial: A,
-                     runner: Repository => Cluster  => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
+  /** Should _only_ be called by upgrade - everything else related to a repository should call [[withRepo]] */
+  def withRepoBypassVersionCheck[A](parser: scopt.OptionParser[A], initial: A,
+                                    runner: Repository => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
     // Oh god this is an ugly/evil hack - the world will be a better place when we upgrade to Pirate
     // Composition, it's a thing scopt, look it up
     var repoArg: Option[String] = None
-    var syncParallelismArg: Option[Int] = None
-    var shadowRepoArg: Option[String] = None
     parser.opt[String]('r', "repository") action { (x, c) => repoArg = Some(x); c} text
       "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"
+    new IvoryCmd[A](parser, initial, IvoryRunner(config => c =>
+      for {
+        repoPath        <- IvoryT.fromRIO { ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
+          "-r|--repository was missing or environment variable IVORY_REPOSITORY not set") }
+        repo            <- IvoryT.fromRIO { Repository.fromUri(repoPath, config) }
+        result          <- runner(repo)(config)(c)
+      } yield result
+    ))
+  }
+
+  def withCluster[A](parser: scopt.OptionParser[A], initial: A,
+                     runner: Repository => Cluster  => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
+    var syncParallelismArg: Option[Int] = None
+    var shadowRepoArg: Option[String] = None
     parser.opt[String]("shadow-repository") action { (x, c) => shadowRepoArg = Some(x); c} optional() text
       "Path to a shadow repository, defaults to environment variable SHADOW_REPOSITORY if set"
     parser.opt[Int]("sync-parallelism") action { (x, c) => syncParallelismArg = Some(x); c} optional() text
       "Number of parallel nodes to run operations with, defaults to 20"
-    new IvoryCmd(parser, initial, IvoryRunner(config => c =>
+    withRepo(parser, initial, repo => config => c =>
       for {
-        repoPath        <- IvoryT.fromRIO { ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
-          "-r|--repository was missing or environment variable IVORY_REPOSITORY not set") }
         shadowPath      <- IvoryT.fromRIO[String] { ResultT.ok(shadowRepoArg.orElse(sys.env.get("SHADOW_REPOSITORY")).getOrElse(s"/tmp/ivory-shadow-${UUID.randomUUID()}")) }
         syncParallelism <- IvoryT.fromRIO { ResultT.ok[IO, Int](syncParallelismArg.getOrElse(20)) }
         cluster         = Cluster.fromIvoryConfiguration(new Path(shadowPath), config, syncParallelism)
-        repo            <- IvoryT.fromRIO { Repository.fromUri(repoPath, config) }
         result          <- runner(repo)(cluster)(config)(c)
       } yield result
-    ))
+    )
   }
+
+  def checkVersion: RepositoryTIO[Unit] = for {
+    c <- Metadata.configuration
+    _ <- RepositoryT.fromRIO { _ => c.metadata match {
+      case MetadataVersion.Unknown(x) =>
+        ResultT.failIO[Unit](s"""The version of ivory you are running [${IvoryVersion.get.version}],
+                                |does not know about, or understand the version of the specified
+                                |repository [${x}]. Perhaps someone has run `ivory update` on the
+                                |repository.""".stripMargin)
+      case MetadataVersion.V0 =>
+        ResultT.failIO[Unit](s"""The version of the ivory repository you are trying to access has
+                                |meta-data in a form which is too old to be read, you need to run
+                                |run `ivory update` in order for this version of ivory to proceed.
+                                |
+                                |WARNING: If you run `ivory update` older ivory installs will no
+                                |longer be able to access the repository.""".stripMargin)
+      case MetadataVersion.V1 =>
+        ResultT.unit[IO]
+    } }
+  } yield ()
 }
 
 /**

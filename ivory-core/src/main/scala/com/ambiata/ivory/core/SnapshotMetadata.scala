@@ -1,3 +1,3 @@
 package com.ambiata.ivory.core
 
-case class SnapshotMetadata(id: SnapshotId, date: Date, storeId: FeatureStoreId)
+case class SnapshotMetadata(id: SnapshotId, date: Date, storeId: FeatureStoreId, dictionaryId: Option[DictionaryId])

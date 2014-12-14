@@ -3,6 +3,13 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-7e1afa3
+
+- Introduced the concept of a global versioning, which is respected/required by commands requiring `-r/--repository`.
+  The `update` command _must_ be run before Ivory can be used again.
+
+  In this version of Ivory a consistent manifest scheme has been introduced for snapshots and factsets.
+
 ## 1.0.0-*-aedcc7c
 
 - New restriction on length of `entity` field in a fact is 256.

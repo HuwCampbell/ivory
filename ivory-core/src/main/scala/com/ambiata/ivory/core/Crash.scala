@@ -48,4 +48,7 @@ object Crash {
         """Unhandled ivory error. More detail included below.
           |""".stripMargin
     }
+
+  def raiseIssue: String =
+    """Please raise an issue at the following location: https://github.com/ambiata/ivory/issues"""
 }

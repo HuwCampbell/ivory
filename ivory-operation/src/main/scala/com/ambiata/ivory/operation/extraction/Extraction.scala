@@ -5,6 +5,8 @@ import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.sync._
 import com.ambiata.ivory.operation.extraction.output._
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.io._
+import com.ambiata.notion.io._
 
 import scalaz._, Scalaz._, effect.IO
 
@@ -15,8 +17,9 @@ object Extraction {
     i = repository.toIvoryLocation(t)
     h <- i.asHdfsIvoryLocation[IO]
     s = ShadowOutputDataset(h.location)
-    _ <- formats.outputs.traverseU({ case (format, output) =>
-      ResultT.io(println(s"Storing extracted data '$input' to '${output.location}'")) >> (format match {
+    _ <- formats.outputs.traverseU({ case (format, output) => for {
+      _ <- ResultT.io(println(s"Storing extracted data '$input' to '${output.location}'"))
+      _ <- format match {
         case OutputFormat(Form.Sparse, FileFormat.Thrift) =>
           GroupByEntityOutput.createWithDictionary(repository, input, s, dictionary, GroupByEntityFormat.SparseThrift)
         case OutputFormat(Form.Dense, FileFormat.Thrift) =>
@@ -25,6 +28,16 @@ object Extraction {
           SparseOutput.extractWithDictionary(repository, input, s, dictionary, delimiter, formats.missingValue, escaping)
         case OutputFormat(Form.Dense, FileFormat.Text(delimiter, escaping)) =>
           GroupByEntityOutput.createWithDictionary(repository, input, s, dictionary, GroupByEntityFormat.DenseText(delimiter, formats.missingValue, escaping))
-      }) >> SyncExtract.outputDataset(s, cluster, output) }).void
+      }
+      _ <- metadata(input, s, cluster.io)
+      _ <- SyncExtract.outputDataset(s, cluster, output)
+    } yield () })
   } yield ())
+
+  def metadata(input: ShadowOutputDataset, output: ShadowOutputDataset, lio: LocationIO): RIO[Unit] =
+    List(".profile", ".manifest.json").traverseU(n => for {
+      e <- lio.exists(input.location </> FileName.unsafe(n))
+      // TODO Need to add a readUTF8 on LocationIO
+      _ <- ResultT.when(e, lio.readLines(input.location) >>= (c => lio.writeUtf8Lines(output.location </> FileName.unsafe(n), c)))
+    } yield ()).void
 }

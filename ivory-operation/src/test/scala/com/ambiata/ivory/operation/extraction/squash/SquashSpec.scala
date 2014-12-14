@@ -10,6 +10,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import com.nicta.scoobi.Scoobi._
 import org.specs2._
+import scalaz.effect.IO
 
 class SquashSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -17,24 +18,23 @@ class SquashSpec extends Specification with ScalaCheck { def is = s2"""
   A dump of reductions can be squashed out of a snapshot      $dump   ${tag("mr")}
 """
 
-  def count = prop((sf: SquashFactsMultiple) => sf.hasVirtual ==> {
+  def count = propNoShrink((sf: SquashFactsMultiple) => sf.hasVirtual ==> {
     def postProcess(results: List[Fact]): List[Fact] =
       results.sortBy(fact => (fact.entity, fact.featureId))
 
-    val expectedFacts = sf.facts.list.flatMap(_.expectedFactsWithCount)
+    val expectedFacts: List[Fact] = sf.facts.list.flatMap(_.expectedFactsWithCount)
+
     TemporaryLocations.withCluster { cluster =>
       RepositoryBuilder.using { repo => for {
         _ <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
         res <- Snapshots.takeSnapshot(repo, sf.date)
         s     = res.meta
         out   = OutputDataset.fromIvoryLocation(repo.toIvoryLocation(Key(KeyName.unsafe("out"))))
-        f <- SquashJob.squashFromSnapshotWith(repo, s, SquashConfig.testing, List(out), cluster)((sout, _) =>
-          ResultT.safe(postProcess(valueFromSequenceFile[Fact](sout.location.path)
-            .run(repo.scoobiConfiguration).toList))
-        )
+        key <- SquashJob.squashFromSnapshotWith(repo, s, SquashConfig.testing, cluster)
+        f   <- ResultT.safe[IO, List[Fact]](postProcess(valueFromSequenceFile[Fact](key._1.hdfsPath.toString).run(repo.scoobiConfiguration).toList))
       } yield f }
     } must beOkValue(postProcess(expectedFacts))
-  }).set(minTestsOk = 3, maxDiscardRatio = 10)
+  }).set(minTestsOk = 1, maxDiscardRatio = 10)
 
   def dump = prop((sf: SquashFactsMultiple) => sf.hasVirtual ==> {
     // Take a subset of the entities and virtual features (one from each SquashFacts)
@@ -48,7 +48,7 @@ class SquashSpec extends Specification with ScalaCheck { def is = s2"""
       _    <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
       res  <- Snapshots.takeSnapshot(repo, sf.date)
       out   = repo.toIvoryLocation(Key(KeyName.unsafe("dump")))
-      _    <- SquashDumpJob.dump(repo, res.meta.snapshotId, out, entities.values.flatten.toList, entities.keys.toList)
+      _    <- SquashDumpJob.dump(repo, res.meta.id, out, entities.values.flatten.toList, entities.keys.toList)
       dump <- IvoryLocation.readLines(out).map(_.map(_.split("\\|", -1) match {
         case Array(e, ns, a, _, _, _) =>  e -> FeatureId(Name.unsafe(ns), a)
       }).toSet)

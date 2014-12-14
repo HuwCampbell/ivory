@@ -1,11 +1,23 @@
 package com.ambiata.ivory.core
 
-import org.specs2._
-import scalaz._, Scalaz._
+import argonaut._, Argonaut._
+
+import com.ambiata.ivory.core.ArgonautProperties._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 
+import org.specs2._
+
+import scalaz._, Scalaz._
+import scalaz.scalacheck.ScalazProperties._
+
 class DateSpec extends Specification with ScalaCheck { def is = s2"""
+
+Laws
+----
+
+  Encode/Decode Json                           ${encodedecode[Date]}
+  Equal                                        ${equal.laws[Date]}
 
 Field Accessors
 ---------------
@@ -91,6 +103,14 @@ Comparing Dates
     ${ prop((a: Date, b: Date) => (a > b) ==== a.isAfter(b)) }
 
     ${ prop((a: Date, b: Date) => (a >= b) ==== a.isAfterOrEqual(b)) }
+
+
+Json
+----
+
+  Legacy Date Encoding Compatibility:
+
+    ${ prop((d: Date) => d.int.asJson.as[Date].toOption ==== d.some) }
 
 """
 }

@@ -5,7 +5,8 @@ import com.ambiata.ivory.lookup.EntityFilterLookup
 import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.ivory.operation.extraction.SnapshotJob
 import com.ambiata.ivory.storage.lookup.FeatureLookups
-import com.ambiata.ivory.storage.metadata.{Metadata, SnapshotManifest}
+import com.ambiata.ivory.storage.manifest.SnapshotManifest
+import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.mundane.control._
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.conf.Configuration
@@ -23,8 +24,8 @@ object SquashDumpJob {
     dictionary <- Metadata.latestDictionaryFromIvory(repository)
     filteredDct = if (features.isEmpty) dictionary else SquashDump.filterByConcreteOrVirtual(dictionary, features.toSet)
     lookup      = FeatureLookups.entityFilter(features.flatMap(SquashDump.lookupConcreteFromVirtual(dictionary, _)), entities)
-    dateO      <- SnapshotManifest.fromIdentifier(repository, snapshotId).run
-    date       <- ResultT.fromOption[IO, SnapshotManifest](dateO, s"Unknown snapshot ${snapshotId.render}").map(_.date)
+    sm         <- SnapshotManifest.io(repository, snapshotId).read
+    date       <- ResultT.fromOption[IO, SnapshotManifest](sm, s"Unknown snapshot ${snapshotId.render}").map(_.date)
     input       = Repository.snapshot(snapshotId)
 
     // When we're filtering, there's a very good chance we only need a reducer per concrete feature

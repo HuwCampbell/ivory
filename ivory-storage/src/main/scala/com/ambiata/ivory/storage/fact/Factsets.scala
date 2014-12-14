@@ -3,7 +3,10 @@ package fact
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
+import com.ambiata.ivory.storage.manifest.FactsetManifest
+import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.ivory.storage.partition._
+import com.ambiata.ivory.storage.version.Version
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import scalaz._, Scalaz._, effect._
@@ -34,4 +37,15 @@ object Factsets {
 
   def factset(repository: Repository, id: FactsetId): RIO[Factset] =
     Partitions.getFromFactset(repository, id).map(partitions => Factset(id, partitions.sorted))
+
+  def updateFeatureStore(factsetId: FactsetId): RepositoryTIO[Option[FeatureStoreId]] =
+    RepositoryT.fromRIO { r =>
+      // TODO Very very short-term hack. We'll need to do a second sweep to remove the old version completely (which shouldn't be hard)
+      Version.write(r, Repository.factset(factsetId), Version(FactsetVersionTwo.toString)) >>
+      FactsetGlob.select(r, factsetId)
+    } >>= (_.traverseU(g => for {
+      fs <- Metadata.incrementFeatureStore(List(factsetId))
+      _  <- RepositoryT.fromRIO(r => FactsetManifest.io(r, factsetId).write(FactsetManifest.create(factsetId, FactsetFormat.V2, g.partitions)))
+      _  <- Metadata.incrementCommitFeatureStoreT(fs)
+    } yield fs))
 }

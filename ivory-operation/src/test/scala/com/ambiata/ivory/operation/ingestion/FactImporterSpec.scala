@@ -3,8 +3,9 @@ package com.ambiata.ivory.operation.ingestion
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.mr.FactFormats
-import com.ambiata.ivory.storage.legacy.IvoryStorage._
+import com.ambiata.ivory.storage.control.RepositoryT
 import FactFormats._
+import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
@@ -13,11 +14,10 @@ import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core._
 import com.ambiata.poacher.mr.ThriftSerialiser
 import com.nicta.scoobi.Scoobi._
-import org.apache.hadoop.fs.Path
 import org.joda.time.DateTimeZone
 import org.specs2._
 import org.specs2.execute.{AsResult, Result}
-import org.specs2.matcher.{MustThrownMatchers, FileMatchers, ThrownExpectations}
+import org.specs2.matcher.{MustThrownMatchers, FileMatchers}
 import org.specs2.specification._
 import scalaz.{Name => _, _}, scalaz.effect._
 import syntax.bind._
@@ -66,7 +66,9 @@ class FactImporterSpec extends Specification with FileMatchers with FixtureExamp
   def fixture[R : AsResult](f: Setup => R): Result =
     RepositoryBuilder.using { repo =>
       ResultT.ok[IO, Result]({
-        AsResult(f(new Setup(repo)))
+        val setup = new Setup(repo)
+        Metadata.dictionaryToIvory(repo, setup.dictionary).run.unsafePerformIO()
+        AsResult(f(setup))
       })
     } must beOkLike(r => r.isSuccess aka r.message must beTrue)
 }
@@ -133,10 +135,10 @@ class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
     FactImporter
       .runJob(repository, 128.mb, dictionary, FactsetId.initial, List((format, None, input.toHdfsPath)), errors.toHdfsPath,
         None, RepositoryConfig.testing.copy(timezone = DateTimeZone.getDefault)) >>
-    writeFactsetVersion(repository, List(FactsetId.initial))
+    RepositoryT.runWithRepo(repository, RepositoryBuilder.writeFactsetVersion(List(FactsetId.initial))).void
 
   def theImportMustBeOk =
-    factsFromIvoryFactset(repository, FactsetId.initial).map(_.run.collect { case \/-(r) => r }).run(sc) must beOkLike(_.toSet must_== expected.toSet)
+    RepositoryBuilder.factsFromIvoryFactset(repository, FactsetId.initial).map(_.run.collect { case \/-(r) => r }).run(sc) must beOkLike(_.toSet must_== expected.toSet)
 
   def thereMustBeErrors =
     valueFromSequenceFile[ParseError](errors.toHdfs).run(sc) must not(beEmpty)

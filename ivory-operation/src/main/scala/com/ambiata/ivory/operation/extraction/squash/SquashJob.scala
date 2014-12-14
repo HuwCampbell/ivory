@@ -5,7 +5,8 @@ import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReduc
 import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.ivory.operation.extraction.{ChordJob, Entities, Snapshots, SnapshotJob}
 import com.ambiata.ivory.storage.lookup.{FeatureLookups, ReducerLookups, ReducerSize, WindowLookup}
-import com.ambiata.ivory.storage.metadata.SnapshotManifest
+import com.ambiata.ivory.storage.manifest.{SnapshotExtractManifest, SnapshotManifest}
+import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FileName
 import com.ambiata.mundane.io.MemoryConversions._
@@ -22,23 +23,20 @@ import scalaz._, Scalaz._, effect.IO
 
 object SquashJob {
 
-  def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotManifest, conf: SquashConfig, out: List[OutputDataset], cluster: Cluster)
-                               (f: (ShadowOutputDataset, Dictionary) => RIO[A]): RIO[A] = for {
+  def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotMetadata, conf: SquashConfig,
+                                cluster: Cluster): RIO[(ShadowOutputDataset, Dictionary)] = for {
+    // FIX this isn't ideal, but reflects the fact the snapshot doesn't really pass enough precise information
+    //     to handle this (and is related to the fact that it is possible for this to be run at _not_ the
+    //     latest commit incorrectly). Currently this is just taking the latest commit, which _should_ be correct
+    //     and with upcoming changes like #427 this should then become always correct.
+    commit     <- Metadata.findOrCreateLatestCommitId(repository)
     dictionary <- Snapshots.dictionaryForSnapshot(repository, snapmeta)
-    hdfsIvoryL <- repository.toIvoryLocation(Repository.snapshot(snapmeta.snapshotId)).asHdfsIvoryLocation[IO]
+    hdfsIvoryL <- repository.toIvoryLocation(Repository.snapshot(snapmeta.id)).asHdfsIvoryLocation[IO]
     in          = ShadowOutputDataset.fromIvoryLocation(hdfsIvoryL)
     job        <- SquashJob.initSnapshotJob(cluster.hdfsConfiguration, snapmeta.date)
-    result     <- squashMeMaybe(dictionary, out)(f(in, dictionary), squash(repository, dictionary, in, conf, out, job, cluster)(f(_, dictionary)))
-  } yield result
-
-  /**
-   * Only squash if there is something to output and there are virtual features.
-   * For snapshots the input can be re-used as the output.
-   * For chords there is a potential optimisation to bypass the squash, but the chord will need to alter its output.
-   */
-  def squashMeMaybe[A](dictionary: Dictionary, out: List[OutputDataset])(noSquash: => A, squash: => A): A =
-    if (!out.isEmpty && dictionary.hasVirtual) squash
-    else noSquash
+    result     <- squash(repository, dictionary, in, conf, job, cluster)
+    _          <- SnapshotExtractManifest.io(cluster.toIvoryLocation(result.location)).write(SnapshotExtractManifest.create(commit, snapmeta.id))
+  } yield result -> dictionary
 
   /**
    * Returns the path to the squashed facts if we have any virtual features (and true), or the original `in` path (and false).
@@ -51,20 +49,17 @@ object SquashJob {
    * 2. From a chord, where a single entity may have one or more dates. It will be important to pre-calculate a starting
    *    date for every possible entity date, and then look that up per entity on the reducer.
    */
-  def squash[A](repository: Repository, dictionary: Dictionary, input: ShadowOutputDataset, conf: SquashConfig,
-                out: List[OutputDataset], job: (Job, MrContext), cluster: Cluster)(f: ShadowOutputDataset => RIO[A]): RIO[A] = for {
+  def squash(repository: Repository, dictionary: Dictionary, input: ShadowOutputDataset, conf: SquashConfig,
+             job: (Job, MrContext), cluster: Cluster): RIO[ShadowOutputDataset] = for {
     // This is about the best we can do at the moment, until we have more size information about each feature
     rs     <- ReducerSize.calculate(input.hdfsPath, 1.gb).run(cluster.hdfsConfiguration)
     _      <- initJob(job._1, input.hdfsPath)
-    tmp    <- Repository.tmpDir(repository)
+    key    <- Repository.tmpDir(repository)
     hr     <- repository.asHdfsRepository[IO]
-    shadow = ShadowOutputDataset.fromIvoryLocation(hr.toIvoryLocation(tmp))
+    shadow = ShadowOutputDataset.fromIvoryLocation(hr.toIvoryLocation(key))
     prof   <- run(job._1, job._2, rs, dictionary, shadow.hdfsPath, cluster.codec, conf, latest = true)
-    a      <- f(shadow)
-    _      <- repository.store.deleteAll(tmp)
-    _      <- out.traverseU(output =>
-      IvoryLocation.writeUtf8Lines(IvoryLocation.fromLocation(output.location, Cluster.ivoryConfiguration(cluster)) </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof)))
-  } yield a
+    _      <- IvoryLocation.writeUtf8Lines(hr.toIvoryLocation(key) </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof))
+  } yield shadow
 
   def initSnapshotJob(conf: Configuration, date: Date): RIO[(Job, MrContext)] = ResultT.safe {
     val job = Job.getInstance(conf)
@@ -128,6 +123,7 @@ object SquashJob {
     ctx.thriftCache.push(job, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
     ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,
       SquashReducerLookup.create(dictionary, featureIdLookup, reducers))
+
     ctx.thriftCache.push(job, Keys.ExpressionLookup, reductionLookup)
     ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTableConcrete(dictionary))
 

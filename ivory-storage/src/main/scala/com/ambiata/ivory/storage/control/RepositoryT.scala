@@ -28,13 +28,15 @@ object RepositoryT {
   def fromRIO[A](f: Repository => RIO[A]): RepositoryT[RIO, A] =
     RepositoryT[RIO, A](Kleisli[RIO, RepositoryRead, A](r => f(r.repository)))
 
-  def fromIvoryT[F[_], A](f: Repository => IvoryT[({ type l[a] = ResultT[F, a] })#l, A]): RepositoryT[({ type l[a] = ResultT[F, a] })#l, A] = {
-    type X[B] = ResultT[F, B]
-    RepositoryT[X, A](Kleisli[X, RepositoryRead, A](r => f(r.repository).run.run(r.ivory)))
+  def fromIvoryT[F[_], A](f: Repository => IvoryT[F, A]): RepositoryT[F, A] = {
+    RepositoryT[F, A](Kleisli[F, RepositoryRead, A](r => f(r.repository).run.run(r.ivory)))
   }
 
   def fromIvoryTIO[A](f: Repository => IvoryTIO[A]): RepositoryT[RIO, A] =
     RepositoryT[RIO, A](Kleisli[RIO, RepositoryRead, A](r => f(r.repository).run.run(r.ivory)))
+
+  def runWithRepo[A](r: Repository, f: RepositoryTIO[A]): RIO[A] =
+    RepositoryRead.fromRepository(r) >>= (read => f.run(read))
 
   implicit def RepositoryTMonad[F[_]: Monad]: Monad[({ type l[a] = RepositoryT[F, a] })#l] =
     new Monad[({ type l[a] = RepositoryT[F, a] })#l] {

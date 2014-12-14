@@ -14,3 +14,7 @@ export IVORY_V1="1.0.0-cdh5-20140709064501-62fc154 2.10"
 # Structs
 # Thrift ingest
 export IVORY_V2="1.0.0-cdh5-20140805003023-b503696 2.11"
+
+# JSON snapshot metadata
+# New ingest input format
+export IVORY_V3="1.0.0-cdh5-20141217212706-02d69f4 2.11"

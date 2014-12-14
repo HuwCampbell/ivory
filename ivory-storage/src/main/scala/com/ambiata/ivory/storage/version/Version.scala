@@ -4,6 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.mundane.control.RIO
 import com.ambiata.notion.core._
 
+// FIX rename or remove.
 case class Version(override val toString: String)
 
 object Version {

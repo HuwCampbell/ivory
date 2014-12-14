@@ -4,6 +4,7 @@ import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.extraction.squash.{SquashConfig, SquashJob}
 import com.ambiata.ivory.storage.fact._
+import com.ambiata.ivory.storage.manifest._
 import com.ambiata.ivory.storage.legacy.FeatureStoreSnapshot
 import com.ambiata.ivory.storage.metadata._, Metadata._
 import com.ambiata.mundane.control._
@@ -26,16 +27,19 @@ object Chord {
    * Create a chord from a list of entities
    * If takeSnapshot = true, take a snapshot first, otherwise use the latest available snapshot
    */
-  def createChordWithSquash[A](repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean, config: SquashConfig,
-                               outs: List[OutputDataset], cluster: Cluster)(f: (ShadowOutputDataset, Dictionary) => RIO[A]): RIO[A] = for {
+  def createChordWithSquash(repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean,
+                            config: SquashConfig, cluster: Cluster): RIO[(ShadowOutputDataset, Dictionary)] = for {
+    commit   <- Metadata.findOrCreateLatestCommitId(repository)
     entities <- Entities.readEntitiesFrom(entitiesLocation)
     out      <- createChordRaw(repository, entities, takeSnapshot)
+    (o, dict) = out
     hr       <- repository.asHdfsRepository[IO]
     job      <- SquashJob.initChordJob(hr.configuration, entities)
     // We always need to squash because the entities need to be rewritten, which is _only_ handled by squash
     // This can technically be optimized to do the entity rewriting in the reducer - see the Git history for an example
-    a        <- SquashJob.squash(repository, out._2, out._1, config, outs, job, cluster)(f(_, out._2))
-  } yield a
+    r        <- SquashJob.squash(repository, dict, o, config, job, cluster)
+    _        <- ChordExtractManifest.io(cluster.toIvoryLocation(r.location)).write(ChordExtractManifest.create(commit))
+  } yield r -> dict
 
   /** Create the raw chord, which is now unusable without the squash step */
   def createChordRaw(repository: Repository, entities: Entities, takeSnapshot: Boolean): RIO[(ShadowOutputDataset, Dictionary)] = for {
@@ -46,8 +50,8 @@ object Chord {
     _                    = println(s"Latest store: ${store.id}")
     _                    = println(s"Are we taking a snapshot? ${takeSnapshot}")
     snapshot            <- if (takeSnapshot) Snapshots.takeSnapshot(repository, entities.earliestDate).map(_.meta.pure[Option])
-                           else              SnapshotManifest.latestSnapshot(repository, entities.earliestDate).run
-    _                    = println(s"Using snapshot: ${snapshot.map(_.snapshotId)}.")
+                           else              SnapshotMetadataStorage.latestSnapshot(repository, entities.earliestDate).run
+    _                    = println(s"Using snapshot: ${snapshot.map(_.id)}.")
     out                 <- runChord(repository, store, entities, snapshot)
   } yield out
 
@@ -55,9 +59,9 @@ object Chord {
    * Run the chord extraction on Hdfs, returning the [[Key]] where the chord was written to.
    */
   def runChord(repository: Repository, store: FeatureStore, entities: Entities,
-               incremental: Option[SnapshotManifest]): RIO[(ShadowOutputDataset, Dictionary)] = {
+               incremental: Option[SnapshotMetadata]): RIO[(ShadowOutputDataset, Dictionary)] = {
     for {
-      featureStoreSnapshot <- incremental.traverseU(SnapshotManifest.featureStoreSnapshot(repository, _))
+      featureStoreSnapshot <- incremental.traverseU(SnapshotMetadataStorage.featureStoreSnapshot(repository, _))
       dictionary           <- latestDictionaryFromIvory(repository)
       _                     = println(s"Calculating globs using, store = ${store.id}, latest date = ${entities.latestDate}, snapshot: ${featureStoreSnapshot.map(_.snapshotId)}.")
       factsetGlobs         <- calculateGlobs(repository, store, entities.latestDate, featureStoreSnapshot)
