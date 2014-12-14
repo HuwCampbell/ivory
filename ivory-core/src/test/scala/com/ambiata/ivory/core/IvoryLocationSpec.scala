@@ -27,10 +27,12 @@ IvoryLocation
    isDirectory    $isDirectory
    deleteAll      $deleteAll
    delete         $delete
+   readWrite      $readWrite
    readLines      $readLines
    streamLines    $streamLines
    list           $list
    exists         $exists
+
 """
   def local =
     withConfX(ivory =>
@@ -87,6 +89,15 @@ IvoryLocation
           IvoryLocation.exists(location)
       } must beOkValue(false)
     }
+  }
+
+  def readWrite = { temporaryType: TemporaryType =>
+    // Sigh, this can be fixed with rejigging the dependencies, but IvoryLocation should go very soon
+    val contents = "a\nb \u9999\n"
+    withIvoryLocationFile(temporaryType) { location =>
+      IvoryLocation.writeUtf8(location, contents) >>
+        IvoryLocation.readUtf8(location)
+    } must beOkValue(contents)
   }
 
   def readLines = { temporaryType: TemporaryType =>
