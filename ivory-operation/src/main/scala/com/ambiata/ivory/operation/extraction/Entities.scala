@@ -5,6 +5,7 @@ import com.ambiata.ivory.lookup.ChordEntities
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import scala.collection.JavaConverters._
+import scala.util.Sorting
 import scala.util.matching.Regex
 import scalaz.Order
 import scalaz.Scalaz._
@@ -102,14 +103,26 @@ object Entities {
   def readEntitiesFrom(location: IvoryLocation): ResultTIO[Entities] = {
     val DatePattern = """(\d{4})-(\d{2})-(\d{2})""".r
 
-    IvoryLocation.readLines(location).map { lines =>
-      val mappings = new java.util.HashMap[String, Array[Int]](lines.length)
-      lines.map(parseLine(DatePattern)).groupBy(_._1).foreach { case (k, v) =>
-        mappings.put(k, v.map(_._2).toArray.sorted.reverse)
-      }
-      Entities(mappings)
-    }
+    // This file can be _really_ big - we want to make this as memory efficient as possible
+    IvoryLocation.streamLinesUTF8(location, new java.util.HashMap[String, Array[Int]]) { (line, mappings) =>
+      val (entity, date) = parseLine(DatePattern)(line)
+      val dates = mappings.get(entity)
+      // We don't know ahead of time how many dates we have for each entity, we have to manually grow the array each time
+      mappings.put(entity, if (dates == null) Array[Int](date.int) else {
+        val dates2 = dates :+ date.int
+        // Don't use Array.sorted - we save an extra, unnecessary allocation this way
+        Sorting.quickSort[Int](dates2)(Ordering[Int].reverse)
+        dates2
+      })
+      mappings
+    }.map(Entities(_))
   }
+
+  /** For testing only - does everything in memory */
+  def writeEntitiesTesting(entities: Entities, location: IvoryLocation): ResultTIO[Unit] =
+    IvoryLocation.writeUtf8Lines(location, entities.entities.asScala.flatMap {
+      case (entity, dates) => dates.map(d => entity + "|" + Date.unsafeFromInt(d).hyphenated)
+    }.toList)
 
   /** WARNING: This shares the _same_ mutable entities map as [[ChordEntities]] for performance */
   def fromChordEntities(chordEntities: ChordEntities): Entities =
@@ -121,9 +134,9 @@ object Entities {
 
   def empty = Entities(new java.util.HashMap[String, Array[Int]])
 
-  private def parseLine(DatePattern: Regex): String => (String, Int) = (line: String) =>
+  private def parseLine(DatePattern: Regex): String => (String, Date) = (line: String) =>
     line.split("\\|").toList match {
-      case h :: DatePattern(y, m, d) :: Nil => (h, Date.unsafeYmdToInt(y.toShort, m.toByte, d.toByte))
+      case h :: DatePattern(y, m, d) :: Nil => (h, Date.unsafe(y.toShort, m.toByte, d.toByte))
       case _                                => Crash.error(Crash.DataIntegrity, "Can't parse the line "+line+". Expected: entity id|yyyy-MM-dd")
     }
 

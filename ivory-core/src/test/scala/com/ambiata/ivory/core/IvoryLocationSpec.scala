@@ -28,6 +28,7 @@ IvoryLocation
    deleteAll      $deleteAll
    delete         $delete
    readLines      $readLines
+   streamLines    $streamLines
    list           $list
    exists         $exists
 """
@@ -93,6 +94,14 @@ IvoryLocation
     withIvoryLocationFile(temporaryType) { location =>
       IvoryLocation.writeUtf8Lines(location, lines) >>
       IvoryLocation.readLines(location)
+    } must beOkValue(lines)
+  }
+
+  def streamLines = { temporaryType: TemporaryType =>
+    val lines = List("one", "two", "three")
+    withIvoryLocationFile(temporaryType) { location =>
+      IvoryLocation.writeUtf8Lines(location, lines) >>
+        IvoryLocation.streamLinesUTF8(location, List[String]())(_ :: _).map(_.reverse)
     } must beOkValue(lines)
   }
 

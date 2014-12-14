@@ -129,6 +129,32 @@ object IvoryLocation {
       }.run(conf)
   }
 
+  def readUnsafe(location: IvoryLocation)(f: java.io.InputStream => ResultTIO[Unit]): ResultTIO[Unit] = {
+    import scalaz.effect.Effect._
+    location match {
+      case l @ LocalIvoryLocation(LocalLocation(path)) =>
+        ResultT.using(l.filePath.toInputStream)(f)
+      case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
+        ResultT.using(S3Address(bucket, key).getObject.map(_.getObjectContent).executeT(s3Client))(f)
+      case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
+        Hdfs.readWith(new Path(path), f).run(conf)
+    }
+  }
+
+  def streamLinesUTF8[A](location: IvoryLocation, empty: => A)(f: (String, A) => A): ResultTIO[A] = {
+    ResultT.io(empty).flatMap { s =>
+      var state = s
+      readUnsafe(location) { in => ResultT.io {
+        val reader = new java.io.BufferedReader(new java.io.InputStreamReader(in, "UTF-8"))
+        var line = reader.readLine
+        while (line != null) {
+          state = f(line, state)
+          line = reader.readLine
+        }
+      }}.as(state)
+    }
+  }
+
   def list(location: IvoryLocation): ResultTIO[List[IvoryLocation]] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path)) =>
       Directories.list(l.dirPath).map(fs => fs.map(f => l.copy(location = LocalLocation(f.path))))
