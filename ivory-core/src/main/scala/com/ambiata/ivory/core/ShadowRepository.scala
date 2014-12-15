@@ -9,11 +9,10 @@ case class ShadowRepository(root: Path, ivory: IvoryConfiguration, source: Repos
   def configuration       = ivory.configuration
 
   def toShadowOutputDataset(key: Key): ShadowOutputDataset = // Unsafe, test
-    ShadowOutputDataset(HdfsLocation(root.toString + "/" + key.name))
+    ShadowOutputDataset(HdfsLocation(new Path(root, key.name).toString))
 
   def tmpDir: ShadowOutputDataset =
-    ShadowOutputDataset(HdfsLocation(root.toString + s"/tmp/${java.util.UUID.randomUUID}"))
-
+    ShadowOutputDataset(HdfsLocation(new Path(root, s"/tmp/${java.util.UUID.randomUUID}").toString))
 
 }
 
@@ -36,10 +35,7 @@ object ShadowRepository {
   def toRepository(shadow: ShadowRepository): Repository =
     shadow.source
 
-  def fromRepository(repo: Repository, conf: IvoryConfiguration): ShadowRepository = repo match {
-    case HdfsRepository(r) =>
-      ShadowRepository(r.toHdfsPath, conf, repo)
-    case _ =>
-      Crash.error(Crash.CodeGeneration, "Only HdfsRepository's are supported at this time") // Until plan is implemented
-  }
+  def fromRepository(repo: HdfsRepository, conf: IvoryConfiguration): ShadowRepository =
+    ShadowRepository(repo.root.toHdfsPath, conf, repo)
+
 }

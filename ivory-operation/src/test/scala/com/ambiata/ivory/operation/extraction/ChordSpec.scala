@@ -58,7 +58,7 @@ ChordSpec
             output           = OutputDataset(out.location)
             facts            <- Chord.createChordWithSquash(repo, entitiesLocation, takeSnapshot = facts.takeSnapshot,
               SquashConfig.testing, List(output), cluster)((outPath, _) => ResultT.safe[IO, List[Fact]](
-                valueFromSequenceFile[Fact](repo.toIvoryLocation(outPath).toHdfs).run.toList
+                valueFromSequenceFile[Fact](outPath.location.path).run.toList
               ))
           } yield facts
         }

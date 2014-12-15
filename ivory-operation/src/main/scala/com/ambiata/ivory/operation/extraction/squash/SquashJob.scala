@@ -25,7 +25,8 @@ object SquashJob {
   def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotManifest, conf: SquashConfig, out: List[OutputDataset], cluster: Cluster)
                                (f: (ShadowOutputDataset, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
     dictionary <- Snapshots.dictionaryForSnapshot(repository, snapmeta)
-    in         = ShadowOutputDataset.fromIvoryLocationUnsafe(repository.toIvoryLocation(Repository.snapshot(snapmeta.snapshotId)))
+    hdfsIvoryL <- repository.toIvoryLocation(Repository.snapshot(snapmeta.snapshotId)).asHdfsIvoryLocation[IO]
+    in          = ShadowOutputDataset.fromIvoryLocation(hdfsIvoryL)
     job        <- SquashJob.initSnapshotJob(cluster.hdfsConfiguration, snapmeta.date)
     result     <- squashMeMaybe(dictionary, out)(f(in, dictionary), squash(repository, dictionary, in, conf, out, job, cluster)(f(_, dictionary)))
   } yield result
@@ -57,9 +58,9 @@ object SquashJob {
     _      <- initJob(job._1, input.hdfsPath)
     tmp    <- Repository.tmpDir(repository)
     hr     <- repository.asHdfsRepository[IO]
-    iloc   = hr.toIvoryLocation(tmp)
-    prof   <- run(job._1, job._2, rs, dictionary, iloc.toHdfsPath, cluster.codec, conf, latest = true)
-    a      <- f(ShadowOutputDataset.fromIvoryLocation(iloc))
+    shadow = ShadowOutputDataset.fromIvoryLocation(hr.toIvoryLocation(tmp))
+    prof   <- run(job._1, job._2, rs, dictionary, shadow.hdfsPath, cluster.codec, conf, latest = true)
+    a      <- f(shadow)
     _      <- repository.store.deleteAll(tmp)
     _      <- out.traverseU(output =>
       IvoryLocation.writeUtf8Lines(IvoryLocation.fromLocation(output.location, Cluster.ivoryConfiguration(cluster)) </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof)))

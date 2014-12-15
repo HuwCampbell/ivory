@@ -29,8 +29,8 @@ class SquashSpec extends Specification with SampleFacts with ScalaCheck { def is
         res <- Snapshots.takeSnapshot(repo, sf.date)
         s     = res.meta
         out   = OutputDataset.fromIvoryLocation(repo.toIvoryLocation(Key(KeyName.unsafe("out"))))
-        f <- SquashJob.squashFromSnapshotWith(repo, s, SquashConfig.testing, List(out), cluster)((key, _) =>
-          ResultT.safe(postProcess(valueFromSequenceFile[Fact](repo.toIvoryLocation(key).toHdfs)
+        f <- SquashJob.squashFromSnapshotWith(repo, s, SquashConfig.testing, List(out), cluster)((sout, _) =>
+          ResultT.safe(postProcess(valueFromSequenceFile[Fact](sout.location.path)
             .run(repo.scoobiConfiguration).toList))
         )
       } yield f }

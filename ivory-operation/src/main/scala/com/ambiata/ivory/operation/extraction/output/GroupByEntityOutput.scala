@@ -5,8 +5,6 @@ import com.ambiata.ivory.storage.lookup.ReducerSize
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
 
-import org.apache.hadoop.fs.Path
-
 import scalaz.effect.IO
 
 object GroupByEntityOutput {

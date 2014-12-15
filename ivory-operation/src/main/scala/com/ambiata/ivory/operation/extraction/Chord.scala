@@ -63,7 +63,8 @@ object Chord {
       factsetGlobs         <- calculateGlobs(repository, store, entities.latestDate, featureStoreSnapshot)
       _                     = println(s"Calculated ${factsetGlobs.size} globs.")
       outputPath           <- Repository.tmpDir(repository)
-      out = ShadowOutputDataset.fromIvoryLocationUnsafe(repository.toIvoryLocation(outputPath))
+      hdfsIvoryLocation    <- repository.toIvoryLocation(outputPath).asHdfsIvoryLocation[IO]
+      out                   = ShadowOutputDataset.fromIvoryLocation(hdfsIvoryLocation)
       /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
       hr                   <- repository.asHdfsRepository[IO]
       _                    <- job(hr, dictionary, factsetGlobs, outputPath, entities, featureStoreSnapshot, hr.codec).run(hr.configuration)

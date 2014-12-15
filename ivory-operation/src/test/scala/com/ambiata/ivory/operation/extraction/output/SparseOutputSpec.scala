@@ -65,8 +65,10 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
           meta            = res.meta
           input           = ShadowOutputDataset.fromIvoryLocation(repo.toIvoryLocation(Repository.snapshot(meta.snapshotId)))
           _               <- SparseOutput.extractWithDictionary(repo, input, ShadowOutputDataset(HdfsLocation(eav.path)), dictionary, '|', "NA", escaped)
-          dictionaryLines <- Hdfs.readLines(new Path((eav </> FilePath.unsafe(".dictionary")).path)).run(conf.configuration)
-          eavLines        <- IvoryLocation.readHdfsLines(new Path(eav.path)).run(conf.configuration).map(_.sorted)
+          dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, conf)
+          dictionaryLines <- IvoryLocation.readLines(dictLocation)
+          loc             <- IvoryLocation.fromUri(eav.path, conf)
+          eavLines        <- IvoryLocation.readLines(loc).map(_.sorted)
         } yield (eavLines.mkString("\n").trim, dictionaryLines.toList)
       )
     }

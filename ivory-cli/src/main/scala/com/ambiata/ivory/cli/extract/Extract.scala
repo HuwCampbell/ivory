@@ -7,7 +7,6 @@ import com.ambiata.notion.core._
 import scopt.OptionParser
 
 import scalaz._, Scalaz._, scalaz.effect._
-import scalaz.\&/._
 
 case class ExtractOutput(formats: List[(String, String)] = Nil, missing: String = "NA")
 
@@ -27,11 +26,9 @@ object Extract {
       case (format, path) => OutputFormat.fromString(format).map(_ -> path)
         .toRightDisjunction(\&/.This(s"Unsupported format $format"): \&/[String, Throwable])
     })
-    out2 <- out1.traverseU {
-      case (format, path) => ResultT.fromDisjunction[IO, (OutputFormat, OutputDataset)](
-        Location.fromUri(path)
-          .bimap(s => This(s), s => format -> OutputDataset(s))
-      )
-    }
+    out2 <- ResultT.fromDisjunctionString[IO, List[(OutputFormat, OutputDataset)]](out1.traverseU({
+      case (format, path) =>
+        Location.fromUri(path).map(s => format -> OutputDataset(s))
+    }))
   } yield OutputFormats(out2, output.missing)
 }
