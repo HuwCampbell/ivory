@@ -41,6 +41,14 @@ object FilterReducer {
         case DoubleValue(v)   => new FilterValueReducer(new FilterReducerEquals(v), ReductionValueDouble)
         case DateValue(v)     => new FilterValueReducer(new FilterReducerEquals(v.int), ReductionValueDate)
       }
+      case FilterNotEquals(value) => value match {
+        case StringValue(v)   => new FilterValueReducer(new FilterReducerNot(new FilterReducerEquals(v)), ReductionValueString)
+        case BooleanValue(v)  => new FilterValueReducer(new FilterReducerNot(new FilterReducerEquals(v)), ReductionValueBoolean)
+        case IntValue(v)      => new FilterValueReducer(new FilterReducerNot(new FilterReducerEquals(v)), ReductionValueInt)
+        case LongValue(v)     => new FilterValueReducer(new FilterReducerNot(new FilterReducerEquals(v)), ReductionValueLong)
+        case DoubleValue(v)   => new FilterValueReducer(new FilterReducerNot(new FilterReducerEquals(v)), ReductionValueDouble)
+        case DateValue(v)     => new FilterValueReducer(new FilterReducerNot(new FilterReducerEquals(v.int)), ReductionValueDate)
+      }
       case FilterLessThan(value) => value match {
         case StringValue(v)   => new FilterValueReducer(new FilterReducerLessThan(v), ReductionValueString)
         case BooleanValue(v)  => new FilterValueReducer(new FilterReducerLessThan(v), ReductionValueBoolean)
@@ -82,6 +90,14 @@ object FilterReducer {
           case LongValue(v)     => new FilterStructReducer(name, new FilterReducerEquals(v), ReductionValueLong)
           case DoubleValue(v)   => new FilterStructReducer(name, new FilterReducerEquals(v), ReductionValueDouble)
           case DateValue(v)     => new FilterStructReducer(name, new FilterReducerEquals(v.int), ReductionValueDate)
+        }
+        case FilterNotEquals(value) => value match {
+          case StringValue(v)   => new FilterStructReducer(name, new FilterReducerNot(new FilterReducerEquals(v)), ReductionValueString)
+          case BooleanValue(v)  => new FilterStructReducer(name, new FilterReducerNot(new FilterReducerEquals(v)), ReductionValueBoolean)
+          case IntValue(v)      => new FilterStructReducer(name, new FilterReducerNot(new FilterReducerEquals(v)), ReductionValueInt)
+          case LongValue(v)     => new FilterStructReducer(name, new FilterReducerNot(new FilterReducerEquals(v)), ReductionValueLong)
+          case DoubleValue(v)   => new FilterStructReducer(name, new FilterReducerNot(new FilterReducerEquals(v)), ReductionValueDouble)
+          case DateValue(v)     => new FilterStructReducer(name, new FilterReducerNot(new FilterReducerEquals(v.int)), ReductionValueDate)
         }
         case FilterLessThan(value) => value match {
           case StringValue(v)   => new FilterStructReducer(name, new FilterReducerLessThan(v), ReductionValueString)
@@ -180,6 +196,10 @@ class FilterStructReducer[A](field: String, pred: FilterReducerPredicate[A], fro
 
 trait FilterReducerPredicate[@specialized(Boolean, Int, Long, Double) A] {
   def eval(v: A): Boolean
+}
+
+class FilterReducerNot[A](r: FilterReducerPredicate[A]) extends FilterReducerPredicate[A] {
+  def eval(v: A): Boolean = !r.eval(v)
 }
 
 class FilterReducerEquals[A](a: A) extends FilterReducerPredicate[A] {

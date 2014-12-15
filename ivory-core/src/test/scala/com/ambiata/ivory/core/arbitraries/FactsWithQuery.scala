@@ -20,6 +20,14 @@ object FactsWithQuery {
       // This is probably going to get pretty hairy when we add more filter operations
       v = d.filter.fold({
         case FilterEquals(ev) => ev
+        case FilterNotEquals(ev) => ev match {
+          case StringValue(vv)  => StringValue(vv + "!")
+          case IntValue(vv)     => IntValue(vv - 1)
+          case LongValue(vv)    => LongValue(vv - 1)
+          case DoubleValue(vv)  => DoubleValue(vv - 1)
+          case BooleanValue(vv) => BooleanValue(!vv)
+          case DateValue(vv)    => DateValue(Date.fromLocalDate(vv.localDate.minusDays(1)))
+        }
         case FilterLessThan(ev) => ev match {
           case StringValue(vv)  => StringValue((vv.charAt(0) - 1).toChar.toString ++ vv.substring(1))
           case IntValue(vv)     => IntValue(vv - 1)

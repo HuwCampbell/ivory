@@ -45,6 +45,7 @@ object FilterTester {
   def eval(filter: FilterEncoded, fact: Fact): Boolean =
     filter.fold({
       case FilterEquals(e)             => (value: Value) => value == e
+      case FilterNotEquals(e)          => (value: Value) => value != e
       case FilterLessThan(e)           => compare(e, new Compare { def c[A: Order](x: A, y: A) = x < y })
       case FilterLessThanOrEqual(e)    => compare(e, new Compare { def c[A: Order](x: A, y: A) = x <= y })
       case FilterGreaterThan(e)        => compare(e, new Compare { def c[A: Order](x: A, y: A) = x > y })
