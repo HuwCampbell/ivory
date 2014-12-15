@@ -2,6 +2,8 @@ package com.ambiata.ivory.operation.extraction.output
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.mr.MrContextIvory
+import com.ambiata.mundane.control.ResultTIO
+import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.poacher.mr._
 
 import org.apache.hadoop.fs.Path
@@ -19,10 +21,11 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat
  */
 object SparseOutputJob {
   def run(conf: Configuration, dictionary: Dictionary, input: Path, output: Path, missing: String,
-          delimiter: Char, escaped: Boolean, codec: Option[CompressionCodec]): Unit = {
-
-    val job = Job.getInstance(conf)
-    val ctx = MrContextIvory.newContext("ivory-sparse", job)
+          delimiter: Char, escaped: Boolean, codec: Option[CompressionCodec]): ResultTIO[Unit] = (for {
+    _ <- Hdfs.mustNotExistWithMessage(output, s"Output path '${output.toString}' already exists")
+    job = Job.getInstance(conf)
+    ctx = MrContextIvory.newContext("ivory-sparse", job)
+    _ <- Hdfs.safe {
 
     job.setJarByClass(classOf[SparseOutputMapper])
     job.setJobName(ctx.id.value)
@@ -58,14 +61,13 @@ object SparseOutputJob {
     // run job
     if (!job.waitForCompletion(true))
       sys.error("ivory eav failed.")
-
-    Committer.commit(ctx, {
-      case "eav" => output
-    }, true).run(conf).run.unsafePerformIO()
-
-    DictionaryOutput.writeToHdfs(output, dictionary, Some(missing), delimiter).run(conf).run.unsafePerformIO()
-    ()
   }
+
+  _ <- Committer.commit(ctx, {
+    case "eav" => output
+  }, true)
+  _ <- DictionaryOutput.writeToHdfs(output, dictionary, Some(missing), delimiter)
+  } yield ()).run(conf)
 
   object Keys {
     val Missing = "ivory.eav.missing"

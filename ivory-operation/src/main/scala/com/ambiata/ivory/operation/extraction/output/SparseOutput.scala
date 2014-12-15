@@ -12,5 +12,6 @@ object SparseOutput {
     in              =  inputLocation.toHdfsPath
     outputLocation  <- output.asHdfsIvoryLocation[IO]
     out             =  outputLocation.toHdfsPath
-    } yield SparseOutputJob.run(hdfsRepo.configuration, dictionary, in, out, missing, delim, escaped, hdfsRepo.codec)
+    _               <- SparseOutputJob.run(hdfsRepo.configuration, dictionary, in, out, missing, delim, escaped, hdfsRepo.codec)
+    } yield ()
 }
