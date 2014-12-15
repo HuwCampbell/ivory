@@ -9,6 +9,8 @@ object DictionaryImportValidate {
   type DictValidationUnit = DictValidation[Unit]
   type StructName = String
 
+  val MAX_FEATURES: Int = Short.MaxValue.toInt
+
   val OK: DictValidationUnit = Success(())
 
   def validate(oldDict: Dictionary, newDict: Dictionary): DictValidationUnit = {
@@ -54,17 +56,20 @@ object DictionaryImportValidate {
    * - virtual features with an invalid filter
    */
   def validateSelf(dict: Dictionary): DictValidationUnit =
-    dict.definitions.traverseU {
-      case Concrete(_, _)    => OK
-      case Virtual(fid, vd)  => dict.byFeatureId.get(vd.source).cata({
-        case Concrete(_, cd) =>
-          Expression.validate(vd.query.expression, cd.encoding)
-            .leftMap(InvalidExpression(_, ValidationPath(fid))).validation.toValidationNel +++
-          vd.query.filter.traverseU(FilterTextV0.encode(_, cd.encoding)
-            .leftMap(InvalidFilter(_, ValidationPath(fid))).validation.toValidationNel).void
-        case Virtual(_, _)   => InvalidVirtualSource(vd.source, ValidationPath(fid)).failureNel
-      }, InvalidVirtualSource(vd.source, ValidationPath(fid)).failureNel)
-    }.void
+    if(dict.definitions.length > MAX_FEATURES)
+      TooManyFeatures(dict.definitions.length).failureNel.void
+    else
+      dict.definitions.traverseU {
+        case Concrete(_, _)    => OK
+        case Virtual(fid, vd)  => dict.byFeatureId.get(vd.source).cata({
+          case Concrete(_, cd) =>
+            Expression.validate(vd.query.expression, cd.encoding)
+              .leftMap(InvalidExpression(_, ValidationPath(fid))).validation.toValidationNel +++
+            vd.query.filter.traverseU(FilterTextV0.encode(_, cd.encoding)
+              .leftMap(InvalidFilter(_, ValidationPath(fid))).validation.toValidationNel).void
+          case Virtual(_, _)   => InvalidVirtualSource(vd.source, ValidationPath(fid)).failureNel
+        }, InvalidVirtualSource(vd.source, ValidationPath(fid)).failureNel)
+      }.void
 
   case class ValidationPath(id: FeatureId, path: List[StructName] = Nil) {
     def ::(name: StructName): ValidationPath = new ValidationPath(id, name :: path)
@@ -96,5 +101,9 @@ object DictionaryImportValidate {
   }
   case class InvalidExpression(error: String, path: ValidationPath) extends DictionaryValidateFailure {
     override def toString = s"Invalid expression at $path: $error"
+  }
+  case class TooManyFeatures(features: Int) extends DictionaryValidateFailure {
+    override def toString = s"Currently Ivory only supports dictionary sizes up to ${MAX_FEATURES}, but the given dictionary is ${features}." +
+                             "If you see this, please open an issue at https://github.com/ambiata/ivory/issues/new"
   }
 }
