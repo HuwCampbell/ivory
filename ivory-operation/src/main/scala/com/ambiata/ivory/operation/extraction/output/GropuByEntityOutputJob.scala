@@ -100,12 +100,12 @@ object GropuByEntityOutputJob {
     case "dense" => output
   }, true)
   _ <- {
-    val (delim, missing) = format match {
-      case DenseText(delim2, missing2, _) => (delim2, Some(missing2))
-      case DenseThrift => ('|', None)
-      case SparseThrift => ('|', None)
+    val missing = format match {
+      case DenseText(_, missing2, _) => Some(missing2)
+      case DenseThrift => None
+      case SparseThrift => None
     }
-    DictionaryOutput.writeToHdfs(output, dictionary, missing, delim)
+    DictionaryOutput.writeToHdfs(output, dictionary, missing, '|')
   }
   } yield ()).run(conf)
 

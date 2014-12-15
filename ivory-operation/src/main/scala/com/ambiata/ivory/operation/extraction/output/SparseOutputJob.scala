@@ -66,7 +66,7 @@ object SparseOutputJob {
   _ <- Committer.commit(ctx, {
     case "eav" => output
   }, true)
-  _ <- DictionaryOutput.writeToHdfs(output, dictionary, Some(missing), delimiter)
+  _ <- DictionaryOutput.writeToHdfs(output, dictionary, Some(missing), '|')
   } yield ()).run(conf)
 
   object Keys {
