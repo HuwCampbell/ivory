@@ -1,8 +1,10 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.gen._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
+import org.scalacheck._
 import org.specs2._
 import scalaz.{Name => _,_}, Scalaz._
 
@@ -18,6 +20,7 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
    is invalid with a virtual definition with a virtual source      $virtualVirtualSource
    is invalid with a virtual definition with an invalid filter     $virtualInvalidFilter
    is invalid with a virtual definition with an invalid expression $virtualInvalidExpression
+   is invalid when there are more then Short.MaxValue features     $numFeaturesInvalid
 
 """
 
@@ -82,6 +85,9 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
     })
   })
 
+  def numFeaturesInvalid = prop((dict: TooLargeDictionary) =>
+    validateSelf(dict.dictionary) ==== TooManyFeatures(dict.dictionary.size).failureNel.void)
+
   // At some point it might be worth investigating Prism's from Monocle to share this code with the actual logic
   private def structChecks(enc: PrimitiveEncoding, path: ValidationPath):
       List[((Option[StructEncodedValue], Option[StructEncodedValue]), Option[DictionaryValidateFailure])] = List(
@@ -94,6 +100,13 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
     Some(StructEncodedValue(LongEncoding)) -> Some(StructEncodedValue(IntEncoding)) -> Some(EncodingChanged(LongEncoding, IntEncoding, path))
   )
 
-  private def dict(enc: Encoding) =
+  private def dict(enc: Encoding): Dictionary =
     Dictionary(List(Definition.concrete(fid, enc, Mode.State, Some(BinaryType), "", Nil)))
+
+  case class TooLargeDictionary(dictionary: Dictionary)
+  implicit def TooLargeDictionaryArbitrary: Arbitrary[TooLargeDictionary] = Arbitrary(for {
+    n <- Gen.choose(MAX_FEATURES + 1, 40000)
+    i <- GenIdentifier.feature
+    d <- GenDictionary.concrete
+  } yield TooLargeDictionary(Dictionary(List.fill(n)(d.toDefinition(i)))))
 }
