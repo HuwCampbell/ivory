@@ -8,7 +8,7 @@ import com.ambiata.ivory.storage.parse._
 import com.ambiata.ivory.storage.task.{FactsetWritable, FactsetJob}
 import com.ambiata.poacher.mr._
 
-import scalaz.{Name =>_, Reducer => _, Value => _, _}, Scalaz._
+import scalaz.{Name =>_, Reducer => _, Value => _, _}
 
 import org.apache.hadoop.fs.{Path, FileSystem}
 import org.apache.hadoop.conf._
@@ -221,12 +221,15 @@ class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {
 
   override def parse(namespace: Name, value: BytesWritable): Validation[ParseError, Fact] = {
     thrift.clear()
-    ((try deserializer.fromBytesViewUnsafe(thrift, value.getBytes, 0, value.getLength).right catch {
-      case e: TException => e.left
-    }) match {
-      case -\/(e)  => e.getMessage.failure
-      case \/-(_)  => Conversion.thrift2fact(namespace.name, thrift, ingestZone, ivoryZone)
-        .fold(_.failure, Value.validateFact(_, dict))
-    }).leftMap(ParseError(_, ThriftError(ThriftErrorDataVersionV1, ByteVector.view(value.getBytes).take(value.getLength))))
+    try deserializer.fromBytesViewUnsafe(thrift, value.getBytes, 0, value.getLength)
+    catch {
+      case e: TException =>
+        Crash.error(Crash.DataIntegrity, "Thrift could not be deserialised: " + e.getMessage)
+    }
+    Conversion.thrift2fact(namespace.name, thrift, ingestZone, ivoryZone).fold(
+      // Invalid Thrift data is not the same as badly formatted fact values - fail hard
+      e => Crash.error(Crash.DataIntegrity, "Invalid Thrift data: " + e),
+      Value.validateFact(_, dict)
+    ).leftMap(ParseError(_, ThriftError(ThriftErrorDataVersionV1, ByteVector.view(value.getBytes).take(value.getLength))))
   }
 }
