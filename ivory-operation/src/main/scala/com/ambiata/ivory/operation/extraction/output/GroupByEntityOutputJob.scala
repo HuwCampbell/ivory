@@ -23,7 +23,7 @@ import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, SequenceFileOut
 /**
  * This is a hand-coded MR job to squeeze the most out of performance.
  */
-object GropuByEntityOutputJob {
+object GroupByEntityOutputJob {
 
   def run(conf: Configuration, dictionary: Dictionary, input: Path, output: Path, format: GroupByEntityFormat,
           reducers: Int, codec: Option[CompressionCodec]): ResultTIO[Unit] = (for {
@@ -140,7 +140,7 @@ class GroupByEntityMapper extends Mapper[NullWritable, BytesWritable, BytesWrita
 
   override def setup(context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    ctx.thriftCache.pop(context.getConfiguration, GropuByEntityOutputJob.Keys.FeatureIds, features)
+    ctx.thriftCache.pop(context.getConfiguration, GroupByEntityOutputJob.Keys.FeatureIds, features)
   }
 
   /** Read and pass through, extracting entity and feature id for sort phase. */
@@ -187,7 +187,7 @@ trait DenseReducer[A] extends Reducer[BytesWritable, BytesWritable, NullWritable
     import scala.collection.JavaConverters._
     val lookup = new FeatureIdLookup
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    ctx.thriftCache.pop(context.getConfiguration, GropuByEntityOutputJob.Keys.FeatureIds, lookup)
+    ctx.thriftCache.pop(context.getConfiguration, GroupByEntityOutputJob.Keys.FeatureIds, lookup)
     features = lookup.getIds.asScala.toList.sortBy(_._2).map(_._1).toArray
   }
 
@@ -248,8 +248,8 @@ class DenseReducerText extends DenseReducer[Text] {
 
   override def setup(context: Reducer[BytesWritable, BytesWritable, NullWritable, Text]#Context): Unit = {
     super.setup(context)
-    missing = context.getConfiguration.get(GropuByEntityOutputJob.Keys.Missing)
-    delimiter = context.getConfiguration.get(GropuByEntityOutputJob.Keys.Delimiter).charAt(0)
+    missing = context.getConfiguration.get(GroupByEntityOutputJob.Keys.Missing)
+    delimiter = context.getConfiguration.get(GroupByEntityOutputJob.Keys.Delimiter).charAt(0)
     escapeAppend = TextEscaper.fromConfiguration(context.getConfiguration, delimiter)
   }
 
