@@ -5,6 +5,8 @@ import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.ivory.operation.extraction.output.GroupByEntityFormat._
 import com.ambiata.ivory.storage.lookup._
+import com.ambiata.mundane.control._
+import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.poacher.mr._
 
 import java.lang.{Iterable => JIterable}
@@ -21,18 +23,19 @@ import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, SequenceFileOut
 /**
  * This is a hand-coded MR job to squeeze the most out of performance.
  */
-object GropuByEntityOutputJob {
+object GroupByEntityOutputJob {
 
   def run(conf: Configuration, dictionary: Dictionary, input: Path, output: Path, format: GroupByEntityFormat,
-          reducers: Int, codec: Option[CompressionCodec]): Unit = {
-
-    val job = Job.getInstance(conf)
-    val name = format match {
+          reducers: Int, codec: Option[CompressionCodec]): ResultTIO[Unit] = (for {
+    _ <- Hdfs.mustNotExistWithMessage(output, s"Output path '${output.toString}' already exists")
+    job = Job.getInstance(conf)
+    name = format match {
       case DenseText(_, _, _) => "dense-text"
       case DenseThrift => "dense-thrift"
       case SparseThrift  => "sparse-thrift"
     }
-    val ctx = MrContextIvory.newContext("ivory-" + name, job)
+    ctx = MrContextIvory.newContext("ivory-" + name, job)
+    _ <- Hdfs.safe {
 
     job.setJarByClass(classOf[GroupByEntityMapper])
     job.setJobName(ctx.id.value)
@@ -57,7 +60,7 @@ object GropuByEntityOutputJob {
 
     // output
     val tmpout = new Path(ctx.output, "dense")
-    val (delim, missing) = format match {
+    format match {
       case DenseText(delim, missing, escaped) =>
         job.setReducerClass(classOf[DenseReducerText])
         job.setOutputFormatClass(classOf[TextOutputFormat[_, _]])
@@ -66,17 +69,14 @@ object GropuByEntityOutputJob {
         job.getConfiguration.set(Keys.Missing, missing)
         job.getConfiguration.set(Keys.Delimiter, delim.toString)
         TextEscaper.toConfiguration(job.getConfiguration, escaped)
-        (delim, Some(missing))
       case DenseThrift =>
         job.setReducerClass(classOf[DenseReducerThriftList])
         job.setOutputValueClass(classOf[BytesWritable])
         job.setOutputFormatClass(classOf[SequenceFileOutputFormat[_, _]])
-        ('|', None)
       case SparseThrift =>
         job.setReducerClass(classOf[DenseReducerThriftMap])
         job.setOutputValueClass(classOf[BytesWritable])
         job.setOutputFormatClass(classOf[SequenceFileOutputFormat[_, _]])
-        ('|', None)
     }
     FileOutputFormat.setOutputPath(job, tmpout)
 
@@ -94,14 +94,20 @@ object GropuByEntityOutputJob {
     // run job
     if (!job.waitForCompletion(true))
       sys.error("ivory dense failed.")
-
-    Committer.commit(ctx, {
-      case "dense" => output
-    }, true).run(conf).run.unsafePerformIO()
-
-    DictionaryOutput.writeToHdfs(output, dictionary, missing, delim).run(conf).run.unsafePerformIO()
-    ()
   }
+
+  _ <-  Committer.commit(ctx, {
+    case "dense" => output
+  }, true)
+  _ <- {
+    val missing = format match {
+      case DenseText(_, missing2, _) => Some(missing2)
+      case DenseThrift => None
+      case SparseThrift => None
+    }
+    DictionaryOutput.writeToHdfs(output, dictionary, missing, '|')
+  }
+  } yield ()).run(conf)
 
   object Keys {
     val Missing = "ivory.dense.missing"
@@ -134,7 +140,7 @@ class GroupByEntityMapper extends Mapper[NullWritable, BytesWritable, BytesWrita
 
   override def setup(context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    ctx.thriftCache.pop(context.getConfiguration, GropuByEntityOutputJob.Keys.FeatureIds, features)
+    ctx.thriftCache.pop(context.getConfiguration, GroupByEntityOutputJob.Keys.FeatureIds, features)
   }
 
   /** Read and pass through, extracting entity and feature id for sort phase. */
@@ -181,7 +187,7 @@ trait DenseReducer[A] extends Reducer[BytesWritable, BytesWritable, NullWritable
     import scala.collection.JavaConverters._
     val lookup = new FeatureIdLookup
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    ctx.thriftCache.pop(context.getConfiguration, GropuByEntityOutputJob.Keys.FeatureIds, lookup)
+    ctx.thriftCache.pop(context.getConfiguration, GroupByEntityOutputJob.Keys.FeatureIds, lookup)
     features = lookup.getIds.asScala.toList.sortBy(_._2).map(_._1).toArray
   }
 
@@ -242,8 +248,8 @@ class DenseReducerText extends DenseReducer[Text] {
 
   override def setup(context: Reducer[BytesWritable, BytesWritable, NullWritable, Text]#Context): Unit = {
     super.setup(context)
-    missing = context.getConfiguration.get(GropuByEntityOutputJob.Keys.Missing)
-    delimiter = context.getConfiguration.get(GropuByEntityOutputJob.Keys.Delimiter).charAt(0)
+    missing = context.getConfiguration.get(GroupByEntityOutputJob.Keys.Missing)
+    delimiter = context.getConfiguration.get(GroupByEntityOutputJob.Keys.Delimiter).charAt(0)
     escapeAppend = TextEscaper.fromConfiguration(context.getConfiguration, delimiter)
   }
 

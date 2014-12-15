@@ -15,7 +15,8 @@ object GroupByEntityOutput {
     outputLocation <- output.asHdfsIvoryLocation[IO]
     out            =  outputLocation.toHdfsPath
     reducers       <- ReducerSize.calculate(in, 256.mb).run(hdfsRepo.configuration)
-  } yield GropuByEntityOutputJob.run(hdfsRepo.configuration, dictionary, in, out, format, reducers, hdfsRepo.codec)
+    _              <- GroupByEntityOutputJob.run(hdfsRepo.configuration, dictionary, in, out, format, reducers, hdfsRepo.codec)
+  } yield ()
 }
 
 sealed trait GroupByEntityFormat
