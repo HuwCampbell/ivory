@@ -21,7 +21,7 @@ object catFacts extends IvoryApp {
 
     help("help") text "shows this usage text"
     arg[String]("INPUT_PATH")       action { (x, c) => c.copy(paths = x :: c.paths) } required() unbounded() text
-      "Glob path to snapshot facts sequence files or parent dir"
+      "Glob path to facts sequence path or parent dir"
     opt[Char]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) }          optional()             text
       "Delimiter (`|` by default)"
     opt[String]('t', "tombstone")   action { (x, c) => c.copy(tombstone = x) }        optional()             text
