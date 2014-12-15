@@ -39,6 +39,7 @@ case object FilterOpOr extends FilterOp
 
 sealed trait FilterExpression
 case class FilterEquals(value: PrimitiveValue) extends FilterExpression
+case class FilterNotEquals(value: PrimitiveValue) extends FilterExpression
 case class FilterLessThan(value: PrimitiveValue) extends FilterExpression
 case class FilterLessThanOrEqual(value: PrimitiveValue) extends FilterExpression
 case class FilterGreaterThan(value: PrimitiveValue) extends FilterExpression
@@ -76,6 +77,7 @@ object FilterTextV0 {
         "(" + List(op, Value.toStringPrimitive(v)).mkString(",") + ")"
       exp match {
         case FilterEquals(value)             => Value.toStringPrimitive(value)
+        case FilterNotEquals(value)          => asOpString("!=", value)
         case FilterLessThan(value)           => asOpString("<", value)
         case FilterLessThanOrEqual(value)    => asOpString("<=", value)
         case FilterGreaterThan(value)        => asOpString(">", value)
@@ -98,6 +100,7 @@ object FilterTextV0 {
       case FExpL(f) => f.v match {
         case List(FExpS(s)) => Value.parsePrimitive(encoding, s).disjunction.flatMap(v => PartialFunction.condOpt(f.op) {
           case "="  => FilterEquals(v)
+          case "!=" => FilterNotEquals(v)
           case "<"  => FilterLessThan(v)
           case "<=" => FilterLessThanOrEqual(v)
           case ">"  => FilterGreaterThan(v)
