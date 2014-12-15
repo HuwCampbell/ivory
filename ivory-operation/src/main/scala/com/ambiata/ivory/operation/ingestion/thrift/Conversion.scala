@@ -13,7 +13,7 @@ object Conversion {
   def thrift2fact(namespace: String, thrift: ThriftFact, local: DateTimeZone, ivory: DateTimeZone): \/[String, Fact] =
     for {
       _     <- Option(thrift.value).toRightDisjunction("Fact could not be parsed")
-      date  <- Dates.parse(thrift.datetime, local, ivory).toRightDisjunction("Thrift date was invalid")
+      date  <- Dates.parse(thrift.datetime, local, ivory).toRightDisjunction(s"Thrift date was invalid: '${thrift.datetime}'")
       value <- thrift2value(thrift.value)
     } yield FatThriftFact.factWith(thrift.entity, namespace, thrift.attribute, date.fold(identity, _.date), date.fold(_ => Time(0), _.time), value)
 
