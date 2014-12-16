@@ -23,7 +23,7 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
 
 """
 
-  def snapshot =
+  def snapshot = {
     RepositoryBuilder.using { repo => for {
       _ <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
       m <- Snapshots.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now))
@@ -32,6 +32,7 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
       // FIX: Capture "simple" snapshot logic which handles priority and set/state so we can check the counts
       sampleFacts.flatten.map(_.featureId).toSet
     )
+  }
 
   def windowing = propNoShrink((vdict: VirtualDictionaryWindow, fact: Fact) => {
     val facts = List(

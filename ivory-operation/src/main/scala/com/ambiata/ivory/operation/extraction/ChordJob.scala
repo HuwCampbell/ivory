@@ -5,7 +5,6 @@ import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.operation.extraction.chord._
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable
-import com.ambiata.ivory.operation.hadoop.MultipleInputs
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.mr._
@@ -55,7 +54,7 @@ object ChordJob {
     job.setOutputKeyClass(classOf[NullWritable])
     job.setOutputValueClass(classOf[BytesWritable])
 
-    IvoryInputs.configure(job, repository, inputs, incremental, classOf[ChordFactsetMapper], classOf[ChordIncrementalMapper])
+    IvoryInputs.configure(ctx, job, repository, inputs, incremental, classOf[ChordFactsetMapper], classOf[ChordIncrementalMapper])
 
     // output
     val tmpout = new Path(ctx.output, "chord")
@@ -123,7 +122,7 @@ object ChordMapper {
  * The output value is expected (can not be typed checked because its all bytes) to be
  * a thrift serialized NamespacedFact object.
  */
-class ChordFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
+class ChordFactsetMapper extends CombinableMapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
   import ChordMapper._
 
   /** Thrift deserializer. */
@@ -163,15 +162,18 @@ class ChordFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWritab
 
   override def setup(context: MapperContext): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
+    ctx.thriftCache.pop(context.getConfiguration, ChordJob.Keys.FeatureIdLookup, featureIdLookup)
+    entities = ChordJob.setupEntities(ctx.thriftCache, context.getConfiguration)
+  }
+
+  override def setupSplit(context: MapperContext, split: InputSplit): Unit = {
     val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, ChordJob.Keys.FactsetLookup,
-      ChordJob.Keys.FactsetVersionLookup, context.getConfiguration, context.getInputSplit)
-    converter = factsetInfo.factConverter
-    priority = factsetInfo.priority
+      ChordJob.Keys.FactsetVersionLookup, context.getConfiguration, split)
     okCounter = MrCounter("ivory", s"chord.v${factsetInfo.version}.ok", context)
     skipCounter = MrCounter("ivory", s"chord.v${factsetInfo.version}.skip", context)
     dropCounter = MrCounter("ivory", "drop", context)
-    ctx.thriftCache.pop(context.getConfiguration, ChordJob.Keys.FeatureIdLookup, featureIdLookup)
-    entities = ChordJob.setupEntities(ctx.thriftCache, context.getConfiguration)
+    converter = factsetInfo.factConverter
+    priority = factsetInfo.priority
   }
 
   /**
@@ -216,7 +218,7 @@ object ChordFactsetMapper {
 /**
  * Incremental chord mapper.
  */
-class ChordIncrementalMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
+class ChordIncrementalMapper extends CombinableMapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
   import ChordMapper._
 
   /** Thrift deserializer */
@@ -247,7 +249,7 @@ class ChordIncrementalMapper extends Mapper[NullWritable, BytesWritable, BytesWr
 
   var entities: Entities = null
 
-  override def setup(context: MapperContext): Unit = {
+  override def setupSplit(context: MapperContext, split: InputSplit): Unit = {
     super.setup(context)
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
     ctx.thriftCache.pop(context.getConfiguration, ChordJob.Keys.FeatureIdLookup, featureIdLookup)

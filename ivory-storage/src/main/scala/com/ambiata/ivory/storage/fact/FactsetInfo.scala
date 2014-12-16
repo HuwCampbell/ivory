@@ -31,7 +31,6 @@ object FactsetInfo {
     val versionLookup = new FactsetVersionLookup <| (fvl => thriftCache.pop(configuration, factsetVersionLookupKey, fvl))
     val rawVersion = versionLookup.versions.get(factsetId.render)
     val factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(Crash.error(Crash.DataIntegrity, s"Can not parse factset version '${rawVersion}'"))
-
     val converter = factsetVersion match {
       case FactsetVersionOne => VersionOneFactConverter(partition)
       case FactsetVersionTwo => VersionTwoFactConverter(partition)

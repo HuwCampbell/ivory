@@ -90,5 +90,4 @@ public class DelegatingRecordReader<K, V> extends RecordReader<K, V> {
   public boolean nextKeyValue() throws IOException, InterruptedException {
     return originalRR.nextKeyValue();
   }
-
 }
