@@ -3,6 +3,7 @@ package com.ambiata.ivory.operation.ingestion
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.FeatureIdLookup
+import com.ambiata.ivory.mr.MapString
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.parse._
 import com.ambiata.ivory.storage.task.{FactsetWritable, FactsetJob}
@@ -15,7 +16,7 @@ import org.apache.hadoop.conf._
 import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce._
-import org.apache.hadoop.mapreduce.lib.input.{SequenceFileInputFormat, TextInputFormat}
+import org.apache.hadoop.mapreduce.lib.input.{MultipleInputs, SequenceFileInputFormat, TextInputFormat}
 import org.apache.hadoop.mapreduce.lib.output.{MultipleOutputs, SequenceFileOutputFormat}
 import org.apache.thrift.TException
 
@@ -25,27 +26,23 @@ import org.joda.time.DateTimeZone
  * This is a hand-coded MR job to squeeze the most out of ingestion performance.
  */
 object IngestJob {
-  // FIX shouldn't need `root: Path` it is a workaround for poor namespace handling
   def run(conf: Configuration, dictionary: Dictionary, reducerLookups: ReducerLookups, ivoryZone: DateTimeZone,
-          ingestZone: Option[DateTimeZone], root: Path, singleNamespace: Option[Name], paths: List[Path], target: Path,
-          errors: Path, format: Format, codec: Option[CompressionCodec]): Unit = {
+          ingestZone: Option[DateTimeZone], inputs: List[(FileFormat, Option[Name], Path, List[Path])], target: Path,
+          errors: Path, codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
-    val ctx = FactsetJob.configureJob("ivory-ingest", job, dictionary, reducerLookups, paths, target, codec)
+    val ctx = FactsetJob.configureJob("ivory-ingest", job, dictionary, reducerLookups, target, codec)
 
-    // map
-    job.setMapperClass(format match {
-      case TextDelimitedFormat => classOf[TextIngestMapper]
-      case TextEscapedFormat   => classOf[TextIngestMapper]
-      case ThriftFormat        => classOf[ThriftIngestMapper]
-    })
-
-    // input
-    job.setInputFormatClass(format match {
-      case TextDelimitedFormat => classOf[TextInputFormat]
-      case TextEscapedFormat   => classOf[TextInputFormat]
-      case ThriftFormat        => classOf[SequenceFileInputFormat[_, _]]
-    })
+    inputs.foreach { case (format, _, _, paths) =>
+      val mc = format.fold({ case (_, escaping) => escaping match {
+        case TextEscaping.Delimited => classOf[TextDelimitedIngestMapper]
+        case TextEscaping.Escaped   => classOf[TextEscapedIngestMapper]
+      }}, classOf[ThriftIngestMapper])
+      val ifc =
+        if (format.isText) classOf[TextInputFormat]
+        else classOf[SequenceFileInputFormat[_, _]]
+      paths.foreach(MultipleInputs.addInputPath(job, _, ifc, mc))
+    }
 
     // output
     MultipleOutputs.addNamedOutput(job, Keys.Err,  classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable])
@@ -54,12 +51,13 @@ object IngestJob {
     job.getConfiguration.set(Keys.IvoryZone, ivoryZone.getID)
     // At the last minute we use the same zone for ingest, Joda will (nicely) not do any extra conversion in this case
     job.getConfiguration.set(Keys.IngestZone, ingestZone.getOrElse(ivoryZone).getID)
-    job.getConfiguration.set(Keys.IngestBase, FileSystem.get(conf).getFileStatus(root).getPath.toString)
-    format match {
-      case TextEscapedFormat => job.getConfiguration.setBoolean(Keys.TextEscaped, true)
-      case _ =>
-    }
-    singleNamespace.foreach(ns => job.getConfiguration.set(Keys.SingleNamespace, ns.name))
+    // Write out the specified namespaces, the rest will use the split information
+    job.getConfiguration.set(Keys.Namespaces, MapString.render(inputs.flatMap {
+      case (_, ns, root, _) => ns.map(n => FileSystem.get(conf).getFileStatus(root).getPath.toString -> n.name)
+    }.toMap))
+    job.getConfiguration.set(Keys.Delims, MapString.render(inputs.flatMap {
+      case (format, ns, root, _) => format.fold({ case (delim, _) => Some(root -> delim.character) },  None)
+    }.map(x => FileSystem.get(conf).getFileStatus(x._1).getPath.toString -> x._2.toString).toMap))
 
     // run job
     if (!job.waitForCompletion(true))
@@ -76,9 +74,8 @@ object IngestJob {
   object Keys {
     val IvoryZone = "ivory.tz"
     val IngestZone = "ivory.ingest.tz"
-    val IngestBase = "ivory.ingest.base"
-    val SingleNamespace = "ivory.ingest.singlenamespace"
-    val TextEscaped = "ivory.ingest.textescaped"
+    val Namespaces = "ivory.ingest.namespaces"
+    val Delims = "ivory.ingest.delims"
     val Err = "err"
   }
 }
@@ -96,9 +93,6 @@ object IngestJob {
 trait IngestMapper[K, I] extends Mapper[K, I, BytesWritable, BytesWritable] {
   /** Context object contains tmp paths and dist cache */
   var ctx: MrContext = null
-
-  /** Cache for path -> namespace mapping. */
-  val namespaces: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map.empty
 
   /** Value serializer. */
   val serializer = ThriftSerialiser()
@@ -118,10 +112,8 @@ trait IngestMapper[K, I] extends Mapper[K, I, BytesWritable, BytesWritable] {
   /** Ingestion time zone, see #setup. */
   var ingestZone: DateTimeZone = null
 
-  /** Base path for this load, used to determine namespace, see #setup.
-     FIX: this is hacky as (even more than the rest) we should rely on
-     a marker file or something more sensible that a directory name. */
-  var base: String = null
+  /** Path to specific namespace, otherwise we fall back to the parent directory name */
+  var bases: Map[String, String] = null
 
   /** The output key, only create once per mapper. */
   val kout = FactsetWritable.create
@@ -129,11 +121,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, BytesWritable, BytesWritable] {
   /** The output value, only create once per mapper. */
   val vout = Writables.bytesWritable(4096)
 
-  /** Path this mapper is processing */
-  var splitPath: Path = null
-
-  /** name of the namespace being processed if there's only one */
-  var singleNamespace: Option[String] = None
+  var namespace: String = null
 
   override def setup(context: Mapper[K, I, BytesWritable, BytesWritable]#Context): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
@@ -147,16 +135,15 @@ trait IngestMapper[K, I] extends Mapper[K, I, BytesWritable, BytesWritable] {
     }
     ivoryZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IvoryZone))
     ingestZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IngestZone))
-    base = context.getConfiguration.get(IngestJob.Keys.IngestBase)
-    splitPath = MrContext.getSplitPath(context.getInputSplit)
-    singleNamespace = Option(context.getConfiguration.get(IngestJob.Keys.SingleNamespace))
+    bases = MapString.fromString(context.getConfiguration.get(IngestJob.Keys.Namespaces, ""))
+    val splitPath = MrContext.getSplitPath(context.getInputSplit)
+    namespace = bases.getOrElse(splitPath.getParent.toString, splitPath.getParent.getName)
   }
 
   override def cleanup(context: Mapper[K, I, BytesWritable, BytesWritable]#Context): Unit =
     out.close()
 
   override def map(key: K, value: I, context: Mapper[K, I, BytesWritable, BytesWritable]#Context): Unit = {
-    val namespace = singleNamespace.fold(namespaces.getOrElseUpdate(splitPath.getParent.toString, findIt(splitPath)))(identity)
 
     parse(Name.unsafe(namespace), value) match {
 
@@ -184,31 +171,33 @@ trait IngestMapper[K, I] extends Mapper[K, I, BytesWritable, BytesWritable] {
   }
 
   def parse(namespace: Name, v: I): Validation[ParseError, Fact]
-
-  def findIt(p: Path): String =
-    if (p.getParent.toString == base)
-      p.getName
-    else
-      findIt(p.getParent)
 }
 
-class TextIngestMapper extends IngestMapper[LongWritable, Text] {
+trait TextIngestMapper extends IngestMapper[LongWritable, Text] {
 
-  var splitter: String => List[String] = null
+  var delim: Char = '|'
+  val splitter: String => List[String]
 
   override def setup(context: Mapper[LongWritable, Text, BytesWritable, BytesWritable]#Context): Unit = {
     super.setup(context)
-    splitter =
-      if (context.getConfiguration.getBoolean(IngestJob.Keys.TextEscaped, false))
-        TextEscaping.split(EavtParsers.delim, _)
-      else
-        EavtParsers.splitLine
+    val splitPath = MrContext.getSplitPath(context.getInputSplit)
+    delim = MapString.fromString(context.getConfiguration.get(IngestJob.Keys.Delims, "")).getOrElse(splitPath.toString, "|").charAt(0)
   }
 
   override def parse(namespace: Name, value: Text): Validation[ParseError, Fact] = {
     val line = value.toString
     EavtParsers.parser(dict, namespace, ivoryZone, ingestZone).run(splitter(line)).leftMap(ParseError(_, TextError(line)))
   }
+}
+
+class TextDelimitedIngestMapper extends TextIngestMapper {
+
+  val splitter = (line: String) => EavtParsers.splitLine(delim, line)
+}
+
+class TextEscapedIngestMapper extends TextIngestMapper {
+
+  val splitter = (line: String) => TextEscaping.split(delim, line)
 }
 
 class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {

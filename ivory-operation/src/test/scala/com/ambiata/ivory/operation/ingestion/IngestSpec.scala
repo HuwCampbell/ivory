@@ -43,7 +43,9 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
           DictionaryThriftStorage(repository).store(dictionary) >>
           IvoryLocation.writeUtf8Lines(location </> "ns1" </> "2012" </> "10" </> "1" </> "part-r-00000", sampleFacts.flatten.map(toEavt)) >>
           IvoryLocation.writeUtf8Lines(location </> "ns1" </> "2012" </> "10" </> "1" </> "part-r-00001", sampleFacts.flatten.map(toEavt)) >>
-          Ingest.ingestFacts(repository, cluster, location, None, None, 100.mb, TextDelimitedFormat).run.run(IvoryRead.create)
+          Ingest.ingestFacts(repository, cluster, List(
+            (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited), None, location)
+          ), None, 100.mb).run.run(IvoryRead.create)
         }
       }
     } must beOk
@@ -57,7 +59,9 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
           DictionaryThriftStorage(repository).store(dictionary) >>
           IvoryLocation.writeUtf8Lines(location </> "part-r-00000", sampleFacts.flatten.map(toEavt)) >>
           IvoryLocation.writeUtf8Lines(location </> "part-r-00001", sampleFacts.flatten.map(toEavt)) >>
-          Ingest.ingestFacts(repository, cluster, location, Some(Name("ns1")), None, 100.mb, TextDelimitedFormat).run.run(IvoryRead.create)
+          Ingest.ingestFacts(repository, cluster, List(
+            (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited), Some(Name("ns1")), location)
+          ), None, 100.mb).run.run(IvoryRead.create)
         }
       }
     } must beOk
@@ -71,7 +75,9 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
             _  <- Repositories.create(repository, RepositoryConfig.testing)
             _  <- DictionaryThriftStorage(repository).store(facts.dictionary)
             _  <- IvoryLocation.writeUtf8Lines(location </> "part-r-00000", List(facts.fact).map(toEavtEscaped))
-            _  <- Ingest.ingestFacts(repository, cluster, location, Some(facts.fact.namespace), None, 100.mb, TextEscapedFormat).run.run(IvoryRead.create)
+            _  <- Ingest.ingestFacts(repository, cluster, List(
+              (FileFormat.Text(Delimiter.Psv, TextEscaping.Escaped), Some(facts.fact.namespace), location)
+            ), None, 100.mb).run.run(IvoryRead.create)
             r  <- repository.asHdfsRepository[IO]
             l  <- repository.toIvoryLocation(Repository.namespace(FactsetId.initial, facts.fact.namespace)).asHdfsIvoryLocation[IO]
           } yield List(facts.fact.toThrift) -> valueFromSequenceFile[ThriftFact](l.toHdfs + "/" + HdfsGlobs.FactsetPartitionsGlob).run(r.scoobiConfiguration).toList
@@ -94,7 +100,9 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
           _   <- SequenceUtil.writeBytes((loc </> "part-r-00000").location, c, cluster.s3Client, None) {
             write => ResultT.safe((facts.facts ++ badFacts).foreach(fact => write(serialiser.toBytes(Conversion.fact2thrift(fact)))))
           }
-          fid <- Ingest.ingestFacts(repository, cluster, loc, Some(ns), None, 100.mb, ThriftFormat).run.run(IvoryRead.create)
+          fid <- Ingest.ingestFacts(repository, cluster, List(
+            (FileFormat.Thrift, Some(ns), loc)
+          ), None, 100.mb).run.run(IvoryRead.create)
         } yield (
           valueFromSequenceFile[ThriftFact](repository.toIvoryLocation(Repository.namespace(fid, ns)).toHdfs + "/*/*/*/*").run(repository.scoobiConfiguration).toSet,
           valueFromSequenceFile[ThriftFact](repository.toIvoryLocation(Repository.errors).toHdfs + "/*/*").run(repository.scoobiConfiguration).size
@@ -117,5 +125,4 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
     sampleDictionary append {
       Dictionary(List(Definition.concrete(FeatureId(Name("ns1"), "fid3"), BooleanEncoding, Mode.State, Some(CategoricalType), "desc", Nil)))
     }
-
 }

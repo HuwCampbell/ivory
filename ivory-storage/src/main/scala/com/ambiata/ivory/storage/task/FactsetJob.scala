@@ -9,7 +9,6 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.{NullWritable, BytesWritable}
 import org.apache.hadoop.io.compress.CompressionCodec
 import org.apache.hadoop.mapreduce.Job
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
 import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, MultipleOutputs, SequenceFileOutputFormat, LazyOutputFormat}
 
 import scalaz.{\/-, -\/}
@@ -35,15 +34,12 @@ import scalaz.{\/-, -\/}
  */
 object FactsetJob {
 
-  def configureJob(name: String, job: Job, dictionary: Dictionary, reducerLookups: ReducerLookups, inputPaths: List[Path], targetPath: Path, codec: Option[CompressionCodec]): MrContext = {
+  def configureJob(name: String, job: Job, dictionary: Dictionary, reducerLookups: ReducerLookups, targetPath: Path,
+                   codec: Option[CompressionCodec]): MrContext = {
     val ctx = MrContextIvory.newContext(name, job)
 
     job.setJarByClass(classOf[FactsPartitioner])
     job.setJobName(ctx.id.value)
-
-    /** inputs */
-    // job.setInputFormatClass(classOf[SequenceFileInputFormat[_, _]]) must be done by the caller method
-    FileInputFormat.addInputPaths(job, inputPaths.mkString(","))
 
     /** map */
     // job.setMapperClass(....) must be done by the caller method

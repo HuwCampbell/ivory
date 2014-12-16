@@ -15,6 +15,8 @@ class EavtParsersSpec extends Specification with ScalaCheck { def is = s2"""
 Eavt Parse Formats
 ------------------
 
+ Can split EAV line                      $splitLineEAV
+ Can split non-EAV line                  $splitLineOther
  Can parse date only                     $date
  Can parse legacy date-time format       $legacy
  Can parse standard date-time format     $standard
@@ -24,6 +26,17 @@ Eavt Parse Formats
  Must fail with struct EAVT string       $structFail
 
 """
+
+  def splitLineEAV = prop { (c: Char, c2: Char, e: String, a: String, v: String, t: String) => {
+    val l = List(e, a, v, t).map(_.replace(c.toString, "")).filter(!_.isEmpty)
+    if (l.isEmpty || l.size != 4) true ==== true
+    else EavtParsers.splitLine(c, l.mkString(c.toString)) ==== List(l(0), l(1), l(2), l(3).trim)
+  }}
+
+  def splitLineOther = prop { (c: Char, l2: List[String]) =>
+    val l = l2.map(_.replace(c.toString, "")).filter(!_.isEmpty)
+    if (l.isEmpty || l.size == 4) true ==== true else EavtParsers.splitLine(c, l.mkString(c.toString)) ==== l
+  }
 
   def date = prop((fz: PrimitiveSparseEntities) =>
     factDateSpec(fz, DateTimeZone.getDefault, fz.fact.date.hyphenated) must_== Success(fz.fact.withTime(Time(0)))

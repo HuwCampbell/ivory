@@ -10,9 +10,7 @@ import scalaz.{Name => _, Value => _, _}, Scalaz._
 // FIX should be in storage.fact
 object EavtParsers {
 
-  val delim = '|'
-
-  def splitLine(line: String): List[String] =
+  def splitLine(delim: Char, line: String): List[String] =
     line.split(delim).toList match {
       case e :: a :: v :: t :: Nil => List(e, a, v, t.trim)
       case other                   => other

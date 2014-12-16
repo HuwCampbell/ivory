@@ -12,13 +12,13 @@ then
 
   S3_INGEST_1="s3://${AWS_TEST_BUCKET}/tests/cli/$(random)"
   aws s3 sync "${INPUT}/facts-3" ${S3_INGEST_1} --sse
-  $IVORY ingest -i ${S3_INGEST_1}
+  $IVORY ingest -i "sparse:delimited:psv=${S3_INGEST_1}"
   $IVORY cat-facts "${REPOSITORY}/factsets/00000000/*/*/*/*/*" | sort > "${TARGET}/all-facts-s3.psv"
   diff_test "${DIR}/expected/all-s3-facts.psv" "${TARGET}/all-facts-s3.psv"
 
   S3_INGEST_2="s3://${AWS_TEST_BUCKET}/tests/cli/$(random)"
   aws s3 sync "${INPUT}/facts-4" ${S3_INGEST_2} --sse
-  $IVORY ingest -i ${S3_INGEST_2} -n HALIBUT
+  $IVORY ingest -i "sparse:delimited:psv|HALIBUT=${S3_INGEST_2}"
   $IVORY cat-facts "${REPOSITORY}/factsets/00000001/*/*/*/*/*" | sort > "${TARGET}/halibut-facts-s3.psv"
   diff_test "${DIR}/expected/halibut-s3-facts.psv" "${TARGET}/halibut-facts-s3.psv"
 

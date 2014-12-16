@@ -26,6 +26,9 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
    as the directory for namespace being named <singleNamespace>                             $e2
 
    `namespaceSizes` returns the size of each namespace for a give factset                   $e3
+
+  All namespaces from input should be present in map                                        $sumNames
+  Sum of all the input namespaces should be the same as map                                 $sumTotal
 """
 
   def e1 = prepare { factsetPath =>
@@ -65,4 +68,12 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
 
   def createFile(repository: Repository)(key: Key): ResultTIO[Unit] =
     repository.store.utf8.write(key, "test")
+
+  def sumNames = prop { (l: List[(Name, Long)]) =>
+    Namespaces.sum(l.map(x => x._1 -> x._2.bytes)).keySet == l.map(_._1).toSet
+  }
+
+  def sumTotal = prop { (l: List[(Name, Long)]) =>
+    Namespaces.sum(l.map(x => x._1 -> x._2.bytes)).values.map(_.toBytes.value).sum == l.map(_._2).sum
+  }
 }
