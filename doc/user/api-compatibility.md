@@ -3,6 +3,10 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-aedcc7c
+
+- New restriction on length of `entity` field in a fact is 256.
+
 ## 1.0.0-*-ecefb75
 
 - Ingest now supports multiple inputs, each with their own format and optional namespace.
