@@ -1,5 +1,6 @@
 package com.ambiata.ivory.cli
 
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.api.Ivory._
 import com.ambiata.ivory.cli.extract._
 import com.ambiata.ivory.core.IvoryLocation
@@ -28,7 +29,7 @@ object chord extends IvoryApp {
         "WARNING: Decreasing this number will degrade performance."
   })(c => f => c.copy(formats = f(c.formats)))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments("", true, SquashConfig.default, ExtractOutput()), { repo => conf => c =>
+  val cmd = IvoryCmd.withCluster[CliArguments](parser, CliArguments("", true, SquashConfig.default, ExtractOutput()), { repo => cluster => conf => c =>
     IvoryT.fromResultTIO { for {
       ent  <- IvoryLocation.fromUri(c.entities, conf)
       of   <- Extract.parse(conf, c.formats)
@@ -41,8 +42,8 @@ object chord extends IvoryApp {
       }, ResultT.fail[IO, Unit]("Thrift output for chord not currently supported"))
       r    <- RepositoryRead.fromRepository(repo)
       // TODO Should be using Ivory API here, but the generic return type is lost on the monomorphic function
-      _    <- Chord.createChordWithSquash(repo, ent, c.takeSnapshot, c.squash, of.outputs.map(_._2))(
-        (out, dict) => Extraction.extract(of, repo.toIvoryLocation(out), dict).run(r)
+      _    <- Chord.createChordWithSquash(repo, ent, c.takeSnapshot, c.squash, of.outputs.map(_._2), cluster)(
+        (out, dict) => Extraction.extract(of, out, dict, cluster).run(r)
       )
     } yield List(s"Successfully extracted chord from '${repo.root.show}'") }
   })

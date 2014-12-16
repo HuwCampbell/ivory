@@ -44,6 +44,7 @@ object SyncIngest {
                    └── factset
                                                                                          */
   def inputDataset(input: InputDataset, cluster: Cluster): ResultTIO[ShadowInputDataset] = {
+    // This should be inside the tmp directory of the shadow repository on the cluster
     val outputPath = DirPath.unsafe(s"tmp/shadow/${UUID.randomUUID()}")
     def getOutput(opt: Option[String]): ShadowInputDataset = opt match {
       case Some(v) =>
@@ -88,8 +89,8 @@ object SyncIngest {
         ResultT.unit[IO]
     }).as(source match {
       case HdfsRepository(HdfsIvoryLocation(h, _, _, _)) =>
-        ShadowRepository.fromDistCopyConfiguration(new Path(h.path), cluster.conf)
+        ShadowRepository.fromDistCopyConfiguration(new Path(h.path), cluster.conf, source)
       case _ =>
-        ShadowRepository.fromDistCopyConfiguration(cluster.root, cluster.conf)
+        ShadowRepository.fromDistCopyConfiguration(cluster.root, cluster.conf, source)
     })
 }
