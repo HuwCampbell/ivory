@@ -3,7 +3,6 @@ package com.ambiata.ivory.cli.extract
 import com.ambiata.ivory.api.Ivory.{OutputFormat, OutputFormats}
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
-import com.ambiata.notion.core._
 import scopt.OptionParser
 
 import scalaz._, Scalaz._, scalaz.effect._
@@ -28,7 +27,8 @@ object Extract {
     })
     out2 <- ResultT.fromDisjunctionString[IO, List[(OutputFormat, OutputDataset)]](out1.traverseU({
       case (format, path) =>
-        Location.fromUri(path).map(s => format -> OutputDataset(s))
+        // This is a hack to ensure that paths that don't specify a scheme get defaulted to HdfsLocation. See `IvoryLocation.parseUri` vs `Location.fromUri`
+        IvoryLocation.parseUri(path, conf).map(s => format -> OutputDataset(s.location))
     }))
   } yield OutputFormats(out2, output.missing)
 }
