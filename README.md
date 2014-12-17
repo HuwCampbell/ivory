@@ -187,7 +187,7 @@ fred|gender|M|2014-02-11
 fred|age|37|2014-02-11
 mary|age|42|2013-11-24
 
-> ivory ingest --input factset1.psv --namespace demographic -z "Australia/Sydney"
+> ivory ingest --input sparse:delimited:psv|demographic=factset1.psv -z "Australia/Sydney"
 ```
 
 Note that the facts do not specify attribute namespaces. In this factset, because all facts
@@ -242,7 +242,7 @@ jill|type|BASIC|2012-07-19
 fred|type|XTREME|2014-02-11
 mary|type|STANDARD|2013-11-24
 
-> ivory ingest --input factset2.psv -z "Australia/Sydney" --namespace account
+> ivory ingest --input sparse:delimited:psv|account=factset2.psv -z "Australia/Sydney"
 ```
 
 Now if we extract a snapshot at 2014-06-01 again, we can see that the `type` column is now populated:
@@ -266,7 +266,7 @@ the value has been corrected:
 > cat factset3.psv
 fred|type|EXTREME|2014-02-11
 
-> ivory ingest --input factset3.psv -z "Australia/Sydney" --namespace account
+> ivory ingest --input sparse:delimited:psv|account=factset3.psv -z "Australia/Sydney"
 
 > ivory snapshot --missing-value 'NULL' --date 2014-06-01 --output dense:csv=snapshot_20140601.3
 

@@ -64,7 +64,7 @@ MAPREDUCE_OPTS="\
   -Ddfs.block.size=33554432 \
   -Dmapreduce.job.reduce.slowstart.completedmaps=0.9"
 
-time ivory ingest ${MAPREDUCE_OPTS} -r /ivory -i /benchmark-data/2014-01-01 -f text
+time ivory ingest ${MAPREDUCE_OPTS} -r /ivory -i sparse:delimited:psv=/benchmark-data/2014-01-01
 ```
 
 ### Gathering Data
