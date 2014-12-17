@@ -47,17 +47,15 @@ object Ingest {
    *
    * This creates a new factset and a new feature store
    *
-   * @param input input is the input directory containg facts to ingest
-   * @param namespace name is an optional Namespace Name if the directory only contains facts for a single namespace
+   * @param inputs inputs is the input directories containing facts to ingest
    * @param timezone each fact has a date and time but we must specify the timezone when importing
    * @param optimal size of each reducer ingesting facts
-   * @param format text or thrift
    */
-  def ingestFacts(repository: Repository, cluster: Cluster, input: IvoryLocation, namespace: Option[Name],
-                  timezone: Option[DateTimeZone], optimal: BytesQuantity, format: Format): IvoryTIO[FactsetId] =
+  def ingestFacts(repository: Repository, cluster: Cluster, inputs: List[(FileFormat, Option[Name], IvoryLocation)],
+                  timezone: Option[DateTimeZone], optimal: BytesQuantity): IvoryTIO[FactsetId] =
     for {
       factsetId <- Factsets.allocateFactsetIdI(repository)
-      _         <- FactImporter.importFacts(repository, cluster, namespace, optimal, format, factsetId, input, timezone)
+      _         <- FactImporter.importFacts(repository, cluster, optimal, factsetId, inputs, timezone)
       _         <- updateFeatureStore(repository, factsetId)
     } yield factsetId
 

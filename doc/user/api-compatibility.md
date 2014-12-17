@@ -3,6 +3,19 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-ecefb75
+
+- Ingest now supports multiple inputs, each with their own format and optional namespace.
+  NOTE: This breaks backwards compatibility.
+
+      ivory ingest -i my/path1
+      ivory ingest -i my/path2 -f text:delimited
+      ivory ingest -i my/path3 -f thrift -n foo
+
+  Can now be written as:
+
+      ivory ingest -i sparse:delimited:psv=my/path1 -i sparse:delimited:psv=my/path2 -i sparse:thrift|foo=my/path3
+
 ## 1.0.0-*-f7378d0
 
 - Introduced `dense:escaped:thrift` and `sparse:escaped:thrift` output formats for snapshot, and `text:escaped` format

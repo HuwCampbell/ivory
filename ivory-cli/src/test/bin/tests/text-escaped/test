@@ -6,7 +6,7 @@ DIR=$(dirname $0)
 $IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 
-$IVORY ingest -i "${INPUT}/facts" -n "halibut" -f "text:escaped"
+$IVORY ingest -i "sparse:escaped:psv|halibut=${INPUT}/facts"
 
 $IVORY cat-facts "${REPOSITORY}/factsets/00000000/*/*/*/*/*" | sort > "${TARGET}/factsets.psv"
 diff_test "${DIR}/expected/factsets.psv" "${TARGET}/factsets.psv"

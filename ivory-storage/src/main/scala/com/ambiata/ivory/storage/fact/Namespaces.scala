@@ -24,9 +24,11 @@ object Namespaces {
   def allNamespaceSizes(repository: HdfsRepository, namespaces: List[Name], factsets: List[FactsetId]): Hdfs[List[(Name, BytesQuantity)]] = {
     namespaces.flatMap(ns => factsets.map(ns ->)).traverse {
       case (ns, fsid) => namespaceSizesSingle(repository.toIvoryLocation(Repository.namespace(fsid, ns)).toHdfsPath, ns)
-    }.map(_.foldLeft(Map[Name, BytesQuantity]()) {
-      case (k, v) => k + (v._1 -> implicitly[Numeric[BytesQuantity]].mkNumericOps(k.getOrElse(v._1, 0.mb)).+(v._2))
-    }.toList)
+    }.map(sum).map(_.toList)
   }
-}
 
+  def sum(sizes: List[(Name, BytesQuantity)]): Map[Name, BytesQuantity] =
+    sizes.foldLeft(Map[Name, BytesQuantity]()) {
+      case (k, v) => k + (v._1 -> implicitly[Numeric[BytesQuantity]].mkNumericOps(k.getOrElse(v._1, 0.mb)).+(v._2))
+   }
+}

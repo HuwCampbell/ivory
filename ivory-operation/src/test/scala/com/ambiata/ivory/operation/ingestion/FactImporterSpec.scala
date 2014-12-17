@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.mr.{FactFormats}
+import com.ambiata.ivory.mr.FactFormats
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import FactFormats._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
@@ -36,7 +36,7 @@ class FactImporterSpec extends Specification with ThrownExpectations with FileMa
   def text = { setup: Setup =>
     (for {
       _ <- setup.saveTextInputFile
-      _ <- setup.importAs(TextDelimitedFormat)
+      _ <- setup.importAs(FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited))
     } yield ()) must beOk
     setup.theImportMustBeOk
   }
@@ -44,7 +44,7 @@ class FactImporterSpec extends Specification with ThrownExpectations with FileMa
   def thrift = { setup: Setup =>
     (for {
       _ <- setup.saveThriftInputFile
-      _ <- setup.importAs(ThriftFormat)
+      _ <- setup.importAs(FileFormat.Thrift)
     } yield ()) must beOk
     setup.theImportMustBeOk
   }
@@ -53,7 +53,7 @@ class FactImporterSpec extends Specification with ThrownExpectations with FileMa
     (for {
       // save an input file containing errors
       _ <- setup.saveTextInputFileWithErrors
-      _ <- setup.importAs(TextDelimitedFormat)
+      _ <- setup.importAs(FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited))
     } yield ()) must beOk
     setup.thereMustBeErrors
   }
@@ -113,10 +113,10 @@ class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
   def save(path: IvoryLocation, raw: List[String]): ResultTIO[Unit] =
     IvoryLocation.writeUtf8Lines(path </> "part", raw)
 
-  def importAs(format: Format): ResultTIO[Unit] =
+  def importAs(format: FileFormat): ResultTIO[Unit] =
     FactImporter
-      .runJob(repository, None, 128.mb, dictionary, format, FactsetId.initial, input.toHdfsPath, errors.toHdfsPath,
-        List(ns1 -> 1.mb), None, RepositoryConfig.testing.copy(timezone = DateTimeZone.getDefault)) >>
+      .runJob(repository, 128.mb, dictionary, FactsetId.initial, List((format, None, input.toHdfsPath)), errors.toHdfsPath,
+        None, RepositoryConfig.testing.copy(timezone = DateTimeZone.getDefault)) >>
     writeFactsetVersion(repository, List(FactsetId.initial))
 
   def theImportMustBeOk =

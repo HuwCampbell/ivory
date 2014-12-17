@@ -5,7 +5,7 @@ DIR=$(dirname $0)
 
 $IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
-$IVORY ingest -i "${INPUT}/facts"
+$IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts"
 $IVORY factset-statistics -f "00000"
 
 ### check factsets ###

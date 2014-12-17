@@ -13,7 +13,7 @@ cp -r ${INPUT}/facts/halibut ${TARGET}/input/halibut_state
 
 $IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
-$IVORY ingest -i "${TARGET}/input"
+$IVORY ingest -i "sparse:delimited:psv=${TARGET}/input"
 
 snapshot() {
   $IVORY snapshot -d ${1}

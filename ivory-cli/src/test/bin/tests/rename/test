@@ -5,9 +5,9 @@ DIR=$(dirname $0)
 
 $IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
-$IVORY ingest -i "${INPUT}/facts"
+$IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts"
 # Make sure we test priority
-$IVORY ingest -i "${INPUT}/facts2"
+$IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts2"
 $IVORY rename -m "halibut:preheat=halibut2:warmup" -m "halibut:cooldown=halibut2:exercise" -b "${INPUT}/mapping.psv"
 
 ### check factsets ###
