@@ -23,39 +23,44 @@ import scalaz.{Name => _, _}, scalaz.effect._
 import syntax.bind._
 
 
-class FactImporterSpec extends Specification with ThrownExpectations with FileMatchers with FixtureExample[Setup] { def is = s2"""
+class FactImporterSpec extends Specification with FileMatchers with FixtureExample[Setup] { def is = s2"""
 
  The Eavt text import can import text or Thrift facts
 
   MR job runs and creates expected text data   $text
   MR job runs and creates expected thrift data $thrift
-  When there are errors, they must be saved as a Thrift record containing the full record + the error message $withErrors
+  When there are errors parsing text, they must be saved as a Thrift record containing the full record + the error message $withErrors
+  When there are errors parsing thrift, they must be saved as a Thrift record containing the full record + the error message $thriftWithErrors
 
 """
 
   def text = { setup: Setup =>
-    (for {
+    ((for {
       _ <- setup.saveTextInputFile
       _ <- setup.importAs(FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited))
-    } yield ()) must beOk
-    setup.theImportMustBeOk
+    } yield ()) must beOk) and setup.theImportMustBeOk
   }
 
   def thrift = { setup: Setup =>
-    (for {
+    ((for {
       _ <- setup.saveThriftInputFile
       _ <- setup.importAs(FileFormat.Thrift)
-    } yield ()) must beOk
-    setup.theImportMustBeOk
+    } yield ()) must beOk) and setup.theImportMustBeOk
   }
 
   def withErrors = { setup: Setup =>
-    (for {
+    ((for {
       // save an input file containing errors
       _ <- setup.saveTextInputFileWithErrors
       _ <- setup.importAs(FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited))
-    } yield ()) must beOk
-    setup.thereMustBeErrors
+    } yield ()) must beOk) and setup.thereMustBeErrors
+  }
+
+  def thriftWithErrors = { setup: Setup =>
+    ((for {
+      _ <- setup.saveThriftInputFileWithErrors
+      _ <- setup.importAs(FileFormat.Thrift)
+    } yield ()) must beOk) and setup.thereMustBeErrors
   }
 
   def fixture[R : AsResult](f: Setup => R): Result =
@@ -93,12 +98,15 @@ class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
     save(namespaced, raw)
   }
 
-  def saveThriftInputFile: ResultTIO[Unit] = {
+  def saveThriftInputFile: ResultTIO[Unit] =
+    saveFactsAsThrift(expected)
+
+  def saveFactsAsThrift(facts: List[Fact]): ResultTIO[Unit] = {
     import com.ambiata.ivory.operation.ingestion.thrift._
     val serializer = ThriftSerialiser()
     TemporaryIvoryConfiguration.withConf(conf =>
       SequenceUtil.writeHdfsBytes((namespaced </> "input" </> "ns1" </> FileName(java.util.UUID.randomUUID)).location, conf.configuration, None) {
-        writer => ResultT.safe(expected.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
+        writer => ResultT.safe(facts.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
       }.run(conf.configuration)
     )
   }
@@ -106,8 +114,16 @@ class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
   def saveTextInputFileWithErrors: ResultTIO[Unit] = {
     val raw = List("pid1|fid1|v1|2012-10-01 00:00:10",
                    "pid1|fid2|x|2012-10-15 00:00:20",
-                   "pid1|fid3|3.0|2012-03-20 00:00:30")
+                   "pid1|fid3|3.0|2012-03-20 00:00:30",
+                   "pid".padTo(256, '1') + "|fid1|v1|2012-10-01 00:00:10")
     save(namespaced, raw)
+  }
+
+  def saveThriftInputFileWithErrors: ResultTIO[Unit] = {
+    val bad = List(
+      StringFact("pid".padTo(256, '1'), FeatureId(ns1, "fid1"), Date(2012, 10, 1),  Time(10), "v1"),
+      StringFact("pid1", FeatureId(ns1, "fid2"), Date(2012, 10, 1),  Time(10), "v1"))
+    saveFactsAsThrift(expected ++ bad)
   }
 
   def save(path: IvoryLocation, raw: List[String]): ResultTIO[Unit] =

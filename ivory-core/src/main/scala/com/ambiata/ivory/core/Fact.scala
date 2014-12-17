@@ -172,6 +172,9 @@ case class StructValue(values: Map[String, PrimitiveValue]) extends SubValue
 case class ListValue(values: List[SubValue]) extends Value
 
 object Value {
+
+  val MaxEntityLength: Int = 256
+
   def validDouble(d: Double): Boolean =
     !d.isNaN && !d.isNegInfinity && !d.isPosInfinity
 
@@ -215,12 +218,18 @@ object Value {
   }
 
   def validateFact(fact: Fact, dict: Dictionary): Validation[String, Fact] =
-    dict.byFeatureId.get(fact.featureId)
-      .map {
-      case Concrete(_, fm) => validateEncoding(fact.value, fm.encoding).as(fact).leftMap(_ + s" '${fact.toString}'")
-      case _: Virtual      => s"Cannot have virtual facts for ${fact.featureId}".failure
+    validateEntity(fact) match {
+      case Success(f) =>
+        dict.byFeatureId.get(f.featureId).map({
+          case Concrete(_, fm) => validateEncoding(f.value, fm.encoding).as(f).leftMap(_ + s" '${f.toString}'")
+          case _: Virtual      => s"Cannot have virtual facts for ${f.featureId}".failure
+        }).getOrElse(s"Dictionary entry '${f.featureId}' doesn't exist!".failure)
+      case e @ Failure(_) =>
+        e
     }
-      .getOrElse(s"Dictionary entry '${fact.featureId}' doesn't exist!".failure)
+
+  def validateEntity(fact: Fact): Validation[String, Fact] =
+    if(fact.entity.length > MaxEntityLength) Failure(s"Entity id '${fact.entity}' too large! Max length is ${MaxEntityLength}") else Success(fact)
 
   def validateEncoding(value: Value, encoding: Encoding): Validation[String, Unit] = {
     def fail: Validation[String, Unit] =

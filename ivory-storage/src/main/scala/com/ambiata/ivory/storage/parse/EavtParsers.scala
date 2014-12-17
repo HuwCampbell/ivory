@@ -19,19 +19,18 @@ object EavtParsers {
   def parser(dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] =
     fact(dictionary, namespace, ivoryTimezone, ingestTimezone)
 
-  def fact(dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] =
-    for {
-      entity    <- string.nonempty
-      name      <- string.nonempty
-      rawv      <- string
-      v         <- value(validateFeature(dictionary, FeatureId(namespace, name), rawv))
-      time      <- Dates.parser(ingestTimezone, ivoryTimezone)
-    } yield time match {
-      case \/-(dt) =>
-        Fact.newFactWithNamespaceName(entity, namespace, name, dt.date, dt.time, v)
-      case -\/(d) =>
-        Fact.newFactWithNamespaceName(entity, namespace, name, d, Time(0), v)
-    }
+  def fact(dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] = for {
+    entity <- string.nonempty
+    name   <- string.nonempty
+    rawv   <- string
+    v      <- value(validateFeature(dictionary, FeatureId(namespace, name), rawv))
+    time   <- Dates.parser(ingestTimezone, ivoryTimezone)
+    f       = time match {
+                case \/-(dt) => Fact.newFactWithNamespaceName(entity, namespace, name, dt.date, dt.time, v)
+                case -\/(d)  => Fact.newFactWithNamespaceName(entity, namespace, name, d, Time(0), v)
+              }
+    fact   <- value(Value.validateFact(f, dictionary))
+  } yield fact
 
   def validateFeature(dict: Dictionary, fid: FeatureId, rawv: String): Validation[String, Value] =
     dict.byFeatureId.get(fid).map {
