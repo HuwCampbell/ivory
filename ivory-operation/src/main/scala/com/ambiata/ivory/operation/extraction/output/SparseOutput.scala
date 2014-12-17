@@ -7,10 +7,10 @@ import scalaz.effect.IO
 
 object SparseOutput {
   def extractWithDictionary(repository: Repository, input: ShadowOutputDataset, output: ShadowOutputDataset, dictionary: Dictionary,
-                            delim: Char, missing: String, escaped: Boolean): ResultTIO[Unit] = for {
+                            delim: Delimiter, missing: String, escaping: TextEscaping): ResultTIO[Unit] = for {
     hdfsRepo <- repository.asHdfsRepository[IO]
     in        = input.hdfsPath
     out       = output.hdfsPath
-    _        <- SparseOutputJob.run(hdfsRepo.configuration, dictionary, in, out, missing, delim, escaped, hdfsRepo.codec)
+    _        <- SparseOutputJob.run(hdfsRepo.configuration, dictionary, in, out, missing, delim, escaping, hdfsRepo.codec)
     } yield ()
 }

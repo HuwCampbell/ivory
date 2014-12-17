@@ -8,17 +8,18 @@ object TextEscaper {
   type Append = (StringBuilder, String) => Unit
 
   def fromConfiguration(configuration: Configuration, delimiter: Char): Append =
-    if (configuration.getBoolean(Keys.Escaped, false)) {
-      (sb, s) =>
-        TextEscaping.escapeAppend(delimiter, s, sb)
-    } else {
-      (sb, s) =>
-        sb.append(s)
-        ()
+    TextEscaping.fromString(configuration.get(Keys.Escaped, TextEscaping.Delimited.render)).getOrElse(TextEscaping.Delimited) match {
+      case TextEscaping.Escaped =>
+        (sb, s) =>
+          TextEscaping.escapeAppend(delimiter, s, sb)
+      case TextEscaping.Delimited =>
+        (sb, s) =>
+          sb.append(s)
+          ()
     }
 
-  def toConfiguration(configuration: Configuration, escaped: Boolean): Unit =
-    configuration.setBoolean(Keys.Escaped, escaped)
+  def toConfiguration(configuration: Configuration, escaping: TextEscaping): Unit =
+    configuration.set(Keys.Escaped, escaping.render)
 
   object Keys {
     val Escaped = "ivory.extract.delimiter"

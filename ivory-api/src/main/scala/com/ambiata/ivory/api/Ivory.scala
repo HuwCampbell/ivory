@@ -78,8 +78,8 @@ object Ivory
 
   val Extraction = com.ambiata.ivory.operation.extraction.Extraction
 
-  type OutputFormat = com.ambiata.ivory.operation.extraction.output.OutputFormat
-  val OutputFormat = com.ambiata.ivory.operation.extraction.output.OutputFormat
+  type FileFormat = com.ambiata.ivory.core.FileFormat
+  val FileFormat = com.ambiata.ivory.core.FileFormat
   type OutputFormats = com.ambiata.ivory.operation.extraction.output.OutputFormats
   val OutputFormats = com.ambiata.ivory.operation.extraction.output.OutputFormats
 

@@ -35,6 +35,9 @@ trait Arbitraries {
   implicit def DateTimeZoneArbitrary: Arbitrary[DateTimeZone] =
     Arbitrary(GenDate.zone)
 
+  implicit def DelimiterArbitrary: Arbitrary[Delimiter] =
+    Arbitrary(GenFileFormat.delimiter)
+
   implicit def DictionaryArbitrary: Arbitrary[Dictionary] =
     Arbitrary(GenDictionary.dictionary)
 
@@ -62,6 +65,12 @@ trait Arbitraries {
   implicit def FeatureStoreIdArbitrary: Arbitrary[FeatureStoreId] =
     Arbitrary(GenIdentifier.store)
 
+  implicit def FileFormatArbitrary: Arbitrary[FileFormat] =
+    Arbitrary(GenFileFormat.format)
+
+  implicit def FormArbitrary: Arbitrary[Form] =
+    Arbitrary(GenFileFormat.form)
+
   implicit def IdentifierArbitrary: Arbitrary[Identifier] =
     Arbitrary(GenIdentifier.identifier)
 
@@ -76,6 +85,9 @@ trait Arbitraries {
 
   implicit def NameArbitrary: Arbitrary[Name] =
     Arbitrary(GenString.name)
+
+  implicit def OutputFormatArbitrary: Arbitrary[OutputFormat] =
+    Arbitrary(GenFileFormat.output)
 
   implicit def PartitionArbitrary: Arbitrary[Partition] =
     Arbitrary(GenRepository.partition)
@@ -106,6 +118,9 @@ trait Arbitraries {
 
   implicit def SubEncodingArbitrary: Arbitrary[SubEncoding] =
     Arbitrary(GenDictionary.subEncoding)
+
+  implicit def TextEncodingArbitrary: Arbitrary[TextEscaping] =
+    Arbitrary(GenFileFormat.encoding)
 
   implicit def TimeArbitrary: Arbitrary[Time] =
     Arbitrary(GenDate.time)
