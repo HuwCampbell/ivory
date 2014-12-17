@@ -5,3 +5,10 @@ jdk:
   - oraclejdk7
 env:
   - NO_FORK=true
+before_script:
+ - "echo JAVA_HOME $JAVA_HOME"
+ - "echo 'which java' `which java`"
+ - "echo JAVA_OPTS $JAVA_OPTS"
+ - "export JAVA_OPTS='-Dfile.encoding=UTF8 -XX:MaxPermSize=512m -Xms512m -Xmx2g -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC'"
+ - "echo JVM_OPTS $JVM_OPTS"
+ - "export JVM_OPTS='-Dfile.encoding=UTF8 -XX:MaxPermSize=512m -Xms512m -Xmx2g -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC'"
