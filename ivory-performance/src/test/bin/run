@@ -68,7 +68,7 @@ SNAPSHOT=5
 ${DIR}/tests/${TEST}/input "$@" | while IFS= read -r local_path; do
   path=$(put ${local_path})
   # Ingest every subfolder
-  $IVORY ingest -Ddfs.block.size=16777216 -Dmapreduce.job.reduce.slowstart.completedmaps=0.95 -o 2000000000 -z "Australia/Sydney" -i "${path}"
+  $IVORY ingest -Ddfs.block.size=16777216 -Dmapreduce.job.reduce.slowstart.completedmaps=0.95 -o 2000000000 -z "Australia/Sydney" -i "sparse:delimited:psv=${path}"
   $HADOOP_CMD fs -rm -r "${path}"
   timeit "ingest-$(basename ${path})"
   # But only create snapshots every X iterations
