@@ -23,7 +23,7 @@ object ingest extends IvoryApp {
 
     help("help") text "shows this usage text"
 
-    opt[String]('i', "input")                action { (x, c) => c.copy(inputs = x :: c.inputs) }            required() text
+    opt[String]('i', "input")                action { (x, c) => c.copy(inputs = x :: c.inputs) } unbounded() required() text
       s"""Path to data to import, in the form FORMAT[|NAMESPACE]=PATH.
          |Supported formats are in the style FORM[:ESCAPING]:DELIM (ie 'sparse:delimited:psv' or 'sparse:thrift').
          |If NAMESPACE is set then the input path is expected to contain partitioned factsets.

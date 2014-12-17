@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.Namespaces
 import com.ambiata.ivory.storage.lookup.ReducerLookups
-import com.ambiata.ivory.storage.metadata.Metadata._
+import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.ivory.storage.sync._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
@@ -28,9 +28,9 @@ object FactImporter {
 
     IvoryT.read[RIO] >>= (read => IvoryT.fromRIO { for {
       hr            <- repository.asHdfsRepository
-      dictionary    <- latestDictionaryFromIvory(repository)
+      dictionary    <- Metadata.latestDictionaryFromIvory(repository)
       errorPath     =  hr.toIvoryLocation(errorKey).toHdfsPath
-      config        <- configuration.toIvoryT(repository).run(read)
+      config        <- Metadata.configuration.toIvoryT(repository).run(read)
       paths         <- inputs.traverseU { case (f, ns, input) =>
         SyncIngest.inputDataset(InputDataset(input.location), cluster).map(sid => (f, ns, new Path(sid.location.path)))
       }
