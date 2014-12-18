@@ -35,7 +35,7 @@ object IdentifierStorage {
     } yield next
 
     for {
-      temporary <- Repository.tmpDir(repository)
+      temporary <- Repository.tmpDir("identifier")
       _         <- repository.store.bytes.write(temporary, value)
       id        <- writeToNextIdentifierFile(temporary)
     } yield id
