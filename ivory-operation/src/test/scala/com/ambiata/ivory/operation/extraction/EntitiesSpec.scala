@@ -26,6 +26,7 @@ class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations
     to the required date and the best priority $keepBestFact
 
  Read the entities file from a location $readEntities
+ Reading the entities file from a location should ignore dupes $dupes
 """
 
   def keepFact = prop { (fact: Fact, o: Byte) =>
@@ -112,4 +113,12 @@ class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations
         Entities.readEntitiesFrom(location).map(toMapForEquals)
     } must beOkValue(toMapForEquals(entities))
   }.set(minTestsOk = 10)
+
+  def dupes = prop { entities: Entities =>
+    def toMapForEquals(e: Entities) = e.entities.asScala.mapValues(_.toList).toMap
+    withIvoryLocationFile(TemporaryType.Hdfs) { location =>
+      Entities.writeEntitiesTesting(Entities(entities.entities.asScala.map(x => x._1 -> (x._2 ++ x._2)).asJava), location) >>
+        Entities.readEntitiesFrom(location).map(toMapForEquals)
+    } must beOkValue(toMapForEquals(entities))
+  }.set(minTestsOk = 3)
 }

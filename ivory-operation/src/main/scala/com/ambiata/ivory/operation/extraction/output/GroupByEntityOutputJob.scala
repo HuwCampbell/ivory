@@ -208,9 +208,11 @@ trait DenseReducer[A] extends Reducer[BytesWritable, BytesWritable, NullWritable
         i += 1
       }
 
-      if (i <= features.length) {
-        out.outputValue(features(i), fact)
+      // This should be impossible, but this is better than an ArrayIndexOutOfBoundsException
+      if (i >= features.length) {
+        Crash.error(Crash.DataIntegrity, s"Invalid number of features for '${fact.entity}' with feature '${fact.featureId.toString}'")
       }
+      out.outputValue(features(i), fact)
       first = false
       i += 1
     }
