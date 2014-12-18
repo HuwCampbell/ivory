@@ -52,7 +52,7 @@ object SnapshotJob {
     job.setOutputValueClass(classOf[BytesWritable])
 
     // input
-    IvoryInputs.configure(job, repository, inputs, incremental, classOf[SnapshotFactsetMapper], classOf[SnapshotIncrementalMapper])
+    IvoryInputs.configure(ctx, job, repository, inputs, incremental, classOf[SnapshotFactsetMapper], classOf[SnapshotIncrementalMapper])
 
     // output
     val tmpout = new Path(ctx.output, "snap")
@@ -129,7 +129,7 @@ object SnapshotMapper {
  * The output value is expected (can not be typed checked because its all bytes) to be
  * a thrift serialized NamespacedFact object.
  */
-class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
+class SnapshotFactsetMapper extends CombinableMapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
   import SnapshotMapper._
 
   /** Thrift deserializer. */
@@ -169,12 +169,12 @@ class SnapshotFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
 
   val featureIdLookup = new FeatureIdLookup
 
-  override def setup(context: MapperContext): Unit = {
+  override def setupSplit(context: MapperContext, split: InputSplit): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     date = Date.fromInt(strDate.toInt).getOrElse(Crash.error(Crash.DataIntegrity, s"Invalid snapshot date '${strDate}'"))
     val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, SnapshotJob.Keys.FactsetLookup,
-      SnapshotJob.Keys.FactsetVersionLookup, context.getConfiguration, context.getInputSplit)
+      SnapshotJob.Keys.FactsetVersionLookup, context.getConfiguration, split)
     converter = factsetInfo.factConverter
     priority = factsetInfo.priority
     okCounter = MrCounter("ivory", s"snapshot.v${factsetInfo.version}.ok", context)
@@ -224,7 +224,7 @@ object SnapshotFactsetMapper {
 /**
  * Incremental snapshot mapper.
  */
-class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
+class SnapshotIncrementalMapper extends CombinableMapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
   import SnapshotMapper._
 
   /** Thrift deserializer */
@@ -250,7 +250,7 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Byte
 
   val featureIdLookup = new FeatureIdLookup
 
-  override def setup(context: MapperContext): Unit = {
+  override def setupSplit(context: MapperContext, split: InputSplit): Unit = {
     super.setup(context)
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
