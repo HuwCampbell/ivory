@@ -90,13 +90,6 @@ object Entities {
     }))
   }
 
-  // TODO Change to thrift serialization, see #131
-  def deserialiseEntities(repository: Repository, chordKey: Key): ResultTIO[Entities] = {
-    import java.io.{ByteArrayInputStream, ObjectInputStream}
-    repository.store.bytes.read(chordKey).flatMap(bytes =>
-      ResultT.safe(Entities(new ObjectInputStream(new ByteArrayInputStream(bytes.toArray)).readObject.asInstanceOf[Mappings])))
-  }
-
   /**
    * read entities from a file
    */
