@@ -101,12 +101,15 @@ object Entities {
       val (entity, date) = parseLine(DatePattern)(line)
       val dates = mappings.get(entity)
       // We don't know ahead of time how many dates we have for each entity, we have to manually grow the array each time
-      mappings.put(entity, if (dates == null) Array[Int](date.int) else {
-        val dates2 = dates :+ date.int
-        // Don't use Array.sorted - we save an extra, unnecessary allocation this way
-        Sorting.quickSort[Int](dates2)(Ordering[Int].reverse)
-        dates2
-      })
+      mappings.put(entity,
+        if (dates == null) Array[Int](date.int)
+        else if (dates.contains(date.int)) dates
+        else {
+          val dates2 = dates :+ date.int
+          // Don't use Array.sorted - we save an extra, unnecessary allocation this way
+          Sorting.quickSort[Int](dates2)(Ordering[Int].reverse)
+          dates2
+        })
       mappings
     }.map(Entities(_))
   }
