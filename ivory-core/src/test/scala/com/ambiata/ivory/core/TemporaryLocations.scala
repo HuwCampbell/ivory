@@ -18,7 +18,7 @@ import scalaz.{Store =>_,_}, Scalaz._
 
 trait TemporaryLocations {
 
-  def withIvoryLocationDir[A](temporaryType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] =
+  def withIvoryLocationDir[A](temporaryType: TemporaryType)(f: IvoryLocation => RIO[A]): RIO[A] =
     withConf(conf => {
       val location = createLocation(temporaryType, conf)
       createLocationDir(location) >> runWithIvoryLocationDir(location)(f)
@@ -33,24 +33,24 @@ trait TemporaryLocations {
     }
   }
 
-  def withIvoryLocationFile[A](temporaryType: TemporaryType)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] =
+  def withIvoryLocationFile[A](temporaryType: TemporaryType)(f: IvoryLocation => RIO[A]): RIO[A] =
     withConf(conf =>
       runWithIvoryLocationFile(createLocation(temporaryType, conf))(f))
 
-  def withCluster[A](f: Cluster => ResultTIO[A]): ResultTIO[A] =
+  def withCluster[A](f: Cluster => RIO[A]): RIO[A] =
     withConf(c => runWithCluster(Cluster.fromIvoryConfiguration(new Path(createUniquePath.path), c, 1))(f))
 
-  def runWithRepository[A, R <: Repository](repository: R)(f: R => ResultTIO[A]): ResultTIO[A] =
-    ResultT.using(TemporaryRepository(repository).pure[ResultTIO])(tmp => f(tmp.repo))
+  def runWithRepository[A, R <: Repository](repository: R)(f: R => RIO[A]): RIO[A] =
+    ResultT.using(TemporaryRepository(repository).pure[RIO])(tmp => f(tmp.repo))
 
-  def runWithIvoryLocationFile[A](location: IvoryLocation)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] =
-    ResultT.using(TemporaryLocationFile(location).pure[ResultTIO])(tmp => f(tmp.location))
+  def runWithIvoryLocationFile[A](location: IvoryLocation)(f: IvoryLocation => RIO[A]): RIO[A] =
+    ResultT.using(TemporaryLocationFile(location).pure[RIO])(tmp => f(tmp.location))
 
-  def runWithIvoryLocationDir[A](location: IvoryLocation)(f: IvoryLocation => ResultTIO[A]): ResultTIO[A] =
-    ResultT.using(TemporaryLocationDir(location).pure[ResultTIO])(tmp => f(tmp.location))
+  def runWithIvoryLocationDir[A](location: IvoryLocation)(f: IvoryLocation => RIO[A]): RIO[A] =
+    ResultT.using(TemporaryLocationDir(location).pure[RIO])(tmp => f(tmp.location))
 
-  def runWithCluster[A](cluster: Cluster)(f: Cluster => ResultTIO[A]): ResultTIO[A] =
-    ResultT.using(TemporaryCluster(cluster).pure[ResultTIO])(tmp => f(tmp.cluster))
+  def runWithCluster[A](cluster: Cluster)(f: Cluster => RIO[A]): RIO[A] =
+    ResultT.using(TemporaryCluster(cluster).pure[RIO])(tmp => f(tmp.cluster))
 
   /** Please use this with care - we need to ensure we _always_ cleanup these files */
   def createUniquePath: DirPath =
@@ -71,13 +71,13 @@ trait TemporaryLocations {
     HdfsIvoryLocation(HdfsLocation(path), conf.configuration, conf.scoobiConfiguration, conf.codec)
   }
 
-  def createLocationFile(location: IvoryLocation): ResultTIO[Unit] =
+  def createLocationFile(location: IvoryLocation): RIO[Unit] =
     saveLocationFile(location, "")
 
-  def saveLocationFile(location: IvoryLocation, content: String): ResultTIO[Unit] =
+  def saveLocationFile(location: IvoryLocation, content: String): RIO[Unit] =
     IvoryLocation.writeUtf8(location, content)
 
-  def createLocationDir(location: IvoryLocation): ResultTIO[Unit] = location match {
+  def createLocationDir(location: IvoryLocation): RIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))                 => Directories.mkdirs(DirPath.unsafe(path))
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client)      => (S3Address(bucket, key) / ".location").put("").executeT(s3Client).void
     case h @ HdfsIvoryLocation(HdfsLocation(p), configuration, _, _) => PoacherHdfs.mkdir(new Path(p)).void.run(configuration)

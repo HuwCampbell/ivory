@@ -10,13 +10,13 @@ import scalaz._, Scalaz._
 object Metadata {
 
   /** Feature Store */
-  def featureStoreFromIvory(repo: Repository, id: FeatureStoreId): ResultTIO[FeatureStore] =
+  def featureStoreFromIvory(repo: Repository, id: FeatureStoreId): RIO[FeatureStore] =
     FeatureStoreTextStorage.fromId(repo, id)
 
   def featureStoreFromRepositoryT(id: FeatureStoreId): RepositoryTIO[FeatureStore] =
     fromResultT(featureStoreFromIvory(_, id))
 
-  def featureStoreToIvory(repo: Repository, featureStore: FeatureStore): ResultTIO[Unit] =
+  def featureStoreToIvory(repo: Repository, featureStore: FeatureStore): RIO[Unit] =
     FeatureStoreTextStorage.toId(repo, featureStore)
 
   /**
@@ -26,34 +26,34 @@ object Metadata {
   def incrementFeatureStore(factset: List[FactsetId]): RepositoryTIO[FeatureStoreId] = RepositoryT.fromResultTIO(repo =>
     FeatureStoreTextStorage.increment(repo, factset))
 
-  def latestFeatureStoreId(repo: Repository): ResultTIO[Option[FeatureStoreId]] =
+  def latestFeatureStoreId(repo: Repository): RIO[Option[FeatureStoreId]] =
     FeatureStoreTextStorage.latestId(repo)
 
   def latestFeatureStoreIdT: RepositoryTIO[Option[FeatureStoreId]] =
     RepositoryT.fromResultTIO(latestFeatureStoreId)
 
   /** @return the latest store or fail if there is none */
-  def latestFeatureStoreOrFail(repository: Repository): ResultTIO[FeatureStore] =
+  def latestFeatureStoreOrFail(repository: Repository): RIO[FeatureStore] =
     latestFeatureStoreIdOrFail(repository).flatMap(id => featureStoreFromIvory(repository, id))
 
   /** @return the latest store id or fail if there is none */
-  def latestFeatureStoreIdOrFail(repository: Repository): ResultTIO[FeatureStoreId] =
+  def latestFeatureStoreIdOrFail(repository: Repository): RIO[FeatureStoreId] =
     latestFeatureStoreId(repository).flatMap { latest =>
       ResultT.fromOption[IO, FeatureStoreId](latest, s"no store found for this repository ${repository}")
     }
 
-  def listFeatureStoreIds(repo: Repository): ResultTIO[List[FeatureStoreId]] =
+  def listFeatureStoreIds(repo: Repository): RIO[List[FeatureStoreId]] =
     FeatureStoreTextStorage.listIds(repo)
 
   /** Dictionary */
-  def dictionaryFromIvory(repo: Repository, dictionaryId: DictionaryId): ResultTIO[Dictionary] =
+  def dictionaryFromIvory(repo: Repository, dictionaryId: DictionaryId): RIO[Dictionary] =
     DictionaryThriftStorage(repo).loadFromId(dictionaryId) >>=
       (dictionary => ResultT.fromOption(dictionary, s"Dictionary not found in Ivory '$dictionaryId'"))
 
-  def latestDictionaryFromIvory(repo: Repository): ResultTIO[Dictionary] =
+  def latestDictionaryFromIvory(repo: Repository): RIO[Dictionary] =
     DictionaryThriftStorage(repo).load
 
-  def latestDictionaryIdFromIvory(repo: Repository): ResultTIO[DictionaryId] = for {
+  def latestDictionaryIdFromIvory(repo: Repository): RIO[DictionaryId] = for {
     latestDict         <- DictionaryThriftStorage(repo).loadMigrate.map(_.map(_._1))
     latestDictionaryId <- ResultT.fromOption[IO, DictionaryId](latestDict, "Could not load a dictionary")
   } yield latestDictionaryId
@@ -64,26 +64,26 @@ object Metadata {
   def latestDictionaryIdFromRepositoryT: RepositoryTIO[DictionaryId] =
     fromResultT(latestDictionaryIdFromIvory)
 
-  def dictionaryToIvory(repo: Repository, dictionary: Dictionary): ResultTIO[Unit] =
+  def dictionaryToIvory(repo: Repository, dictionary: Dictionary): RIO[Unit] =
     DictionaryThriftStorage(repo).store(dictionary).void
 
   def dictionaryToRepositoryT(dictionary: Dictionary): RepositoryTIO[Unit] =
     fromResultT(dictionaryToIvory(_, dictionary))
 
-  def dictionaryLoadMigrate(repo: Repository): ResultTIO[Option[(DictionaryId, Dictionary)]] =
+  def dictionaryLoadMigrate(repo: Repository): RIO[Option[(DictionaryId, Dictionary)]] =
     DictionaryThriftStorage(repo).loadMigrate
 
   /** Commit */
-  def listCommitIds(repo: Repository): ResultTIO[List[CommitId]] =
+  def listCommitIds(repo: Repository): RIO[List[CommitId]] =
     CommitTextStorage.listIds(repo)
 
   def listCommitIdsT(repo: Repository): RepositoryTIO[List[CommitId]] =
     fromResultT(listCommitIds(_))
 
-  def latestCommitId(repo: Repository): ResultTIO[Option[CommitId]] =
+  def latestCommitId(repo: Repository): RIO[Option[CommitId]] =
     CommitTextStorage.latestId(repo)
 
-  def findOrCreateLatestCommitId(repo: Repository): ResultTIO[CommitId] = for {
+  def findOrCreateLatestCommitId(repo: Repository): RIO[CommitId] = for {
       store <- latestFeatureStoreOrFail(repo)
       dictionaryId <- latestDictionaryIdFromIvory(repo)
       commitId <- CommitTextStorage.findOrCreateLatestId(repo, dictionaryId, store.id)
@@ -92,23 +92,23 @@ object Metadata {
   def latestCommitIdT(repo: Repository): RepositoryTIO[Option[CommitId]] =
     fromResultT(latestCommitId(_))
 
-  def commitFromIvory(repo: Repository, commitId: CommitId): ResultTIO[Commit] =
+  def commitFromIvory(repo: Repository, commitId: CommitId): RIO[Commit] =
     CommitTextStorage.fromId(repo, commitId) >>=
       (commit => ResultT.fromOption(commit, s"Commit not found in Ivory '$commitId'"))
 
   def incrementCommit(repo: Repository, dictionaryId: DictionaryId, featureStoreId: FeatureStoreId,
-                      configId: RepositoryConfigId): ResultTIO[CommitId] =
+                      configId: RepositoryConfigId): RIO[CommitId] =
     CommitTextStorage.increment(repo, Commit(dictionaryId, featureStoreId, Some(configId)))
 
-  def incrementCommitDictionary(repo: Repository, dictionaryId: DictionaryId): ResultTIO[CommitId] = for {
+  def incrementCommitDictionary(repo: Repository, dictionaryId: DictionaryId): RIO[CommitId] = for {
     // Don't fail if no feature store exists - create a blank one
-    storeId  <- Metadata.latestFeatureStoreId(repo).flatMap(_.cata(_.point[ResultTIO], FeatureStoreTextStorage.increment(repo, Nil)))
+    storeId  <- Metadata.latestFeatureStoreId(repo).flatMap(_.cata(_.point[RIO], FeatureStoreTextStorage.increment(repo, Nil)))
     repoRead <- RepositoryRead.fromRepository(repo)
     configId <- latestConfigurationId.run(repoRead)
     commitId <- CommitTextStorage.increment(repo, Commit(dictionaryId, storeId, configId))
   } yield commitId
 
-  def incrementCommitFeatureStore(repo: Repository, featureStoreId: FeatureStoreId): ResultTIO[CommitId] = for {
+  def incrementCommitFeatureStore(repo: Repository, featureStoreId: FeatureStoreId): RIO[CommitId] = for {
     latestDictionaryId <- latestDictionaryIdFromIvory(repo)
     repoRead           <- RepositoryRead.fromRepository(repo)
     configId           <- latestConfigurationId.run(repoRead)

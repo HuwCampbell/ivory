@@ -15,7 +15,7 @@ import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.repository.RecreateData._
-import com.ambiata.mundane.control.{ResultT, ResultTIO}
+import com.ambiata.mundane.control.{ResultT, RIO}
 import com.ambiata.mundane.io._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
@@ -34,7 +34,7 @@ import Stats._
  */
 object Recreate { outer =>
 
-  type RecreateAction[A] = ReaderT[ResultTIO, RecreateConfig, A]
+  type RecreateAction[A] = ReaderT[RIO, RecreateConfig, A]
 
   def all: RecreateAction[Unit] =
     log("====== Recreating metadata")  >> metadata >>
@@ -213,8 +213,8 @@ object Recreate { outer =>
   private def fromStat[A](repo: HdfsRepository, action: StatAction[A]): RecreateAction[A] =
     fromScoobi(ScoobiAction.scoobiConfiguration.flatMap(sc => ScoobiAction.fromResultTIO(action.run(StatConfig(sc.configuration, repo)))))
 
-  private implicit def createKleisli[A](f: RecreateConfig => ResultTIO[A]): RecreateAction[A] =
-    kleisli[ResultTIO, RecreateConfig, A](f)
+  private implicit def createKleisli[A](f: RecreateConfig => RIO[A]): RecreateAction[A] =
+    kleisli[RIO, RecreateConfig, A](f)
 
   private def configuration: RecreateAction[RecreateConfig] =
     (config: RecreateConfig) => ResultT.ok[IO, RecreateConfig](config)
@@ -228,7 +228,7 @@ object Recreate { outer =>
   private def fromHdfs[A](action: Hdfs[A]): RecreateAction[A] =
     fromScoobi(ScoobiAction.fromHdfs(action))
 
-  private def fromResultTIO[A](r: ResultTIO[A]): RecreateAction[A] =
+  private def fromResultTIO[A](r: RIO[A]): RecreateAction[A] =
     (c: RecreateConfig) => r
 
   /** additional syntax */

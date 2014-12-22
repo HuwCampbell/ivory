@@ -22,7 +22,7 @@ object TemporaryRepository {
 }
 
 case class TemporaryLocationDir(location: IvoryLocation) {
-  def clean: ResultTIO[Unit] = IvoryLocation.deleteAll(location)
+  def clean: RIO[Unit] = IvoryLocation.deleteAll(location)
 }
 
 object TemporaryLocationDir {
@@ -32,7 +32,7 @@ object TemporaryLocationDir {
 }
 
 case class TemporaryLocationFile(location: IvoryLocation) {
-  def clean: ResultTIO[Unit] = IvoryLocation.delete(location)
+  def clean: RIO[Unit] = IvoryLocation.delete(location)
 }
 
 object TemporaryLocationFile {
@@ -42,7 +42,7 @@ object TemporaryLocationFile {
 }
 
 case class TemporaryCluster(cluster: Cluster) {
-  def clean: ResultTIO[Unit] = Hdfs.deleteAll(cluster.root).run(cluster.hdfsConfiguration)
+  def clean: RIO[Unit] = Hdfs.deleteAll(cluster.root).run(cluster.hdfsConfiguration)
 }
 object TemporaryCluster {
   implicit val TemporaryClusterResource: Resource[TemporaryCluster] = new Resource[TemporaryCluster] {
@@ -50,8 +50,8 @@ object TemporaryCluster {
   }
 }
 
-case class TemporaryRepositorySetup[R <: Repository](temporaryRepository: TemporaryRepository[R], setup: ResultTIO[Unit]) {
-  def clean: ResultTIO[Unit] = temporaryRepository.clean
+case class TemporaryRepositorySetup[R <: Repository](temporaryRepository: TemporaryRepository[R], setup: RIO[Unit]) {
+  def clean: RIO[Unit] = temporaryRepository.clean
   def repository: R = temporaryRepository.repo
 }
 

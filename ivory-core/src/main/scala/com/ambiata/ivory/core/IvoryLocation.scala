@@ -3,7 +3,7 @@ package com.ambiata.ivory.core
 import java.io.File
 
 import com.ambiata.com.amazonaws.services.s3.AmazonS3Client
-import com.ambiata.mundane.control.{ResultT, ResultTIO}
+import com.ambiata.mundane.control.{ResultT, RIO}
 import com.ambiata.mundane.data.{Lists => L}
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
@@ -63,7 +63,7 @@ object HdfsIvoryLocation {
   def apply(location: HdfsLocation, ivory: IvoryConfiguration): HdfsIvoryLocation =
     new HdfsIvoryLocation(location, ivory.configuration, ivory.scoobiConfiguration, ivory.codec)
 
-  def fromUri(uri: String, ivory: IvoryConfiguration): ResultTIO[HdfsIvoryLocation] =
+  def fromUri(uri: String, ivory: IvoryConfiguration): RIO[HdfsIvoryLocation] =
     IvoryLocation.fromUri(uri, ivory).flatMap {
       case h: HdfsIvoryLocation => ResultT.ok[IO, HdfsIvoryLocation](h)
       case l                    => ResultT.fail[IO, HdfsIvoryLocation](s"${l.show} is not an HDFS location")
@@ -102,19 +102,19 @@ object LocalIvoryLocation {
 }
 
 object IvoryLocation {
-  def deleteAll(location: IvoryLocation): ResultTIO[Unit] = location match {
+  def deleteAll(location: IvoryLocation): RIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Directories.delete(l.dirPath).void
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Prefix(bucket, key).delete.executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.deleteAll(new Path(path)).run(conf)
   }
 
-  def delete(location: IvoryLocation): ResultTIO[Unit] = location match {
+  def delete(location: IvoryLocation): RIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Files.delete(l.filePath).void
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).delete.executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.delete(new Path(path)).run(conf)
   }
 
-  def readLines(location: IvoryLocation): ResultTIO[List[String]] = location match {
+  def readLines(location: IvoryLocation): RIO[List[String]] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path)) =>
       Files.readLines(l.filePath).map(_.toList)
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
@@ -129,7 +129,7 @@ object IvoryLocation {
       }.run(conf)
   }
 
-  def readUnsafe(location: IvoryLocation)(f: java.io.InputStream => ResultTIO[Unit]): ResultTIO[Unit] = {
+  def readUnsafe(location: IvoryLocation)(f: java.io.InputStream => RIO[Unit]): RIO[Unit] = {
     import scalaz.effect.Effect._
     location match {
       case l @ LocalIvoryLocation(LocalLocation(path)) =>
@@ -141,7 +141,7 @@ object IvoryLocation {
     }
   }
 
-  def streamLinesUTF8[A](location: IvoryLocation, empty: => A)(f: (String, A) => A): ResultTIO[A] = {
+  def streamLinesUTF8[A](location: IvoryLocation, empty: => A)(f: (String, A) => A): RIO[A] = {
     ResultT.io(empty).flatMap { s =>
       var state = s
       readUnsafe(location) { in => ResultT.io {
@@ -155,7 +155,7 @@ object IvoryLocation {
     }
   }
 
-  def list(location: IvoryLocation): ResultTIO[List[IvoryLocation]] = location match {
+  def list(location: IvoryLocation): RIO[List[IvoryLocation]] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path)) =>
       Directories.list(l.dirPath).map(fs => fs.map(f => l.copy(location = LocalLocation(f.path))))
 
@@ -170,23 +170,23 @@ object IvoryLocation {
       })
   }
 
-  def exists(location: IvoryLocation): ResultTIO[Boolean] = location match {
+  def exists(location: IvoryLocation): RIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            =>
       Files.exists(FilePath.unsafe(path)).flatMap(e => if (e) ResultT.ok[IO, Boolean](e) else Directories.exists(l.dirPath))
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).exists.executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.exists(new Path(path)).run(conf)
   }
 
-  def writeUtf8Lines(location: IvoryLocation, lines: List[String]): ResultTIO[Unit] =
+  def writeUtf8Lines(location: IvoryLocation, lines: List[String]): RIO[Unit] =
     writeUtf8(location, L.prepareForFile(lines))
 
-  def writeUtf8(location: IvoryLocation, string: String): ResultTIO[Unit] = location match {
+  def writeUtf8(location: IvoryLocation, string: String): RIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Files.write(l.filePath, string)
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).put(string).executeT(s3Client).void
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.writeWith(new Path(path), out => Streams.write(out, string)).run(conf)
   }
 
-  def isDirectory(location: IvoryLocation): ResultTIO[Boolean] = location match {
+  def isDirectory(location: IvoryLocation): RIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => ResultT.safe[IO, Boolean](new File(path).isDirectory)
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Prefix(bucket, key + "/").listSummary.map(_.nonEmpty).executeT(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.isDirectory(new Path(path)).run(conf)
@@ -195,7 +195,7 @@ object IvoryLocation {
   def fromKey(repository: Repository, key: Key): IvoryLocation =
     repository.toIvoryLocation(key)
 
-  def fromUri(s: String, ivory: IvoryConfiguration): ResultTIO[IvoryLocation] =
+  def fromUri(s: String, ivory: IvoryConfiguration): RIO[IvoryLocation] =
     ResultT.fromDisjunctionString[IO, IvoryLocation](parseUri(s, ivory))
 
   def fromDirPath(dirPath: DirPath): LocalIvoryLocation =

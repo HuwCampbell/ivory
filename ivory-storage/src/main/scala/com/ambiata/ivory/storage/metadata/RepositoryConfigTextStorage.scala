@@ -39,7 +39,7 @@ object RepositoryConfigTextStorage {
             lines  <- repository.store.utf8.read(key)
             result <- ResultT.fromDisjunctionString[IO, RepositoryConfig](Parse.decodeEither[RepositoryConfig](lines))
           } yield result
-        else RepositoryConfig.deprecated.point[ResultTIO]
+        else RepositoryConfig.deprecated.point[RIO]
     } yield config
   })
 

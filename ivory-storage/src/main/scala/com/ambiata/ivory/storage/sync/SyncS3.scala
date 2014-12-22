@@ -16,7 +16,7 @@ object SyncS3 {
    Validation
    - Check that the source prefix exists
    */
-  def toHdfs(sourceBase: S3Prefix, sourceFiles: List[S3Address], outputBase: DirPath, cluster: Cluster): ResultTIO[Unit] = for {
+  def toHdfs(sourceBase: S3Prefix, sourceFiles: List[S3Address], outputBase: DirPath, cluster: Cluster): RIO[Unit] = for {
     s <- sourceBase.exists.executeT(cluster.s3Client)
     _ <- ResultT.unless[IO](s, ResultT.fail(s"Source base does not exists (${sourceBase.render})"))
     d <- sourceFiles.traverseU(ss => ss.removeCommonPrefix(sourceBase) match {

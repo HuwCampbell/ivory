@@ -15,7 +15,7 @@ trait TextStorage[L, T] {
   def toList(t: T): List[L]
   def toLine(l: L): String
 
-  def fromSingleFile(location: IvoryLocation): ResultTIO[T] = for {
+  def fromSingleFile(location: IvoryLocation): RIO[T] = for {
     lines  <- IvoryLocation.readLines(location)
     result <- ResultT.fromDisjunctionString[IO, T](fromLines(lines))
   } yield result
@@ -24,16 +24,16 @@ trait TextStorage[L, T] {
    * Read text data from a Location that is either a directory containing files
    * or just a single file
    */
-  def fromIvoryLocation(location: IvoryLocation): ResultTIO[List[T]] =
+  def fromIvoryLocation(location: IvoryLocation): RIO[List[T]] =
     IvoryLocation.isDirectory(location).flatMap { isDirectory =>
       if (isDirectory) IvoryLocation.list(location).flatMap(_.traverseU(fromSingleFile))
       else             fromSingleFile(location).map(t => List(t))
     }
 
-  def toKeyStore(repository: Repository, key: Key, t: T): ResultTIO[Unit] =
+  def toKeyStore(repository: Repository, key: Key, t: T): RIO[Unit] =
     repository.store.utf8.write(key, delimitedString(t))
 
-  def fromKeyStore(repository: Repository, key: Key): ResultTIO[T] =
+  def fromKeyStore(repository: Repository, key: Key): RIO[T] =
     repository.store.linesUtf8.read(key).flatMap(lines => ResultT.fromDisjunctionString[IO, T](fromLines(lines)))
 
   def fromString(s: String): ValidationNel[String, T] =

@@ -30,7 +30,7 @@ object SnapshotMeta {
   implicit def SnapshotMetaOrdering =
     SnapshotMetaOrder.toScalaOrdering
 
-  def fromIdentifier(repository: Repository, id: SnapshotId): ResultTIO[Option[SnapshotMeta]] = {
+  def fromIdentifier(repository: Repository, id: SnapshotId): RIO[Option[SnapshotMeta]] = {
     val path = Repository.snapshot(id) / metaKeyName
     for {
       exists      <- repository.store.exists(path)
@@ -42,7 +42,7 @@ object SnapshotMeta {
       } yield some(sm) else {
         // It's possible for snapshots to be allocated but either not deleted or still in progress
         println(s"WARNING: No $path found for ${id.render}")
-        none.point[ResultTIO]
+        none.point[RIO]
       }
     } yield sm
   }
@@ -63,13 +63,13 @@ object SnapshotMeta {
    * create a new Snapshot id by create a new .allocated sub-directory
    * with the latest available identifier + 1
    */
-  def allocateId(repository: Repository): ResultTIO[SnapshotId] =
+  def allocateId(repository: Repository): RIO[SnapshotId] =
     IdentifierStorage.write(repository, Repository.snapshots, allocated, scodec.bits.ByteVector.empty).map(SnapshotId.apply)
 
   /**
    * create a new Snapshot meta object by allocating a new snapshot id
    */
-  def createSnapshotMeta(repository: Repository, date: Date): ResultTIO[SnapshotMeta] = for {
+  def createSnapshotMeta(repository: Repository, date: Date): RIO[SnapshotMeta] = for {
     storeId     <- Metadata.latestFeatureStoreIdOrFail(repository)
     snapshotId  <- SnapshotMeta.allocateId(repository)
     commitId    <- Metadata.latestCommitId(repository)
@@ -78,7 +78,7 @@ object SnapshotMeta {
   /**
    * save the snapshot meta object to disk
    */
-  def save(repository: Repository, snapshotMeta: SnapshotMeta): ResultTIO[Unit] =
+  def save(repository: Repository, snapshotMeta: SnapshotMeta): RIO[Unit] =
     repository.store.linesUtf8.write(Repository.snapshot(snapshotMeta.snapshotId) / SnapshotMeta.metaKeyName, snapshotMeta.stringLines)
 
 }

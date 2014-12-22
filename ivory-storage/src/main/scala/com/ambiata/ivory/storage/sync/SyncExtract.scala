@@ -33,7 +33,7 @@ object SyncExtract {
           └── foo
              └── c
                                                                              */
-  def outputDataset(input: ShadowOutputDataset, cluster: Cluster, output: OutputDataset): ResultTIO[Unit] = {
+  def outputDataset(input: ShadowOutputDataset, cluster: Cluster, output: OutputDataset): RIO[Unit] = {
     val path: Path = new Path(input.location.path)
     val dir = DirPath.unsafe(input.location.path)
     for {
@@ -69,7 +69,7 @@ object SyncExtract {
     } yield ()
   }
 
-  def toRepository(data: Datasets, shadow: ShadowRepository, cluster: Cluster, repo: Repository): ResultTIO[Unit] =
+  def toRepository(data: Datasets, shadow: ShadowRepository, cluster: Cluster, repo: Repository): RIO[Unit] =
     unImplementedSyncOperation
 
 }

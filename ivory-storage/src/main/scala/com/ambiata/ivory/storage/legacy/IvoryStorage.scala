@@ -28,7 +28,7 @@ object IvoryStorage {
   }
 
 
-  def writeFactsetVersion(repo: Repository, factsets: List[FactsetId]): ResultTIO[Unit] =
+  def writeFactsetVersion(repo: Repository, factsets: List[FactsetId]): RIO[Unit] =
     Versions.writeAll(repo, factsets, factsetVersion)
 
   def writeFactsetVersionI(factsets: List[FactsetId]): RepositoryTIO[Unit] =
