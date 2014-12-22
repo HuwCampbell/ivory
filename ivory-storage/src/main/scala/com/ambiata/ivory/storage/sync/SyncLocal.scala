@@ -10,7 +10,7 @@ import scalaz._, Scalaz._, effect.IO, effect.Effect._
 
 object SyncLocal {
 
-  def toHdfs(base: DirPath, files: List[FilePath], baseOutput: DirPath, cluster: Cluster): RIO[Unit] = for {
+  def toHdfs(base: DirPath, files: List[FilePath], baseOutput: DirPath, cluster: Cluster): ResultTIO[Unit] = for {
     s <- Directories.exists(base)
     _ <- ResultT.unless[IO](s, ResultT.fail(s"Source base does not exists ($base)"))
     _ <- files.traverseU(f => {

@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.metadata
 
-import com.ambiata.mundane.control.{RIO, ResultT}
+import com.ambiata.mundane.control.{ResultTIO, ResultT}
 import com.ambiata.notion.core.Location
 
 import scalaz.effect.IO
@@ -24,7 +24,7 @@ object DictionaryTextStorage extends TextStorage[(FeatureId, ConcreteDefinition)
         None
     }
 
-  def dictionaryFromIvoryLocation(location: IvoryLocation): RIO[Dictionary] =
+  def dictionaryFromIvoryLocation(location: IvoryLocation): ResultTIO[Dictionary] =
     fromIvoryLocation(location).map(Dictionary.reduce)
 
   def parseLine(i: Int, e: String): ValidationNel[String, (FeatureId, ConcreteDefinition)] =

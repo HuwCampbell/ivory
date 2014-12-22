@@ -13,7 +13,7 @@ import scalaz.{Name =>_,_}, Scalaz._, effect._, effect.Effect._
 
 object SyncHdfs {
 
-  def toLocal(base: DirPath, files: List[FilePath], baseOutput: DirPath, cluster: Cluster): RIO[Unit] = for {
+  def toLocal(base: DirPath, files: List[FilePath], baseOutput: DirPath, cluster: Cluster): ResultTIO[Unit] = for {
     _ <- Hdfs.mustExistWithMessage(new Path(base.path), s"Source base does not exists (${base.path})").run(cluster.hdfsConfiguration)
     _ <- files.traverseU(f =>
       removeCommonPath(f, base) match {
@@ -39,7 +39,7 @@ object SyncHdfs {
     Validation
     - Check sourceBase exists
     */
-  def toS3(base: DirPath, files: List[FilePath], baseOutput: S3Prefix, cluster: Cluster): RIO[Unit] = for {
+  def toS3(base: DirPath, files: List[FilePath], baseOutput: S3Prefix, cluster: Cluster): ResultTIO[Unit] = for {
     _ <- Hdfs.mustExistWithMessage(new Path(base.path), s"Source base does not exists (${base.path})").run(cluster.hdfsConfiguration)
     m <- files.traverseU(f => {
       removeCommonPath(f, base) match {

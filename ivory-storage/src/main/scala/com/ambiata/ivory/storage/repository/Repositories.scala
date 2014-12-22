@@ -21,10 +21,10 @@ object Repositories {
   )
 
   // A very temporary shim to allow incremental adoption of IvoryT.
-  def create(repo: Repository, config: RepositoryConfig): RIO[Unit] =
+  def create(repo: Repository, config: RepositoryConfig): ResultTIO[Unit] =
     IvoryRead.createIO >>= createI(repo, config).run
 
-  def createI(repo: Repository, config: RepositoryConfig): IvoryTIO[Unit] = IvoryT.read[RIO] >>= (read => IvoryT.fromResultTIO(for {
+  def createI(repo: Repository, config: RepositoryConfig): IvoryTIO[Unit] = IvoryT.read[ResultTIO] >>= (read => IvoryT.fromResultTIO(for {
     e <- repo.store.exists(Key(".allocated"))
     r <- ResultT.unless(e, for {
       _     <- initialKeys.traverse(key => repo.store.utf8.write(key / ".allocated", "")).void

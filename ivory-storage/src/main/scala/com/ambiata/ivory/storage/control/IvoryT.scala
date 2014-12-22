@@ -23,7 +23,7 @@ object IvoryT {
     IvoryT[X, A](Kleisli[X, IvoryRead, A](r => f))
   }
 
-  def fromResultTIO[A](f: => RIO[A]): IvoryT[RIO, A] =
+  def fromResultTIO[A](f: => ResultTIO[A]): IvoryT[ResultTIO, A] =
     fromResultT(f)
 
   implicit def IvoryTMonad[F[_]: Monad]: Monad[({ type l[a] = IvoryT[F, a] })#l] =
@@ -33,7 +33,7 @@ object IvoryT {
     }
 }
 
-case class IvoryRead(profiler: Profiler[RIO], trace: Trace[RIO])
+case class IvoryRead(profiler: Profiler[ResultTIO], trace: Trace[ResultTIO])
 
 object IvoryRead {
   // This needs more thought, it would be better to have more knobs around

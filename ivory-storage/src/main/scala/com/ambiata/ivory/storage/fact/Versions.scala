@@ -27,6 +27,6 @@ object Versions {
       case None =>
         ResultT.fail(s"Factset version '${version}' in factset '${factset}' not found.")
       case Some(v) =>
-        v.pure[RIO]
+        v.pure[ResultTIO]
     }
 }

@@ -43,7 +43,7 @@ object SyncIngest {
                 └── facts
                    └── factset
                                                                                          */
-  def inputDataset(input: InputDataset, cluster: Cluster): RIO[ShadowInputDataset] = {
+  def inputDataset(input: InputDataset, cluster: Cluster): ResultTIO[ShadowInputDataset] = {
     // This should be inside the tmp directory of the shadow repository on the cluster
     val outputPath = DirPath.unsafe(s"tmp/shadow/${UUID.randomUUID()}")
     def getOutput(opt: Option[String]): ShadowInputDataset = opt match {
@@ -77,7 +77,7 @@ object SyncIngest {
     }
   }
 
-  def toCluster(datasets: Datasets, source: Repository, cluster: Cluster): RIO[ShadowRepository] =
+  def toCluster(datasets: Datasets, source: Repository, cluster: Cluster): ResultTIO[ShadowRepository] =
     (source.root.location match {
       case S3Location(bucket, key) =>
        getS3data(datasets, bucket, key, cluster) >>= (files =>

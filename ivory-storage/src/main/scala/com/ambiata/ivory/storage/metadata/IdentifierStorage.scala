@@ -10,12 +10,12 @@ import scalaz._, Scalaz._, scalaz.effect._
 
 object IdentifierStorage {
 
-  def get(repository: Repository, key: Key): RIO[Option[Identifier]] = {
+  def get(repository: Repository, key: Key): ResultTIO[Option[Identifier]] = {
     repository.store.listHeads(key)
       .map(_.flatMap(x => Identifier.parse(x.name)).sorted.lastOption)
   }
 
-  def getOrFail(repository: Repository, key: Key): RIO[Identifier] =
+  def getOrFail(repository: Repository, key: Key): ResultTIO[Identifier] =
     get(repository, key)
       .flatMap(_.fold(ResultT.fail[IO, Identifier](s"No identifiers found in $key"))(ResultT.ok))
 
@@ -25,9 +25,9 @@ object IdentifierStorage {
    *
    *  key / new identifier / keyName
    */
-  def write(repository: Repository, key: Key, keyName: KeyName, value: ByteVector): RIO[Identifier] = {
+  def write(repository: Repository, key: Key, keyName: KeyName, value: ByteVector): ResultTIO[Identifier] = {
     // TODO This is currently not threadsafe - need to deal with concurrent moves!
-    def writeToNextIdentifierFile(temporary: Key): RIO[Identifier] = for {
+    def writeToNextIdentifierFile(temporary: Key): ResultTIO[Identifier] = for {
       current <- get(repository, key)
       next    =  current.flatMap(_.next).getOrElse(Identifier.initial)
       newKey  =  key / next.asKeyName
@@ -41,14 +41,14 @@ object IdentifierStorage {
     } yield id
   }
 
-  def latestId(repository: Repository, key: Key): RIO[Option[Identifier]] =
+  def latestId(repository: Repository, key: Key): ResultTIO[Option[Identifier]] =
     listIds(repository, key).map(_.lastOption)
 
-  def nextIdOrFail(repository: Repository, key: Key): RIO[Identifier] =
+  def nextIdOrFail(repository: Repository, key: Key): ResultTIO[Identifier] =
     latestId(repository, key).map(_.map(_.next).getOrElse(Some(Identifier.initial))) >>= (id =>
       ResultT.fromOption[IO, Identifier](id, s"No more identifiers left at ${key.name}!"))
 
-  def listIds(repository: Repository, key: Key): RIO[List[Identifier]] = for {
+  def listIds(repository: Repository, key: Key): ResultTIO[List[Identifier]] = for {
     keys <- repository.store.listHeads(key).map(_.filterHidden)
     ids  <- {
       keys.traverseU(key => ResultT.fromOption[IO, Identifier](Identifier.parse(key.name),

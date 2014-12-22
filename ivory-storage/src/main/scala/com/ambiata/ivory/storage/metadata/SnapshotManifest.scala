@@ -80,7 +80,7 @@ object SnapshotManifest {
 
   def snapshotManifestNew(meta: NewSnapshotManifest): SnapshotManifest = new SnapshotManifestNew(meta)
 
-  def fromIdentifier(repo: Repository, id: SnapshotId): OptionT[RIO, SnapshotManifest] = for {
+  def fromIdentifier(repo: Repository, id: SnapshotId): OptionT[ResultTIO, SnapshotManifest] = for {
     // try reading the JSON one first:
     jsonExists <- repo.store.exists(Repository.snapshot(id) / NewSnapshotManifest.metaKeyName).liftM[OptionT]
 
@@ -92,11 +92,11 @@ object SnapshotManifest {
     }
   } yield x
 
-  def getFeatureStoreId(repo: Repository, meta: SnapshotManifest): RIO[FeatureStoreId] = meta.fold(
-    (lm: legacy.SnapshotMeta) => lm.featureStoreId.pure[RIO],
+  def getFeatureStoreId(repo: Repository, meta: SnapshotManifest): ResultTIO[FeatureStoreId] = meta.fold(
+    (lm: legacy.SnapshotMeta) => lm.featureStoreId.pure[ResultTIO],
     (nm: NewSnapshotManifest) => NewSnapshotManifest.getFeatureStoreId(repo, nm))
 
-  def featureStoreSnapshot(repo: Repository, meta: SnapshotManifest): RIO[legacy.FeatureStoreSnapshot] = for {
+  def featureStoreSnapshot(repo: Repository, meta: SnapshotManifest): ResultTIO[legacy.FeatureStoreSnapshot] = for {
     storeId <- getFeatureStoreId(repo, meta)
     store <- Metadata.featureStoreFromIvory(repo, storeId)
   } yield legacy.FeatureStoreSnapshot(meta.snapshotId, meta.date, store)
@@ -113,27 +113,27 @@ object SnapshotManifest {
    *  (snapshotId, commitStoreId, date)
    *
    */
-  def latestSnapshot(repository: Repository, date: Date): OptionT[RIO, SnapshotManifest] = for {
+  def latestSnapshot(repository: Repository, date: Date): OptionT[ResultTIO, SnapshotManifest] = for {
     ids <- repository.store.listHeads(Repository.snapshots).liftM[OptionT]
     /* This looks fairly weird on first glance, but basically we should be ignoring snapshots that are invalid or
        incomplete. In fact this is a totally normal situation (parallel or aborted snapshots). */
-    sids <- ids.flatMap(sid => SnapshotId.parse(sid.name).toList).pure[RIO].liftM[OptionT]
+    sids <- ids.flatMap(sid => SnapshotId.parse(sid.name).toList).pure[ResultTIO].liftM[OptionT]
     metas <- sids.traverseU(fromIdentifier(repository, _).run).map(_.flatMap(_.toList)).liftM[OptionT]
     filtered = metas.filter(_.date isBeforeOrEqual date)
     _ = println("Candidate snapshots: ")
     _ = filtered.sorted.map(m => s"  - id: ${m.snapshotId}, date: ${m.date}.").foreach(println)
-    meta <- OptionT.optionT[RIO](filtered.sorted.lastOption.pure[RIO])
+    meta <- OptionT.optionT[ResultTIO](filtered.sorted.lastOption.pure[ResultTIO])
     _ = println(s"Selected: ${meta.snapshotId}")
   } yield meta
 
-  def latestWithStoreId(repo: Repository, date: Date, featureStoreId: FeatureStoreId): OptionT[RIO, SnapshotManifest] = for {
+  def latestWithStoreId(repo: Repository, date: Date, featureStoreId: FeatureStoreId): OptionT[ResultTIO, SnapshotManifest] = for {
     meta <- latestSnapshot(repo, date)
     metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
     x <- {
       if (metaFeatureId == featureStoreId)
-        OptionT.some[RIO, SnapshotManifest](meta)
+        OptionT.some[ResultTIO, SnapshotManifest](meta)
       else
-        OptionT.none[RIO, SnapshotManifest]
+        OptionT.none[ResultTIO, SnapshotManifest]
     }
   } yield x
 
@@ -147,18 +147,18 @@ object SnapshotManifest {
    *     OR the snapshot.date <= date
    *        but there are no partitions between the snapshot date and date for factsets in the latest feature store
    */
-  def latestUpToDateSnapshot(repo: Repository, date: Date): OptionT[RIO, SnapshotManifest] = for {
+  def latestUpToDateSnapshot(repo: Repository, date: Date): OptionT[ResultTIO, SnapshotManifest] = for {
     meta <- latestSnapshot(repo, date)
     store <- Metadata.latestFeatureStoreOrFail(repo).liftM[OptionT]
     metaFeatureId <- getFeatureStoreId(repo, meta).liftM[OptionT]
     thereAreNoNewer <- checkForNewerFeatures(repo, metaFeatureId, store, meta.date, date).liftM[OptionT]
 
     x <- {
-      type OptionRIO[A] = OptionT[RIO, A]
+      type OptionResultTIO[A] = OptionT[ResultTIO, A]
       if (thereAreNoNewer)
-        meta.pure[OptionRIO]
+        meta.pure[OptionResultTIO]
       else
-        OptionT.none[RIO, SnapshotManifest]
+        OptionT.none[ResultTIO, SnapshotManifest]
     }
 
   } yield x
@@ -172,13 +172,13 @@ object SnapshotManifest {
     SnapshotManifestOrder.toScalaOrdering
 
   // helpers
-  private def checkForNewerFeatures(repo: Repository, metaFeatureId: FeatureStoreId, store: FeatureStore, beginDate: Date, endDate: Date): RIO[Boolean] = {
+  private def checkForNewerFeatures(repo: Repository, metaFeatureId: FeatureStoreId, store: FeatureStore, beginDate: Date, endDate: Date): ResultTIO[Boolean] = {
     if (metaFeatureId == store.id) {
       if (beginDate == endDate)
-        true.pure[RIO]
+        true.pure[ResultTIO]
       else
         FeatureStoreGlob.between(repo, store, beginDate, endDate).map(_.partitions.isEmpty)
-    } else false.pure[RIO]
+    } else false.pure[ResultTIO]
   }
 
 
@@ -212,27 +212,27 @@ object NewSnapshotManifest {
     date: Date,
     commitId: CommitId) = NewSnapshotManifest(snapshotId, SnapshotManifestVersionV1, date, commitId)
 
-  def createSnapshotManifest(repo: Repository, date: Date): RIO[NewSnapshotManifest] = for {
+  def createSnapshotManifest(repo: Repository, date: Date): ResultTIO[NewSnapshotManifest] = for {
     snapshotId <- allocateId(repo)
     commitId <- Metadata.findOrCreateLatestCommitId(repo)
   } yield newSnapshotMeta(snapshotId, date, commitId)
 
-  def getFeatureStoreId(repo: Repository, meta: NewSnapshotManifest): RIO[FeatureStoreId] = Metadata.commitFromIvory(repo, meta.commitId).map(_.featureStoreId)
+  def getFeatureStoreId(repo: Repository, meta: NewSnapshotManifest): ResultTIO[FeatureStoreId] = Metadata.commitFromIvory(repo, meta.commitId).map(_.featureStoreId)
 
-  def featureStoreSnapshot(repo: Repository, meta: NewSnapshotManifest): RIO[legacy.FeatureStoreSnapshot] = for {
+  def featureStoreSnapshot(repo: Repository, meta: NewSnapshotManifest): ResultTIO[legacy.FeatureStoreSnapshot] = for {
     storeId <- getFeatureStoreId(repo, meta)
     store <- Metadata.featureStoreFromIvory(repo, storeId)
   } yield legacy.FeatureStoreSnapshot(meta.snapshotId, meta.date, store)
 
-  def newManifestFromIdentifier(repo: Repository, id: SnapshotId): RIO[NewSnapshotManifest] = for {
+  def newManifestFromIdentifier(repo: Repository, id: SnapshotId): ResultTIO[NewSnapshotManifest] = for {
     json <- repo.store.utf8.read(Repository.snapshot(id) / NewSnapshotManifest.metaKeyName)
     x <- fromJson(json) match {
       case -\/(msg)       => ResultT.fail[IO, NewSnapshotManifest]("failed to parse Snapshot manifest: " ++ msg)
-      case \/-(jsonmeta)  => jsonmeta.pure[RIO]
+      case \/-(jsonmeta)  => jsonmeta.pure[ResultTIO]
     }
   } yield x
 
-  def save(repository: Repository, meta: NewSnapshotManifest): RIO[Unit] = repository.store.utf8.write(
+  def save(repository: Repository, meta: NewSnapshotManifest): ResultTIO[Unit] = repository.store.utf8.write(
     Repository.snapshot(meta.snapshotId) / NewSnapshotManifest.metaKeyName,
     meta.asJson.spaces2)
 
@@ -260,7 +260,7 @@ object NewSnapshotManifest {
    * create a new Snapshot id by create a new .allocated sub-directory
    * with the latest available identifier + 1
    */
-  private def allocateId(repo: Repository): RIO[SnapshotId] =
+  private def allocateId(repo: Repository): ResultTIO[SnapshotId] =
     IdentifierStorage.write(repo, Repository.snapshots, allocated, scodec.bits.ByteVector.empty).map(SnapshotId.apply)
 
   private def toJsonObject(meta: NewSnapshotManifest): Json = {
