@@ -27,7 +27,7 @@ class PartitionsSpec extends Specification with ScalaCheck { def is = s2"""
     prop((factset: FactsetId, partitions: List[Partition]) =>
       RepositoryBuilder.using(repository => {
         val globs = Partitions.globs(repository, factset, partitions)
-        run(repository, factset, partitions, globs).pure[ResultTIO]
+        run(repository, factset, partitions, globs).pure[RIO]
       }) must beOkValue(true))
 
   def contains =

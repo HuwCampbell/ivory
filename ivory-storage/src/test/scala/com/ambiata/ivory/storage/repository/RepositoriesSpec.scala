@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.metadata.Metadata
-import com.ambiata.mundane.control.ResultTIO
+import com.ambiata.mundane.control.RIO
 import com.ambiata.notion.core._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.nicta.scoobi.impl.ScoobiConfiguration
@@ -53,7 +53,7 @@ Create repository should always create all folders
   def createRepository(repo: Repository) =
     Repositories.create(repo, RepositoryConfig.testing) >> Repositories.create(repo, RepositoryConfig.testing)
 
-  def checkRepository(repo: Repository): ResultTIO[List[Boolean]] = {
+  def checkRepository(repo: Repository): RIO[List[Boolean]] = {
     List(
       Repository.root,
       Repository.dictionaries,
