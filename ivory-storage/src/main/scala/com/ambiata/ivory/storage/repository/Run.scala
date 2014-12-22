@@ -6,15 +6,15 @@ import com.ambiata.poacher.scoobi._
 import com.ambiata.mundane.control._
 import com.nicta.scoobi.core.ScoobiConfiguration
 
-/** This is a set of interfaces used to represent rank-n functions to force different computations to ResultT[IO, _]  */
+/** This is a set of interfaces used to represent rank-n functions to force different computations to RIO[_]  */
 
 trait ScoobiRun {
-  def runScoobi[A](action: ScoobiAction[A]): ResultT[IO, A]
+  def runScoobi[A](action: ScoobiAction[A]): RIO[A]
 }
 
 trait S3Run extends ScoobiRun {
-  def runScoobi[A](action: ScoobiAction[A]): ResultT[IO, A]
-  def runS3[A](action: S3Action[A]): ResultT[IO, A]
+  def runScoobi[A](action: ScoobiAction[A]): RIO[A]
+  def runS3[A](action: S3Action[A]): RIO[A]
 }
 
 object ScoobiRun {
@@ -26,7 +26,7 @@ object ScoobiRun {
 object S3Run {
   def apply(c: ScoobiConfiguration): S3Run = new S3Run {
     def runScoobi[A](action: ScoobiAction[A]) = action.run(c)
-    def runS3[A](action: S3Action[A]): ResultT[IO, A] = action.evalT
+    def runS3[A](action: S3Action[A]): RIO[A] = action.evalT
 
   }
 }

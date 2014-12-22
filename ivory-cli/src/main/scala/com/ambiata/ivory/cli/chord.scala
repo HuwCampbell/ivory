@@ -29,7 +29,7 @@ object chord extends IvoryApp {
   })(c => f => c.copy(formats = f(c.formats)))
 
   val cmd = IvoryCmd.withCluster[CliArguments](parser, CliArguments("", true, SquashConfig.default, ExtractOutput()), { repo => cluster => conf => c =>
-    IvoryT.fromResultTIO { for {
+    IvoryT.fromRIO { for {
       ent  <- IvoryLocation.fromUri(c.entities, conf)
       of   <- Extract.parse(conf, c.formats)
       _    <- ResultT.when(of.outputs.isEmpty, ResultT.fail[IO, Unit]("No output/format specified"))

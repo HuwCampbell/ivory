@@ -26,7 +26,7 @@ import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, SequenceFileOut
 object GroupByEntityOutputJob {
 
   def run(conf: Configuration, dictionary: Dictionary, input: Path, output: Path, format: GroupByEntityFormat,
-          reducers: Int, codec: Option[CompressionCodec]): ResultTIO[Unit] = (for {
+          reducers: Int, codec: Option[CompressionCodec]): RIO[Unit] = (for {
     _ <- Hdfs.mustNotExistWithMessage(output, s"Output path '${output.toString}' already exists")
     job = Job.getInstance(conf)
     name = format match {

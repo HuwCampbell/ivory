@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.diff
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy.SnapshotStorageV1._
-import com.ambiata.mundane.control.ResultTIO
+import com.ambiata.mundane.control.RIO
 import com.ambiata.poacher.scoobi.ScoobiAction
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.lib.Relational
@@ -15,7 +15,7 @@ import scalaz.{\/-, -\/, \/}
  */
 object CompareSnapshots {
 
-  def compareHdfsSnapshots(snapshotPath1: String, snapshotPath2: String, outputPath: String, configuration: IvoryConfiguration): ResultTIO[Unit] = {
+  def compareHdfsSnapshots(snapshotPath1: String, snapshotPath2: String, outputPath: String, configuration: IvoryConfiguration): RIO[Unit] = {
     val action: ScoobiAction[Unit] = for {
       snap1 <- snapshotFromHdfs(new Path(snapshotPath1))
       snap2 <- snapshotFromHdfs(new Path(snapshotPath2))

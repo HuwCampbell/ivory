@@ -6,7 +6,7 @@ import org.specs2.execute.{Result, AsResult}
 import org.specs2.matcher.{ThrownExpectations, FileMatchers}
 import org.apache.hadoop.fs.Path
 import com.nicta.scoobi.Scoobi._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.ivory.core.TemporaryRepositories._

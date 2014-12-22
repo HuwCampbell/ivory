@@ -7,7 +7,7 @@ import org.apache.hadoop.fs.Path
 import scalaz.effect.IO
 
 trait IvorySyntax {
-  def checkThat[A](a: => A, condition: Boolean, message: String): ResultTIO[A] =
+  def checkThat[A](a: => A, condition: Boolean, message: String): RIO[A] =
     if (condition) ResultT.safe[IO, A](a)
     else           ResultT.fail[IO, A](message)
 

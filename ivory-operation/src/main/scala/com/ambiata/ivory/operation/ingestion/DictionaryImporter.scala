@@ -17,14 +17,14 @@ object DictionaryImporter {
    *
    * Then convert the dictionary to Thrift for internal storage
    */
-  def importFromPath(repository: Repository, source: IvoryLocation, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[DictionaryId])] =
+  def importFromPath(repository: Repository, source: IvoryLocation, importOpts: ImportOpts): RIO[(DictValidation[Unit], Option[DictionaryId])] =
     DictionaryTextStorageV2.dictionaryFromIvoryLocation(source).flatMap(fromDictionary(repository, _, importOpts))
 
   /**
    * Load the existing dictionary and append the new one
    * If there are any inconsistencies report them
    */
-  def fromDictionary(repository: Repository, dictionary: Dictionary, importOpts: ImportOpts): ResultTIO[(DictValidation[Unit], Option[DictionaryId])] = {
+  def fromDictionary(repository: Repository, dictionary: Dictionary, importOpts: ImportOpts): RIO[(DictValidation[Unit], Option[DictionaryId])] = {
     val storage = DictionaryThriftStorage(repository)
     for {
       oldDictionary <- storage.loadOption.map(_.getOrElse(Dictionary.empty))
@@ -39,7 +39,7 @@ object DictionaryImporter {
           dictId <- storage.store(newDictionary)
           _      <- Metadata.incrementCommitDictionary(repository, dictId)
         } yield dictId.some
-      else None.pure[ResultTIO]
+      else none.pure[RIO]
     } yield validation -> dictIdIden
   }
 

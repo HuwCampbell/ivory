@@ -7,7 +7,7 @@ import com.ambiata.notion.core.TemporaryType
 
 object TemporaryRepositoriesT {
 
-  def withRepositoryT[A](temporaryType: TemporaryType)(f: RepositoryTIO[A]): ResultTIO[A] = {
+  def withRepositoryT[A](temporaryType: TemporaryType)(f: RepositoryTIO[A]): RIO[A] = {
     TemporaryRepositories.withRepository(temporaryType)(repo => f.toIvoryT(repo).run(IvoryRead.create))
   }
 }

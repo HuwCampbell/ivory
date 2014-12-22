@@ -55,7 +55,7 @@ object RecreateFactsetJob {
 
     /** run job */
     if (!job.waitForCompletion(true))
-      Crash.error(Crash.ResultTIO, "ivory recreate factset failed.")
+      Crash.error(Crash.RIO, "ivory recreate factset failed.")
 
     /** commit files to factset */
     Committer.commit(ctx, {

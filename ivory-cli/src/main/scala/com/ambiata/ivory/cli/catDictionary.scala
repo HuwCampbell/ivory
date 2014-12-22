@@ -22,7 +22,7 @@ object catDictionary extends IvoryApp {
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(None), repo => conf => {
     case CliArguments(nameOpt) =>
       val store = DictionaryThriftStorage(repo)
-      IvoryT.fromResultTIO { for {
+      IvoryT.fromRIO { for {
         dictionary <- nameOpt.flatMap(Identifier.parse) match {
           case Some(iid) => store.loadFromId(DictionaryId(iid)).flatMap(ResultT.fromOption(_, s"Dictionary '$iid' could not be found"))
           case None      => store.load

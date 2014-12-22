@@ -20,7 +20,7 @@ import scalaz._, Scalaz._, effect._
  */
 object RepositoryConfigTextStorage {
 
-  def latestId: RepositoryTIO[Option[RepositoryConfigId]] = RepositoryT.fromResultTIO(repository =>
+  def latestId: RepositoryTIO[Option[RepositoryConfigId]] = RepositoryT.fromRIO(repository =>
     IdentifierStorage.latestId(repository, Repository.configs).map(_.map(RepositoryConfigId.apply))
   )
 
@@ -29,7 +29,7 @@ object RepositoryConfigTextStorage {
     config <- loadById(id.getOrElse(RepositoryConfigId.initial))
   } yield config
 
-  def loadById(id: RepositoryConfigId): RepositoryTIO[RepositoryConfig] = RepositoryT.fromResultTIO(repository => {
+  def loadById(id: RepositoryConfigId): RepositoryTIO[RepositoryConfig] = RepositoryT.fromRIO(repository => {
     val key = Repository.config(id)
     for {
       exists <- repository.store.exists(key)
@@ -39,11 +39,11 @@ object RepositoryConfigTextStorage {
             lines  <- repository.store.utf8.read(key)
             result <- ResultT.fromDisjunctionString[IO, RepositoryConfig](Parse.decodeEither[RepositoryConfig](lines))
           } yield result
-        else RepositoryConfig.deprecated.point[ResultTIO]
+        else RepositoryConfig.deprecated.point[RIO]
     } yield config
   })
 
-  def store(config: RepositoryConfig): RepositoryTIO[RepositoryConfigId] = RepositoryT.fromResultTIO(repository => for {
+  def store(config: RepositoryConfig): RepositoryTIO[RepositoryConfigId] = RepositoryT.fromRIO(repository => for {
     nextId <- IdentifierStorage.nextIdOrFail(repository, Repository.configs).map(RepositoryConfigId.apply)
     _      <- repository.store.utf8.write(Repository.config(nextId), config.asJson.spaces2)
   } yield nextId)

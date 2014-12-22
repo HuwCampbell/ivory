@@ -18,7 +18,7 @@ object convertDictionary extends IvoryApp {
 
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments("", ""), IvoryRunner { conf => {
     case CliArguments(input, output) =>
-      IvoryT.fromResultTIO { for {
+      IvoryT.fromRIO { for {
         in         <- IvoryLocation.fromUri(input, conf)
         out        <- IvoryLocation.fromUri(output, conf)
         dictionary <- DictionaryTextStorage.dictionaryFromIvoryLocation(in)

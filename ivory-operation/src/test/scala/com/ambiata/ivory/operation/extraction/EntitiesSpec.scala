@@ -7,7 +7,7 @@ import com.ambiata.ivory.core.{Date, Fact}
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.operation.extraction.Chord.PrioritizedFact
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core.TemporaryType
 import org.scalacheck.{Arbitrary, Gen}, Arbitrary.arbitrary
 import org.specs2.matcher.ThrownExpectations

@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.poacher.hdfs._
 
 import org.apache.hadoop.fs.Path
@@ -27,7 +27,7 @@ class PartitionsSpec extends Specification with ScalaCheck { def is = s2"""
     prop((factset: FactsetId, partitions: List[Partition]) =>
       RepositoryBuilder.using(repository => {
         val globs = Partitions.globs(repository, factset, partitions)
-        run(repository, factset, partitions, globs).pure[ResultTIO]
+        run(repository, factset, partitions, globs).pure[RIO]
       }) must beOkValue(true))
 
   def contains =

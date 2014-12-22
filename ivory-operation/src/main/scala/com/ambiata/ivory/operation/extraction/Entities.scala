@@ -81,7 +81,7 @@ object Entities {
    */
   type Mappings = java.util.Map[String, Array[Int]]
 
-  def serialiseEntities(repository: Repository, entities: Entities, key: Key): ResultTIO[Unit] = {
+  def serialiseEntities(repository: Repository, entities: Entities, key: Key): RIO[Unit] = {
     import java.io.ObjectOutputStream
     repository.store.unsafe.withOutputStream(key)(os => ResultT.safe({
       val bOut = new ObjectOutputStream(os)
@@ -93,7 +93,7 @@ object Entities {
   /**
    * read entities from a file
    */
-  def readEntitiesFrom(location: IvoryLocation): ResultTIO[Entities] = {
+  def readEntitiesFrom(location: IvoryLocation): RIO[Entities] = {
     val DatePattern = """(\d{4})-(\d{2})-(\d{2})""".r
 
     // This file can be _really_ big - we want to make this as memory efficient as possible
@@ -115,7 +115,7 @@ object Entities {
   }
 
   /** For testing only - does everything in memory */
-  def writeEntitiesTesting(entities: Entities, location: IvoryLocation): ResultTIO[Unit] =
+  def writeEntitiesTesting(entities: Entities, location: IvoryLocation): RIO[Unit] =
     IvoryLocation.writeUtf8Lines(location, entities.entities.asScala.flatMap {
       case (entity, dates) => dates.map(d => entity + "|" + Date.unsafeFromInt(d).hyphenated)
     }.toList)

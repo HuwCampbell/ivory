@@ -74,7 +74,7 @@ object Recompress {
             facts(stat.path, stat.target, emitter, codec)
           } else {
             println(s"cp ${stat.path} ${stat.target}")
-            Hdfs.cp(stat.path, stat.target, false).run(new Configuration).run.unsafePerformIO.toOption.getOrElse(Crash.error(Crash.ResultTIO,"Couldn't copy: " + stat.path))
+            Hdfs.cp(stat.path, stat.target, false).run(new Configuration).run.unsafePerformIO.toOption.getOrElse(Crash.error(Crash.RIO,"Couldn't copy: " + stat.path))
           }
         } else {
           println(s"skipping ${stat.path} looks like it has already been copied")

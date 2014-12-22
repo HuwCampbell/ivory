@@ -15,7 +15,7 @@ import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.repository.RecreateData._
-import com.ambiata.mundane.control.{ResultT, ResultTIO}
+import com.ambiata.mundane.control.{ResultT, RIO}
 import com.ambiata.mundane.io._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
@@ -34,7 +34,7 @@ import Stats._
  */
 object Recreate { outer =>
 
-  type RecreateAction[A] = ReaderT[ResultTIO, RecreateConfig, A]
+  type RecreateAction[A] = ReaderT[RIO, RecreateConfig, A]
 
   def all: RecreateAction[Unit] =
     log("====== Recreating metadata")  >> metadata >>
@@ -96,7 +96,7 @@ object Recreate { outer =>
   private def copyDictionary(from: HdfsRepository, to: HdfsRepository, dry: Boolean) = (path: Path) => for {
       dictId <- Hdfs.fromOption(Identifier.parse(path.getName), s"Could not parse '${path.getName}'")
       _      <- Hdfs.log(s"Copy dictionary ${path.getName} from ${from.toIvoryLocation(Repository.dictionaryById(DictionaryId(dictId)))} to ${to.toIvoryLocation(Repository.dictionaryById(DictionaryId(dictId)))}")
-      dict   <- Hdfs.fromResultTIO(latestDictionaryFromIvory(from) >>= { dict: Dictionary =>
+      dict   <- Hdfs.fromRIO(latestDictionaryFromIvory(from) >>= { dict: Dictionary =>
         dictionaryToIvory(to, dict)
       }).unless(dry)
     } yield ()
@@ -114,9 +114,9 @@ object Recreate { outer =>
     for {
       featureStoreId <- Hdfs.fromOption(FeatureStoreId.parse(path.getName), s"Could not parse '${path.getName}'")
       _       <- Hdfs.log(s"Copy feature store ${featureStoreId} from ${from.toIvoryLocation(Repository.featureStoreById(featureStoreId))} to ${to.toIvoryLocation(Repository.featureStoreById(featureStoreId))}")
-      store   <- Hdfs.fromResultTIO(featureStoreFromIvory(from, featureStoreId))
+      store   <- Hdfs.fromRIO(featureStoreFromIvory(from, featureStoreId))
       cleaned <- cleanupFeatureStore(featureStoreId, store, filtered, clean)
-      _       <- Hdfs.fromResultTIO(featureStoreToIvory(to, cleaned)).unless(dry)
+      _       <- Hdfs.fromRIO(featureStoreToIvory(to, cleaned)).unless(dry)
     } yield ()
 
   private def cleanupFeatureStore(id: FeatureStoreId, featureStore: FeatureStore, setsToKeep: List[FactsetId], clean: Boolean): Hdfs[FeatureStore] = {
@@ -138,7 +138,7 @@ object Recreate { outer =>
     for {
       ids        <- ScoobiAction.fromHdfs(nonEmptyFactsetIds(from, to))
       _          <- ScoobiAction.log("non empty factset ids "+ids.map(_.render).mkString(","))
-      dictionary <- ScoobiAction.fromResultTIO(Metadata.latestDictionaryFromIvory(from))
+      dictionary <- ScoobiAction.fromRIO(Metadata.latestDictionaryFromIvory(from))
       _          <- ids.toList.take(maxNumber.fold(ids.size)(identity)).traverse(copyFactset(dictionary, from, to, codec, reducerSize, dry)).unless(dry)
     } yield ()
 
@@ -150,10 +150,10 @@ object Recreate { outer =>
       configuration <- ScoobiAction.scoobiConfiguration
       namespaces    <- ScoobiAction.fromHdfs(namespaceSizes(from.toIvoryLocation(Repository.factset(id)).toHdfsPath))
       partitions    <- ScoobiAction.fromHdfs(Hdfs.globFiles(from.toIvoryLocation(Repository.factset(id)).toHdfsPath, "*/*/*/*/*").filterHidden)
-      version       <- ScoobiAction.fromResultTIO(Versions.read(from, id))
+      version       <- ScoobiAction.fromRIO(Versions.read(from, id))
       _             <- {
         ScoobiAction.safe(RecreateFactsetJob.run(configuration, version, dictionary, namespaces, partitions, to.toIvoryLocation(Repository.factset(id)).toHdfsPath, reducerSize, codec)) >>
-        ScoobiAction.fromResultTIO(writeFactsetVersion(to, List(id)))
+        ScoobiAction.fromRIO(writeFactsetVersion(to, List(id)))
       }.unless(dry)
     } yield ()
 
@@ -211,10 +211,10 @@ object Recreate { outer =>
 
   /** create actions */
   private def fromStat[A](repo: HdfsRepository, action: StatAction[A]): RecreateAction[A] =
-    fromScoobi(ScoobiAction.scoobiConfiguration.flatMap(sc => ScoobiAction.fromResultTIO(action.run(StatConfig(sc.configuration, repo)))))
+    fromScoobi(ScoobiAction.scoobiConfiguration.flatMap(sc => ScoobiAction.fromRIO(action.run(StatConfig(sc.configuration, repo)))))
 
-  private implicit def createKleisli[A](f: RecreateConfig => ResultTIO[A]): RecreateAction[A] =
-    kleisli[ResultTIO, RecreateConfig, A](f)
+  private implicit def createKleisli[A](f: RecreateConfig => RIO[A]): RecreateAction[A] =
+    kleisli[RIO, RecreateConfig, A](f)
 
   private def configuration: RecreateAction[RecreateConfig] =
     (config: RecreateConfig) => ResultT.ok[IO, RecreateConfig](config)
@@ -228,7 +228,7 @@ object Recreate { outer =>
   private def fromHdfs[A](action: Hdfs[A]): RecreateAction[A] =
     fromScoobi(ScoobiAction.fromHdfs(action))
 
-  private def fromResultTIO[A](r: ResultTIO[A]): RecreateAction[A] =
+  private def fromRIO[A](r: RIO[A]): RecreateAction[A] =
     (c: RecreateConfig) => r
 
   /** additional syntax */
@@ -237,7 +237,7 @@ object Recreate { outer =>
       action.flatMap(a => outer.log(f(a)))
 
     def when(condition: Boolean): RecreateAction[Unit] =
-      if (condition) action.void else fromResultTIO(ResultT.ok[IO, Unit](()))
+      if (condition) action.void else fromRIO(ResultT.ok[IO, Unit](()))
 
     def unless(condition: Boolean): RecreateAction[Unit] =
       when(!condition)

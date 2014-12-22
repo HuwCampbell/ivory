@@ -13,7 +13,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.specs2.{ScalaCheck, Specification}
 import Namespaces._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import scalaz.{Name => _, _}, Scalaz._
 import MemoryConversions._
 
@@ -56,7 +56,7 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
     }
   }.set(maxSize = 5, minTestsOk = 5)
 
-  def prepare[A](f: Path => ResultTIO[A]): ResultTIO[A] = TemporaryDirPath.withDirPath { dir =>
+  def prepare[A](f: Path => RIO[A]): RIO[A] = TemporaryDirPath.withDirPath { dir =>
     val ns1 = KeyName.unsafe("ns1")
     val ns2 = KeyName.unsafe("ns2")
     for {
@@ -66,7 +66,7 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
     } yield result
   }
 
-  def createFile(repository: Repository)(key: Key): ResultTIO[Unit] =
+  def createFile(repository: Repository)(key: Key): RIO[Unit] =
     repository.store.utf8.write(key, "test")
 
   def sumNames = prop { (l: List[(Name, Long)]) =>

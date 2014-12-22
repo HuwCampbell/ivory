@@ -11,7 +11,7 @@ import scalaz.{Value => _, _}, Scalaz._, effect._
 object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[Prioritized[FactsetId]]] {
 
   /** Increment the latest FeatureStore by prepending the given FactsetId and creating a new FeatureStore */
-  def increment(repo: Repository, factsetIds: List[FactsetId]): ResultTIO[FeatureStoreId] = for {
+  def increment(repo: Repository, factsetIds: List[FactsetId]): RIO[FeatureStoreId] = for {
     latest      <- latestId(repo)
     next        <- ResultT.fromOption[IO, FeatureStoreId](latest.map(_.next).getOrElse(Some(FeatureStoreId.initial)), "Ran out of FeatureStore ids!")
     prevIds     <- latest.traverse(id => fromId(repo, id))
@@ -29,26 +29,26 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
    * Future: The aim is to store all factsets and its partition information
    *         in metadata attached to each feature store and only read that.
    */
-  def fromId(repo: Repository, id: FeatureStoreId): ResultTIO[FeatureStore] = for {
+  def fromId(repo: Repository, id: FeatureStoreId): RIO[FeatureStore] = for {
     storeIds <- storeIdsFromId(repo, id)
     factsets <- storeIds.traverse(fid => Factsets.factset(repo, fid.value))
     store    <- ResultT.fromOption[IO, FeatureStore](FeatureStore.fromList(id, factsets), s"Could not parse feature store '${id}'")
   } yield store
 
-  def toId(repo: Repository, featureStore: FeatureStore): ResultTIO[Unit] =
+  def toId(repo: Repository, featureStore: FeatureStore): RIO[Unit] =
     storeIdsToId(repo, featureStore.id, featureStore.factsetIds)
 
-  def storeIdsFromId(repository: Repository, id: FeatureStoreId): ResultTIO[List[Prioritized[FactsetId]]] =
+  def storeIdsFromId(repository: Repository, id: FeatureStoreId): RIO[List[Prioritized[FactsetId]]] =
     storeIdsFromKey(repository, Repository.featureStoreById(id))
 
-  def storeIdsToId(repository: Repository, id: FeatureStoreId, fstore: List[Prioritized[FactsetId]]): ResultTIO[Unit] =
+  def storeIdsToId(repository: Repository, id: FeatureStoreId, fstore: List[Prioritized[FactsetId]]): RIO[Unit] =
     storeIdsToKey(repository, Repository.featureStoreById(id), fstore)
 
-  def storeIdsFromKey(repository: Repository, key: Key): ResultTIO[List[Prioritized[FactsetId]]] =
+  def storeIdsFromKey(repository: Repository, key: Key): RIO[List[Prioritized[FactsetId]]] =
     repository.store.linesUtf8.read(key).flatMap(lines =>
       ResultT.fromDisjunction[IO, List[Prioritized[FactsetId]]](fromLines(lines.toList).leftMap(\&/.This.apply)))
 
-  def storeIdsToKey(repository: Repository, key: Key, fstore: List[Prioritized[FactsetId]]): ResultTIO[Unit] =
+  def storeIdsToKey(repository: Repository, key: Key, fstore: List[Prioritized[FactsetId]]): RIO[Unit] =
     repository.store.linesUtf8.write(key, toList(fstore).map(toLine))
 
   def fromList(factsets: List[Prioritized[FactsetId]]): ValidationNel[String, List[Prioritized[FactsetId]]] =
@@ -65,7 +65,7 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
   def toLine(p: Prioritized[FactsetId]): String =
     p.value.render
 
-  def listIds(repository: Repository): ResultTIO[List[FeatureStoreId]] = for {
+  def listIds(repository: Repository): RIO[List[FeatureStoreId]] = for {
     paths <- repository.store.listHeads(Repository.featureStores).map(_.filterHidden)
     ids   <- {
     paths.traverseU(p =>
@@ -74,6 +74,6 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
     }
   } yield ids
 
-  def latestId(repository: Repository): ResultTIO[Option[FeatureStoreId]] =
+  def latestId(repository: Repository): RIO[Option[FeatureStoreId]] =
     listIds(repository).map(_.sorted.lastOption)
 }

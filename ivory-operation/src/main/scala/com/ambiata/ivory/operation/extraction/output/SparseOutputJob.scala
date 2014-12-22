@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.extraction.output
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.mr.MrContextIvory
-import com.ambiata.mundane.control.ResultTIO
+import com.ambiata.mundane.control.RIO
 import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.poacher.mr._
 
@@ -21,7 +21,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat
  */
 object SparseOutputJob {
   def run(conf: Configuration, dictionary: Dictionary, input: Path, output: Path, missing: String,
-          delimiter: Delimiter, escaping: TextEscaping, codec: Option[CompressionCodec]): ResultTIO[Unit] = (for {
+          delimiter: Delimiter, escaping: TextEscaping, codec: Option[CompressionCodec]): RIO[Unit] = (for {
     _ <- Hdfs.mustNotExistWithMessage(output, s"Output path '${output.toString}' already exists")
     job = Job.getInstance(conf)
     ctx = MrContextIvory.newContext("ivory-sparse", job)

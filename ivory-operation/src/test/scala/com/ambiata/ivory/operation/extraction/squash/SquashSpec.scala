@@ -6,7 +6,7 @@ import com.ambiata.ivory.operation.extraction.squash.SquashArbitraries._
 import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import com.nicta.scoobi.Scoobi._

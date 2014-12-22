@@ -11,7 +11,7 @@ import scalaz._, Scalaz._
 import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 
 class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with ScalaCheckManagedProperties { def is = s2"""
 
@@ -54,17 +54,17 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
     Metadata.latestFeatureStoreId(repo) must beOkValue(ids.ids.sortBy(_.id).lastOption)
   }
 
-  def writeFeatureStoreIds(repo: Repository, ids: List[FeatureStoreId]): ResultTIO[Unit] =
+  def writeFeatureStoreIds(repo: Repository, ids: List[FeatureStoreId]): RIO[Unit] =
     ids.traverse(id => writeLines(repo, Repository.featureStores / id.asKeyName, List(""))).void
 
   /* Write out the feature store and factsets within it */
-  def writeFeatureStore(repo: Repository, fstore: FeatureStore): ResultTIO[Unit] = for {
+  def writeFeatureStore(repo: Repository, fstore: FeatureStore): RIO[Unit] = for {
     _ <- writeLines(repo, Repository.featureStoreById(fstore.id), fstore.factsetIds.map(_.value.render))
     _ <- fstore.factsets.map(_.value).traverseU(factset => factset.partitions.traverseU(partition =>
            writeLines(repo, Repository.factset(factset.id) / partition.key / "data", List(""))
          )).map(_.flatten)
   } yield ()
 
-  def writeLines(repository: Repository, key: Key, lines: List[String]): ResultTIO[Unit] =
+  def writeLines(repository: Repository, key: Key, lines: List[String]): RIO[Unit] =
     repository.store.linesUtf8.write(key, lines)
 }

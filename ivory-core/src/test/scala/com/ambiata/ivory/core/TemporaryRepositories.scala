@@ -22,11 +22,11 @@ trait TemporaryRepositories {
         HdfsRepository(createUniqueHdfsLocation(conf))
     }
 
-  def withRepository[A](temporaryType: TemporaryType)(f: Repository => ResultTIO[A]): ResultTIO[A] =
+  def withRepository[A](temporaryType: TemporaryType)(f: Repository => RIO[A]): RIO[A] =
     withConf(conf =>
       runWithRepository(createRepository(temporaryType, conf))(f))
 
-  def withHdfsRepository[A](f: HdfsRepository => ResultTIO[A]): ResultTIO[A] =
+  def withHdfsRepository[A](f: HdfsRepository => RIO[A]): RIO[A] =
     withConf(conf =>
       runWithRepository(HdfsRepository(createUniqueHdfsLocation(conf)))(f))
 
@@ -34,7 +34,7 @@ trait TemporaryRepositories {
    * run a function with a temporary repository that is going to run some setup operations first and
    * finally run a cleanup
    */
-  def withTemporaryRepositorySetup[T, R <: Repository](repository: TemporaryRepositorySetup[R])(f: R => ResultTIO[T]): ResultTIO[T] =
+  def withTemporaryRepositorySetup[T, R <: Repository](repository: TemporaryRepositorySetup[R])(f: R => RIO[T]): RIO[T] =
     for {
       _ <- repository.setup
       t <- ResultT.using(ResultT.safe[IO, TemporaryRepositorySetup[R]](repository))(tmpRepo => f(tmpRepo.repository))

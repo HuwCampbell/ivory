@@ -27,7 +27,7 @@ trait PartitionFactThriftStorage {
     FatThriftFact(partition.namespace.name, partition.date, tfact)
 
   def loadScoobiWith(repo: HdfsRepository, factset: FactsetId, from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ Fact]] = for {
-    glob  <- ScoobiAction.fromResultTIO((from, to) match {
+    glob  <- ScoobiAction.fromRIO((from, to) match {
                case (Some(f), Some(t)) => FactsetGlob.between(repo, factset, f, t)
                case (Some(f), None)    => FactsetGlob.after(repo, factset, f)
                case (None, Some(t))    => FactsetGlob.before(repo, factset, t)

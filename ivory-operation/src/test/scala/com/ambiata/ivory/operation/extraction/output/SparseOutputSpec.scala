@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.extraction.output
 
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.storage.legacy._
@@ -52,7 +52,7 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
     "2|ns2|fid3|boolean|categorical|desc|NA"
   )
 
-  def extractSparse(facts: List[List[Fact]], dictionary: Dictionary, escaping: TextEscaping)(repo: HdfsRepository): ResultTIO[(String, List[String])] =
+  def extractSparse(facts: List[List[Fact]], dictionary: Dictionary, escaping: TextEscaping)(repo: HdfsRepository): RIO[(String, List[String])] =
     TemporaryDirPath.withDirPath { dir =>
       TemporaryIvoryConfiguration.withConf(conf =>
         for {

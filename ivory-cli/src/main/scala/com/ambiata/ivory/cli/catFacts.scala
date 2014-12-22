@@ -31,6 +31,6 @@ object catFacts extends IvoryApp {
   }
 
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), IvoryRunner { conf => c =>
-    IvoryT.fromResultTIO { printFacts(c.paths.map(new Path(_)), conf.configuration, c.delimiter, c.tombstone, c.version).executeT(consoleLogging).as(Nil) }
+    IvoryT.fromRIO { printFacts(c.paths.map(new Path(_)), conf.configuration, c.delimiter, c.tombstone, c.version).executeT(consoleLogging).as(Nil) }
   })
 }

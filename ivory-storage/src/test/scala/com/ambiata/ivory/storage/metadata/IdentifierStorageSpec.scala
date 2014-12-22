@@ -5,7 +5,7 @@ import com.ambiata.ivory.core.TemporaryRepositories._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import org.specs2._
 import scodec.bits.ByteVector
 

@@ -5,7 +5,7 @@ import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.operation.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.mundane.io.TemporaryDirPath
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import org.specs2.{ScalaCheck, Specification}
 import scalaz._, Scalaz._
 import scalaz.scalacheck.ScalazProperties

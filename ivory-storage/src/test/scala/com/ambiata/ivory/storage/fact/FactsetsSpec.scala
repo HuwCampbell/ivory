@@ -5,7 +5,7 @@ import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core._
 
 import org.specs2._
@@ -60,12 +60,12 @@ class FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
     } must beOkValue(expected)
   }.set(minTestsOk = 10)
 
-  def allocatePath(repository: Repository, key: Key): ResultTIO[Unit] =
+  def allocatePath(repository: Repository, key: Key): RIO[Unit] =
     writeEmptyFile(repository, key / ".allocated")
 
-  def writeDataFile(repository: Repository, key: Key): ResultTIO[Unit] =
+  def writeDataFile(repository: Repository, key: Key): RIO[Unit] =
     writeEmptyFile(repository, key / "data")
 
-  def writeEmptyFile(repository: Repository, key: Key): ResultTIO[Unit] =
+  def writeEmptyFile(repository: Repository, key: Key): RIO[Unit] =
     repository.store.utf8.write(key, "")
 }

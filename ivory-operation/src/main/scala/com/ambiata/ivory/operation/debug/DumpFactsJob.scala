@@ -28,7 +28,7 @@ object DumpFactsJob {
   , request: DumpFactsRequest
   , output: Path
   , codec: Option[CompressionCodec]
-  ): ResultT[IO, Unit] = for {
+  ): RIO[Unit] = for {
     job <- ResultT.io { Job.getInstance(repository.configuration) }
     ctx <- ResultT.io { MrContextIvory.newContext("ivory-dump-facts", job) }
     r   <- ResultT.io {

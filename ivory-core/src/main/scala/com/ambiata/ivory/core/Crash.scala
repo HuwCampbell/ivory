@@ -6,7 +6,7 @@ object Crash {
   case object Serialization       extends Scope
   case object CodeGeneration      extends Scope
   case object Invariant           extends Scope
-  case object ResultTIO           extends Scope // These should be fixed to actually be ResultTIO errors
+  case object RIO                 extends Scope // These should be fixed to actually be RIO errors
 
   def error(scope: Scope, message: String): Nothing =
     sys.error(s"""################# Critical Ivory Error #################
@@ -44,7 +44,7 @@ object Crash {
         s"""An internal invariant has been violated.
            |${genericMessage}
            |""".stripMargin
-      case ResultTIO =>
+      case RIO =>
         """Unhandled ivory error. More detail included below.
           |""".stripMargin
     }

@@ -47,7 +47,7 @@ object snapshot extends IvoryApp {
                       |
                       |""".stripMargin
       println(banner)
-      IvoryT.fromResultTIO { for {
+      IvoryT.fromRIO { for {
         of   <- Extract.parse(configuration, c.formats)
         res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date))
         meta = res.meta

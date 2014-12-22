@@ -46,7 +46,7 @@ class IvoryCmdSpec extends Specification with ThrownExpectations { def is = sequ
     val optionsParser = new scopt.OptionParser[Int]("parser") {
       opt[Int]("number").action((i, n) => i)
     }
-    val command = new IvoryCmd[Int](optionsParser, 0, IvoryRunner[Int](c => i => { f(c, i); IvoryT.fromResultTIO { ResultT.ok[IO, List[String]](Nil) } }))
+    val command = new IvoryCmd[Int](optionsParser, 0, IvoryRunner[Int](c => i => { f(c, i); IvoryT.fromRIO { ResultT.ok[IO, List[String]](Nil) } }))
     command.run(args).unsafePerformIO
     ok
   }

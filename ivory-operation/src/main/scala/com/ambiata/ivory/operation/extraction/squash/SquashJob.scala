@@ -23,7 +23,7 @@ import scalaz._, Scalaz._, effect.IO
 object SquashJob {
 
   def squashFromSnapshotWith[A](repository: Repository, snapmeta: SnapshotManifest, conf: SquashConfig, out: List[OutputDataset], cluster: Cluster)
-                               (f: (ShadowOutputDataset, Dictionary) => ResultTIO[A]): ResultTIO[A] = for {
+                               (f: (ShadowOutputDataset, Dictionary) => RIO[A]): RIO[A] = for {
     dictionary <- Snapshots.dictionaryForSnapshot(repository, snapmeta)
     hdfsIvoryL <- repository.toIvoryLocation(Repository.snapshot(snapmeta.snapshotId)).asHdfsIvoryLocation[IO]
     in          = ShadowOutputDataset.fromIvoryLocation(hdfsIvoryL)
@@ -52,7 +52,7 @@ object SquashJob {
    *    date for every possible entity date, and then look that up per entity on the reducer.
    */
   def squash[A](repository: Repository, dictionary: Dictionary, input: ShadowOutputDataset, conf: SquashConfig,
-                out: List[OutputDataset], job: (Job, MrContext), cluster: Cluster)(f: ShadowOutputDataset => ResultTIO[A]): ResultTIO[A] = for {
+                out: List[OutputDataset], job: (Job, MrContext), cluster: Cluster)(f: ShadowOutputDataset => RIO[A]): RIO[A] = for {
     // This is about the best we can do at the moment, until we have more size information about each feature
     rs     <- ReducerSize.calculate(input.hdfsPath, 1.gb).run(cluster.hdfsConfiguration)
     _      <- initJob(job._1, input.hdfsPath)
@@ -66,7 +66,7 @@ object SquashJob {
       IvoryLocation.writeUtf8Lines(IvoryLocation.fromLocation(output.location, Cluster.ivoryConfiguration(cluster)) </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof)))
   } yield a
 
-  def initSnapshotJob(conf: Configuration, date: Date): ResultTIO[(Job, MrContext)] = ResultT.safe {
+  def initSnapshotJob(conf: Configuration, date: Date): RIO[(Job, MrContext)] = ResultT.safe {
     val job = Job.getInstance(conf)
     val ctx = MrContextIvory.newContext("ivory-squash-snapshot", job)
     job.setReducerClass(classOf[SquashReducerSnapshot])
@@ -74,7 +74,7 @@ object SquashJob {
     (job, ctx)
   }
 
-  def initChordJob(conf: Configuration, chord: Entities): ResultTIO[(Job, MrContext)] = ResultT.safe {
+  def initChordJob(conf: Configuration, chord: Entities): RIO[(Job, MrContext)] = ResultT.safe {
     val job = Job.getInstance(conf)
     val ctx = MrContextIvory.newContext("ivory-squash-chord", job)
     job.setReducerClass(classOf[SquashReducerChord])
@@ -82,7 +82,7 @@ object SquashJob {
     (job, ctx)
   }
 
-  def initJob(job: Job, input: Path): ResultTIO[Unit] = ResultT.safe[IO, Unit] {
+  def initJob(job: Job, input: Path): RIO[Unit] = ResultT.safe[IO, Unit] {
     // reducer
     job.setOutputKeyClass(classOf[NullWritable])
     job.setOutputValueClass(classOf[BytesWritable])
@@ -96,7 +96,7 @@ object SquashJob {
   }
 
   def run(job: Job, ctx: MrContext, reducers: Int, dict: Dictionary, output: Path, codec: Option[CompressionCodec],
-          squashConf: SquashConfig, latest: Boolean): ResultTIO[SquashStats] = {
+          squashConf: SquashConfig, latest: Boolean): RIO[SquashStats] = {
 
     job.setJarByClass(classOf[SquashPartitioner])
     job.setJobName(ctx.id.value)
@@ -133,7 +133,7 @@ object SquashJob {
 
     // run job
     if (!job.waitForCompletion(true))
-      Crash.error(Crash.ResultTIO, "ivory squash failed.")
+      Crash.error(Crash.RIO, "ivory squash failed.")
 
     // commit files to factset
     Committer.commit(ctx, {

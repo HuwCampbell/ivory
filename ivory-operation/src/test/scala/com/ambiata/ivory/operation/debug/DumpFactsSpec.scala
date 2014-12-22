@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.debug
 
 import org.specs2._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core.{TemporaryType => TT}
 import com.ambiata.ivory.core.{TemporaryLocations => T, _}
 import com.ambiata.ivory.core.arbitraries._

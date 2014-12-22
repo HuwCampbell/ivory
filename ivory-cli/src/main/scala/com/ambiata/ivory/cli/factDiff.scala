@@ -30,6 +30,6 @@ object factDiff extends IvoryApp {
         _      <- IvoryRetire.diffFacts(input1, input2, output).run(configuration.scoobiConfiguration)
       } yield ()
 
-    IvoryT.fromResultTIO { action.as(List(s"Any differences can be found in '${c.output}'")) }
+    IvoryT.fromRIO { action.as(List(s"Any differences can be found in '${c.output}'")) }
   })
 }

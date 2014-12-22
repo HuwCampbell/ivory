@@ -44,7 +44,7 @@ object Rename {
   } yield inputs.globs
 
   def renameWithFactsets(mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], reducerLookups: ReducerLookups): RepositoryTIO[(FactsetId, RenameStats)] = for {
-    factset    <- RepositoryT.fromResultTIO(repository => Factsets.allocateFactsetId(repository))
+    factset    <- RepositoryT.fromRIO(repository => Factsets.allocateFactsetId(repository))
     hdfs       <- getHdfs
     output      = hdfs.toIvoryLocation(Repository.factset(factset)).toHdfsPath
     stats      <- fromResultT(_ => RenameJob.run(hdfs, mapping, inputs, output, reducerLookups, hdfs.codec).run(ScoobiConfiguration(hdfs.configuration)))

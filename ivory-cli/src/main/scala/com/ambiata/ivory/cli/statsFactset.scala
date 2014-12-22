@@ -25,7 +25,7 @@ object statsFactset extends IvoryApp {
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(""), { repo => configuration => c =>
 
-    IvoryT.fromResultTIO { for {
+    IvoryT.fromRIO { for {
       repo          <- HdfsRepository.fromUri(repo.root.show, configuration)
       factsetId     <- ResultT.fromOption[IO, FactsetId](FactsetId.parse(c.factSet), s"Could not parse FactsetId ${c.factSet}")
       res            = IvoryRetire.statsFacts(repo, factsetId)
