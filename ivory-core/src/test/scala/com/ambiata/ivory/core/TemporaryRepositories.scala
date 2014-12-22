@@ -4,7 +4,6 @@ package core
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core.TemporaryType
 import com.ambiata.notion.core.TemporaryType.{Hdfs, S3, Posix}
-import scalaz.effect.IO
 import TemporaryLocations._
 import TemporaryIvoryConfiguration._
 /**
