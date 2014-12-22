@@ -58,6 +58,6 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
     } must beOkValue(ids.ids.sortBy(_.id).lastOption)
   }
 
-  def writeCommitIds(repo: Repository, ids: List[CommitId]): RIO[Unit] =
+  def writeCommitIds(repo: Repository, ids: List[CommitId]): ResultTIO[Unit] =
     ids.traverse(id => repo.store.linesUtf8.write(Repository.commits / id.asKeyName, List(""))).void
 }

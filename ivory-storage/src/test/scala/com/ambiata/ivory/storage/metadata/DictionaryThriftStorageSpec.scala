@@ -45,12 +45,12 @@ class DictionaryThriftStorageSpec extends Specification with ScalaCheck { def is
     loader.store(dict) >>= (id => loader.loadFromId(id))
   }.map(_.map(_.byFeatureId)) must beOkValue(Some(dict.byFeatureId)))
 
-  private def storeDateDicts(dict: Dictionary, dir: DirPath): RIO[Unit] = {
+  private def storeDateDicts(dict: Dictionary, dir: DirPath): ResultTIO[Unit] = {
     import DictionaryTextStorage._
     PosixStore(dir).utf8.write(Repository.dictionaries / "2004-03-12", delimitedString(dict))
   }
 
-  private def run[A](f: (DictionaryThriftStorage, DirPath) => RIO[A]): Result[A] =
+  private def run[A](f: (DictionaryThriftStorage, DirPath) => ResultTIO[A]): Result[A] =
     TemporaryDirPath.withDirPath(dir => f(DictionaryThriftStorage(LocalRepository.create(dir)), dir)).run.unsafePerformIO
 
   // Text dictionaries can only handle primitive encoding _with_ types and _at least_ one tombstone
