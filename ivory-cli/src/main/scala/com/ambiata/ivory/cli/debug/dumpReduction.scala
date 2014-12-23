@@ -24,7 +24,7 @@ object dumpReduction extends IvoryApp {
   }
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(Nil, Nil, "", ""), { repo => conf => c =>
-    IvoryT.fromResultTIO { for {
+    IvoryT.fromRIO { for {
       sid <- ResultT.fromOption[IO, SnapshotId](SnapshotId.parse(c.snapshot), s"Invalid snapshot ${c.snapshot}")
       out <- ResultT.fromDisjunctionString[IO, IvoryLocation](IvoryLocation.parseUri(c.output, conf))
       fs  <- ResultT.fromDisjunctionString[IO, List[FeatureId]](c.features.traverseU(FeatureId.parse))

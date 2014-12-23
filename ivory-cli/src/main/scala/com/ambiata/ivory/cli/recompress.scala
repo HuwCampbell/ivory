@@ -21,7 +21,7 @@ object recompress extends IvoryApp {
     opt[Int]('n', "distribution")       action { (x, c) => c.copy(distribution = x) } optional() text "Number of mappers."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", 20, false), IvoryRunner { configuration => c => IvoryT.fromResultTIO {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", 20, false), IvoryRunner { configuration => c => IvoryT.fromRIO {
     Recompress.go(c.input, c.output, c.distribution, c.dry, configuration.codec).run(configuration.scoobiConfiguration).as(Nil) }
   })
 }

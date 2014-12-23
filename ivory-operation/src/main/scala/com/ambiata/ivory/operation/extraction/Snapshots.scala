@@ -41,7 +41,7 @@ object Snapshots {
   /**
    * Take a new snapshot as at the specified date.
    */
-  def takeSnapshot(repository: Repository, date: Date): ResultTIO[SnapshotJobSummary[SnapshotManifest]] =
+  def takeSnapshot(repository: Repository, date: Date): RIO[SnapshotJobSummary[SnapshotManifest]] =
     for {
       latest    <- SnapshotManifest.latestUpToDateSnapshot(repository, date).run
       result    <- latest match {
@@ -58,7 +58,7 @@ object Snapshots {
   /**
    * create a new snapshot at a given date, using the previous snapshot data if present
    */
-  def createSnapshot(repository: Repository, date: Date): Option[SnapshotManifest] => ResultTIO[SnapshotJobSummary[NewSnapshotManifest]] = (previousSnapshot: Option[SnapshotManifest]) =>
+  def createSnapshot(repository: Repository, date: Date): Option[SnapshotManifest] => RIO[SnapshotJobSummary[NewSnapshotManifest]] = (previousSnapshot: Option[SnapshotManifest]) =>
     for {
       newSnapshot <- NewSnapshotManifest.createSnapshotManifest(repository, date)
       _           <- NewSnapshotManifest.getFeatureStoreId(repository, newSnapshot).flatMap((featureStoreId: FeatureStoreId) => for {
@@ -76,7 +76,7 @@ object Snapshots {
   /**
    * Run a snapshot on a given repository using the previous snapshot in case of an incremental snapshot
    */
-  def runSnapshot(repository: Repository, newSnapshot: NewSnapshotManifest, previousSnapshot: Option[SnapshotManifest], date: Date, newSnapshotId: SnapshotId): ResultTIO[Unit] =
+  def runSnapshot(repository: Repository, newSnapshot: NewSnapshotManifest, previousSnapshot: Option[SnapshotManifest], date: Date, newSnapshotId: SnapshotId): RIO[Unit] =
     for {
       dictionary      <- latestDictionaryFromIvory(repository)
       windows         =  SnapshotWindows.planWindow(dictionary, date)
@@ -92,7 +92,7 @@ object Snapshots {
     } yield ()
 
   def calculateGlobs(repo: Repository, dictionary: Dictionary, windows: SnapshotWindows, newSnapshot: NewSnapshotManifest,
-                     previousSnapshot: Option[SnapshotManifest], date: Date): ResultTIO[List[Prioritized[FactsetGlob]]] =
+                     previousSnapshot: Option[SnapshotManifest], date: Date): RIO[List[Prioritized[FactsetGlob]]] =
     for {
       currentFeatureStore <- Metadata.latestFeatureStoreOrFail(repo)
       parts           <- previousSnapshot.cata(sm => for {
@@ -119,10 +119,10 @@ object Snapshots {
       _               <- Hdfs.log(s"Total input size: $size")
       reducers        =  size.toBytes.value / 2.gb.toBytes.value + 1 // one reducer per 2GB of input
       _               <- Hdfs.log(s"Number of reducers: $reducers")
-      stats           <- Hdfs.fromResultTIO(SnapshotJob.run(repository, conf, dictionary, reducers.toInt, snapshotDate, factsetsGlobs, outputPath, windows, incrementalPath, codec))
+      stats           <- Hdfs.fromRIO(SnapshotJob.run(repository, conf, dictionary, reducers.toInt, snapshotDate, factsetsGlobs, outputPath, windows, incrementalPath, codec))
     } yield stats
 
-  def dictionaryForSnapshot(repository: Repository, meta: SnapshotManifest): ResultTIO[Dictionary] =
+  def dictionaryForSnapshot(repository: Repository, meta: SnapshotManifest): RIO[Dictionary] =
     meta.storeOrCommitId.b.cata(
       commitId => for {
         commit <- commitFromIvory(repository, commitId)
@@ -131,6 +131,6 @@ object Snapshots {
       latestDictionaryFromIvory(repository)
     )
 
-  def newFactsetGlobs(repo: Repository, partitions: List[SnapshotPartition]): ResultTIO[List[Prioritized[FactsetGlob]]] =
+  def newFactsetGlobs(repo: Repository, partitions: List[SnapshotPartition]): RIO[List[Prioritized[FactsetGlob]]] =
     partitions.traverseU(s => FeatureStoreGlob.between(repo, s.store, s.start, s.end).map(_.globs)).map(_.flatten)
 }

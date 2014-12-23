@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.extraction.output
 
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.operation.ingestion.thrift.{ThriftFactDense, ThriftFactSparse}
@@ -97,7 +97,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
     "2|ns2|fid3|boolean|categorical|desc|NA"
   )
 
-  def createDense[A](facts: List[List[Fact]], dictionary: Dictionary, format: GroupByEntityFormat)(f: (HdfsRepository, IvoryLocation) => ResultTIO[A])(repo: HdfsRepository): ResultTIO[A] =
+  def createDense[A](facts: List[List[Fact]], dictionary: Dictionary, format: GroupByEntityFormat)(f: (HdfsRepository, IvoryLocation) => RIO[A])(repo: HdfsRepository): RIO[A] =
     TemporaryDirPath.withDirPath { dir =>
       for {
         // Filter out tombstones to simplify the assertions - we're not interested in the snapshot logic here
@@ -113,7 +113,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
       } yield out
     }
 
-  def createDenseText(facts: List[List[Fact]], dictionary: Dictionary)(repo: HdfsRepository): ResultTIO[(String, List[String])] =
+  def createDenseText(facts: List[List[Fact]], dictionary: Dictionary)(repo: HdfsRepository): RIO[(String, List[String])] =
     createDense(facts, dictionary, GroupByEntityFormat.DenseText(Delimiter.Psv, "NA", TextEscaping.Delimited))((_, dense) => for {
         dictionaryLines  <- IvoryLocation.readLines(dense </> ".dictionary")
         denseLines       <- IvoryLocation.readLines(dense)

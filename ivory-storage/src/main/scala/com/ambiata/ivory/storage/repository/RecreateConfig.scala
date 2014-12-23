@@ -14,7 +14,7 @@ case class RecreateConfig(from: HdfsRepository, to: HdfsRepository,
                           logger: Logger) {
   val (hdfsFrom, hdfsTo) = (from, to) match {
     case (f: HdfsRepository, t: HdfsRepository) => (f, t)
-    case _ => Crash.error(Crash.ResultTIO ,s"Repository combination '$from' and '$to' not supported!")
+    case _ => Crash.error(Crash.RIO ,s"Repository combination '$from' and '$to' not supported!")
   }
 
   def dryFor(data: RecreateData) =

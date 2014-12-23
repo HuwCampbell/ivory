@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.mr.FactFormats._
@@ -44,7 +44,7 @@ ChordSpec
       beOkLike(_.filter(filterCount) must containTheSameElementsAs(facts.expectedSquashSet.filter(filterCount)))
   }).set(minTestsOk = 1)
 
-  def run(facts: ChordFacts, dictionary: Dictionary): ResultTIO[List[Fact]] =
+  def run(facts: ChordFacts, dictionary: Dictionary): RIO[List[Fact]] =
     TemporaryLocations.withCluster { cluster =>
       TemporaryDirPath.withDirPath { directory =>
         RepositoryBuilder.using { repo =>

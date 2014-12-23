@@ -18,6 +18,6 @@ object countFacts extends IvoryApp {
   }
 
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), IvoryRunner { configuration => c =>
-    IvoryT.fromResultTIO { IvoryRetire.countFacts(new Path(c.path, "*")).run(configuration.scoobiConfiguration).map(count => List(count.toString)) }
+    IvoryT.fromRIO { IvoryRetire.countFacts(new Path(c.path, "*")).run(configuration.scoobiConfiguration).map(count => List(count.toString)) }
   })
 }

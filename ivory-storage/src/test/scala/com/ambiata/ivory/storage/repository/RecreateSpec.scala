@@ -5,7 +5,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.fact.Versions
 import com.ambiata.ivory.storage.legacy.SampleFacts
 import com.ambiata.mundane.io.MemoryConversions._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import org.apache.hadoop.io.compress._
 import org.joda.time.LocalDate
 import org.specs2.Specification

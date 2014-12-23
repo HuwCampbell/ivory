@@ -20,7 +20,7 @@ object Extract {
     parser
   }
 
-  def parse(conf: IvoryConfiguration, output: ExtractOutput): ResultTIO[OutputFormats] = for {
+  def parse(conf: IvoryConfiguration, output: ExtractOutput): RIO[OutputFormats] = for {
     out1 <- ResultT.fromDisjunction[IO, List[(OutputFormat, String)]](output.formats.traverseU {
       case (format, path) => OutputFormat.fromString(format).map(_ -> path)
         .toRightDisjunction(\&/.This(s"Unsupported format $format"): \&/[String, Throwable])

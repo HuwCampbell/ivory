@@ -33,6 +33,6 @@ object compareSnapshots extends IvoryApp {
                       |""".stripMargin
       println(banner)
 
-    IvoryT.fromResultTIO { compareHdfsSnapshots(c.snap1, c.snap2, c.output, configuration).as(List(banner, s"Output path: $c.output", "Status -- SUCCESS")) }
+    IvoryT.fromRIO { compareHdfsSnapshots(c.snap1, c.snap2, c.output, configuration).as(List(banner, s"Output path: $c.output", "Status -- SUCCESS")) }
   })
 }

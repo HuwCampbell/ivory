@@ -17,22 +17,22 @@ import scalaz._, Scalaz._, effect.IO
 
 object RepositoryBuilder {
 
-  def using[A](f: HdfsRepository => ResultTIO[A]): ResultTIO[A] = TemporaryDirPath.withDirPath { dir =>
+  def using[A](f: HdfsRepository => RIO[A]): RIO[A] = TemporaryDirPath.withDirPath { dir =>
     runWithConf(dir, conf => {
       val repo = HdfsRepository(HdfsLocation(dir.path), conf)
       f(repo)
     })
   }
 
-  def createRepo(repo: HdfsRepository, dictionary: Dictionary, facts: List[List[Fact]]): ResultTIO[FeatureStoreId] = for {
+  def createRepo(repo: HdfsRepository, dictionary: Dictionary, facts: List[List[Fact]]): RIO[FeatureStoreId] = for {
     _      <- Metadata.dictionaryToIvory(repo, dictionary)
     stores <- createFacts(repo, facts)
   } yield stores._1
 
-  def createFactset(repo: HdfsRepository, facts: List[Fact]): ResultTIO[FactsetId] =
+  def createFactset(repo: HdfsRepository, facts: List[Fact]): RIO[FactsetId] =
     createFacts(repo, List(facts)).map(_._2.head)
 
-  def createFacts(repo: HdfsRepository, facts: List[List[Fact]]): ResultTIO[(FeatureStoreId, List[FactsetId])] = {
+  def createFacts(repo: HdfsRepository, facts: List[List[Fact]]): RIO[(FeatureStoreId, List[FactsetId])] = {
     val serialiser = ThriftSerialiser()
     val factsets = facts.foldLeft(NonEmptyList(FactsetId.initial)) { case (factsetIds, facts) =>
       // This hack is because we can't pass a non-lazy Fact directly to fromLazySeq, but we want/need them to be props

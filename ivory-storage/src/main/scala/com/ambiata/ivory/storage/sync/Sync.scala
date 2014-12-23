@@ -1,7 +1,7 @@
 package com.ambiata.ivory.storage.sync
 
 import com.ambiata.ivory.core._
-import com.ambiata.mundane.control.ResultTIO
+import com.ambiata.mundane.control.RIO
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.poacher.hdfs.Hdfs
@@ -32,7 +32,7 @@ object Sync {
       (Repository.snapshots / sid.asKeyName) :: Nil
   })
 
-  def getS3data(data: Datasets, bucket: String, key: String, cluster: Cluster): ResultTIO[List[S3Address]] = data.sets.traverseU(_.value match {
+  def getS3data(data: Datasets, bucket: String, key: String, cluster: Cluster): RIO[List[S3Address]] = data.sets.traverseU(_.value match {
     case FactsetDataset(Factset(fid, parts)) =>
       parts.map(Repository.factset(fid) / _.key).traverseU(x =>
         getS3Info(S3Pattern(bucket, (Key.unsafe(key) / x).name)).executeT(cluster.s3Client)).map(_.flatten)
@@ -40,7 +40,7 @@ object Sync {
       getS3Info(S3Pattern(bucket, (Repository.snapshots / sid.asKeyName).name)).executeT(cluster.s3Client)
   }).map(_.flatten)
 
-  def getHdfsFilePaths(data: Datasets, root: DirPath, cluster: Cluster): ResultTIO[List[FilePath]] = data.sets.traverseU(_.value match {
+  def getHdfsFilePaths(data: Datasets, root: DirPath, cluster: Cluster): RIO[List[FilePath]] = data.sets.traverseU(_.value match {
     case FactsetDataset(Factset(fid, parts)) =>
       parts.map(Repository.factset(fid) / _.key).traverseU(x =>
         getFilePathInfosOnHdfs(root </> DirPath.unsafe(x.name)).run(cluster.hdfsConfiguration)).map(_.flatten)
@@ -48,7 +48,7 @@ object Sync {
       getFilePathInfosOnHdfs(root </> DirPath.unsafe((Repository.snapshots / sid.asKeyName).name)).run(cluster.hdfsConfiguration)
   }).map(_.flatten)
 
-  def getLocalFilePaths(data: Datasets, root: DirPath, cluster: Cluster): ResultTIO[List[FilePath]] = data.sets.traverseU(_.value match {
+  def getLocalFilePaths(data: Datasets, root: DirPath, cluster: Cluster): RIO[List[FilePath]] = data.sets.traverseU(_.value match {
     case FactsetDataset(Factset(fid, parts)) =>
       parts.map(Repository.factset(fid) / _.key).traverseU(x =>
         Directories.list(root </> DirPath.unsafe(x.name))).map(_.flatten)

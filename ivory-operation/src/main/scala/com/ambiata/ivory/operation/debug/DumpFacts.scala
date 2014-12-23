@@ -21,7 +21,7 @@ case class DumpFactsRequest(
 )
 
 object DumpFacts {
-  def dump(repository: Repository, request: DumpFactsRequest, location: IvoryLocation): ResultT[IO, Unit] = for {
+  def dump(repository: Repository, request: DumpFactsRequest, location: IvoryLocation): RIO[Unit] = for {
     output     <- location.asHdfsIvoryLocation[IO]
     hdfs       <- repository.asHdfsRepository[IO]
     dictionary <- Metadata.latestDictionaryFromIvory(repository)

@@ -17,7 +17,7 @@ import org.specs2._
 import org.scalacheck._, Arbitrary._
 import org.specs2.execute.AsResult
 import org.specs2.matcher.{Matcher, ThrownExpectations}
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 
 import scalaz._, Scalaz._, effect.IO
 import argonaut._, Argonaut._
@@ -144,7 +144,7 @@ SnapshotManifest Properties
     } must beOkResult
   }
 
-  def storeSnapshotManifest(repo: Repository, meta: SnapshotManifest): ResultTIO[Unit] = meta.fold(SnapshotMeta.save(repo, _), NewSnapshotManifest.save(repo, _))
+  def storeSnapshotManifest(repo: Repository, meta: SnapshotManifest): RIO[Unit] = meta.fold(SnapshotMeta.save(repo, _), NewSnapshotManifest.save(repo, _))
 
   def beUpToDate(repo: Repository, date1: Date): Matcher[Option[SnapshotManifest]] = { snapshot: Option[SnapshotManifest] =>
     snapshot must beSome(
@@ -167,7 +167,7 @@ SnapshotManifest Properties
     ) or { snapshot must beNone }
   }
 
-  def beOkResult[R : AsResult]: Matcher[ResultTIO[R]] = (resultTIO: ResultTIO[R]) =>
+  def beOkResult[R : AsResult]: Matcher[RIO[R]] = (resultTIO: RIO[R]) =>
     resultTIO must beOkLike { r =>
       val result = AsResult(r)
       result.isSuccess aka result.message must beTrue

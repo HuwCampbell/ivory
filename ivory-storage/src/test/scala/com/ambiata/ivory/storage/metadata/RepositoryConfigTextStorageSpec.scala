@@ -5,7 +5,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.metadata.RepositoryConfigTextStorage._
 import com.ambiata.ivory.storage.repository.TemporaryRepositoriesT
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core.TemporaryType
 import org.joda.time.DateTimeZone
 import org.specs2._

@@ -20,11 +20,11 @@ import scala.collection.JavaConverters._
 object CatThrift {
 
   def run(configuration: Configuration, entities: List[String], input: String, format: CatThriftFormat, output: String,
-          codec: Option[CompressionCodec]): ResultTIO[Unit] =
+          codec: Option[CompressionCodec]): RIO[Unit] =
     job(configuration, entities, new Path(input), format, new Path(output), codec)
 
   def job(configuration: Configuration, entities: List[String], input: Path, format: CatThriftFormat, output: Path,
-          codec: Option[CompressionCodec]): ResultTIO[Unit] = for {
+          codec: Option[CompressionCodec]): RIO[Unit] = for {
     job <- ResultT.io { Job.getInstance(configuration) }
     ctx <- ResultT.io { MrContextIvory.newContext("ivory-cat-thrift", job) }
     r   <- ResultT.io {

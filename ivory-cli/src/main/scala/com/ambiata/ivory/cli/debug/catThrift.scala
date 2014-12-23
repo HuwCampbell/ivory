@@ -31,7 +31,7 @@ object catThrift extends IvoryApp {
     }
   }
 
-  val cmd =  new IvoryCmd[CliArguments](parser, CliArguments(Nil, "not-set", "not-set", "not-set"), IvoryRunner { conf => c => IvoryT.fromResultTIO { for {
+  val cmd =  new IvoryCmd[CliArguments](parser, CliArguments(Nil, "not-set", "not-set", "not-set"), IvoryRunner { conf => c => IvoryT.fromRIO { for {
     format <- ResultT.fromOption[IO, CatThriftFormat](CatThriftFormat.parseFormat(c.format), s"Unknown thrift format '${c.format}'")
     _      <- CatThrift.run(conf.configuration, c.entities, c.input, format, c.output, conf.codec)
   } yield Nil } })

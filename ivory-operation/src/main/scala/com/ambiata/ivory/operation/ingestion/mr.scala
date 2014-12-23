@@ -61,7 +61,7 @@ object IngestJob {
 
     // run job
     if (!job.waitForCompletion(true))
-      Crash.error(Crash.ResultTIO, "ivory ingest failed.")
+      Crash.error(Crash.RIO, "ivory ingest failed.")
 
     // commit files to factset
     Committer.commit(ctx, {

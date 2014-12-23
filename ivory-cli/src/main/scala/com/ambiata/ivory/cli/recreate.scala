@@ -29,7 +29,7 @@ object recreate extends IvoryApp {
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments(input = "", output = "", clean = true, dry = false, overwrite = false, recreateData = RecreateData.ALL, maxNumber = None, reducerSize = None),
     IvoryRunner { configuration => c =>
-      IvoryT.fromResultTIO { for {
+      IvoryT.fromRIO { for {
         from  <- HdfsRepository.fromUri(c.input, configuration)
         to    <- HdfsRepository.fromUri(c.output, configuration)
         rconf =  RecreateConfig(from = from,

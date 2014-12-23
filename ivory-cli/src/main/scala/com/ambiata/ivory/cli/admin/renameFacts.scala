@@ -32,7 +32,7 @@ object renameFacts extends IvoryApp {
       "Max size (in bytes) of a reducer used to copy Factsets"
   }
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(List(), None, None), { repo => conf => c => IvoryT.fromResultTIO { for {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(List(), None, None), { repo => conf => c => IvoryT.fromRIO { for {
     batch   <- c.batch.cata(parseBatchFile(_, conf), ResultT.ok[IO, RenameMapping](RenameMapping(Nil)))
     mapping <- ResultT.fromDisjunction[IO, RenameMapping](createMapping(c.mapping).leftMap(\&/.This.apply))
     r       <- RepositoryRead.fromRepository(repo)
@@ -42,7 +42,7 @@ object renameFacts extends IvoryApp {
   def createMapping(mapping: List[(String, String)]): String \/ RenameMapping =
     mapping.traverseU { case (f, t) => FeatureId.parse(f) tuple FeatureId.parse(t) }.map(RenameMapping.apply)
 
-  def parseBatchFile(path: String, conf: IvoryConfiguration): ResultTIO[RenameMapping] = for {
+  def parseBatchFile(path: String, conf: IvoryConfiguration): RIO[RenameMapping] = for {
     location <- IvoryLocation.fromUri(path, conf)
     exists   <- IvoryLocation.exists(location)
     _        <- if (!exists) ResultT.fail[IO, Unit](s"Path ${location.show} does not exist") else ResultT.unit[IO]

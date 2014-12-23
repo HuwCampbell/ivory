@@ -58,7 +58,7 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
     before ++ after.drop(2)
   }
 
-  private def parseAndRun(args: Seq[String], result: A => IvoryT[ResultTIO, List[String]]): IO[Option[Unit]] = {
+  private def parseAndRun(args: Seq[String], result: A => IvoryT[RIO, List[String]]): IO[Option[Unit]] = {
     parser.parse(args, initial)
       .traverseU(a => (for {
         r <- IvoryRead.createIO
@@ -70,11 +70,11 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
 object IvoryCmd {
 
   def withRepo[A](parser: scopt.OptionParser[A], initial: A,
-                  runner: Repository => IvoryConfiguration => A => IvoryT[ResultTIO, List[String]]): IvoryCmd[A] =
+                  runner: Repository => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[A] =
     withCluster(parser, initial, r => c => conf => a => runner(r)(conf)(a))
 
   def withCluster[A](parser: scopt.OptionParser[A], initial: A,
-                     runner: Repository => Cluster  => IvoryConfiguration => A => IvoryT[ResultTIO, List[String]]): IvoryCmd[A] = {
+                     runner: Repository => Cluster  => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
     // Oh god this is an ugly/evil hack - the world will be a better place when we upgrade to Pirate
     // Composition, it's a thing scopt, look it up
     var repoArg: Option[String] = None
@@ -88,12 +88,12 @@ object IvoryCmd {
       "Number of parallel nodes to run operations with, defaults to 20"
     new IvoryCmd(parser, initial, IvoryRunner(config => c =>
       for {
-        repoPath        <- IvoryT.fromResultTIO { ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
+        repoPath        <- IvoryT.fromRIO { ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
           "-r|--repository was missing or environment variable IVORY_REPOSITORY not set") }
-        shadowPath      <- IvoryT.fromResultTIO[String] { ResultT.ok(shadowRepoArg.orElse(sys.env.get("SHADOW_REPOSITORY")).getOrElse(s"/tmp/ivory-shadow-${UUID.randomUUID()}")) }
-        syncParallelism <- IvoryT.fromResultTIO { ResultT.ok[IO, Int](syncParallelismArg.getOrElse(20)) }
+        shadowPath      <- IvoryT.fromRIO[String] { ResultT.ok(shadowRepoArg.orElse(sys.env.get("SHADOW_REPOSITORY")).getOrElse(s"/tmp/ivory-shadow-${UUID.randomUUID()}")) }
+        syncParallelism <- IvoryT.fromRIO { ResultT.ok[IO, Int](syncParallelismArg.getOrElse(20)) }
         cluster         = Cluster.fromIvoryConfiguration(new Path(shadowPath), config, syncParallelism)
-        repo            <- IvoryT.fromResultTIO { Repository.fromUri(repoPath, config) }
+        repo            <- IvoryT.fromRIO { Repository.fromUri(repoPath, config) }
         result          <- runner(repo)(cluster)(config)(c)
       } yield result
     ))
@@ -103,7 +103,7 @@ object IvoryCmd {
 /**
  * Represents the run of an Ivory program, with all the necessary configuration
  */
-case class IvoryRunner[A](run: IvoryConfiguration => A => IvoryT[ResultTIO, List[String]])
+case class IvoryRunner[A](run: IvoryConfiguration => A => IvoryT[RIO, List[String]])
 
 trait IvoryApp {
   // It's important this is a val, not a def, to ensure we don't mutate scopt twice accidentally

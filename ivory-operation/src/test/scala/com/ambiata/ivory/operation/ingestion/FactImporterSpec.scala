@@ -9,7 +9,7 @@ import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core._
 import com.ambiata.poacher.mr.ThriftSerialiser
 import com.nicta.scoobi.Scoobi._
@@ -91,17 +91,17 @@ class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
     IntFact(   "pid1", FeatureId(ns1, "fid2"), Date(2012, 10, 15), Time(20), 2),
     DoubleFact("pid1", FeatureId(ns1, "fid3"), Date(2012, 3, 20),  Time(30), 3.0))
 
-  def saveTextInputFile: ResultTIO[Unit] = {
+  def saveTextInputFile: RIO[Unit] = {
     val raw = List("pid1|fid1|v1|2012-10-01 00:00:10",
                    "pid1|fid2|2|2012-10-15 00:00:20",
                    "pid1|fid3|3.0|2012-03-20 00:00:30")
     save(namespaced, raw)
   }
 
-  def saveThriftInputFile: ResultTIO[Unit] =
+  def saveThriftInputFile: RIO[Unit] =
     saveFactsAsThrift(expected)
 
-  def saveFactsAsThrift(facts: List[Fact]): ResultTIO[Unit] = {
+  def saveFactsAsThrift(facts: List[Fact]): RIO[Unit] = {
     import com.ambiata.ivory.operation.ingestion.thrift._
     val serializer = ThriftSerialiser()
     TemporaryIvoryConfiguration.withConf(conf =>
@@ -111,7 +111,7 @@ class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
     )
   }
 
-  def saveTextInputFileWithErrors: ResultTIO[Unit] = {
+  def saveTextInputFileWithErrors: RIO[Unit] = {
     val raw = List("pid1|fid1|v1|2012-10-01 00:00:10",
                    "pid1|fid2|x|2012-10-15 00:00:20",
                    "pid1|fid3|3.0|2012-03-20 00:00:30",
@@ -119,17 +119,17 @@ class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
     save(namespaced, raw)
   }
 
-  def saveThriftInputFileWithErrors: ResultTIO[Unit] = {
+  def saveThriftInputFileWithErrors: RIO[Unit] = {
     val bad = List(
       StringFact("pid".padTo(256, '1'), FeatureId(ns1, "fid1"), Date(2012, 10, 1),  Time(10), "v1"),
       StringFact("pid1", FeatureId(ns1, "fid2"), Date(2012, 10, 1),  Time(10), "v1"))
     saveFactsAsThrift(expected ++ bad)
   }
 
-  def save(path: IvoryLocation, raw: List[String]): ResultTIO[Unit] =
+  def save(path: IvoryLocation, raw: List[String]): RIO[Unit] =
     IvoryLocation.writeUtf8Lines(path </> "part", raw)
 
-  def importAs(format: FileFormat): ResultTIO[Unit] =
+  def importAs(format: FileFormat): RIO[Unit] =
     FactImporter
       .runJob(repository, 128.mb, dictionary, FactsetId.initial, List((format, None, input.toHdfsPath)), errors.toHdfsPath,
         None, RepositoryConfig.testing.copy(timezone = DateTimeZone.getDefault)) >>

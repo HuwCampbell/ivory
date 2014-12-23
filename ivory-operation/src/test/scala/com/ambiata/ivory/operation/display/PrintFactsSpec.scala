@@ -8,7 +8,7 @@ import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.ivory.operation.extraction._
 import com.ambiata.mundane.control.ResultT
 import org.joda.time.LocalDate
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import scalaz.effect.IO
 
 class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""

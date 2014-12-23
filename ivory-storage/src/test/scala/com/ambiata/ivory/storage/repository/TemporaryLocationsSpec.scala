@@ -3,10 +3,10 @@ package com.ambiata.ivory.storage.repository
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.TemporaryLocations._
 import com.ambiata.ivory.core.TemporaryIvoryConfiguration._
-import com.ambiata.mundane.control.ResultTIO
+import com.ambiata.mundane.control.RIO
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.saws.s3.{S3Prefix, S3, S3Address}
 import com.ambiata.saws.s3.TemporaryS3._
@@ -71,7 +71,7 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
   def s3DirLocation =
     withLocationDir(createUniqueS3Location)
 
-  def withRepository(run: IvoryConfiguration => Repository): MatchResult[ResultTIO[(Boolean, Boolean)]] =
+  def withRepository(run: IvoryConfiguration => Repository): MatchResult[RIO[(Boolean, Boolean)]] =
     withConf(c => {
       val repository = run(c)
       (for {
@@ -84,7 +84,7 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
       } yield (x,y))
     }) must beOkValue(true -> false)
 
-  def withStore(run: IvoryConfiguration => Store[ResultTIO]): MatchResult[ResultTIO[(Boolean, Boolean)]] =
+  def withStore(run: IvoryConfiguration => Store[RIO]): MatchResult[RIO[(Boolean, Boolean)]] =
     withConf(c => {
       val s = run(c)
       (for {
@@ -96,7 +96,7 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
       } yield (x,y))
     }) must beOkValue((true,false))
 
-  def withLocationFile(run: IvoryConfiguration => IvoryLocation): MatchResult[ResultTIO[(Boolean, Boolean)]] =
+  def withLocationFile(run: IvoryConfiguration => IvoryLocation): MatchResult[RIO[(Boolean, Boolean)]] =
     withConf(c => {
       val l = run(c)
       (for {
@@ -113,13 +113,13 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
     }) must beOkValue((true,false))
 
 
-  def checkFileLocation(location: IvoryLocation, conf: IvoryConfiguration): ResultTIO[Boolean] = location match {
+  def checkFileLocation(location: IvoryLocation, conf: IvoryConfiguration): RIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(p)) => Files.exists(l.filePath)
     case s @ S3IvoryLocation(S3Location(b, k), _) => S3Address(b, k).exists.executeT(conf.s3Client)
     case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.exists(h.toHdfsPath).run(conf.configuration)
   }
 
-  def withLocationDir(run: IvoryConfiguration => IvoryLocation): MatchResult[ResultTIO[(Boolean, Boolean)]] =
+  def withLocationDir(run: IvoryConfiguration => IvoryLocation): MatchResult[RIO[(Boolean, Boolean)]] =
     withConf(c => {
       val l = run(c)
       (for {
@@ -135,7 +135,7 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
       } yield (x, y))
     }) must beOkValue((true,false))
 
-  def checkDirLocation(location: IvoryLocation, conf: IvoryConfiguration): ResultTIO[Boolean] = location match {
+  def checkDirLocation(location: IvoryLocation, conf: IvoryConfiguration): RIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(p)) => Directories.exists(l.dirPath)
     case S3IvoryLocation(S3Location(b, k), _)     => S3Prefix(b, k).exists.executeT(conf.s3Client)
     case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.exists(h.toHdfsPath).run(conf.configuration)

@@ -34,7 +34,7 @@ object dumpFacts extends IvoryApp {
     }
   }
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(Nil, Nil, Nil, Nil, "not-set"), { repository => conf => c => IvoryT.fromResultTIO { for {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(Nil, Nil, Nil, Nil, "not-set"), { repository => conf => c => IvoryT.fromRIO { for {
     output <- IvoryLocation.fromUri(c.output, conf)
     _      <- DumpFacts.dump(repository, DumpFactsRequest(c.factsets, c.snapshots, c.entities, c.attributes), output)
   } yield Nil } })

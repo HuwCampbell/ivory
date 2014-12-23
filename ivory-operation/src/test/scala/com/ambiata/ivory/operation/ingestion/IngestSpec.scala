@@ -15,7 +15,7 @@ import com.ambiata.ivory.storage.repository.{HdfsGlobs, Repositories}
 import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._
 import com.ambiata.poacher.mr.ThriftSerialiser

@@ -22,6 +22,6 @@ object catErrors extends IvoryApp {
   }
 
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), IvoryRunner { conf => c =>
-    IvoryT.fromResultTIO { printErrors(c.paths.map(new Path(_)), conf.configuration, c.delimiter).executeT(consoleLogging).as(Nil) }
+    IvoryT.fromRIO { printErrors(c.paths.map(new Path(_)), conf.configuration, c.delimiter).executeT(consoleLogging).as(Nil) }
   })
 }

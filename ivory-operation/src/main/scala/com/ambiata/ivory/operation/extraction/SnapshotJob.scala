@@ -28,7 +28,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
  */
 object SnapshotJob {
   def run(repository: HdfsRepository, conf: Configuration, dictionary: Dictionary, reducers: Int, date: Date, inputs: List[Prioritized[FactsetGlob]], output: Path,
-          windows: SnapshotWindows, incremental: Option[Path], codec: Option[CompressionCodec]): ResultTIO[SnapshotStats] = {
+          windows: SnapshotWindows, incremental: Option[Path], codec: Option[CompressionCodec]): RIO[SnapshotStats] = {
 
     val job = Job.getInstance(conf)
     val ctx = MrContextIvory.newContext("ivory-snapshot", job)
@@ -76,7 +76,7 @@ object SnapshotJob {
 
     // run job
     if (!job.waitForCompletion(true))
-      Crash.error(Crash.ResultTIO, "ivory snapshot failed.")
+      Crash.error(Crash.RIO, "ivory snapshot failed.")
 
     // commit files to factset
     for {

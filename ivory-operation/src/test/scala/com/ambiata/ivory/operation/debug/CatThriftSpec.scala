@@ -6,7 +6,7 @@ import com.ambiata.ivory.core.thrift.ThriftLike
 import com.ambiata.ivory.operation.ingestion.thrift._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core.SequenceUtil
 import com.ambiata.poacher.mr.ThriftSerialiser
 import org.specs2._
@@ -37,7 +37,7 @@ class CatThriftSpec extends Specification with ScalaCheck { def is = s2"""
     run(CatThriftSparse, t) must beOkValue(expected)
   }.set(minTestsOk = 3, maxSize = 5)
 
-  def run[A <: ThriftLike](format: CatThriftFormat, thrifts: List[A]): ResultTIO[List[String]] = {
+  def run[A <: ThriftLike](format: CatThriftFormat, thrifts: List[A]): RIO[List[String]] = {
     RepositoryBuilder.using { repo => for {
       i <- Repository.tmpDir(repo).map(repo.toIvoryLocation)
       o <- Repository.tmpDir(repo).map(repo.toIvoryLocation)

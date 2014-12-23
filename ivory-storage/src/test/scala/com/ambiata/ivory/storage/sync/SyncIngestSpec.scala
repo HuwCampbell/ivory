@@ -6,7 +6,7 @@ import com.ambiata.ivory.core.TemporaryLocations._
 import com.ambiata.ivory.core.TemporaryRepositories._
 import com.ambiata.ivory.storage.arbitraries.Arbitraries._
 import com.ambiata.mundane.io._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._
 import com.ambiata.poacher.hdfs.Hdfs

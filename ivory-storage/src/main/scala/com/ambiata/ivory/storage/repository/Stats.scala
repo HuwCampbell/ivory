@@ -19,7 +19,7 @@ import scalaz.effect.IO
  * For now only Hdfs repositories are supported
  */
 object Stats {
-  type StatAction[A] = ReaderT[ResultTIO, StatConfig, A]
+  type StatAction[A] = ReaderT[RIO, StatConfig, A]
 
   def repositorySize: StatAction[BytesQuantity] =
     (factsetsSize |@| metadataSize |@| snapshotsSize)(Seq(_, _, _).sum)
@@ -79,8 +79,8 @@ object Stats {
   private def fromHdfs[A](action: Hdfs[A]): StatAction[A] =
     (c: StatConfig) => action.run(c.conf)
 
-  implicit def createKleisli[A](f: StatConfig => ResultTIO[A]): StatAction[A] =
-    kleisli[ResultTIO, StatConfig, A](f)
+  implicit def createKleisli[A](f: StatConfig => RIO[A]): StatAction[A] =
+    kleisli[RIO, StatConfig, A](f)
 
 }
 

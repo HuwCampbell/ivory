@@ -26,7 +26,7 @@ object FactImporter {
   ): IvoryTIO[Unit] = {
     val errorKey = Repository.errors / factsetId.asKeyName
 
-    IvoryT.read[ResultTIO] >>= (read => IvoryT.fromResultTIO { for {
+    IvoryT.read[RIO] >>= (read => IvoryT.fromRIO { for {
       hr            <- repository.asHdfsRepository[IO]
       dictionary    <- latestDictionaryFromIvory(repository)
       errorPath     =  hr.toIvoryLocation(errorKey).toHdfsPath
@@ -40,7 +40,7 @@ object FactImporter {
 
   def runJob(hr: HdfsRepository, optimal: BytesQuantity, dictionary: Dictionary, factsetId: FactsetId,
              inputs: List[(FileFormat, Option[Name], Path)], errorPath: Path, timezone: Option[DateTimeZone],
-             config: RepositoryConfig): ResultTIO[Unit] = for {
+             config: RepositoryConfig): RIO[Unit] = for {
     paths      <- inputs.traverseU((prepareInput _).tupled).run(hr.configuration)
     partitions  = Namespaces.sum(paths.map(_._5).flatten)
     _          <- Hdfs.fromDisjunction(validateNamespaces(dictionary, partitions.keys.toList)).run(hr.configuration)

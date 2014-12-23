@@ -6,7 +6,7 @@ import com.ambiata.ivory.core._
 import scalaz._, Scalaz._, \&/._, effect.IO
 
 object Partitions {
-  def getFromFactset(repository: Repository, factset: FactsetId): ResultTIO[List[Partition]] =
+  def getFromFactset(repository: Repository, factset: FactsetId): RIO[List[Partition]] =
     for {
       keys       <- repository.store.list(Repository.factset(factset)).map(_.map(_.dropRight(1).drop(2)).filter(_ != Key.Root).distinct)
       partitions <- keys.traverseU(key => ResultT.fromDisjunction[IO, Partition](Partition.parseNamespaceDateKey(key).disjunction.leftMap(This.apply)))

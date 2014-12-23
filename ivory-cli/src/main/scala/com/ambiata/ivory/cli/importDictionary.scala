@@ -26,7 +26,7 @@ object importDictionary extends IvoryApp {
   }
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments("", update = false, force = false), { repository => configuration => c =>
-      IvoryT.fromResultTIO { for {
+      IvoryT.fromRIO { for {
         source <- IvoryLocation.fromUri(c.path, configuration)
         opts    = ImportOpts(if (c.update) Update else Override, c.force)
         result <- DictionaryImporter.importFromPath(repository, source, opts)

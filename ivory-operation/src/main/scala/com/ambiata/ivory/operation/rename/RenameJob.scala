@@ -72,7 +72,7 @@ object RenameJob {
 
       /* run job */
       if (!job.waitForCompletion(true))
-        Crash.error(Crash.ResultTIO, "ivory rename failed.")
+        Crash.error(Crash.RIO, "ivory rename failed.")
 
       val group = job.getCounters.getGroup("ivory")
       RenameStats(group.findCounter(RenameJob.Keys.ReduceCounter).getValue)

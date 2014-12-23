@@ -10,7 +10,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType.Posix
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import org.specs2.{ScalaCheck, Specification}
 import org.specs2.matcher.ThrownExpectations
 import scalaz.syntax.bind._

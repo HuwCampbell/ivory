@@ -7,7 +7,7 @@ import scalaz.effect.IO
 
 object SparseOutput {
   def extractWithDictionary(repository: Repository, input: ShadowOutputDataset, output: ShadowOutputDataset, dictionary: Dictionary,
-                            delim: Delimiter, missing: String, escaping: TextEscaping): ResultTIO[Unit] = for {
+                            delim: Delimiter, missing: String, escaping: TextEscaping): RIO[Unit] = for {
     hdfsRepo <- repository.asHdfsRepository[IO]
     in        = input.hdfsPath
     out       = output.hdfsPath

@@ -9,7 +9,7 @@ import scalaz.effect.IO
 
 object GroupByEntityOutput {
   def createWithDictionary(repository: Repository, input: ShadowOutputDataset, output: ShadowOutputDataset, dictionary: Dictionary,
-                           format: GroupByEntityFormat): ResultTIO[Unit] = for {
+                           format: GroupByEntityFormat): RIO[Unit] = for {
     hdfsRepo       <- repository.asHdfsRepository[IO]
     in             =  input.hdfsPath
     out            =  output.hdfsPath

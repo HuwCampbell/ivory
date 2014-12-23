@@ -31,7 +31,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
  */
 object ChordJob {
   def run(repository: HdfsRepository, reducers: Int, inputs: List[Prioritized[FactsetGlob]], output: Path, entities: Entities,
-          dictionary: Dictionary, incremental: Option[Path], codec: Option[CompressionCodec]): ResultTIO[Unit] = {
+          dictionary: Dictionary, incremental: Option[Path], codec: Option[CompressionCodec]): RIO[Unit] = {
 
     val job = Job.getInstance(repository.configuration)
     val ctx = MrContextIvory.newContext("ivory-chord", job)
@@ -77,7 +77,7 @@ object ChordJob {
 
     // run job
     if (!job.waitForCompletion(true))
-      Crash.error(Crash.ResultTIO, "ivory chord failed.")
+      Crash.error(Crash.RIO, "ivory chord failed.")
 
     // commit files to factset
     Committer.commit(ctx, {

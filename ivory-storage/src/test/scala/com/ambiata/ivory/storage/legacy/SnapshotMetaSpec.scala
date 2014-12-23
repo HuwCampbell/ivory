@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.arbitraries.Arbitraries._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 
 import org.specs2._
 import org.scalacheck._, Arbitrary._

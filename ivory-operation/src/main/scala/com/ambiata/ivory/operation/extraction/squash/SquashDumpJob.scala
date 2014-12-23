@@ -19,7 +19,7 @@ import scalaz._, effect.IO
 object SquashDumpJob {
 
   def dump(repository: Repository, snapshotId: SnapshotId, output: IvoryLocation, features: List[FeatureId],
-           entities: List[String]): ResultTIO[Unit] = for {
+           entities: List[String]): RIO[Unit] = for {
     dictionary <- Metadata.latestDictionaryFromIvory(repository)
     filteredDct = if (features.isEmpty) dictionary else SquashDump.filterByConcreteOrVirtual(dictionary, features.toSet)
     lookup      = FeatureLookups.entityFilter(features.flatMap(SquashDump.lookupConcreteFromVirtual(dictionary, _)), entities)
@@ -37,7 +37,7 @@ object SquashDumpJob {
     _          <- SquashJob.run(job._1, job._2, reducers, filteredDct, out.toHdfsPath, hr.codec, SquashConfig.default, latest = false)
   } yield ()
 
-  def initDumpJob(conf: Configuration, date: Date, input: Path, dictionary: Dictionary, lookup: EntityFilterLookup): ResultTIO[(Job, MrContext)] = ResultT.safe {
+  def initDumpJob(conf: Configuration, date: Date, input: Path, dictionary: Dictionary, lookup: EntityFilterLookup): RIO[(Job, MrContext)] = ResultT.safe {
 
     val job = Job.getInstance(conf)
     val ctx = MrContextIvory.newContext("ivory-squash-dump", job)

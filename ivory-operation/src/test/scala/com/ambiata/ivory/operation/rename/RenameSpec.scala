@@ -7,7 +7,7 @@ import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
-import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.RIOMatcher._
 import com.nicta.scoobi.Scoobi._
 import org.joda.time.LocalDate
 import org.specs2.{ScalaCheck, Specification}
@@ -89,9 +89,9 @@ Rename
       .map(r => r._1 -> r._2.toSet) must beOkValue(RenameStats(facts.size) -> facts.map(_.withFeatureId(tid)))
   }).set(minTestsOk = 1, minSize = 1, maxSize = 5)
 
-  def renameWithFacts(mapping: RenameMapping, dictionary: Dictionary, input: List[Seq[Fact]]): ResultTIO[(RenameStats, Seq[Fact])] =
+  def renameWithFacts(mapping: RenameMapping, dictionary: Dictionary, input: List[Seq[Fact]]): RIO[(RenameStats, Seq[Fact])] =
       RepositoryBuilder.using { repo => RepositoryRead.fromRepository(repo).flatMap(r => (for {
-          _      <- RepositoryT.fromResultTIO(_ => RepositoryBuilder.createRepo(repo, dictionary, input.map(_.toList)))
+          _      <- RepositoryT.fromRIO(_ => RepositoryBuilder.createRepo(repo, dictionary, input.map(_.toList)))
           result <- Rename.rename(mapping, 10.mb)
           sc = repo.scoobiConfiguration
           facts  <- RepositoryT.fromResultT(_ => IvoryStorage.factsFromIvoryFactset(repo, result._1).run(sc).map(_.run(sc)))
