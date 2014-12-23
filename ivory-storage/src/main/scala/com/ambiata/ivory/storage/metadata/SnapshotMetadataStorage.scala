@@ -35,6 +35,7 @@ object SnapshotMetadataStorage {
        incomplete. In fact this is a totally normal situation (parallel or aborted snapshots). */
     sids <- ids.flatMap(sid => SnapshotId.parse(sid.name).toList).pure[RIO].liftM[OptionT]
     metas <- sids.traverseU(SnapshotManifest.io(repository, _).read).map(_.flatten).liftM[OptionT]
+    // FIX I think this should happen on SnapshotMetadata not the manifests.
     filtered = sort(metas.filter(_.date isBeforeOrEqual date))
     _ = println("Candidate snapshots: ")
     _ = filtered.map(m => s"  - id: ${m.snapshot}, date: ${m.date}.").foreach(println)
@@ -46,10 +47,10 @@ object SnapshotMetadataStorage {
   def sort(l: List[SnapshotManifest]): List[SnapshotManifest] =
     l.sortWith {
       case (sm1, sm2) => (sm1.storeOrCommit, sm2.storeOrCommit) match {
-        case (Left(s1), Left(s2))   => (sm1.snapshot, sm1.date, s1).?|?((sm2.snapshot, sm2.date, s2)) == Ordering.LT
-        case (Left(_), Right(_))    => true
-        case (Right(_), Left(_))    => false
-        case (Right(c1), Right(c2)) => (sm1.snapshot, sm1.date, c1).?|?((sm2.snapshot, sm2.date, c2)) == Ordering.LT
+        case (-\/(s1), -\/(s2))   => (sm1.date, s1, sm1.snapshot).?|?((sm2.date, s2, sm2.snapshot)) == Ordering.LT
+        case (-\/(_), \/-(_))    => true
+        case (\/-(_), -\/(_))    => false
+        case (\/-(c1), \/-(c2)) => (sm1.date, c1, sm1.snapshot).?|?((sm2.date, c2, sm2.snapshot)) == Ordering.LT
       }
     }
 
