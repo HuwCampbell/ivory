@@ -114,7 +114,7 @@ SnapshotManifest Properties
   }
 
   def writeSnapshotsAndCommits(repo: Repository, manifest: SnapshotManifest): RIO[Unit] =
-    manifest.storeOrCommit.right.toOption
+    manifest.storeOrCommit.toOption
       .traverseU(cid => CommitTextStorage.storeCommitToId(repo, cid, Commit(DictionaryId.initial, FeatureStoreId.initial, None))).void >>
       SnapshotManifest.io(repo, manifest.snapshot).write(manifest)
 

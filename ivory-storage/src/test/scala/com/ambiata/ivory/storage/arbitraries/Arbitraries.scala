@@ -8,6 +8,7 @@ import com.ambiata.notion.core.TemporaryType
 import com.ambiata.notion.core.TemporaryType.{Hdfs, S3, Posix}
 import org.scalacheck.{Gen, Arbitrary}
 import org.scalacheck.Arbitrary._
+import scalaz._, Scalaz._
 
 trait Arbitraries {
   val awsEnabled = sys.env.contains("FORCE_AWS") || sys.env.contains("AWS_ACCESS_KEY")
@@ -27,7 +28,7 @@ trait Arbitraries {
     Arbitrary(for {
       id <- arbitrary[SnapshotId]
       date <- arbitrary[Date]
-      storeOrCommit <- Gen.frequency(1 -> arbitrary[FeatureStoreId].map(Left(_)), 9 -> arbitrary[CommitId].map(Right(_)))
+      storeOrCommit <- Gen.frequency(1 -> arbitrary[FeatureStoreId].map(_.left), 9 -> arbitrary[CommitId].map(_.right))
     } yield SnapshotManifest.createDeprecated(storeOrCommit, id, SnapshotFormat.V1, date))
 }
 
