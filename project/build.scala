@@ -185,7 +185,7 @@ object build extends Build {
       name := "ivory-storage"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.scoobi(version.value) ++
                                                depend.argonaut ++ depend.poacher(version.value) ++ depend.specs2 ++
-                                               depend.saws)
+                                               depend.saws ++ depend.disorder)
   )
   .dependsOn(core, mr, core % "test->test", mr % "test->test")
 

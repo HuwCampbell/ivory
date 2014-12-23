@@ -36,7 +36,7 @@ object UpdateV0 {
     _ <- sm.flatten.traverseU(s => SnapshotManifest.io(repository, s.snapshot).write(s))
   } yield ())
 
-  case class SnapshotMetadataV0(snapshotId: SnapshotId, date: Date, storeOrCommit: Either[FeatureStoreId, CommitId])
+  case class SnapshotMetadataV0(snapshotId: SnapshotId, date: Date, storeOrCommit: FeatureStoreId \/ CommitId)
 
   object SnapshotMetadataV0 {
 
@@ -64,7 +64,7 @@ object UpdateV0 {
         date     <- localDate
         storeId  <- FeatureStoreId.listParser
         commitId <- string.map(CommitId.parse)
-      } yield SnapshotMetadataV0(snapshotId, Date.fromLocalDate(date), commitId.toRight(storeId))
+      } yield SnapshotMetadataV0(snapshotId, Date.fromLocalDate(date), commitId.toRightDisjunction(storeId))
     }
   }
 

@@ -7,7 +7,7 @@ import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.{Factsets, FeatureStoreGlob}
 import com.ambiata.ivory.storage.arbitraries._
 import com.ambiata.ivory.storage.arbitraries.Arbitraries._
-import com.ambiata.ivory.storage.manifest.SnapshotManifest
+import com.ambiata.ivory.storage.manifest._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core.{Key, KeyName}
@@ -39,7 +39,43 @@ SnapshotManifest Properties
 
   Any invalid ids should be ignored $ignored
 
+Sorting
+=======
+
+  Commits are always greater than to stores                         $sortStores
+  Dates always take priority ingoring rest of detail                $sortDates
+  Commit id takes precedence if dates are same                      $sortCommits
+  Snapshot id takes precedence if dates and commits are same        $sortSnapshots
+
 """
+
+  def haveStore(a: SnapshotManifest, b: SnapshotManifest): Boolean =
+    a.storeOrCommit.isRight && b.storeOrCommit.isRight
+
+  def sortStores =
+    prop((base: SnapshotManifest, c: CommitId,  f: FeatureStoreId) => {
+      val cm = base.copy(storeOrCommit = c.right)
+      val fm = base.copy(storeOrCommit = f.left)
+      val all = List(cm, fm)
+      SnapshotMetadataStorage.sort(all).span(_.storeOrCommit.isLeft) ==== (List(fm) -> List(cm)) })
+
+  def sortDates =
+    prop((s1: SnapshotManifest, s2: SnapshotManifest) => (haveStore(s1, s2) && s1.date != s2.date) ==> {
+      SnapshotMetadataStorage.sort(List(s1, s2)) ==== List(s1, s2).sortBy(_.date) })
+
+  def sortCommits =
+    prop((s1: SnapshotManifest, s2: SnapshotManifest, d: Date) => (haveStore(s1, s2) && s1.storeOrCommit != s2.storeOrCommit) ==> {
+      val x1 = s1.copy(date = d)
+      val x2 = s2.copy(date = d)
+      val all = List(x1, x2)
+      SnapshotMetadataStorage.sort(all) ==== all.sortBy(_.storeOrCommit.toOption) })
+
+  def sortSnapshots =
+    prop((s1: SnapshotManifest, s2: SnapshotManifest, d: Date, c: CommitId) => (s1.snapshot != s2.snapshot) ==> {
+      val x1 = s1.copy(date = d, storeOrCommit = c.right)
+      val x2 = s2.copy(date = d, storeOrCommit = c.right)
+      val all = List(x1, x2)
+      SnapshotMetadataStorage.sort(all) ==== all.sortBy(_.snapshot) })
 
   def newSaveLoad = prop((ns: SnapshotManifest) =>
     RepositoryBuilder.using((repo: Repository) =>
@@ -114,7 +150,7 @@ SnapshotManifest Properties
   }
 
   def writeSnapshotsAndCommits(repo: Repository, manifest: SnapshotManifest): RIO[Unit] =
-    manifest.storeOrCommit.right.toOption
+    manifest.storeOrCommit.toOption
       .traverseU(cid => CommitTextStorage.storeCommitToId(repo, cid, Commit(DictionaryId.initial, FeatureStoreId.initial, None))).void >>
       SnapshotManifest.io(repo, manifest.snapshot).write(manifest)
 
