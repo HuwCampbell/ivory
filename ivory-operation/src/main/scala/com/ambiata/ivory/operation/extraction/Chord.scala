@@ -78,7 +78,7 @@ object Chord {
   def calculateGlobs(repository: Repository, featureStore: FeatureStore, latestDate: Date,
                      featureStoreSnapshot: Option[FeatureStoreSnapshot]): RIO[List[Prioritized[FactsetGlob]]] =
     featureStoreSnapshot.cata(snapshot => for {
-      oldGlobs    <- FeatureStoreGlob.between(repository, snapshot.store, snapshot.date, latestDate).map(_.globs)
+      oldGlobs    <- FeatureStoreGlob.strictlyAfterAndBefore(repository, snapshot.store, snapshot.date, latestDate).map(_.globs)
       newFactsets  = featureStore diff snapshot.store
       _            = println(s"Reading factsets up to '$latestDate'\n${newFactsets.factsets}")
       newGlobs    <- FeatureStoreGlob.before(repository, newFactsets, latestDate).map(_.globs)

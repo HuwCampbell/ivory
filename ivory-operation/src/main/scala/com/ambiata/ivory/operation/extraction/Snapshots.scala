@@ -128,5 +128,5 @@ object Snapshots {
     )
 
   def newFactsetGlobs(repo: Repository, partitions: List[SnapshotPartition]): RIO[List[Prioritized[FactsetGlob]]] =
-    partitions.traverseU(s => FeatureStoreGlob.between(repo, s.store, s.start, s.end).map(_.globs)).map(_.flatten)
+    partitions.traverseU(s => FeatureStoreGlob.strictlyAfterAndBefore(repo, s.store, s.start, s.end).map(_.globs)).map(_.flatten)
 }
