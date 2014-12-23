@@ -23,18 +23,6 @@ object FeatureStoreGlob {
   def before(repository: Repository, store: FeatureStore, to: Date): RIO[FeatureStoreGlob] =
     filter(repository, store, _.date.isBeforeOrEqual(to))
 
-  def after(repository: Repository, store: FeatureStore, from: Date): RIO[FeatureStoreGlob] =
-    filter(repository, store, _.date.isAfterOrEqual(from))
-
-  def between(repository: Repository, store: FeatureStore, from: Date, to: Date): RIO[FeatureStoreGlob] =
-    filter(repository, store, p => p.date.isBeforeOrEqual(to) && p.date.isAfterOrEqual(from))
-
-  def strictlyBetween(repository: Repository, store: FeatureStore, from: Date, to: Date): RIO[FeatureStoreGlob] =
-    filter(repository, store, p => p.date.isBefore(to) && p.date.isAfter(from))
-
-  def afterAndStrictlyBefore(repository: Repository, store: FeatureStore, from: Date, to: Date): RIO[FeatureStoreGlob] =
-    filter(repository, store, p => p.date.isBefore(to) && p.date.isAfterOrEqual(from))
-
   def strictlyAfterAndBefore(repository: Repository, store: FeatureStore, from: Date, to: Date): RIO[FeatureStoreGlob] =
     filter(repository, store, p => p.date.isBeforeOrEqual(to) && p.date.isAfter(from))
 
