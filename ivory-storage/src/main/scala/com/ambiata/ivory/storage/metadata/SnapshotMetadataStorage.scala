@@ -95,7 +95,7 @@ object SnapshotMetadataStorage {
       if (beginDate == endDate)
         true.pure[RIO]
       else
-        FeatureStoreGlob.between(repo, store, beginDate, endDate).map(_.partitions.isEmpty)
+        FeatureStoreGlob.strictlyAfterAndBefore(repo, store, beginDate, endDate).map(_.partitions.isEmpty)
     } else false.pure[RIO]
   }
 
