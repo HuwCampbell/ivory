@@ -10,5 +10,5 @@ object GenVersion {
     Gen.oneOf(FactsetFormat.V1, FactsetFormat.V2)
 
   def metadata: Gen[MetadataVersion] =
-    Gen.const(MetadataVersion.V1)
+    Gen.oneOf(MetadataVersion.V0, MetadataVersion.V1, MetadataVersion.V2)
 }

@@ -23,4 +23,13 @@ case class ManifestIO[A](base: IvoryLocation) {
 
   def exists: RIO[Boolean] =
     IvoryLocation.exists(location)
+
+  def peek: RIO[Option[VersionManifest]] = for {
+    e <- exists
+    m <- if (e) peekOrFail.map(_.some) else none[VersionManifest].pure[RIO]
+  } yield m
+
+  def peekOrFail: RIO[VersionManifest] =
+    IvoryLocation.readUtf8(location).flatMap(s => ResultT.fromDisjunctionString(s.decodeEither[VersionManifestPeek].map(_.version).leftMap(e => s"Failed to peek at metadata at $base, with $e")))
+
 }

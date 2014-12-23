@@ -26,7 +26,7 @@ object IvoryInputs {
     incremental.foreach(p => println(s"Adding input path snapshot at path ${p}."))
     val specifications = InputSpecification(classOf[SequenceFileInputFormat[_, _]], factset, for {
         i <- inputs
-        g <- Partitions.globs(repository, i.value.factset, i.value.partitions)
+        g <- Partitions.globs(repository, i.value.factset, i.value.partitions.map(_.value))
       } yield new Path(g)) :: incremental.map(i => InputSpecification(classOf[SequenceFileInputFormat[_, _]], snapshot, i :: Nil)).toList
     ProxyInputFormat.configure(context, job, specifications)
   }

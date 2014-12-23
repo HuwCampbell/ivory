@@ -65,6 +65,8 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
   def toLine(p: Prioritized[FactsetId]): String =
     p.value.render
 
+
+
   def listIds(repository: Repository): RIO[List[FeatureStoreId]] = for {
     paths <- repository.store.listHeads(Repository.featureStores).map(_.filterHidden)
     ids   <- {

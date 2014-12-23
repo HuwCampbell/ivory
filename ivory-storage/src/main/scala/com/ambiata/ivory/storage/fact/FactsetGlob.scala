@@ -8,14 +8,15 @@ import com.ambiata.notion.core._
 import scalaz._, effect.IO
 
 // TODO remove once plan api is created
-case class FactsetGlob(repo: Repository, factset: FactsetId, version: FactsetVersion, partitions: List[Partition]) {
+case class FactsetGlob(repo: Repository, factset: FactsetId, version: FactsetVersion, partitions: List[Sized[Partition]]) {
+  // FIX this type doesn't make sense why not empty list of partitions?
   def filterPartitions(f: Partition => Boolean): Option[FactsetGlob] = {
-    val filtered = partitions.filter(f)
+    val filtered = partitions.filter(s => f(s.value))
     if (filtered.isEmpty) None else Some(copy(partitions = filtered))
   }
 
   def keys: List[Key] =
-    partitions.map(p => Repository.factset(factset) / p.key)
+    partitions.map(p => Repository.factset(factset) / p.value.key)
 }
 
 object FactsetGlob {

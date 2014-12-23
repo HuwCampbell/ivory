@@ -13,17 +13,16 @@ import com.ambiata.notion.core._
 import scalaz._, Scalaz._, effect._
 
 object UpdateV0 {
-
   def update: RepositoryTIO[Unit] = for {
-    _ <- updateStores
+    _ <- updateFactsets
     _ <- updateSnapshots
   } yield ()
 
-  def updateStores: RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
-    store <- Metadata.latestFeatureStoreOrFail(repository)
-    _ <- store.factsets.traverseU(f => for {
-      glob <- FactsetGlob.select(repository, f.value.id)
-      _    <- glob.traverseU(g => FactsetManifest.io(repository, f.value.id).write(FactsetManifest.create(f.value.id, FactsetFormat.V2, g.partitions)))
+  def updateFactsets: RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
+    factsets <- Metadata.findFactsets(repository)
+    _ <- factsets.traverseU(f => for {
+      glob <- FactsetGlob.select(repository, f)
+      _    <- glob.traverseU(g => FactsetManifest.io(repository, f).write(FactsetManifest.create(f, FactsetFormat.V2, g.partitions)))
     } yield ())
   } yield ())
 

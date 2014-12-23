@@ -26,7 +26,7 @@ object Partition {
   implicit def PartitionOrder: Order[Partition] =
     Order.order(_ order _)
 
-  implicit def PartitionOrdering =
+  implicit def PartitionOrdering: scala.Ordering[Partition] =
     PartitionOrder.toScalaOrdering
 
   def intervalsByNamespace(ps: List[Partition]): Map[Name, NonEmptyList[(Partition, Partition)]] =

@@ -36,16 +36,16 @@ object Factsets {
   } yield factsets.sortBy(_.id)
 
   def factset(repository: Repository, id: FactsetId): RIO[Factset] =
-    Partitions.getFromFactset(repository, id).map(partitions => Factset(id, partitions.sorted))
+    Partitions.getFromFactset(repository, id).map(partitions => Factset(id, partitions.map(_.value).sorted))
 
-  def updateFeatureStore(factsetId: FactsetId): RepositoryTIO[Option[FeatureStoreId]] =
-    RepositoryT.fromRIO { r =>
+  def updateFeatureStore(factsetId: FactsetId): RepositoryTIO[Option[FeatureStoreId]] = for {
+    globs <- RepositoryT.fromRIO(r =>
       // TODO Very very short-term hack. We'll need to do a second sweep to remove the old version completely (which shouldn't be hard)
-      Version.write(r, Repository.factset(factsetId), Version(FactsetVersionTwo.toString)) >>
-      FactsetGlob.select(r, factsetId)
-    } >>= (_.traverseU(g => for {
-      fs <- Metadata.incrementFeatureStore(List(factsetId))
-      _  <- RepositoryT.fromRIO(r => FactsetManifest.io(r, factsetId).write(FactsetManifest.create(factsetId, FactsetFormat.V2, g.partitions)))
-      _  <- Metadata.incrementCommitFeatureStoreT(fs)
-    } yield fs))
+      Version.write(r, Repository.factset(factsetId), Version(FactsetVersionTwo.toString)) >> FactsetGlob.select(r, factsetId))
+    r <- globs.traverseU(g => for {
+        fs <- Metadata.incrementFeatureStore(List(factsetId))
+        _  <- RepositoryT.fromRIO(r => FactsetManifest.io(r, factsetId).write(FactsetManifest.create(factsetId, FactsetFormat.V2, g.partitions)))
+        _  <- Metadata.incrementCommitFeatureStoreT(fs)
+      } yield fs)
+    } yield r
 }
