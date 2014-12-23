@@ -143,15 +143,24 @@ object Date {
     } yield result
   }
 
+  implicit def DateEqual: Equal[Date] =
+    Equal.equalA
+
   implicit def DateOrder: Order[Date] =
     Order.order(_ order _)
 
-  implicit def DateOrdering =
+  implicit def DateOrdering: scala.Ordering[Date] =
     DateOrder.toScalaOrdering
 
-  implicit def DateCodecJson: CodecJson[Date] = CodecJson.derived(
-    EncodeJson(_.int.asJson),
-    DecodeJson.optionDecoder(_.as[Int].toOption.flatMap(fromInt), "Date"))
+  implicit def DateEncodeJson: EncodeJson[Date] =
+    EncodeJson(_.hyphenated.asJson)
+
+  // NOTE There are two decode paths, to handle legacy date format which was
+  //      just the encoded int written out as is. This was deprecated in
+  //      favour of a human parsable yyyy-MM-dd format.
+  implicit def DateDecodeJson: DecodeJson[Date] =
+    DecodeJson.optionDecoder(_.as[String].toOption.flatMap(Dates.date), "Date") |||
+      DecodeJson.optionDecoder(_.as[Int].toOption.flatMap(fromInt), "Date")
 
   /**
    * This is not epoch! It will take a long which was created from Date.addSeconds and

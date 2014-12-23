@@ -13,7 +13,7 @@ commit_test 00000000
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 commit_test 00000001
 
-$IVORY ingest -i "sparse:delimited:psv|HALIBUT=${INPUT}/facts"
+$IVORY ingest -i "sparse:delimited:psv|HALIBUT=${INPUT}/facts/HALIBUT"
 commit_test 00000002
 
 $IVORY import-dictionary -p "${INPUT}/dictionary.psv"

@@ -114,6 +114,15 @@ object IvoryLocation {
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.delete(new Path(path)).run(conf)
   }
 
+  def readUtf8(location: IvoryLocation): RIO[String] = location match {
+    case l @ LocalIvoryLocation(LocalLocation(path)) =>
+      Files.read(l.filePath)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
+      S3Address(bucket, key).get.executeT(s3Client)
+    case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
+      Hdfs.readContentAsString(new Path(path)).run(conf)
+  }
+
   def readLines(location: IvoryLocation): RIO[List[String]] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path)) =>
       Files.readLines(l.filePath).map(_.toList)

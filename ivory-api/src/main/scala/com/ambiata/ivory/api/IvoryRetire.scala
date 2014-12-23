@@ -24,8 +24,6 @@ object IvoryRetire {
    * They will be replaced by a safer, stable API that lets users interact with
    * ivory, without concern for the current implementation.
    */
-  val writeFactsetVersion = com.ambiata.ivory.storage.legacy.IvoryStorage.writeFactsetVersion _
-
   val snapshotFromHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotFromHdfs _
   val compareHdfsSnapshots = CompareSnapshots.compareHdfsSnapshots _
 

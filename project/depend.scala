@@ -62,9 +62,9 @@ object depend {
   }
 
   def poacher(version: String) =
-  if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141223020233-4745763")
-  else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141223020233-4745763")
-  else                               sys.error(s"unsupported poacher version, can not build for $version")
+    if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141223020233-4745763")
+    else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141223020233-4745763")
+    else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 
   def reflect(version: String) =

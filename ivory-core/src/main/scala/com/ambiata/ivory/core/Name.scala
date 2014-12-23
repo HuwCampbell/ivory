@@ -1,5 +1,7 @@
 package com.ambiata.ivory.core
 
+import argonaut._, Argonaut._
+
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.reflect.MacrosCompat
 import com.ambiata.mundane.parse.ListParser
@@ -63,6 +65,11 @@ object Name extends MacrosCompat {
   implicit def NameOrdering: scala.Ordering[Name] =
     NameOrder.toScalaOrdering
 
+
+  implicit def NameCodecJson: CodecJson[Name] = CodecJson.derived(
+    EncodeJson(_.name.asJson),
+    DecodeJson.optionDecoder(_.string.flatMap(nameFromString), "Name"))
+
   def apply(s: String): Name =
     macro createNameFromStringMacro
 
@@ -92,7 +99,7 @@ object Name extends MacrosCompat {
           s"""|$s is not a valid name:
               |It must only contains letters: [A-Z][a-z], numbers: [0-9] and _ or -
               |It must not start with _
-              |It must not be empty")""".stripMargin)
+              |It must not be empty)""".stripMargin)
 
       case Some(fn) =>
         c.Expr(q"Name.unsafe(${fn.name})")

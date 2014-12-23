@@ -56,10 +56,8 @@ ChordSpec
             _                <- IvoryLocation.writeUtf8Lines(entitiesLocation, entities)
             out              <- Repository.tmpDir(repo).map(repo.toIvoryLocation)
             output           = OutputDataset(out.location)
-            facts            <- Chord.createChordWithSquash(repo, entitiesLocation, takeSnapshot = facts.takeSnapshot,
-              SquashConfig.testing, List(output), cluster)((outPath, _) => ResultT.safe[IO, List[Fact]](
-                valueFromSequenceFile[Fact](outPath.location.path).run.toList
-              ))
+            outPath          <- Chord.createChordWithSquash(repo, entitiesLocation, facts.takeSnapshot, SquashConfig.testing, cluster)
+            facts            <- ResultT.safe[IO, List[Fact]](valueFromSequenceFile[Fact](outPath._1.hdfsPath.toString).run.toList)
           } yield facts
         }
       }

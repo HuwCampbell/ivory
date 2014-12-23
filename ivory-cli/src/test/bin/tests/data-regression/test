@@ -11,12 +11,30 @@ $V0 create-repository -p "${REPOSITORY}"
 $V0 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv" -n "${DICT_NAME}"
 $V0 ingest-bulk -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts" -d "${DICT_NAME}"
 
+$V0 extract-snapshot -r "${REPOSITORY}"
+$V0 cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
+diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
+
+# Ingest the facts again so that a new incremental snapshot will be taken,
+# however the actual snapshot should turn out to be the same.
+$V0 ingest-bulk -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts" -d "${DICT_NAME}"
+
 ### V1 - Dictionary thrift format ###
 
 V1="ivory_run $IVORY_V1"
 $V1 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
 
+### V3 - Last stop before we added global versioning
+
+V3="ivory_run $IVORY_V3"
+$V3 ingest -i "sparse:delimited:psv=${INPUT}/facts"
+$V3 snapshot
+
 ### LATEST ###
+
+if $IVORY cat-dictionary; then echo "Do not pass go - upgrade was not required"; exit 1; fi
+
+$IVORY update
 
 # TODO Instead of piping the stdout output, we should write the content directly to a file
 # https://github.com/ambiata/ivory/issues/22
@@ -33,19 +51,11 @@ diff_test "${DIR}/expected/metadata/config" "${TARGET}/config"
 $IVORY cat-dictionary | tail -n +2 | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
 diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
 
+### INGEST ###
+
+$IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts"
+
 ### SNAPSHOT ###
-
-[ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "0" ]
-
-$V0 extract-snapshot -r "${REPOSITORY}"
-$V0 cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
-diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
-
-[ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "0" ]
-
-# Ingest the facts again so that a new incremental snapshot will be taken,
-# however the actual snapshot should turn out to be the same.
-$V0 ingest-bulk -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts" -d "${DICT_NAME}"
 
 $IVORY snapshot -o "dense:psv=${TARGET}/snap-dense" -o "sparse:psv=${TARGET}/snap-sparse"
 $IVORY cat-facts "${REPOSITORY}/snapshots/00000001" | sort > "${TARGET}/snapshot.psv"
@@ -55,9 +65,6 @@ diff_test_mr "${DIR}/expected/snap-sparse.psv" "${TARGET}/snap-sparse"
 COUNT_FACTS_OUT=$($IVORY count-facts "${REPOSITORY}/snapshots/00000001")
 [ $(wc -l ${DIR}/expected/snapshot.psv | awk '{print $1}') = $COUNT_FACTS_OUT ]
 
-[ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "1" ]
-diff_test "${DIR}/expected/metadata/commits/00000000" "${REPOSITORY}/metadata/commits/00000000"
-
 ### CHORD ###
 
 $IVORY chord -c "${INPUT}/chord.psv" -o "dense:psv=${TARGET}/chord-dense" -o "sparse:psv=${TARGET}/chord-sparse"
@@ -65,9 +72,3 @@ cat ${TARGET}/chord-dense/part-* | sort > "${TARGET}/chord-dense/all.psv"
 diff_test "${DIR}/expected/chord-dense.psv" "${TARGET}/chord-dense/all.psv"
 diff_test_mr "${DIR}/expected/chord-dense.psv" "${TARGET}/chord-dense"
 diff_test_mr "${DIR}/expected/chord-sparse.psv" "${TARGET}/chord-sparse"
-### COMMIT ###
-
-# Force something to bump the commit, doesn't really matter what
-$IVORY import-dictionary -p "${INPUT}/dictionary2.psv"
-[ $(ls "${REPOSITORY}/metadata/commits" | wc -l | awk '{print $1}') = "2" ]
-diff_test "${DIR}/expected/metadata/commits/00000001" "${REPOSITORY}/metadata/commits/00000001"

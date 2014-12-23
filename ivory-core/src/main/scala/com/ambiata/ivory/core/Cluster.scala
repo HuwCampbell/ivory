@@ -1,8 +1,10 @@
 package com.ambiata.ivory.core
 
 import com.ambiata.mundane.io._
+import com.ambiata.notion.core.Location
 import com.ambiata.notion.distcopy.DistCopyConfiguration
 import com.ambiata.com.amazonaws.services.s3.AmazonS3Client
+import com.ambiata.notion.io.LocationIO
 
 import com.nicta.scoobi.Scoobi._
 
@@ -15,6 +17,13 @@ case class Cluster(root: Path, conf: DistCopyConfiguration, codec: Option[Compre
   def hdfsConfiguration: Configuration = conf.hdfs
   def s3Client: AmazonS3Client = conf.client
   def rootDirPath: DirPath = DirPath.unsafe(root.toString)
+
+  def io: LocationIO =
+    LocationIO(hdfsConfiguration, s3Client)
+
+  /** A very short term convenience method - we need to remove this soon */
+  def toIvoryLocation(l: Location): IvoryLocation =
+    IvoryLocation.fromLocation(l, Cluster.ivoryConfiguration(this))
 }
 
 object Cluster {

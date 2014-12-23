@@ -77,7 +77,7 @@ object Metadata {
   def listCommitIds(repo: Repository): RIO[List[CommitId]] =
     CommitTextStorage.listIds(repo)
 
-  def listCommitIdsT(repo: Repository): RepositoryTIO[List[CommitId]] =
+  def listCommitIdsT: RepositoryTIO[List[CommitId]] =
     fromResultT(listCommitIds(_))
 
   def latestCommitId(repo: Repository): RIO[Option[CommitId]] =
@@ -100,23 +100,28 @@ object Metadata {
                       configId: RepositoryConfigId): RIO[CommitId] =
     CommitTextStorage.increment(repo, Commit(dictionaryId, featureStoreId, Some(configId)))
 
-  def incrementCommitDictionary(repo: Repository, dictionaryId: DictionaryId): RIO[CommitId] = for {
-    // Don't fail if no feature store exists - create a blank one
-    storeId  <- Metadata.latestFeatureStoreId(repo).flatMap(_.cata(_.point[RIO], FeatureStoreTextStorage.increment(repo, Nil)))
-    repoRead <- RepositoryRead.fromRepository(repo)
-    configId <- latestConfigurationId.run(repoRead)
-    commitId <- CommitTextStorage.increment(repo, Commit(dictionaryId, storeId, configId))
-  } yield commitId
+  def incrementCommitDictionary(repo: Repository, dictionaryId: DictionaryId): RIO[CommitId] =
+    RepositoryT.runWithRepo(repo, incrementCommitOpts(Some(dictionaryId), None, None))
 
-  def incrementCommitFeatureStore(repo: Repository, featureStoreId: FeatureStoreId): RIO[CommitId] = for {
-    latestDictionaryId <- latestDictionaryIdFromIvory(repo)
-    repoRead           <- RepositoryRead.fromRepository(repo)
-    configId           <- latestConfigurationId.run(repoRead)
-    commitId           <- CommitTextStorage.increment(repo, Commit(latestDictionaryId, featureStoreId, configId))
-  } yield commitId
+  def incrementCommitFeatureStore(repo: Repository, featureStoreId: FeatureStoreId): RIO[CommitId] =
+    RepositoryT.runWithRepo(repo, incrementCommitFeatureStoreT(featureStoreId))
 
   def incrementCommitFeatureStoreT(featureStoreId: FeatureStoreId): RepositoryTIO[CommitId] =
-    RepositoryT.fromRIO(repo => incrementCommitFeatureStore(repo, featureStoreId))
+    incrementCommitOpts(None, Some(featureStoreId), None)
+
+  def incrementCommitRepositoryConfig(configId: RepositoryConfigId): RepositoryTIO[CommitId] =
+    incrementCommitOpts(None, None, Some(configId))
+
+  def incrementCommitOpts(dictionaryIdOpt: Option[DictionaryId],
+                          storeIdOpt: Option[FeatureStoreId],
+                          configIdOpt: Option[RepositoryConfigId]): RepositoryTIO[CommitId] = for {
+    dictionaryId <- dictionaryIdOpt.cata(_.pure[RepositoryTIO], latestDictionaryIdFromRepositoryT)
+    // Don't fail if no feature store exists - create a blank one
+    storeId      <- storeIdOpt.cata(_.pure[RepositoryTIO],
+      Metadata.latestFeatureStoreIdT.flatMap(_.cata(_.point[RepositoryTIO], RepositoryT.fromRIO(repo => FeatureStoreTextStorage.increment(repo, Nil)))))
+    configId     <- configIdOpt.cata(_.some.pure[RepositoryTIO], latestConfigurationId)
+    commitId     <- RepositoryT.fromRIO(repo => CommitTextStorage.increment(repo, Commit(dictionaryId, storeId, configId)))
+  } yield commitId
 
   def latestConfigurationId: RepositoryTIO[Option[RepositoryConfigId]] =
     RepositoryConfigTextStorage.latestId

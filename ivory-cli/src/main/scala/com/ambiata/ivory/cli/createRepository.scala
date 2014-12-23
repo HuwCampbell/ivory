@@ -30,7 +30,7 @@ object createRepository extends IvoryApp {
     IvoryT.fromRIO(for {
       repo     <- Repository.fromUri(c.path, configuration)
       timezone <- ResultT.fromDisjunction[IO, DateTimeZone](DateTimeZoneUtil.forID(c.timezone).leftMap(\&/.This.apply))
-      _        <- Repositories.create(repo, RepositoryConfig(timezone))
+      _        <- Repositories.create(repo, RepositoryConfig(MetadataVersion.V1, timezone))
     } yield Nil)
   })
 }

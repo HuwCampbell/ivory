@@ -69,5 +69,5 @@ object GenRepository {
   } yield partitions.flatten
 
   def repositoryConfig: Gen[RepositoryConfig] =
-    GenDate.zone.map(RepositoryConfig.apply)
+    GenDate.zone.map(RepositoryConfig(MetadataVersion.V1, _))
 }

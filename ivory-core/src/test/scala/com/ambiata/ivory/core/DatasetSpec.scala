@@ -14,7 +14,6 @@ Combinators
     ${ prop((n: Int, factset: Factset) =>
          FactsetDataset(factset).fold(_ -> n, _ => ???) ==== (factset -> n)) }
 
-
   SnapshotDataset fold only evaluates 'snapshot' expression:
 
     ${ prop((n: Int, snapshot: Snapshot) =>

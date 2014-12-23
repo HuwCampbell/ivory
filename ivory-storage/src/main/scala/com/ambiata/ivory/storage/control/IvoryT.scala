@@ -6,6 +6,8 @@ import scalaz._, Scalaz._, effect.IO
 
 /* Specialised Kleisli for doing common Ivory operations */
 case class IvoryT[F[_], A](run: Kleisli[F, IvoryRead, A]) {
+  def toRepositoryT: RepositoryT[F, A] =
+    RepositoryT.fromIvoryT(_ => this)
 
   def map[B](f: A => B)(implicit F: Functor[F]): IvoryT[F, B] =
     IvoryT(run.map(f))

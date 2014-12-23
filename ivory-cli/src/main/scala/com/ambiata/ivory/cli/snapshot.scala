@@ -7,11 +7,10 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.api.Ivory.{Date => _, _}
 import com.ambiata.ivory.operation.extraction.squash.SquashJob
 import com.ambiata.ivory.storage.control._
-import com.ambiata.ivory.storage.metadata._
 import org.joda.time.LocalDate
 import java.util.{Calendar, UUID}
 
-import scalaz._, Scalaz._, effect.IO
+import scalaz._, Scalaz._
 
 object snapshot extends IvoryApp {
 
@@ -50,15 +49,15 @@ object snapshot extends IvoryApp {
       IvoryT.fromRIO { for {
         of   <- Extract.parse(configuration, c.formats)
         res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date))
-        meta = res.meta
+        meta  = res.meta
         r    <- RepositoryRead.fromRepository(repo)
-        _    <- SquashJob.squashFromSnapshotWith(repo, meta, c.squash, of.outputs.map(_._2), cluster) { (input, dictionary) =>
-          Extraction.extract(of, input, dictionary, cluster).run(r)
-        }
+        x    <- SquashJob.squashFromSnapshotWith(repo, meta, c.squash, cluster)
+        (output, dictionary) = x
+        _    <- Extraction.extract(of, output, dictionary, cluster).run(r)
       } yield List(
         banner,
-        s"Output path: ${meta.snapshotId}",
-        res.incremental.cata((incr: SnapshotManifest) => s"Incremental snapshot used: ${incr.snapshotId}", "No Incremental Snapshot was used."),
+        s"Output path: ${meta.id}",
+        res.incremental.cata(incr => s"Incremental snapshot used: ${incr.id}", "No Incremental Snapshot was used."),
         "Status -- SUCCESS") }
   })
 }
