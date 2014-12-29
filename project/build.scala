@@ -43,15 +43,14 @@ object build extends Build {
     name := "ivory"
   , version in ThisBuild := s"""1.0.0-${Option(System.getenv("HADOOP_VERSION")).getOrElse("cdh5")}"""
   , organization := "com.ambiata"
-  , scalaVersion := "2.11.2"
+  , scalaVersion := "2.11.4"
   , crossScalaVersions := Seq(scalaVersion.value)
   , fork in run  := true
   , publishArtifact in packageDoc := false
   , publishArtifact in (Test, packageBin) := true //publishArtifact in Test := true
-  // https://gist.github.com/djspiewak/976cd8ac65e20e136f05
+  /* https://gist.github.com/djspiewak/976cd8ac65e20e136f05 */
   , unmanagedSourceDirectories in Compile += (sourceDirectory in Compile).value / s"scala-${scalaBinaryVersion.value}"
-  // Disable to see if it fixes the build
-  // , updateOptions := updateOptions.value.withConsolidatedResolution(true)
+  , updateOptions := updateOptions.value.withCachedResolution(true)
   ) ++ Seq(prompt)
 
   def lib(name: String) =
@@ -194,7 +193,7 @@ object build extends Build {
     , base = file("ivory-testing")
     , settings = standardSettings ++ lib("testing") ++ Seq[Settings](
       name := "ivory-testing"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.saws ++ depend.notion(version.value) ++ depend.hadoop(version.value))
   ).dependsOn(core % "compile->test", operation % "compile->test")
 
   lazy val compilationSettings: Seq[Settings] = Seq(
