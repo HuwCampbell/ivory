@@ -23,7 +23,7 @@ object Print {
     } yield ()).void
 
   def printWith[A](path: Path, configuration: Configuration, thrift: A, printA: (Path, A) => IO[Unit])(implicit ev: A <:< ThriftLike): RIO[Unit] =
-    ResultT.using(ResultT.io(new SequenceFile.Reader(configuration, SequenceFile.Reader.file(path)))) { reader => ResultT.io {
+    RIO.using(RIO.io(new SequenceFile.Reader(configuration, SequenceFile.Reader.file(path)))) { reader => RIO.io {
       val bytes = new BytesWritable()
       val serialiser = ThriftSerialiser()
       while (reader.next(NullWritable.get, bytes)) {

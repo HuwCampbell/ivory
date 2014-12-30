@@ -4,7 +4,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.manifest._
-import scalaz._, Scalaz._, \&/._, effect.IO
+import scalaz._, Scalaz._, \&/._
 
 object Partitions {
   def getFromFactset(repository: Repository, factset: FactsetId): RIO[List[Sized[Partition]]] =
@@ -19,7 +19,7 @@ object Partitions {
     for {
       keys       <- repository.store.list(Repository.factset(factset)).map(_.map(_.dropRight(1).drop(2)).filter(_ != Key.Root).distinct)
       partitions <- keys.traverseU(key => for {
-          p <- ResultT.fromDisjunction[IO, Partition](Partition.parseNamespaceDateKey(key).disjunction.leftMap(This.apply))
+          p <- RIO.fromDisjunction[Partition](Partition.parseNamespaceDateKey(key).disjunction.leftMap(This.apply))
           s <- IvoryLocation.size(repository.toIvoryLocation(key))
         } yield Sized(p, s))
     } yield partitions.sorted

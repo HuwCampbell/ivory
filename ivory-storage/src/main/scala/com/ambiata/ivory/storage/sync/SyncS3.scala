@@ -17,11 +17,11 @@ object SyncS3 {
    - Check that the source prefix exists
    */
   def toHdfs(sourceBase: S3Prefix, sourceFiles: List[S3Address], outputBase: DirPath, cluster: Cluster): RIO[Unit] = for {
-    s <- sourceBase.exists.executeT(cluster.s3Client)
-    _ <- ResultT.unless[IO](s, ResultT.fail(s"Source base does not exists (${sourceBase.render})"))
+    s <- sourceBase.exists.execute(cluster.s3Client)
+    _ <- RIO.unless(s, RIO.fail(s"Source base does not exists (${sourceBase.render})"))
     d <- sourceFiles.traverseU(ss => ss.removeCommonPrefix(sourceBase) match {
-      case Some(v) => ResultT.ok[IO, Mapping](DownloadMapping(ss, new Path((cluster.rootDirPath </> outputBase </> FilePath.unsafe(v)).path)))
-      case None    => ResultT.failIO[Mapping](s"Source file (${ss.render}) does not share the commmon prefix (${sourceBase.render})")
+      case Some(v) => RIO.ok[Mapping](DownloadMapping(ss, new Path((cluster.rootDirPath </> outputBase </> FilePath.unsafe(v)).path)))
+      case None    => RIO.failIO[Mapping](s"Source file (${ss.render}) does not share the commmon prefix (${sourceBase.render})")
     })
     _ <- DistCopyJob.run(Mappings(d.toVector), cluster.conf)
   } yield ()

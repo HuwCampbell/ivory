@@ -19,7 +19,7 @@ import org.specs2._
 import org.specs2.execute.{AsResult, Result}
 import org.specs2.matcher.{MustThrownMatchers, FileMatchers}
 import org.specs2.specification._
-import scalaz.{Name => _, _}, scalaz.effect._
+import scalaz.{Name => _, _}
 import syntax.bind._
 
 
@@ -65,7 +65,7 @@ class FactImporterSpec extends Specification with FileMatchers with FixtureExamp
 
   def fixture[R : AsResult](f: Setup => R): Result =
     RepositoryBuilder.using { repo =>
-      ResultT.ok[IO, Result]({
+      RIO.ok[Result]({
         val setup = new Setup(repo)
         Metadata.dictionaryToIvory(repo, setup.dictionary).run.unsafePerformIO()
         AsResult(f(setup))
@@ -108,7 +108,7 @@ class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
     val serializer = ThriftSerialiser()
     TemporaryIvoryConfiguration.withConf(conf =>
       SequenceUtil.writeHdfsBytes((namespaced </> "input" </> "ns1" </> FileName(java.util.UUID.randomUUID)).location, conf.configuration, None) {
-        writer => ResultT.safe(facts.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
+        writer => RIO.safe(facts.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
       }.run(conf.configuration)
     )
   }

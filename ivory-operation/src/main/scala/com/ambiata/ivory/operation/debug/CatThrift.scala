@@ -13,7 +13,6 @@ import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.mapreduce.lib.input.{MultipleInputs, SequenceFileInputFormat}
 import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, TextOutputFormat}
 
-import scalaz.effect.IO
 import scala.collection.JavaConverters._
 
 /** This will eventually move to a separate ivory-tools repository */
@@ -25,9 +24,9 @@ object CatThrift {
 
   def job(configuration: Configuration, entities: List[String], input: Path, format: CatThriftFormat, output: Path,
           codec: Option[CompressionCodec]): RIO[Unit] = for {
-    job <- ResultT.io { Job.getInstance(configuration) }
-    ctx <- ResultT.io { MrContextIvory.newContext("ivory-cat-thrift", job) }
-    r   <- ResultT.io {
+    job <- RIO.io { Job.getInstance(configuration) }
+    ctx <- RIO.io { MrContextIvory.newContext("ivory-cat-thrift", job) }
+    r   <- RIO.io {
         job.setJarByClass(classOf[CatThriftDenseMapper])
         job.setJobName(ctx.id.value)
         job.setMapOutputKeyClass(classOf[NullWritable])
@@ -49,7 +48,7 @@ object CatThrift {
 
         job.waitForCompletion(true)
       }
-    _   <- ResultT.unless[IO](r, ResultT.fail("Ivory dump facts failed to complete, please see job tracker."))
+    _   <- RIO.unless(r, RIO.fail("Ivory dump facts failed to complete, please see job tracker."))
     _   <- Committer.commit(ctx, {
           case "out" => output
         }, true).run(configuration)

@@ -5,7 +5,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.control._
 import org.joda.time.DateTimeZone
-import scalaz._, Scalaz._, effect._
+import scalaz._, Scalaz._
 
 /**
  * Simple key/value store for repository configuration, stored as JSON.
@@ -37,7 +37,7 @@ object RepositoryConfigTextStorage {
         if (exists)
           for {
             lines  <- repository.store.utf8.read(key)
-            result <- ResultT.fromDisjunctionString[IO, RepositoryConfig](Parse.decodeEither[RepositoryConfig](lines))
+            result <- RIO.fromDisjunctionString[RepositoryConfig](Parse.decodeEither[RepositoryConfig](lines))
           } yield result
         else RepositoryConfig.deprecated.point[RIO]
     } yield config

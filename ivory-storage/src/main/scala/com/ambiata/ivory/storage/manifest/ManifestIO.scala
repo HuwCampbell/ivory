@@ -19,7 +19,7 @@ case class ManifestIO[A](base: IvoryLocation) {
   } yield m
 
   def readOrFail(implicit A: DecodeJson[A]): RIO[A] =
-    IvoryLocation.readUtf8(location).flatMap(s => ResultT.fromDisjunctionString(s.decodeEither[A].leftMap(e => s"Failed to parse metadata at $base, with $e")))
+    IvoryLocation.readUtf8(location).flatMap(s => RIO.fromDisjunctionString(s.decodeEither[A].leftMap(e => s"Failed to parse metadata at $base, with $e")))
 
   def exists: RIO[Boolean] =
     IvoryLocation.exists(location)
@@ -30,6 +30,6 @@ case class ManifestIO[A](base: IvoryLocation) {
   } yield m
 
   def peekOrFail: RIO[VersionManifest] =
-    IvoryLocation.readUtf8(location).flatMap(s => ResultT.fromDisjunctionString(s.decodeEither[VersionManifestPeek].map(_.version).leftMap(e => s"Failed to peek at metadata at $base, with $e")))
+    IvoryLocation.readUtf8(location).flatMap(s => RIO.fromDisjunctionString(s.decodeEither[VersionManifestPeek].map(_.version).leftMap(e => s"Failed to peek at metadata at $base, with $e")))
 
 }

@@ -19,8 +19,6 @@ import org.apache.hadoop.mapreduce.lib.input.MultipleInputs
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat
 
-import scalaz.effect.IO
-
 object DumpFactsJob {
   def run(
     repository: HdfsRepository
@@ -29,9 +27,9 @@ object DumpFactsJob {
   , output: Path
   , codec: Option[CompressionCodec]
   ): RIO[Unit] = for {
-    job <- ResultT.io { Job.getInstance(repository.configuration) }
-    ctx <- ResultT.io { MrContextIvory.newContext("ivory-dump-facts", job) }
-    r   <- ResultT.io {
+    job <- RIO.io { Job.getInstance(repository.configuration) }
+    ctx <- RIO.io { MrContextIvory.newContext("ivory-dump-facts", job) }
+    r   <- RIO.io {
         job.setJarByClass(classOf[DumpFactsSnapshotMapper])
         job.setJobName(ctx.id.value)
         job.setMapOutputKeyClass(classOf[NullWritable])
@@ -58,7 +56,7 @@ object DumpFactsJob {
 
         job.waitForCompletion(true)
       }
-    _   <- ResultT.unless[IO](r, ResultT.fail("Ivory dump facts failed to complete, please see job tracker."))
+    _   <- RIO.unless(r, RIO.fail("Ivory dump facts failed to complete, please see job tracker."))
     _   <- Committer.commit(ctx, {
           case "dump-facts" => output
         }, true).run(repository.configuration)

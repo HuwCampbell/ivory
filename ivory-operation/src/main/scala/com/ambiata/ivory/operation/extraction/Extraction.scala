@@ -6,7 +6,7 @@ import com.ambiata.ivory.storage.sync._
 import com.ambiata.ivory.operation.extraction.output._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.notion.io._
+import com.ambiata.notion.core._
 
 import scalaz._, Scalaz._, effect.IO
 
@@ -15,10 +15,10 @@ object Extraction {
   def extract(formats: OutputFormats, input: ShadowOutputDataset, dictionary: Dictionary, cluster: Cluster): RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
     t <- Repository.tmpDir(repository)
     i = repository.toIvoryLocation(t)
-    h <- i.asHdfsIvoryLocation[IO]
+    h <- i.asHdfsIvoryLocation
     s = ShadowOutputDataset(h.location)
     _ <- formats.outputs.traverseU({ case (format, output) => for {
-      _ <- ResultT.io(println(s"Storing extracted data '$input' to '${output.location}'"))
+      _ <- RIO.io(println(s"Storing extracted data '$input' to '${output.location}'"))
       _ <- format match {
         case OutputFormat(Form.Sparse, FileFormat.Thrift) =>
           GroupByEntityOutput.createWithDictionary(repository, input, s, dictionary, GroupByEntityFormat.SparseThrift)
@@ -38,6 +38,6 @@ object Extraction {
     List(".profile", ".manifest.json").traverseU(n => for {
       e <- lio.exists(input.location </> FileName.unsafe(n))
       // TODO Need to add a readUTF8 on LocationIO
-      _ <- ResultT.when(e, lio.readLines(input.location) >>= (c => lio.writeUtf8Lines(output.location </> FileName.unsafe(n), c)))
+      _ <- RIO.when(e, lio.readLines(input.location) >>= (c => lio.writeUtf8Lines(output.location </> FileName.unsafe(n), c)))
     } yield ()).void
 }

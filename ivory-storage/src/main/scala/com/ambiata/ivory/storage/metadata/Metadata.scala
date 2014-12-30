@@ -18,7 +18,7 @@ object Metadata {
   } yield fs.flatten.map(_.value).distinct
 
   def featureStoreFromRepositoryT(id: FeatureStoreId): RepositoryTIO[FeatureStore] =
-    fromResultT(featureStoreFromIvory(_, id))
+    fromRIO(featureStoreFromIvory(_, id))
 
   def featureStoreToIvory(repo: Repository, featureStore: FeatureStore): RIO[Unit] =
     FeatureStoreTextStorage.toId(repo, featureStore)
@@ -43,7 +43,7 @@ object Metadata {
   /** @return the latest store id or fail if there is none */
   def latestFeatureStoreIdOrFail(repository: Repository): RIO[FeatureStoreId] =
     latestFeatureStoreId(repository).flatMap { latest =>
-      ResultT.fromOption[IO, FeatureStoreId](latest, s"no store found for this repository ${repository}")
+      RIO.fromOption[FeatureStoreId](latest, s"no store found for this repository ${repository}")
     }
 
   def listFeatureStoreIds(repo: Repository): RIO[List[FeatureStoreId]] =
@@ -52,27 +52,27 @@ object Metadata {
   /** Dictionary */
   def dictionaryFromIvory(repo: Repository, dictionaryId: DictionaryId): RIO[Dictionary] =
     DictionaryThriftStorage(repo).loadFromId(dictionaryId) >>=
-      (dictionary => ResultT.fromOption(dictionary, s"Dictionary not found in Ivory '$dictionaryId'"))
+      (dictionary => RIO.fromOption(dictionary, s"Dictionary not found in Ivory '$dictionaryId'"))
 
   def latestDictionaryFromIvory(repo: Repository): RIO[Dictionary] =
     DictionaryThriftStorage(repo).load
 
   def latestDictionaryIdFromIvory(repo: Repository): RIO[DictionaryId] = for {
     latestDict         <- DictionaryThriftStorage(repo).loadMigrate.map(_.map(_._1))
-    latestDictionaryId <- ResultT.fromOption[IO, DictionaryId](latestDict, "Could not load a dictionary")
+    latestDictionaryId <- RIO.fromOption[DictionaryId](latestDict, "Could not load a dictionary")
   } yield latestDictionaryId
 
   def latestDictionaryFromRepositoryT: RepositoryTIO[Dictionary] =
-    fromResultT(latestDictionaryFromIvory)
+    fromRIO(latestDictionaryFromIvory)
 
   def latestDictionaryIdFromRepositoryT: RepositoryTIO[DictionaryId] =
-    fromResultT(latestDictionaryIdFromIvory)
+    fromRIO(latestDictionaryIdFromIvory)
 
   def dictionaryToIvory(repo: Repository, dictionary: Dictionary): RIO[Unit] =
     DictionaryThriftStorage(repo).store(dictionary).void
 
   def dictionaryToRepositoryT(dictionary: Dictionary): RepositoryTIO[Unit] =
-    fromResultT(dictionaryToIvory(_, dictionary))
+    fromRIO(dictionaryToIvory(_, dictionary))
 
   def dictionaryLoadMigrate(repo: Repository): RIO[Option[(DictionaryId, Dictionary)]] =
     DictionaryThriftStorage(repo).loadMigrate
@@ -82,7 +82,7 @@ object Metadata {
     CommitTextStorage.listIds(repo)
 
   def listCommitIdsT: RepositoryTIO[List[CommitId]] =
-    fromResultT(listCommitIds(_))
+    fromRIO(listCommitIds(_))
 
   def latestCommitId(repo: Repository): RIO[Option[CommitId]] =
     CommitTextStorage.latestId(repo)
@@ -94,11 +94,11 @@ object Metadata {
   } yield commitId
 
   def latestCommitIdT(repo: Repository): RepositoryTIO[Option[CommitId]] =
-    fromResultT(latestCommitId(_))
+    fromRIO(latestCommitId(_))
 
   def commitFromIvory(repo: Repository, commitId: CommitId): RIO[Commit] =
     CommitTextStorage.fromId(repo, commitId) >>=
-      (commit => ResultT.fromOption(commit, s"Commit not found in Ivory '$commitId'"))
+      (commit => RIO.fromOption(commit, s"Commit not found in Ivory '$commitId'"))
 
   def incrementCommit(repo: Repository, dictionaryId: DictionaryId, featureStoreId: FeatureStoreId,
                       configId: RepositoryConfigId): RIO[CommitId] =

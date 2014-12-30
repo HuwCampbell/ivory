@@ -35,9 +35,9 @@ object Sync {
   def getS3data(data: Datasets, bucket: String, key: String, cluster: Cluster): RIO[List[S3Address]] = data.sets.traverseU(_.value match {
     case FactsetDataset(Factset(fid, parts)) =>
       parts.map(Repository.factset(fid) / _.key).traverseU(x =>
-        getS3Info(S3Pattern(bucket, (Key.unsafe(key) / x).name)).executeT(cluster.s3Client)).map(_.flatten)
+        getS3Info(S3Pattern(bucket, (Key.unsafe(key) / x).name)).execute(cluster.s3Client)).map(_.flatten)
     case SnapshotDataset(Snapshot(sid, _, _)) =>
-      getS3Info(S3Pattern(bucket, (Repository.snapshots / sid.asKeyName).name)).executeT(cluster.s3Client)
+      getS3Info(S3Pattern(bucket, (Repository.snapshots / sid.asKeyName).name)).execute(cluster.s3Client)
   }).map(_.flatten)
 
   def getHdfsFilePaths(data: Datasets, root: DirPath, cluster: Cluster): RIO[List[FilePath]] = data.sets.traverseU(_.value match {

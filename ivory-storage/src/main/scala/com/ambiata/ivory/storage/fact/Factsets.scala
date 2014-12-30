@@ -9,12 +9,12 @@ import com.ambiata.ivory.storage.partition._
 import com.ambiata.ivory.storage.version.Version
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
-import scalaz._, Scalaz._, effect._
+import scalaz._, Scalaz._
 
 object Factsets {
   def listIds(repository: Repository): RIO[List[FactsetId]] = for {
     names <- repository.store.listHeads(Repository.factsets).map(_.filterHidden.map(_.name))
-    fids  <- names.traverseU(n => ResultT.fromOption[IO, FactsetId](FactsetId.parse(n), s"Can not parse factset id '$n'"))
+    fids  <- names.traverseU(n => RIO.fromOption[FactsetId](FactsetId.parse(n), s"Can not parse factset id '$n'"))
   } yield fids
 
   def latestId(repository: Repository): RIO[Option[FactsetId]] =
@@ -26,7 +26,7 @@ object Factsets {
 
   def allocateFactsetId(repository: Repository): RIO[FactsetId] = for {
     nextOpt <- latestId(repository).map(_.map(_.next).getOrElse(Some(FactsetId.initial)))
-    next    <- ResultT.fromOption[IO, FactsetId](nextOpt, s"No more Factset Ids left!")
+    next    <- RIO.fromOption[FactsetId](nextOpt, s"No more Factset Ids left!")
     _       <- repository.store.bytes.write(Repository.factsets / next.asKeyName / ".allocated", scodec.bits.ByteVector.empty)
   } yield next
 

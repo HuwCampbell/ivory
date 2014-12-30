@@ -27,7 +27,7 @@ object FactImporter {
     val errorKey = Repository.errors / factsetId.asKeyName
 
     IvoryT.read[RIO] >>= (read => IvoryT.fromRIO { for {
-      hr            <- repository.asHdfsRepository[IO]
+      hr            <- repository.asHdfsRepository
       dictionary    <- latestDictionaryFromIvory(repository)
       errorPath     =  hr.toIvoryLocation(errorKey).toHdfsPath
       config        <- configuration.toIvoryT(repository).run(read)
@@ -44,7 +44,7 @@ object FactImporter {
     paths      <- inputs.traverseU((prepareInput _).tupled).run(hr.configuration)
     partitions  = Namespaces.sum(paths.map(_._5).flatten)
     _          <- Hdfs.fromDisjunction(validateNamespaces(dictionary, partitions.keys.toList)).run(hr.configuration)
-    _          <- ResultT.safe[IO, Unit] {
+    _          <- RIO.safe[Unit] {
       IngestJob.run(
         hr.configuration,
         dictionary,

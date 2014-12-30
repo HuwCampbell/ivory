@@ -6,16 +6,16 @@ import com.ambiata.ivory.storage.fact.Factsets
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 
-import scalaz.{Value => _, _}, Scalaz._, effect._
+import scalaz.{Value => _, _}, Scalaz._
 
 object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[Prioritized[FactsetId]]] {
 
   /** Increment the latest FeatureStore by prepending the given FactsetId and creating a new FeatureStore */
   def increment(repo: Repository, factsetIds: List[FactsetId]): RIO[FeatureStoreId] = for {
     latest      <- latestId(repo)
-    next        <- ResultT.fromOption[IO, FeatureStoreId](latest.map(_.next).getOrElse(Some(FeatureStoreId.initial)), "Ran out of FeatureStore ids!")
+    next        <- RIO.fromOption[FeatureStoreId](latest.map(_.next).getOrElse(Some(FeatureStoreId.initial)), "Ran out of FeatureStore ids!")
     prevIds     <- latest.traverse(id => fromId(repo, id))
-    newFactsetIds <- ResultT.fromOption[IO, List[Prioritized[FactsetId]]](
+    newFactsetIds <- RIO.fromOption[List[Prioritized[FactsetId]]](
                       Prioritized.fromList(prevIds.map(fs =>
                         factsetIds ++ fs.factsets.map(_.value.id)).getOrElse(factsetIds))
                      , "Could not prioritize the factset ids")
@@ -32,7 +32,7 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
   def fromId(repo: Repository, id: FeatureStoreId): RIO[FeatureStore] = for {
     storeIds <- storeIdsFromId(repo, id)
     factsets <- storeIds.traverse(fid => Factsets.factset(repo, fid.value))
-    store    <- ResultT.fromOption[IO, FeatureStore](FeatureStore.fromList(id, factsets), s"Could not parse feature store '${id}'")
+    store    <- RIO.fromOption[FeatureStore](FeatureStore.fromList(id, factsets), s"Could not parse feature store '${id}'")
   } yield store
 
   def toId(repo: Repository, featureStore: FeatureStore): RIO[Unit] =
@@ -46,7 +46,7 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
 
   def storeIdsFromKey(repository: Repository, key: Key): RIO[List[Prioritized[FactsetId]]] =
     repository.store.linesUtf8.read(key).flatMap(lines =>
-      ResultT.fromDisjunction[IO, List[Prioritized[FactsetId]]](fromLines(lines.toList).leftMap(\&/.This.apply)))
+      RIO.fromDisjunction[List[Prioritized[FactsetId]]](fromLines(lines.toList).leftMap(\&/.This.apply)))
 
   def storeIdsToKey(repository: Repository, key: Key, fstore: List[Prioritized[FactsetId]]): RIO[Unit] =
     repository.store.linesUtf8.write(key, toList(fstore).map(toLine))
@@ -71,7 +71,7 @@ object FeatureStoreTextStorage extends TextStorage[Prioritized[FactsetId], List[
     paths <- repository.store.listHeads(Repository.featureStores).map(_.filterHidden)
     ids   <- {
     paths.traverseU(p =>
-               ResultT.fromOption[IO, FeatureStoreId](FeatureStoreId.parse(p.name),
+               RIO.fromOption[FeatureStoreId](FeatureStoreId.parse(p.name),
                                                       s"Can not parse Feature Store id '${p.name}'"))
     }
   } yield ids

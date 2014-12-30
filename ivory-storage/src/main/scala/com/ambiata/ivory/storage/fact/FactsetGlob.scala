@@ -22,7 +22,7 @@ case class FactsetGlob(repo: Repository, factset: FactsetId, version: FactsetVer
 object FactsetGlob {
   def select(repository: Repository, factset: FactsetId): RIO[Option[FactsetGlob]] = for {
     partitions <- Partitions.getFromFactset(repository, factset)
-    version    <- if (partitions.isEmpty) ResultT.ok[IO, Option[FactsetVersion]](None) else Versions.read(repository, factset).map(Some.apply)
+    version    <- if (partitions.isEmpty) RIO.ok[Option[FactsetVersion]](None) else Versions.read(repository, factset).map(Some.apply)
   } yield version.map(v => FactsetGlob(repository, factset, v, partitions))
 
   def before(repository: Repository, factset: FactsetId, to: Date): RIO[Option[FactsetGlob]] =

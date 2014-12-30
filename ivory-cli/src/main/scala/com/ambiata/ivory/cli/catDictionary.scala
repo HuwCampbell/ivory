@@ -24,7 +24,7 @@ object catDictionary extends IvoryApp {
       val store = DictionaryThriftStorage(repo)
       IvoryT.fromRIO { for {
         dictionary <- nameOpt.flatMap(Identifier.parse) match {
-          case Some(iid) => store.loadFromId(DictionaryId(iid)).flatMap(ResultT.fromOption(_, s"Dictionary '$iid' could not be found"))
+          case Some(iid) => store.loadFromId(DictionaryId(iid)).flatMap(RIO.fromOption(_, s"Dictionary '$iid' could not be found"))
           case None      => store.load
         }
       } yield List(

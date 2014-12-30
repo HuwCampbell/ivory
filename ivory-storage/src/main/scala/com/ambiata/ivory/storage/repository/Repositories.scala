@@ -26,7 +26,7 @@ object Repositories {
 
   def createI(repo: Repository, config: RepositoryConfig): IvoryTIO[Unit] = IvoryT.read[RIO] >>= (read => IvoryT.fromRIO(for {
     e <- repo.store.exists(Key(".allocated"))
-    r <- ResultT.unless(e, for {
+    r <- RIO.unless(e, for {
       _     <- initialKeys.traverse(key => repo.store.utf8.write(key / ".allocated", "")).void
 
       cid   <- RepositoryConfigTextStorage.store(config).toIvoryT(repo).run(read)

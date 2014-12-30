@@ -10,7 +10,7 @@ import scalaz.effect.IO
 object GroupByEntityOutput {
   def createWithDictionary(repository: Repository, input: ShadowOutputDataset, output: ShadowOutputDataset, dictionary: Dictionary,
                            format: GroupByEntityFormat): RIO[Unit] = for {
-    hdfsRepo       <- repository.asHdfsRepository[IO]
+    hdfsRepo       <- repository.asHdfsRepository
     in             =  input.hdfsPath
     out            =  output.hdfsPath
     reducers       <- ReducerSize.calculate(in, 256.mb).run(hdfsRepo.configuration)

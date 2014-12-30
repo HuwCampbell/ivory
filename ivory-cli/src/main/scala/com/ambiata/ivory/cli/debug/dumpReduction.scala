@@ -5,7 +5,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.operation.extraction.squash.SquashDumpJob
 import com.ambiata.mundane.control._
-import scalaz._, Scalaz._, effect._
+import scalaz._, Scalaz._
 
 object dumpReduction extends IvoryApp {
   case class CliArguments(entities: List[String], features: List[String], snapshot: String, output: String)
@@ -25,9 +25,9 @@ object dumpReduction extends IvoryApp {
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(Nil, Nil, "", ""), { repo => conf => c =>
     IvoryT.fromRIO { for {
-      sid <- ResultT.fromOption[IO, SnapshotId](SnapshotId.parse(c.snapshot), s"Invalid snapshot ${c.snapshot}")
-      out <- ResultT.fromDisjunctionString[IO, IvoryLocation](IvoryLocation.parseUri(c.output, conf))
-      fs  <- ResultT.fromDisjunctionString[IO, List[FeatureId]](c.features.traverseU(FeatureId.parse))
+      sid <- RIO.fromOption[SnapshotId](SnapshotId.parse(c.snapshot), s"Invalid snapshot ${c.snapshot}")
+      out <- RIO.fromDisjunctionString[IvoryLocation](IvoryLocation.parseUri(c.output, conf))
+      fs  <- RIO.fromDisjunctionString[List[FeatureId]](c.features.traverseU(FeatureId.parse))
       _   <- SquashDumpJob.dump(repo, sid, out, fs, c.entities)
     } yield Nil }
   })

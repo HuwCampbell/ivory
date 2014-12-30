@@ -83,7 +83,7 @@ object SnapshotJob {
       _ <- Committer.commit(ctx, {
         case "snap" => output
       }, true).run(conf)
-      now <- ResultT.fromIO(DateTime.now)
+      now <- RIO.fromIO(DateTime.now)
     } yield {
       val featureIdToName = featureIdLookup.ids.asScala.mapValues(_.toString).map(_.swap)
       SnapshotStats(IvoryVersion.get, now, job.getCounters.getGroup(Keys.CounterFeatureGroup).iterator().asScala.flatMap {

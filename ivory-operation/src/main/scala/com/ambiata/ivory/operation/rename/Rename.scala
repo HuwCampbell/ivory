@@ -10,7 +10,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.BytesQuantity
 import com.nicta.scoobi.impl.ScoobiConfiguration
 
-import scalaz._, Scalaz._, effect._
+import scalaz._, Scalaz._
 
 object Rename {
 
@@ -27,8 +27,8 @@ object Rename {
     hdfs       <- getHdfs
     subdict     = renameDictionary(mapping, dictionary)
     namespaces  = subdict.byFeatureId.groupBy(_._1.namespace).keys.toList
-    partitions <- fromResultT(_ => Namespaces.allNamespaceSizes(hdfs, namespaces, factsets).run(hdfs.configuration))
-    _          <- fromResultT(_ => ResultT.fromDisjunction[IO, Unit](validate(mapping, dictionary).leftMap(\&/.This.apply)))
+    partitions <- fromRIO(_ => Namespaces.allNamespaceSizes(hdfs, namespaces, factsets).run(hdfs.configuration))
+    _          <- fromRIO(_ => RIO.fromDisjunction[Unit](validate(mapping, dictionary).leftMap(\&/.This.apply)))
     // Create a subset of the dictionary with only the featureIds that we care about
     lookup      = ReducerLookups.createLookups(subdict, partitions, reducerSize)
   } yield lookup
@@ -36,22 +36,22 @@ object Rename {
   def prepareGlobsFromLatestStore(mapping: RenameMapping): RepositoryTIO[List[Prioritized[FactsetGlob]]] = for {
     repository <- getHdfs
     storeIdO   <- Metadata.latestFeatureStoreIdT
-    storeId    <- fromResultT(_ => ResultT.fromOption[IO, FeatureStoreId](storeIdO, "Repository doesn't yet contain a store"))
+    storeId    <- fromRIO(_ => RIO.fromOption[FeatureStoreId](storeIdO, "Repository doesn't yet contain a store"))
     store      <- Metadata.featureStoreFromRepositoryT(storeId)
-    inputs     <- fromResultT(FeatureStoreGlob.filter(_, store, p => mapping.mapping.exists(_._1.namespace == p.namespace)))
+    inputs     <- fromRIO(FeatureStoreGlob.filter(_, store, p => mapping.mapping.exists(_._1.namespace == p.namespace)))
   } yield inputs.globs
 
   def renameWithFactsets(mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], reducerLookups: ReducerLookups): RepositoryTIO[(FactsetId, RenameStats)] = for {
     factset    <- RepositoryT.fromRIO(repository => Factsets.allocateFactsetId(repository))
     hdfs       <- getHdfs
     output      = hdfs.toIvoryLocation(Repository.factset(factset)).toHdfsPath
-    stats      <- fromResultT(_ => RenameJob.run(hdfs, mapping, inputs, output, reducerLookups, hdfs.codec).run(ScoobiConfiguration(hdfs.configuration)))
+    stats      <- fromRIO(_ => RenameJob.run(hdfs, mapping, inputs, output, reducerLookups, hdfs.codec).run(ScoobiConfiguration(hdfs.configuration)))
   } yield factset -> stats
 
   def getHdfs: RepositoryTIO[HdfsRepository] =
-    fromResultT {
-      case hr: HdfsRepository => ResultT.ok[IO, HdfsRepository](hr)
-      case _                  => ResultT.fail[IO, HdfsRepository]("Must be HdfsRepository")
+    fromRIO {
+      case hr: HdfsRepository => RIO.ok[HdfsRepository](hr)
+      case _                  => RIO.fail[HdfsRepository]("Must be HdfsRepository")
     }
 
   def validate(mapping: RenameMapping, dictionary: Dictionary): \/[String, Unit] = {

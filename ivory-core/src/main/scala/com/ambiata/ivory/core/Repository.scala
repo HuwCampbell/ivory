@@ -26,13 +26,12 @@ sealed trait Repository {
 
   /** This is far from ok, but is acting as a magnet for broken code that depends on this
       nonsense casting. This will be removed with s3 changes. */
-  def asHdfsRepository[F[_]: Monad]: ResultT[F, HdfsRepository] =
+  def asHdfsRepository: RIO[HdfsRepository] =
     this match {
       case h @ HdfsRepository(_) =>
-        type ResultF[A] = ResultT[F, A]
-        h.pure[ResultF]
+        h.pure[RIO]
       case _ =>
-        ResultT.fail[F, HdfsRepository]("This ivory operation currently only supports hdfs repositories.")
+        RIO.fail[HdfsRepository]("This ivory operation currently only supports hdfs repositories.")
     }
 }
 
@@ -56,8 +55,8 @@ object HdfsRepository {
 
   def fromUri(uri: String, ivory: IvoryConfiguration): RIO[HdfsRepository] =
     Repository.fromUri(uri, ivory).flatMap {
-      case h: HdfsRepository => ResultT.ok[IO, HdfsRepository](h)
-      case r                 => ResultT.fail[IO, HdfsRepository](s"${r.root.show} is not an HDFS repository")
+      case h: HdfsRepository => RIO.ok[HdfsRepository](h)
+      case r                 => RIO.fail[HdfsRepository](s"${r.root.show} is not an HDFS repository")
     }
 
 }
@@ -126,7 +125,7 @@ object Repository {
     IvoryLocation.parseUri(uri, repositoryConfiguration).map(fromIvoryLocation(_, repositoryConfiguration))
 
   def fromUri(uri: String, repositoryConfiguration: IvoryConfiguration): RIO[Repository] =
-    ResultT.fromDisjunction[IO, Repository](parseUri(uri, repositoryConfiguration).leftMap(This.apply))
+    RIO.fromDisjunction[Repository](parseUri(uri, repositoryConfiguration).leftMap(This.apply))
 
   def fromIvoryLocation(location: IvoryLocation, repositoryConfiguration: IvoryConfiguration): Repository = location match {
     case l: HdfsIvoryLocation  => HdfsRepository(l)
@@ -136,5 +135,5 @@ object Repository {
 
   /** Creates a unique [[Key]] that can be used as a temporary directory (but doesn't actually create it) */
   def tmpDir(repository: Repository): RIO[Key] =
-    ResultT.safe(Repository.root / "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID))
+    RIO.safe(Repository.root / "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID))
 }

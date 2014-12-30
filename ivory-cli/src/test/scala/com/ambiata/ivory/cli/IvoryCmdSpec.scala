@@ -2,7 +2,7 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core.IvoryConfiguration
 import com.ambiata.ivory.storage.control._
-import com.ambiata.mundane.control.ResultT
+import com.ambiata.mundane.control.RIO
 import org.specs2.Specification
 import org.specs2.execute.AsResult
 import org.specs2.matcher.ThrownExpectations
@@ -46,7 +46,7 @@ class IvoryCmdSpec extends Specification with ThrownExpectations { def is = sequ
     val optionsParser = new scopt.OptionParser[Int]("parser") {
       opt[Int]("number").action((i, n) => i)
     }
-    val command = new IvoryCmd[Int](optionsParser, 0, IvoryRunner[Int](c => i => { f(c, i); IvoryT.fromRIO { ResultT.ok[IO, List[String]](Nil) } }))
+    val command = new IvoryCmd[Int](optionsParser, 0, IvoryRunner[Int](c => i => { f(c, i); IvoryT.fromRIO { RIO.ok[List[String]](Nil) } }))
     command.run(args).unsafePerformIO
     ok
   }

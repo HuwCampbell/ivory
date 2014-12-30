@@ -71,7 +71,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
 
   def thriftList = prop { (facts: FactsWithDictionaryMulti) =>
     RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.DenseThrift) {
-      (repo, file) => ResultT.io(valueFromSequenceFile[ThriftFactDense](file.show).run(repo.scoobiConfiguration).toList)
+      (repo, file) => RIO.io(valueFromSequenceFile[ThriftFactDense](file.show).run(repo.scoobiConfiguration).toList)
     }) must beOkLike {
       denseFacts =>
         // We're not actually checking the contexts of 'value' here
@@ -82,7 +82,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
 
   def thriftMap = prop { (facts: FactsWithDictionaryMulti) =>
     RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.SparseThrift) {
-      (repo, file) => ResultT.io(valueFromSequenceFile[ThriftFactSparse](file.show).run(repo.scoobiConfiguration).toList)
+      (repo, file) => RIO.io(valueFromSequenceFile[ThriftFactSparse](file.show).run(repo.scoobiConfiguration).toList)
     }) must beOkLike {
       denseFacts =>
         // We're not actually checking the contexts of 'value' here

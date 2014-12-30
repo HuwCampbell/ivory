@@ -5,7 +5,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import scopt.OptionParser
 
-import scalaz._, Scalaz._, scalaz.effect._
+import scalaz._, Scalaz._
 
 case class ExtractOutput(formats: List[(String, String)] = Nil, missing: String = "NA")
 
@@ -21,11 +21,11 @@ object Extract {
   }
 
   def parse(conf: IvoryConfiguration, output: ExtractOutput): RIO[OutputFormats] = for {
-    out1 <- ResultT.fromDisjunction[IO, List[(OutputFormat, String)]](output.formats.traverseU {
+    out1 <- RIO.fromDisjunction[List[(OutputFormat, String)]](output.formats.traverseU {
       case (format, path) => OutputFormat.fromString(format).map(_ -> path)
         .toRightDisjunction(\&/.This(s"Unsupported format $format"): \&/[String, Throwable])
     })
-    out2 <- ResultT.fromDisjunctionString[IO, List[(OutputFormat, OutputDataset)]](out1.traverseU({
+    out2 <- RIO.fromDisjunctionString[List[(OutputFormat, OutputDataset)]](out1.traverseU({
       case (format, path) =>
         // This is a hack to ensure that paths that don't specify a scheme get defaulted to HdfsLocation. See `IvoryLocation.parseUri` vs `Location.fromUri`
         IvoryLocation.parseUri(path, conf).map(s => format -> OutputDataset(s.location))

@@ -85,7 +85,7 @@ object IvoryCmd {
       "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"
     new IvoryCmd[A](parser, initial, IvoryRunner(config => c =>
       for {
-        repoPath        <- IvoryT.fromRIO { ResultT.fromOption[IO, String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
+        repoPath        <- IvoryT.fromRIO { RIO.fromOption[String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
           "-r|--repository was missing or environment variable IVORY_REPOSITORY not set") }
         repo            <- IvoryT.fromRIO { Repository.fromUri(repoPath, config) }
         result          <- runner(repo)(config)(c)
@@ -103,8 +103,8 @@ object IvoryCmd {
       "Number of parallel nodes to run operations with, defaults to 20"
     withRepo(parser, initial, repo => config => c =>
       for {
-        shadowPath      <- IvoryT.fromRIO[String] { ResultT.ok(shadowRepoArg.orElse(sys.env.get("SHADOW_REPOSITORY")).getOrElse(s"/tmp/ivory-shadow-${UUID.randomUUID()}")) }
-        syncParallelism <- IvoryT.fromRIO { ResultT.ok[IO, Int](syncParallelismArg.getOrElse(20)) }
+        shadowPath      <- IvoryT.fromRIO[String] { RIO.ok(shadowRepoArg.orElse(sys.env.get("SHADOW_REPOSITORY")).getOrElse(s"/tmp/ivory-shadow-${UUID.randomUUID()}")) }
+        syncParallelism <- IvoryT.fromRIO { RIO.ok[Int](syncParallelismArg.getOrElse(20)) }
         cluster         = Cluster.fromIvoryConfiguration(new Path(shadowPath), config, syncParallelism)
         result          <- runner(repo)(cluster)(config)(c)
       } yield result
@@ -115,19 +115,19 @@ object IvoryCmd {
     c <- Metadata.configuration
     _ <- RepositoryT.fromRIO { _ => c.metadata match {
       case MetadataVersion.Unknown(x) =>
-        ResultT.failIO[Unit](s"""The version of ivory you are running [${IvoryVersion.get.version}],
+        RIO.failIO[Unit](s"""The version of ivory you are running [${IvoryVersion.get.version}],
                                 |does not know about, or understand the version of the specified
                                 |repository [${x}]. Perhaps someone has run `ivory update` on the
                                 |repository.""".stripMargin)
       case MetadataVersion.V0 | MetadataVersion.V1 =>
-        ResultT.failIO[Unit](s"""The version of the ivory repository you are trying to access has
+        RIO.failIO[Unit](s"""The version of the ivory repository you are trying to access has
                                 |meta-data in a form which is too old to be read, you need to run
                                 |run `ivory update` in order for this version of ivory to proceed.
                                 |
                                 |WARNING: If you run `ivory update` older ivory installs will no
                                 |longer be able to access the repository.""".stripMargin)
       case MetadataVersion.V2 =>
-        ResultT.unit[IO]
+        RIO.unit
     } }
   } yield ()
 }

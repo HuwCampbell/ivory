@@ -41,16 +41,16 @@ trait TemporaryLocations {
     withConf(c => runWithCluster(Cluster.fromIvoryConfiguration(new Path(createUniquePath.path), c, 1))(f))
 
   def runWithRepository[A, R <: Repository](repository: R)(f: R => RIO[A]): RIO[A] =
-    ResultT.using(TemporaryRepository(repository).pure[RIO])(tmp => f(tmp.repo))
+    RIO.using(TemporaryRepository(repository).pure[RIO])(tmp => f(tmp.repo))
 
   def runWithIvoryLocationFile[A](location: IvoryLocation)(f: IvoryLocation => RIO[A]): RIO[A] =
-    ResultT.using(TemporaryLocationFile(location).pure[RIO])(tmp => f(tmp.location))
+    RIO.using(TemporaryLocationFile(location).pure[RIO])(tmp => f(tmp.location))
 
   def runWithIvoryLocationDir[A](location: IvoryLocation)(f: IvoryLocation => RIO[A]): RIO[A] =
-    ResultT.using(TemporaryLocationDir(location).pure[RIO])(tmp => f(tmp.location))
+    RIO.using(TemporaryLocationDir(location).pure[RIO])(tmp => f(tmp.location))
 
   def runWithCluster[A](cluster: Cluster)(f: Cluster => RIO[A]): RIO[A] =
-    ResultT.using(TemporaryCluster(cluster).pure[RIO])(tmp => f(tmp.cluster))
+    RIO.using(TemporaryCluster(cluster).pure[RIO])(tmp => f(tmp.cluster))
 
   /** Please use this with care - we need to ensure we _always_ cleanup these files */
   def createUniquePath: DirPath =
@@ -79,7 +79,7 @@ trait TemporaryLocations {
 
   def createLocationDir(location: IvoryLocation): RIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))                 => Directories.mkdirs(DirPath.unsafe(path))
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client)      => (S3Address(bucket, key) / ".location").put("").executeT(s3Client).void
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client)      => (S3Address(bucket, key) / ".location").put("").execute(s3Client).void
     case h @ HdfsIvoryLocation(HdfsLocation(p), configuration, _, _) => PoacherHdfs.mkdir(new Path(p)).void.run(configuration)
   }
 }

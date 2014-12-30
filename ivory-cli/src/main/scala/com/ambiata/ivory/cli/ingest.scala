@@ -3,7 +3,7 @@ package com.ambiata.ivory.cli
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.ingestion._
 import com.ambiata.ivory.storage.control._
-import com.ambiata.mundane.control.ResultT
+import com.ambiata.mundane.control.RIO
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.io._
 import org.joda.time.DateTimeZone
@@ -37,7 +37,7 @@ object ingest extends IvoryApp {
   val cmd = IvoryCmd.withCluster[CliArguments](parser,
       CliArguments(Nil, None, 256.mb),
       repo => cluster => configuration => c => for {
-        inputs  <- IvoryT.fromRIO(ResultT.fromDisjunctionString(
+        inputs  <- IvoryT.fromRIO(RIO.fromDisjunctionString(
           c.inputs.traverseU(InputFormat.fromString).flatMap(_.traverseU {
             case (f, ns, i) => IvoryLocation.parseUri(i, configuration).map(il => (f, ns, il))
           })

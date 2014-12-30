@@ -31,13 +31,12 @@ trait IvoryLocation {
 
   /** This is far from ok, but is acting as a magnet for broken code that depends on this
       nonsense casting. This will be removed with s3 changes. */
-  def asHdfsIvoryLocation[F[_]: Monad]: ResultT[F, HdfsIvoryLocation] =
+  def asHdfsIvoryLocation: RIO[HdfsIvoryLocation] =
     this match {
       case h @ HdfsIvoryLocation(_, _, _, _) =>
-        type ResultF[A] = ResultT[F, A]
-        h.pure[ResultF]
+        h.pure[RIO]
       case _ =>
-        ResultT.fail[F, HdfsIvoryLocation]("This ivory operation currently only supports hdfs locations.")
+        RIO.fail[HdfsIvoryLocation]("This ivory operation currently only supports hdfs locations.")
     }
 }
 
@@ -65,8 +64,8 @@ object HdfsIvoryLocation {
 
   def fromUri(uri: String, ivory: IvoryConfiguration): RIO[HdfsIvoryLocation] =
     IvoryLocation.fromUri(uri, ivory).flatMap {
-      case h: HdfsIvoryLocation => ResultT.ok[IO, HdfsIvoryLocation](h)
-      case l                    => ResultT.fail[IO, HdfsIvoryLocation](s"${l.show} is not an HDFS location")
+      case h: HdfsIvoryLocation => RIO.ok[HdfsIvoryLocation](h)
+      case l                    => RIO.fail[HdfsIvoryLocation](s"${l.show} is not an HDFS location")
     }
 }
 
@@ -104,13 +103,13 @@ object LocalIvoryLocation {
 object IvoryLocation {
   def deleteAll(location: IvoryLocation): RIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Directories.delete(l.dirPath).void
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Prefix(bucket, key).delete.executeT(s3Client)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Prefix(bucket, key).delete.execute(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.deleteAll(new Path(path)).run(conf)
   }
 
   def delete(location: IvoryLocation): RIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Files.delete(l.filePath).void
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).delete.executeT(s3Client)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).delete.execute(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.delete(new Path(path)).run(conf)
   }
 
@@ -118,7 +117,7 @@ object IvoryLocation {
     case l @ LocalIvoryLocation(LocalLocation(path)) =>
       Files.read(l.filePath)
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
-      S3Address(bucket, key).get.executeT(s3Client)
+      S3Address(bucket, key).get.execute(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
       Hdfs.readContentAsString(new Path(path)).run(conf)
   }
@@ -127,7 +126,7 @@ object IvoryLocation {
     case l @ LocalIvoryLocation(LocalLocation(path)) =>
       Files.readLines(l.filePath).map(_.toList)
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
-      S3Address(bucket, key).getLines.executeT(s3Client)
+      S3Address(bucket, key).getLines.execute(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
       Hdfs.isDirectory(new Path(path)).flatMap { isDirectory =>
         if (isDirectory)
@@ -142,18 +141,18 @@ object IvoryLocation {
     import scalaz.effect.Effect._
     location match {
       case l @ LocalIvoryLocation(LocalLocation(path)) =>
-        ResultT.using(l.filePath.toInputStream)(f)
+        RIO.using(l.filePath.toInputStream)(f)
       case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
-        ResultT.using(S3Address(bucket, key).getObject.map(_.getObjectContent).executeT(s3Client))(f)
+        RIO.using(S3Address(bucket, key).getObject.map(_.getObjectContent).execute(s3Client))(f)
       case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
         Hdfs.readWith(new Path(path), f).run(conf)
     }
   }
 
   def streamLinesUTF8[A](location: IvoryLocation, empty: => A)(f: (String, A) => A): RIO[A] = {
-    ResultT.io(empty).flatMap { s =>
+    RIO.io(empty).flatMap { s =>
       var state = s
-      readUnsafe(location) { in => ResultT.io {
+      readUnsafe(location) { in => RIO.io {
         val reader = new java.io.BufferedReader(new java.io.InputStreamReader(in, "UTF-8"))
         var line = reader.readLine
         while (line != null) {
@@ -169,7 +168,7 @@ object IvoryLocation {
       Directories.list(l.dirPath).map(fs => fs.map(f => l.copy(location = LocalLocation(f.path))))
 
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
-      S3Prefix(bucket, key).listKeys.executeT(s3Client).map(_.map { k =>
+      S3Pattern(bucket, key).listKeys.execute(s3Client).map(_.map { k =>
         s.copy(location = S3Location(bucket,  k))
       })
 
@@ -181,8 +180,8 @@ object IvoryLocation {
 
   def exists(location: IvoryLocation): RIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            =>
-      Files.exists(FilePath.unsafe(path)).flatMap(e => if (e) ResultT.ok[IO, Boolean](e) else Directories.exists(l.dirPath))
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).exists.executeT(s3Client)
+      Files.exists(FilePath.unsafe(path)).flatMap(e => if (e) RIO.ok[Boolean](e) else Directories.exists(l.dirPath))
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).exists.execute(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.exists(new Path(path)).run(conf)
   }
 
@@ -191,22 +190,22 @@ object IvoryLocation {
 
   def writeUtf8(location: IvoryLocation, string: String): RIO[Unit] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Files.write(l.filePath, string)
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).put(string).executeT(s3Client).void
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).put(string).execute(s3Client).void
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.writeWith(new Path(path), out => Streams.write(out, string)).run(conf)
   }
 
   def size(location: IvoryLocation): RIO[Long] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path)) =>
-      Directories.list(l.dirPath).flatMap(_.traverseU(f => ResultT.io { f.toFile.length.toLong }).map(_.sum))
+      Directories.list(l.dirPath).flatMap(_.traverseU(f => RIO.io { f.toFile.length.toLong }).map(_.sum))
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
-      S3Prefix(bucket, key).size.executeT(s3Client)
+      S3Pattern(bucket, key).size.execute(s3Client).map(_.getOrElse(0))
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
       Hdfs.globFilesRecursively(new Path(path)).flatMap(_.traverse(f => Hdfs.size(f).map(_.toBytes.value)).map(_.sum)).run(conf)
   }
 
   def isDirectory(location: IvoryLocation): RIO[Boolean] = location match {
-    case l @ LocalIvoryLocation(LocalLocation(path))            => ResultT.safe[IO, Boolean](new File(path).isDirectory)
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Prefix(bucket, key + "/").listSummary.map(_.nonEmpty).executeT(s3Client)
+    case l @ LocalIvoryLocation(LocalLocation(path))            => RIO.safe[Boolean](new File(path).isDirectory)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Prefix(bucket, key + "/").listSummary.map(_.nonEmpty).execute(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.isDirectory(new Path(path)).run(conf)
   }
 
@@ -214,7 +213,7 @@ object IvoryLocation {
     repository.toIvoryLocation(key)
 
   def fromUri(s: String, ivory: IvoryConfiguration): RIO[IvoryLocation] =
-    ResultT.fromDisjunctionString[IO, IvoryLocation](parseUri(s, ivory))
+    RIO.fromDisjunctionString[IvoryLocation](parseUri(s, ivory))
 
   def fromDirPath(dirPath: DirPath): LocalIvoryLocation =
     LocalIvoryLocation(LocalLocation(dirPath.path))

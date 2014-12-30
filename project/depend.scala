@@ -19,20 +19,20 @@ object depend {
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val sawsVersion = "1.2.1-20141222233934-caea943"
+  val sawsVersion = "1.2.1-20141230230928-5f210aa"
   val saws      = Seq("com.ambiata"          %% "saws"            % sawsVersion excludeAll(
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec")
   ))
 
-  val MUNDANE_VERSION ="1.2.1-20141222232537-2af3aad"
+  val MUNDANE_VERSION ="1.2.1-20141230225616-50fc792"
   val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-trace").map(c =>
                       "com.ambiata"          %% c                 % MUNDANE_VERSION) ++
                   Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")
 
   def notion(version: String) = {
-    val cdh4Version = "0.0.1-cdh4-20141223020715-9c5ddca"
-    val cdh5Version = "0.0.1-cdh5-20141223020715-9c5ddca"
+    val cdh4Version = "0.0.1-cdh4-20141230232623-facc63f"
+    val cdh5Version = "0.0.1-cdh5-20141230232624-facc63f"
     if (version.contains("cdh4"))
       Seq("com.ambiata" %% "notion-core"     % cdh4Version) ++
       Seq("com.ambiata" %% "notion-distcopy" % cdh4Version) ++
@@ -64,8 +64,8 @@ object depend {
   }
 
   def poacher(version: String) =
-    if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141223020233-4745763")
-    else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141223020233-4745763")
+    if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20141230231304-e4168c2")
+    else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20141230231304-e4168c2")
     else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 

@@ -21,7 +21,7 @@ import com.ambiata.notion.core.TemporaryType._
 import com.ambiata.poacher.mr.ThriftSerialiser
 import com.nicta.scoobi.Scoobi._
 import org.specs2.{ScalaCheck, Specification}
-import scalaz.{Name=>_,Value=>_,_}, Scalaz._, effect._
+import scalaz.{Name=>_,Value=>_,_}, Scalaz._
 import MemoryConversions._
 
 class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is = sequential ^ section("mr") ^ section("aws") ^ s2"""
@@ -78,8 +78,8 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
             _  <- Ingest.ingestFacts(repository, cluster, List(
               (FileFormat.Text(Delimiter.Psv, TextEscaping.Escaped), Some(facts.fact.namespace), location)
             ), None, 100.mb).run.run(IvoryRead.create)
-            r  <- repository.asHdfsRepository[IO]
-            l  <- repository.toIvoryLocation(Repository.namespace(FactsetId.initial, facts.fact.namespace)).asHdfsIvoryLocation[IO]
+            r  <- repository.asHdfsRepository
+            l  <- repository.toIvoryLocation(Repository.namespace(FactsetId.initial, facts.fact.namespace)).asHdfsIvoryLocation
           } yield List(facts.fact.toThrift) -> valueFromSequenceFile[ThriftFact](l.toHdfs + "/" + HdfsGlobs.FactsetPartitionsGlob).run(r.scoobiConfiguration).toList
         }
       }
@@ -98,7 +98,7 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
           c   = cluster.hdfsConfiguration
           _   <- DictionaryThriftStorage(repository).store(facts.dictionary)
           _   <- SequenceUtil.writeBytes((loc </> "part-r-00000").location, c, cluster.s3Client, None) {
-            write => ResultT.safe((facts.facts ++ badFacts).foreach(fact => write(serialiser.toBytes(Conversion.fact2thrift(fact)))))
+            write => RIO.safe((facts.facts ++ badFacts).foreach(fact => write(serialiser.toBytes(Conversion.fact2thrift(fact)))))
           }
           fid <- Ingest.ingestFacts(repository, cluster, List(
             (FileFormat.Thrift, Some(ns), loc)

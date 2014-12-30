@@ -3,7 +3,7 @@ package com.ambiata.ivory.cli
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.storage.control._
-import com.ambiata.mundane.control.ResultT
+import com.ambiata.mundane.control.RIO
 import org.joda.time.DateTimeZone
 import scalaz._, effect.IO
 
@@ -29,7 +29,7 @@ object createRepository extends IvoryApp {
     println("Created configuration: " + configuration)
     IvoryT.fromRIO(for {
       repo     <- Repository.fromUri(c.path, configuration)
-      timezone <- ResultT.fromDisjunction[IO, DateTimeZone](DateTimeZoneUtil.forID(c.timezone).leftMap(\&/.This.apply))
+      timezone <- RIO.fromDisjunction[DateTimeZone](DateTimeZoneUtil.forID(c.timezone).leftMap(\&/.This.apply))
       _        <- Repositories.create(repo, RepositoryConfig(MetadataVersion.V2, timezone))
     } yield Nil)
   })

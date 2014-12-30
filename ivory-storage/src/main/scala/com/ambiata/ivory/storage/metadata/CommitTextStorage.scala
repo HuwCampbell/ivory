@@ -4,7 +4,7 @@ package metadata
 import com.ambiata.ivory.storage.control.{RepositoryT, RepositoryRead}
 import com.ambiata.mundane.parse.ListParser
 
-import scalaz._, Scalaz._, effect._
+import scalaz._, Scalaz._
 
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.core._
@@ -17,7 +17,7 @@ object CommitTextStorage {
 
   def increment(repository: Repository, c: Commit): RIO[CommitId] = for {
     latest      <- latestId(repository)
-    nextId      <- ResultT.fromOption[IO, CommitId](latest.map(_.next).getOrElse(Some(CommitId.initial)),
+    nextId      <- RIO.fromOption[CommitId](latest.map(_.next).getOrElse(Some(CommitId.initial)),
       s"""The number of possible commits ids for this Ivory repository has exceeded the limit (which is quite large).
          |
          |${Crash.raiseIssue}
@@ -29,7 +29,7 @@ object CommitTextStorage {
     commitId <- listIds(repository).map(_.find(_ === id))
     commit   <- commitId.cata(x => for {
         lns  <- repository.store.linesUtf8.read(Repository.commitById(x))
-        cmt  <- ResultT.fromDisjunctionString[IO, Commit](fromLines.run(lns).disjunction)
+        cmt  <- RIO.fromDisjunctionString[Commit](fromLines.run(lns).disjunction)
     } yield Some(cmt)
       , none.pure[RIO])
   } yield commit

@@ -3,7 +3,7 @@ package com.ambiata.ivory.cli.debug
 import com.ambiata.ivory.cli._
 import com.ambiata.ivory.operation.debug._
 import com.ambiata.ivory.storage.control._
-import com.ambiata.mundane.control.ResultT
+import com.ambiata.mundane.control.RIO
 
 import scalaz.effect.IO
 
@@ -32,7 +32,7 @@ object catThrift extends IvoryApp {
   }
 
   val cmd =  new IvoryCmd[CliArguments](parser, CliArguments(Nil, "not-set", "not-set", "not-set"), IvoryRunner { conf => c => IvoryT.fromRIO { for {
-    format <- ResultT.fromOption[IO, CatThriftFormat](CatThriftFormat.parseFormat(c.format), s"Unknown thrift format '${c.format}'")
+    format <- RIO.fromOption[CatThriftFormat](CatThriftFormat.parseFormat(c.format), s"Unknown thrift format '${c.format}'")
     _      <- CatThrift.run(conf.configuration, c.entities, c.input, format, c.output, conf.codec)
   } yield Nil } })
 }

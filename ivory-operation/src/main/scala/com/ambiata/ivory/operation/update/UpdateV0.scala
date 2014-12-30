@@ -11,7 +11,7 @@ import com.ambiata.ivory.storage._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 
-import scalaz._, Scalaz._, effect._
+import scalaz._, Scalaz._
 
 object UpdateV0 {
   def update: RepositoryTIO[Unit] = for {
@@ -51,7 +51,7 @@ object UpdateV0 {
           // Ensure we have at least 3 lines (to include new commitId)
           safeLines    = if (lines.length == 2) lines ++ List("") else lines
           id           = path.components.lastOption.flatMap(s => SnapshotId.parse(s.name)).getOrElse(SnapshotId.initial)
-          md          <- ResultT.fromDisjunctionString[IO, SnapshotMetadataV0](parser(id).run(safeLines).disjunction)
+          md          <- RIO.fromDisjunctionString[SnapshotMetadataV0](parser(id).run(safeLines).disjunction)
         } yield some(SnapshotManifest.createDeprecated(md.storeOrCommit, md.snapshotId, SnapshotFormat.V1, md.date))
         else none.point[RIO]
       } yield sm
@@ -77,7 +77,7 @@ object UpdateV0 {
       exists <- repository.store.exists(s / SnapshotMetadataV1.key)
       sm <- if (exists) for {
         json <- repository.store.utf8.read(s / SnapshotMetadataV1.key)
-        md   <- ResultT.fromDisjunctionString[IO, SnapshotMetadataV1](json.decodeEither[SnapshotMetadataV1])
+        md   <- RIO.fromDisjunctionString[SnapshotMetadataV1](json.decodeEither[SnapshotMetadataV1])
       } yield SnapshotManifest.create(md.commitId, md.snapshotId, SnapshotFormat.V1, md.date).some
       else none.pure[RIO]
     } yield sm

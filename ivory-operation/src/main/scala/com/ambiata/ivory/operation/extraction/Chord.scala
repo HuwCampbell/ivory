@@ -33,7 +33,7 @@ object Chord {
     entities <- Entities.readEntitiesFrom(entitiesLocation)
     out      <- createChordRaw(repository, entities, takeSnapshot)
     (o, dict) = out
-    hr       <- repository.asHdfsRepository[IO]
+    hr       <- repository.asHdfsRepository
     job      <- SquashJob.initChordJob(hr.configuration, entities)
     // We always need to squash because the entities need to be rewritten, which is _only_ handled by squash
     // This can technically be optimized to do the entity rewriting in the reducer - see the Git history for an example
@@ -67,10 +67,10 @@ object Chord {
       factsetGlobs         <- calculateGlobs(repository, store, entities.latestDate, featureStoreSnapshot)
       _                     = println(s"Calculated ${factsetGlobs.size} globs.")
       outputPath           <- Repository.tmpDir(repository)
-      hdfsIvoryLocation    <- repository.toIvoryLocation(outputPath).asHdfsIvoryLocation[IO]
+      hdfsIvoryLocation    <- repository.toIvoryLocation(outputPath).asHdfsIvoryLocation
       out                   = ShadowOutputDataset.fromIvoryLocation(hdfsIvoryLocation)
       /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
-      hr                   <- repository.asHdfsRepository[IO]
+      hr                   <- repository.asHdfsRepository
       _                    <- job(hr, dictionary, factsetGlobs, outputPath, entities, featureStoreSnapshot, hr.codec).run(hr.configuration)
     } yield (out, dictionary)
   }

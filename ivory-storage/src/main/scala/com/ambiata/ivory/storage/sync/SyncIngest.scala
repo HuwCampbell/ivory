@@ -55,7 +55,7 @@ object SyncIngest {
 
     input.location match {
       case l @ LocalLocation(path) => for {
-        files <- if (l.dirPath.toFile.isFile) ResultT.ok[IO, List[FilePath]](List(l.filePath))
+        files <- if (l.dirPath.toFile.isFile) RIO.ok[List[FilePath]](List(l.filePath))
                  else Directories.list(l.dirPath)
         c     = l.dirPath
         pr    = DirPath(c.names.init.toVector, c.isAbsolute)
@@ -67,13 +67,13 @@ object SyncIngest {
         val keys = key.split("/").toList
         val prefix = S3Prefix(bucket, keys.init.mkString("/"))
         for {
-          files <- getS3Info(pattern).executeT(cluster.s3Client)
+          files <- getS3Info(pattern).execute(cluster.s3Client)
           _     <- SyncS3.toHdfs(prefix, files, outputPath, cluster)
         } yield getOutput(keys.lastOption)
       }
 
       case h @ HdfsLocation(_) =>
-        ResultT.ok(ShadowInputDataset(h))
+        RIO.ok(ShadowInputDataset(h))
     }
   }
 
@@ -86,7 +86,7 @@ object SyncIngest {
         getLocalFilePaths(datasets, l.dirPath, cluster) >>= (files =>
           SyncLocal.toHdfs(l.dirPath, files, DirPath.Empty, cluster))
       case HdfsLocation(_) =>
-        ResultT.unit[IO]
+        RIO.unit
     }).as(source match {
       case HdfsRepository(HdfsIvoryLocation(h, _, _, _)) =>
         ShadowRepository.fromDistCopyConfiguration(new Path(h.path), cluster.conf, source)

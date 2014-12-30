@@ -3,7 +3,7 @@ package com.ambiata.ivory.storage.metadata
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
-import ResultT._
+import RIO._
 import com.ambiata.mundane.data.Lists
 
 import scalaz.{Value => _, _}, Scalaz._, effect.IO
@@ -17,7 +17,7 @@ trait TextStorage[L, T] {
 
   def fromSingleFile(location: IvoryLocation): RIO[T] = for {
     lines  <- IvoryLocation.readLines(location)
-    result <- ResultT.fromDisjunctionString[IO, T](fromLines(lines))
+    result <- RIO.fromDisjunctionString[T](fromLines(lines))
   } yield result
 
   /**
@@ -34,7 +34,7 @@ trait TextStorage[L, T] {
     repository.store.utf8.write(key, delimitedString(t))
 
   def fromKeyStore(repository: Repository, key: Key): RIO[T] =
-    repository.store.linesUtf8.read(key).flatMap(lines => ResultT.fromDisjunctionString[IO, T](fromLines(lines)))
+    repository.store.linesUtf8.read(key).flatMap(lines => RIO.fromDisjunctionString[T](fromLines(lines)))
 
   def fromString(s: String): ValidationNel[String, T] =
     fromLinesAll(s.lines.toList)
