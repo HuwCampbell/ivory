@@ -7,6 +7,7 @@ import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.manifest._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.fact._
+import com.ambiata.ivory.storage._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 
@@ -27,11 +28,10 @@ object UpdateV0 {
   } yield ())
 
   def updateSnapshots: RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
-    snapshots <- repository.store.listHeads(Repository.snapshots)
+    snapshots <- repository.store.listHeads(Repository.snapshots).map(_.filterHidden)
     sm <- snapshots.traverseU(s =>
       SnapshotMetadataV1.read(repository, s)
-        .flatMap(_.cata(_.some.pure[RIO], SnapshotMetadataV0.read(repository, s)))
-    )
+        .flatMap(_.cata(_.some.pure[RIO], SnapshotMetadataV0.read(repository, s))))
     _ <- sm.flatten.traverseU(s => SnapshotManifest.io(repository, s.snapshot).write(s))
   } yield ())
 
