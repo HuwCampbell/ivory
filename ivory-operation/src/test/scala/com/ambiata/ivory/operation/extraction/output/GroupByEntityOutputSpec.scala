@@ -59,7 +59,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
     RepositoryBuilder.using(createDenseText(List(facts.facts), facts.dictionary)) must beOkLike {
       case (out, dict) => seqToResult(out.lines.toList.map(_.split("\\|", -1).size - 1 ==== dict.size))
     }
-  }.set(minTestsOk = 1)
+  }.set(minTestsOk = 5)
 
   def textEscaped = prop { (facts: FactsWithDictionaryMulti) =>
     RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.DenseText(Delimiter.Psv, "NA", TextEscaping.Escaped)) {
@@ -67,7 +67,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
     }) must beOkLike {
       lines => seqToResult(lines.map(TextEscaping.split('|', _).length ==== facts.dictionary.size + 1))
     }
-  }.set(minTestsOk = 2, maxDiscardRatio = 10)
+  }.set(minTestsOk = 5, maxDiscardRatio = 10)
 
   def thriftList = prop { (facts: FactsWithDictionaryMulti) =>
     RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.DenseThrift) {
@@ -78,7 +78,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
         (denseFacts.map(_.getEntity).sorted, denseFacts.map(_.getValue.size()).max) ====
         (facts.facts.groupBy(_.entity).keySet.toList.sorted -> facts.dictionary.size)
     }
-  }.set(minTestsOk = 2, maxDiscardRatio = 10)
+  }.set(minTestsOk = 5, maxDiscardRatio = 10)
 
   def thriftMap = prop { (facts: FactsWithDictionaryMulti) =>
     RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.SparseThrift) {
@@ -89,7 +89,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
         denseFacts.map(f => f.getEntity -> f.getValue.keySet.asScala.toSet).toMap ====
           facts.facts.groupBy(_.entity).mapValues(_.filter(!_.isTombstone).map(_.featureId.toString).toSet)
     }
-  }.set(minTestsOk = 2, maxDiscardRatio = 10)
+  }.set(minTestsOk = 5, maxDiscardRatio = 10)
 
   def expectedDictionary = List(
     "0|ns1|fid1|string|categorical|desc|NA",
