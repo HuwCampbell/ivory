@@ -1,0 +1,31 @@
+#!/bin/sh -eux
+
+DIR=$(dirname $0)
+. "${DIR}/../../setup.sh"
+DICT_NAME="dict_regression"
+
+### V3 - Last stop before we added global versioning, i.e. metadata v0
+
+V3="ivory_run $IVORY_V3"
+$V3 create-repository -z Australia/Sydney "${REPOSITORY}"
+$V3 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
+$V3 ingest -i "sparse:delimited:psv=${INPUT}/facts-v0"
+$V3 snapshot
+
+### LATEST ###
+
+if $IVORY cat-dictionary; then echo "Do not pass go - upgrade was not required"; exit 1; fi
+
+$IVORY update
+
+### INGEST ###
+
+$IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts-v2"
+
+### SNAPSHOT ###
+
+$IVORY snapshot -o "dense:psv=${TARGET}/snap-dense" -o "sparse:psv=${TARGET}/snap-sparse"
+$IVORY cat-facts "${REPOSITORY}/snapshots/00000001" | sort > "${TARGET}/snapshot.psv"
+diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
+diff_test_mr "${DIR}/expected/snap-dense.psv" "${TARGET}/snap-dense"
+diff_test_mr "${DIR}/expected/snap-sparse.psv" "${TARGET}/snap-sparse"

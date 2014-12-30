@@ -7,32 +7,31 @@ import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.manifest._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.fact._
+import com.ambiata.ivory.storage._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 
 import scalaz._, Scalaz._, effect._
 
 object UpdateV0 {
-
   def update: RepositoryTIO[Unit] = for {
-    _ <- updateStores
+    _ <- updateFactsets
     _ <- updateSnapshots
   } yield ()
 
-  def updateStores: RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
-    store <- Metadata.latestFeatureStoreOrFail(repository)
-    _ <- store.factsets.traverseU(f => for {
-      glob <- FactsetGlob.select(repository, f.value.id)
-      _    <- glob.traverseU(g => FactsetManifest.io(repository, f.value.id).write(FactsetManifest.create(f.value.id, FactsetFormat.V2, g.partitions)))
+  def updateFactsets: RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
+    factsets <- Metadata.findFactsets(repository)
+    _ <- factsets.traverseU(f => for {
+      glob <- FactsetGlob.select(repository, f)
+      _    <- glob.traverseU(g => FactsetManifest.io(repository, f).write(FactsetManifest.create(f, FactsetFormat.V2, g.partitions)))
     } yield ())
   } yield ())
 
   def updateSnapshots: RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
-    snapshots <- repository.store.listHeads(Repository.snapshots)
+    snapshots <- repository.store.listHeads(Repository.snapshots).map(_.filterHidden)
     sm <- snapshots.traverseU(s =>
       SnapshotMetadataV1.read(repository, s)
-        .flatMap(_.cata(_.some.pure[RIO], SnapshotMetadataV0.read(repository, s)))
-    )
+        .flatMap(_.cata(_.some.pure[RIO], SnapshotMetadataV0.read(repository, s))))
     _ <- sm.flatten.traverseU(s => SnapshotManifest.io(repository, s.snapshot).write(s))
   } yield ())
 

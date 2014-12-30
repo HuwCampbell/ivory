@@ -1,0 +1,31 @@
+#!/bin/sh -eux
+
+DIR=$(dirname $0)
+. "${DIR}/../../setup.sh"
+DICT_NAME="dict_regression"
+
+### V4 - Last stop before we added size to factset metadata, i.e. metadata v1
+
+V4="ivory_run $IVORY_V4"
+$V4 create-repository -z Australia/Sydney "${REPOSITORY}"
+$V4 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
+$V4 ingest -i "sparse:delimited:psv=${INPUT}/facts-v1"
+$V4 snapshot
+
+### LATEST ###
+
+if $IVORY cat-dictionary; then echo "Do not pass go - upgrade was not required"; exit 1; fi
+
+$IVORY update
+
+### INGEST ###
+
+$IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts-v2"
+
+### SNAPSHOT ###
+
+$IVORY snapshot -o "dense:psv=${TARGET}/snap-dense" -o "sparse:psv=${TARGET}/snap-sparse"
+$IVORY cat-facts "${REPOSITORY}/snapshots/00000001" | sort > "${TARGET}/snapshot.psv"
+diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
+diff_test_mr "${DIR}/expected/snap-dense.psv" "${TARGET}/snap-dense"
+diff_test_mr "${DIR}/expected/snap-sparse.psv" "${TARGET}/snap-sparse"

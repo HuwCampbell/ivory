@@ -24,5 +24,5 @@ Laws
   implicit def FactsetManifestArbitrary: Arbitrary[FactsetManifest] =
     Arbitrary((arbitrary[FactsetId] |@|
                arbitrary[FactsetFormat] |@|
-               arbitrary[List[Partition]])(FactsetManifest(VersionManifest.current, _, _, _)))
+               arbitrary[List[Sized[Partition]]])(FactsetManifest(VersionManifest.current, _, _, _)))
 }

@@ -2,13 +2,18 @@ package com.ambiata.ivory.core.gen
 
 import com.ambiata.ivory.core._
 
-import org.scalacheck._
+import org.scalacheck._, Arbitrary.arbitrary
 
 import scalaz.{Name => _, Value => _, _}, Scalaz._
 import scalaz.scalacheck.ScalaCheckBinding._
 
 
 object GenRepository {
+  def sized[A: Arbitrary]: Gen[Sized[A]] = for {
+    s <- Gen.choose(0L, Long.MaxValue)
+    v <- arbitrary[A]
+  } yield Sized(v, s)
+
   def datasets: Gen[Datasets] = for {
     n <- Gen.sized(z => Gen.choose(1, math.min(z, 20)))
     d <- Gen.listOfN(n, dataset)

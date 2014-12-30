@@ -20,6 +20,9 @@ object MetadataVersion {
   /** The initial json format metadata. */
   case object V1 extends MetadataVersion
 
+  /** Added 'size' to factset and snapshot metadata to assist with planning. */
+  case object V2 extends MetadataVersion
+
   implicit def MetadataVersionEqual: Equal[MetadataVersion] =
     Equal.equalA[MetadataVersion]
 
@@ -27,10 +30,12 @@ object MetadataVersion {
     ArgonautPlus.codecEnum("MetadataVersion", {
       case V0 => "v0"
       case V1 => "v1"
+      case V2 => "v2"
       case Unknown(x) => x
     }, {
       case "v0" => V0
       case "v1" => V1
+      case "v2" => V2
       case x => Unknown(x)
     })
 }

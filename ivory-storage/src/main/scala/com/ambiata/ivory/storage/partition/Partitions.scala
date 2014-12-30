@@ -7,7 +7,7 @@ import com.ambiata.ivory.storage.manifest._
 import scalaz._, Scalaz._, \&/._, effect.IO
 
 object Partitions {
-  def getFromFactset(repository: Repository, factset: FactsetId): RIO[List[Partition]] =
+  def getFromFactset(repository: Repository, factset: FactsetId): RIO[List[Sized[Partition]]] =
     FactsetManifest.io(repository, factset).read.flatMap({
       case None =>
         scrapeFromFactset(repository, factset)
@@ -15,10 +15,13 @@ object Partitions {
         manifest.partitions.pure[RIO]
     })
 
-  def scrapeFromFactset(repository: Repository, factset: FactsetId): RIO[List[Partition]] =
+  def scrapeFromFactset(repository: Repository, factset: FactsetId): RIO[List[Sized[Partition]]] =
     for {
       keys       <- repository.store.list(Repository.factset(factset)).map(_.map(_.dropRight(1).drop(2)).filter(_ != Key.Root).distinct)
-      partitions <- keys.traverseU(key => ResultT.fromDisjunction[IO, Partition](Partition.parseNamespaceDateKey(key).disjunction.leftMap(This.apply)))
+      partitions <- keys.traverseU(key => for {
+          p <- ResultT.fromDisjunction[IO, Partition](Partition.parseNamespaceDateKey(key).disjunction.leftMap(This.apply))
+          s <- IvoryLocation.size(repository.toIvoryLocation(key))
+        } yield Sized(p, s))
     } yield partitions.sorted
 
   /** As Russell would say, this is fraught with danger, it is to be used very carefully and

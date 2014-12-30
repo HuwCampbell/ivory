@@ -8,10 +8,14 @@ import scalaz.effect.IO
 import scalaz._, Scalaz._
 
 object Metadata {
-
   /** Feature Store */
   def featureStoreFromIvory(repo: Repository, id: FeatureStoreId): RIO[FeatureStore] =
     FeatureStoreTextStorage.fromId(repo, id)
+
+  def findFactsets(repo: Repository): RIO[List[FactsetId]] = for {
+    ids <- FeatureStoreTextStorage.listIds(repo)
+    fs  <- ids.traverseU(id => FeatureStoreTextStorage.storeIdsFromId(repo, id))
+  } yield fs.flatten.map(_.value).distinct
 
   def featureStoreFromRepositoryT(id: FeatureStoreId): RepositoryTIO[FeatureStore] =
     fromResultT(featureStoreFromIvory(_, id))

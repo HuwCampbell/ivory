@@ -195,6 +195,15 @@ object IvoryLocation {
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.writeWith(new Path(path), out => Streams.write(out, string)).run(conf)
   }
 
+  def size(location: IvoryLocation): RIO[Long] = location match {
+    case l @ LocalIvoryLocation(LocalLocation(path)) =>
+      Directories.list(l.dirPath).flatMap(_.traverseU(f => ResultT.io { f.toFile.length.toLong }).map(_.sum))
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
+      S3Prefix(bucket, key).size.executeT(s3Client)
+    case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
+      Hdfs.globFilesRecursively(new Path(path)).flatMap(_.traverse(f => Hdfs.size(f).map(_.toBytes.value)).map(_.sum)).run(conf)
+  }
+
   def isDirectory(location: IvoryLocation): RIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            => ResultT.safe[IO, Boolean](new File(path).isDirectory)
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Prefix(bucket, key + "/").listSummary.map(_.nonEmpty).executeT(s3Client)

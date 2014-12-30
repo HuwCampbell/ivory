@@ -18,9 +18,11 @@ object Update {
       case MetadataVersion.Unknown(e) =>
         RepositoryT.fromRIO(_ => ResultT.failIO[Unit](s"Unknown version: $e"))
       case MetadataVersion.V0 =>
-        UpdateV0.update >> incrementVersion(config, MetadataVersion.V1)
+        UpdateV0.update >> incrementVersion(config, MetadataVersion.V2)
       case MetadataVersion.V1 =>
-        ().pure[RepositoryTIO]
+        UpdateV1.update >> incrementVersion(config, MetadataVersion.V2)
+      case MetadataVersion.V2 =>
+        RepositoryT.fromResultT(_ => ResultT.putStrLn("Repository is already at latest version [v2]"))
     }
   } yield ()
 

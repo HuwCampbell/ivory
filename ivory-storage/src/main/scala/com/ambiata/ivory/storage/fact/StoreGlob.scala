@@ -11,7 +11,7 @@ case class FeatureStoreGlob(repository: Repository, store: FeatureStore, globs: 
     copy(globs = globs.map(_.map(fg => fg.filterPartitions(f))).collect({ case Prioritized(p, Some(fg)) => Prioritized(p, fg) }))
 
   def partitions: List[Partition] =
-    globs.flatMap(_.value.partitions)
+    globs.flatMap(_.value.partitions.map(_.value))
 }
 
 object FeatureStoreGlob {
