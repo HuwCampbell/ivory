@@ -215,7 +215,6 @@ object build extends Build {
   , scalacOptions in (Compile,doc) := Seq("-language:_", "-feature")
   , scalacOptions in (Compile,console) := Seq("-language:_", "-feature")
   , scalacOptions in (Test,console) := Seq("-language:_", "-feature")
-  , scalacOptions in ScoverageCompile := Seq("-language:_", "-feature")
   )
 
   def importWarnings(version: String) =
@@ -238,7 +237,7 @@ object build extends Build {
                                Seq()
                              else
                                Seq(Tests.Argument("--", "exclude", "aws")))
-  ) ++ instrumentSettings ++ Seq(ScoverageKeys.highlighting := false)
+  )
 
   lazy val prompt = shellPrompt in ThisBuild := { state =>
     val name = Project.extract(state).currentRef.project
@@ -268,5 +267,4 @@ object build extends Build {
     else
       println(s"Jar size is ok! Number of files in jar is $i (max: $max)")
   }
-
 }

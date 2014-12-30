@@ -2,4 +2,4 @@
 
 source $(dirname $0)/config
 
-./sbt -ivy ~/.ivy-ivory.coverage -Dsbt.log.noformat=true '; clean; set javaOptions := Seq("-Xmx6G", "-Xms512m", "-XX:MaxPermSize=512m"); scoverage:test'
+./sbt -ivy ~/.ivy-ivory.coverage -Dsbt.log.noformat=true '; clean; set scalacOptions := Seq("-language:_", "-feature"); set javaOptions := Seq("-Xmx6G", "-Xms512m", "-XX:MaxPermSize=512m"); coverage; test' && ./sbt -ivy ~/.ivy-ivory.coverage -Dsbt.log.noformat=true coverageAggregate
