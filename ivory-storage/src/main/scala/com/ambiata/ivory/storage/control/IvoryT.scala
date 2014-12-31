@@ -26,7 +26,8 @@ object IvoryT {
   }
 
   def fromRIO[A](f: => RIO[A]): IvoryT[RIO, A] =
-    fromResultT(f)
+    IvoryT[RIO, A](Kleisli[RIO, IvoryRead, A](r => f))
+
 
   implicit def IvoryTMonad[F[_]: Monad]: Monad[({ type l[a] = IvoryT[F, a] })#l] =
     new Monad[({ type l[a] = IvoryT[F, a] })#l] {

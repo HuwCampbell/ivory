@@ -5,7 +5,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.operation.ingestion._, DictionaryImporter._
-import scalaz._, effect._
+import scalaz._
 
 object importDictionary extends IvoryApp {
 
@@ -32,13 +32,13 @@ object importDictionary extends IvoryApp {
         result <- DictionaryImporter.importFromPath(repository, source, opts)
         _      <- result._1 match {
           case Success(_) =>
-            ResultT.unit[IO]
+            RIO.unit
             // Always print validation errors regardless of force
           case f @ Failure(errors) =>
-            ResultT.safe[IO, Unit](errors.list.foreach(println))
+            RIO.safe[Unit](errors.list.foreach(println))
 
         }
-        _       <- ResultT.fromOption[IO, DictionaryId](result._2, "Invalid dictionary")
+        _       <- RIO.fromOption[DictionaryId](result._2, "Invalid dictionary")
       } yield List(s"Successfully imported dictionary ${c.path} into ${repository.root.show}") }
   })
 }

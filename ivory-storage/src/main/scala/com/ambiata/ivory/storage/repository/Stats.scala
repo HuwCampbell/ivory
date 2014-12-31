@@ -71,10 +71,10 @@ object Stats {
    * STAT ACTION methods
    */
   private def repository[A]: StatAction[Repository] =
-    (c: StatConfig) => ResultT.ok[IO, Repository](c.repo)
+    (c: StatConfig) => RIO.ok[Repository](c.repo)
 
   private def fail[A](message: String): StatAction[A] =
-    (c: StatConfig) => ResultT.fail[IO, A](message)
+    (c: StatConfig) => RIO.fail[A](message)
 
   private def fromHdfs[A](action: Hdfs[A]): StatAction[A] =
     (c: StatConfig) => action.run(c.conf)

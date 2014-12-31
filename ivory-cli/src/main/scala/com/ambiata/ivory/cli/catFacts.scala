@@ -2,7 +2,6 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.storage.fact.FactsetVersion
 import org.apache.hadoop.fs.Path
-import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.api.Ivory.printFacts
 import com.ambiata.ivory.cli.ScoptReaders._
@@ -31,6 +30,6 @@ object catFacts extends IvoryApp {
   }
 
   val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), IvoryRunner { conf => c =>
-    IvoryT.fromRIO { printFacts(c.paths.map(new Path(_)), conf.configuration, c.delimiter, c.tombstone, c.version).executeT(consoleLogging).as(Nil) }
+    IvoryT.fromRIO { printFacts(c.paths.map(new Path(_)), conf.configuration, c.delimiter, c.tombstone, c.version).as(Nil) }
   })
 }

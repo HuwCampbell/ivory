@@ -26,7 +26,7 @@ object UpdateV1 {
             _ <- latest.write(m2)
           } yield ()
         case _ =>
-          ResultT.unit[IO]
+          RIO.unit
       })
     })
   } yield ())

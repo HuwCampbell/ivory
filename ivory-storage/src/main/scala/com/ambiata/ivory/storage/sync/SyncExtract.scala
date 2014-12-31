@@ -11,7 +11,7 @@ import com.ambiata.saws.s3._
 
 import org.apache.hadoop.fs.Path
 
-import scalaz._, Scalaz._, effect.IO
+import scalaz._, Scalaz._
 
 object SyncExtract {
 
@@ -60,7 +60,7 @@ object SyncExtract {
 
         case HdfsLocation(p) =>
           val pp = new Path(p)
-          if (path == pp) ResultT.unit[IO]
+          if (path == pp) RIO.unit
           else (for {
             _ <- Hdfs.mustNotExistWithMessage(pp, s"Target directory ( $pp ) already exists.")
             _ <- Hdfs.mv(path, pp).void

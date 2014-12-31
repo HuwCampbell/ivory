@@ -93,7 +93,7 @@ Rename
           _      <- RepositoryT.fromRIO(_ => RepositoryBuilder.createRepo(repo, dictionary, input.map(_.toList)))
           result <- Rename.rename(mapping, 10.mb)
           sc = repo.scoobiConfiguration
-          facts  <- RepositoryT.fromResultT(_ => RepositoryBuilder.factsFromIvoryFactset(repo, result._1).run(sc).map(_.run(sc)))
+          facts  <- RepositoryT.fromRIO(_ => RepositoryBuilder.factsFromIvoryFactset(repo, result._1).run(sc).map(_.run(sc)))
 
         } yield (result._3, facts.flatMap(_.toOption))).run(r)) }
 }

@@ -9,7 +9,7 @@ import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.parse.ListParser.string
 import com.ambiata.mundane.parse.Delimited
 
-import scalaz.{Name => _, _}, Scalaz._, effect._
+import scalaz.{Name => _, _}, Scalaz._
 
 object renameFacts extends IvoryApp {
 
@@ -33,8 +33,8 @@ object renameFacts extends IvoryApp {
   }
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(List(), None, None), { repo => conf => c => IvoryT.fromRIO { for {
-    batch   <- c.batch.cata(parseBatchFile(_, conf), ResultT.ok[IO, RenameMapping](RenameMapping(Nil)))
-    mapping <- ResultT.fromDisjunction[IO, RenameMapping](createMapping(c.mapping).leftMap(\&/.This.apply))
+    batch   <- c.batch.cata(parseBatchFile(_, conf), RIO.ok[RenameMapping](RenameMapping(Nil)))
+    mapping <- RIO.fromDisjunction[RenameMapping](createMapping(c.mapping).leftMap(\&/.This.apply))
     r       <- RepositoryRead.fromRepository(repo)
     stats   <- Rename.rename(RenameMapping(batch.mapping ++ mapping.mapping), c.reducerSize.map(_.bytes).getOrElse(1.gb)).run(r)
   } yield List(s"Successfully renamed ${stats._3.facts} facts to new factset ${stats._1.render}") } })
@@ -45,9 +45,9 @@ object renameFacts extends IvoryApp {
   def parseBatchFile(path: String, conf: IvoryConfiguration): RIO[RenameMapping] = for {
     location <- IvoryLocation.fromUri(path, conf)
     exists   <- IvoryLocation.exists(location)
-    _        <- if (!exists) ResultT.fail[IO, Unit](s"Path ${location.show} does not exist") else ResultT.unit[IO]
+    _        <- if (!exists) RIO.fail[Unit](s"Path ${location.show} does not exist") else RIO.unit
     lines    <- IvoryLocation.readLines(location)
-    mapping  <- ResultT.fromDisjunction[IO, RenameMapping](lines.traverseU(parseLine).map(RenameMapping.apply).leftMap(\&/.This.apply))
+    mapping  <- RIO.fromDisjunction[RenameMapping](lines.traverseU(parseLine).map(RenameMapping.apply).leftMap(\&/.This.apply))
   } yield mapping
 
   def parseLine(line: String): String \/ (FeatureId, FeatureId) = {

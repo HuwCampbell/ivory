@@ -1,10 +1,9 @@
 package com.ambiata.ivory.core
 
 import com.ambiata.mundane.io._
-import com.ambiata.notion.core.Location
+import com.ambiata.notion.core._
 import com.ambiata.notion.distcopy.DistCopyConfiguration
 import com.ambiata.com.amazonaws.services.s3.AmazonS3Client
-import com.ambiata.notion.io.LocationIO
 
 import com.nicta.scoobi.Scoobi._
 

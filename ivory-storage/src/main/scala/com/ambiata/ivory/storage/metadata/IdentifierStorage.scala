@@ -6,7 +6,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import scodec.bits.ByteVector
 
-import scalaz._, Scalaz._, scalaz.effect._
+import scalaz._, Scalaz._
 
 object IdentifierStorage {
 
@@ -17,7 +17,7 @@ object IdentifierStorage {
 
   def getOrFail(repository: Repository, key: Key): RIO[Identifier] =
     get(repository, key)
-      .flatMap(_.fold(ResultT.fail[IO, Identifier](s"No identifiers found in $key"))(ResultT.ok))
+      .flatMap(_.fold(RIO.fail[Identifier](s"No identifiers found in $key"))(RIO.ok))
 
   /**
    * Write the identifier value to a temporary file
@@ -46,12 +46,12 @@ object IdentifierStorage {
 
   def nextIdOrFail(repository: Repository, key: Key): RIO[Identifier] =
     latestId(repository, key).map(_.map(_.next).getOrElse(Some(Identifier.initial))) >>= (id =>
-      ResultT.fromOption[IO, Identifier](id, s"No more identifiers left at ${key.name}!"))
+      RIO.fromOption[Identifier](id, s"No more identifiers left at ${key.name}!"))
 
   def listIds(repository: Repository, key: Key): RIO[List[Identifier]] = for {
     keys <- repository.store.listHeads(key).map(_.filterHidden)
     ids  <- {
-      keys.traverseU(key => ResultT.fromOption[IO, Identifier](Identifier.parse(key.name),
+      keys.traverseU(key => RIO.fromOption[Identifier](Identifier.parse(key.name),
         s"""Can not parse id '${key.name}'"""))
     }
   } yield ids.sorted

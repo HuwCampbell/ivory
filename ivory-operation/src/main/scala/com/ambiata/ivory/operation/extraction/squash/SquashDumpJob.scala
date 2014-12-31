@@ -25,20 +25,20 @@ object SquashDumpJob {
     filteredDct = if (features.isEmpty) dictionary else SquashDump.filterByConcreteOrVirtual(dictionary, features.toSet)
     lookup      = FeatureLookups.entityFilter(features.flatMap(SquashDump.lookupConcreteFromVirtual(dictionary, _)), entities)
     sm         <- SnapshotManifest.io(repository, snapshotId).read
-    date       <- ResultT.fromOption[IO, SnapshotManifest](sm, s"Unknown snapshot ${snapshotId.render}").map(_.date)
+    date       <- RIO.fromOption[SnapshotManifest](sm, s"Unknown snapshot ${snapshotId.render}").map(_.date)
     input       = Repository.snapshot(snapshotId)
 
     // When we're filtering, there's a very good chance we only need a reducer per concrete feature
     reducers    = dictionary.byConcrete.sources.size
 
     // HDFS below here
-    hr         <- repository.asHdfsRepository[IO]
+    hr         <- repository.asHdfsRepository
     job        <- initDumpJob(hr.configuration, date, hr.toIvoryLocation(input).toHdfsPath, filteredDct, lookup)
-    out        <- output.asHdfsIvoryLocation[IO]
+    out        <- output.asHdfsIvoryLocation
     _          <- SquashJob.run(job._1, job._2, reducers, filteredDct, out.toHdfsPath, hr.codec, SquashConfig.default, latest = false)
   } yield ()
 
-  def initDumpJob(conf: Configuration, date: Date, input: Path, dictionary: Dictionary, lookup: EntityFilterLookup): RIO[(Job, MrContext)] = ResultT.safe {
+  def initDumpJob(conf: Configuration, date: Date, input: Path, dictionary: Dictionary, lookup: EntityFilterLookup): RIO[(Job, MrContext)] = RIO.safe {
 
     val job = Job.getInstance(conf)
     val ctx = MrContextIvory.newContext("ivory-squash-dump", job)

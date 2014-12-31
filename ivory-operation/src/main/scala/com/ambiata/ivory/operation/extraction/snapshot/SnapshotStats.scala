@@ -29,7 +29,7 @@ object SnapshotStats {
 
   def load(repository: Repository, snapshotId: SnapshotId): RIO[SnapshotStats] =
     repository.store.utf8.read(key(snapshotId)) >>=
-      (json => ResultT.fromDisjunctionString(fromJson(json)))
+      (json => RIO.fromDisjunctionString(fromJson(json)))
 
   def save(repository: Repository, snapshotId: SnapshotId, stats: SnapshotStats): RIO[Unit] =
     repository.store.utf8.write(key(snapshotId), toJson(stats))

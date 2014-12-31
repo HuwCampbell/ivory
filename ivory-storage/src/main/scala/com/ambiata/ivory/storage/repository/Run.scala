@@ -26,7 +26,7 @@ object ScoobiRun {
 object S3Run {
   def apply(c: ScoobiConfiguration): S3Run = new S3Run {
     def runScoobi[A](action: ScoobiAction[A]) = action.run(c)
-    def runS3[A](action: S3Action[A]): RIO[A] = action.evalT
+    def runS3[A](action: S3Action[A]): RIO[A] = action.eval
 
   }
 }

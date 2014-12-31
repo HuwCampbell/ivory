@@ -83,7 +83,7 @@ object Entities {
 
   def serialiseEntities(repository: Repository, entities: Entities, key: Key): RIO[Unit] = {
     import java.io.ObjectOutputStream
-    repository.store.unsafe.withOutputStream(key)(os => ResultT.safe({
+    repository.store.unsafe.withOutputStream(key)(os => RIO.safe({
       val bOut = new ObjectOutputStream(os)
       bOut.writeObject(entities.entities)
       bOut.close()

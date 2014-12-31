@@ -9,7 +9,7 @@ import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.saws.s3._
 import org.apache.hadoop.fs._
 
-import scalaz.{Name =>_,_}, Scalaz._, effect._, effect.Effect._
+import scalaz.{Name =>_,_}, Scalaz._, effect.Effect._
 
 object SyncHdfs {
 
@@ -21,12 +21,12 @@ object SyncHdfs {
           val outputPath = baseOutput </> p
           Directories.mkdirs(DirPath(outputPath.names.init.toVector, outputPath.isAbsolute)) >>
           Hdfs.readWith(new Path(f.path), input => {
-            ResultT.using(outputPath.asAbsolute.toOutputStream) { output =>
+            RIO.using(outputPath.asAbsolute.toOutputStream) { output =>
               Streams.pipe(input, output, ChunkSize)
             }
           }).run(cluster.hdfsConfiguration)
         case None =>
-          ResultT.failIO[Unit](s"Source file ($f) does not share the common path ($base)")
+          RIO.failIO[Unit](s"Source file ($f) does not share the common path ($base)")
       }
     )
   } yield ()
@@ -44,9 +44,9 @@ object SyncHdfs {
     m <- files.traverseU(f => {
       removeCommonPath(f, base) match {
         case Some(p) =>
-          ResultT.ok[IO, Mapping](UploadMapping(new Path(f.path), baseOutput | p.path))
+          RIO.ok[Mapping](UploadMapping(new Path(f.path), baseOutput | p.path))
         case None =>
-          ResultT.failIO[Mapping](s"Source file ($f) does not share the common path ($base)")
+          RIO.failIO[Mapping](s"Source file ($f) does not share the common path ($base)")
       }
     })
     _ <- DistCopyJob.run(Mappings(m.toVector), cluster.conf)

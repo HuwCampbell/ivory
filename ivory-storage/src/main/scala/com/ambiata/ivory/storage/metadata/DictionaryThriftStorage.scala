@@ -11,7 +11,6 @@ import scodec.bits.ByteVector
 
 import scalaz.Scalaz._
 import scalaz.\&/.This
-import scalaz.effect._
 
 case class DictionaryThriftStorage(repository: Repository) {
 
@@ -19,14 +18,14 @@ case class DictionaryThriftStorage(repository: Repository) {
   val dictionaries = Repository.dictionaries
 
   def load: RIO[Dictionary] =
-    loadOption.flatMap(ResultT.fromOption(_, s"No dictionaries found"))
+    loadOption.flatMap(RIO.fromOption(_, s"No dictionaries found"))
 
   def loadOption: RIO[Option[Dictionary]] =
     loadWithId.map(_.map(_._2))
 
   def loadMigrate: RIO[Option[(DictionaryId, Dictionary)]] =
     loadWithId.flatMap(_.traverse[RIO, (DictionaryId, Dictionary)] {
-      case (Some(id), dict) => ResultT.ok(id -> dict)
+      case (Some(id), dict) => RIO.ok(id -> dict)
       case (_, dict)        => store(dict).map(_ -> dict)
     })
 
@@ -45,7 +44,7 @@ case class DictionaryThriftStorage(repository: Repository) {
                                           .sortBy(_.name).reverse.headOption
       result                     <-
         lastDateDictionary match {
-          case None       => ResultT.ok[IO, Option[Dictionary]](None)
+          case None       => RIO.ok[Option[Dictionary]](None)
           case Some(last) => DictionaryTextStorage.fromKeyStore(repository, dictionaries / last).map(Some.apply)
         }
     } yield result
@@ -55,11 +54,11 @@ case class DictionaryThriftStorage(repository: Repository) {
 
   def loadFromPath(key: Key): RIO[Option[Dictionary]] =
     repository.store.bytes.read(key).flatMap { bytes =>
-      ResultT.fromDisjunction(dictionaryFromThrift(ThriftSerialiser().fromBytes1(() => new ThriftDictionary(), bytes.toArray)).leftMap(This.apply))
-    }.map(some) ||| ResultT.ok(none)
+      RIO.fromDisjunction(dictionaryFromThrift(ThriftSerialiser().fromBytes1(() => new ThriftDictionary(), bytes.toArray)).leftMap(This.apply))
+    }.map(some) ||| RIO.ok(none)
 
   def store(dictionary: Dictionary): RIO[DictionaryId] = for {
-    bytes <- ResultT.safe[IO, Array[Byte]](ThriftSerialiser().toBytes(dictionaryToThrift(dictionary)))
+    bytes <- RIO.safe[Array[Byte]](ThriftSerialiser().toBytes(dictionaryToThrift(dictionary)))
     id    <- IdentifierStorage.write(repository, dictionaries, DATA, ByteVector(bytes))
     _     <- StringVersion.write(repository, dictionaries / id.asKeyName, StringVersion(DictionaryVersionOne.toString))
   } yield DictionaryId(id)

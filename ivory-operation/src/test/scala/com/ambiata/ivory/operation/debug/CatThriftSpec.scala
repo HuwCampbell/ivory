@@ -42,7 +42,7 @@ class CatThriftSpec extends Specification with ScalaCheck { def is = s2"""
       i <- Repository.tmpDir(repo).map(repo.toIvoryLocation)
       o <- Repository.tmpDir(repo).map(repo.toIvoryLocation)
       _ <- SequenceUtil.writeHdfsBytes(i.location, repo.configuration, repo.codec) {
-        w => ResultT.io(thrifts.map(t => w(ThriftSerialiser().toBytes(t)))).void
+        w => RIO.io(thrifts.map(t => w(ThriftSerialiser().toBytes(t)))).void
       }.run(repo.configuration)
       _ <- CatThrift.job(repo.configuration, Nil, i.toHdfsPath, format, o.toHdfsPath, repo.codec)
       r <- IvoryLocation.readLines(o)

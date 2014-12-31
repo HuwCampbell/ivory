@@ -1,6 +1,6 @@
 package com.ambiata.ivory.operation.diff
 
-import com.ambiata.mundane.control.ResultT
+import com.ambiata.mundane.control.RIO
 import org.specs2._
 import org.specs2.execute.{Result, AsResult}
 import org.specs2.matcher.{ThrownExpectations, FileMatchers}
@@ -81,7 +81,7 @@ class FactDiffSpec extends Specification with ThrownExpectations with FileMatche
         PartitionFactThriftStorageV1.PartitionedFactThriftStorer(repository, key2, None).storeScoobi(facts2))
 
       FactDiff.partitionFacts(repository.toIvoryLocation(key1), repository.toIvoryLocation(key2), output).run(sc) must beOk
-      ResultT.ok[IO, Result](AsResult(f(output.toHdfs, sc)))
+      RIO.ok[Result](AsResult(f(output.toHdfs, sc)))
     } must beOkLike(identity)
   }
 }

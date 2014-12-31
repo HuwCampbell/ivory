@@ -16,13 +16,13 @@ object Update {
     config <- Metadata.configuration
     _      <- config.metadata match {
       case MetadataVersion.Unknown(e) =>
-        RepositoryT.fromRIO(_ => ResultT.failIO[Unit](s"Unknown version: $e"))
+        RepositoryT.fromRIO(_ => RIO.failIO[Unit](s"Unknown version: $e"))
       case MetadataVersion.V0 =>
         UpdateV0.update >> incrementVersion(config, MetadataVersion.V2)
       case MetadataVersion.V1 =>
         UpdateV1.update >> incrementVersion(config, MetadataVersion.V2)
       case MetadataVersion.V2 =>
-        RepositoryT.fromResultT(_ => ResultT.putStrLn("Repository is already at latest version [v2]"))
+        RepositoryT.fromRIO(_ => RIO.putStrLn("Repository is already at latest version [v2]"))
     }
   } yield ()
 

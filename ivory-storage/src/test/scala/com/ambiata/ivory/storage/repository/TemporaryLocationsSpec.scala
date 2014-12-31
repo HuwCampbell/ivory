@@ -103,7 +103,7 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
         x <- TemporaryLocations.runWithIvoryLocationFile(l)(loc => for {
           _   <- loc match {
             case l @ LocalIvoryLocation(LocalLocation(p)) => Files.write(l.filePath, "")
-            case s @ S3IvoryLocation(S3Location(b, k), _) => S3Address(b, k).put("").executeT(c.s3Client)
+            case s @ S3IvoryLocation(S3Location(b, k), _) => S3Address(b, k).put("").execute(c.s3Client)
             case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.writeWith(h.toHdfsPath, out => Streams.write(out, "")).run(c.configuration)
           }
           dir <- checkFileLocation(loc, c)
@@ -115,7 +115,7 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
 
   def checkFileLocation(location: IvoryLocation, conf: IvoryConfiguration): RIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(p)) => Files.exists(l.filePath)
-    case s @ S3IvoryLocation(S3Location(b, k), _) => S3Address(b, k).exists.executeT(conf.s3Client)
+    case s @ S3IvoryLocation(S3Location(b, k), _) => S3Address(b, k).exists.execute(conf.s3Client)
     case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.exists(h.toHdfsPath).run(conf.configuration)
   }
 
@@ -126,7 +126,7 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
         x <- TemporaryLocations.runWithIvoryLocationDir(l)(loc => for {
           _   <- loc match {
             case l @ LocalIvoryLocation(LocalLocation(p)) => Directories.mkdirs(l.dirPath)
-            case s @ S3IvoryLocation(S3Location(b, k), _) => S3Address(b, k+"/file").put("").executeT(c.s3Client)
+            case s @ S3IvoryLocation(S3Location(b, k), _) => S3Address(b, k+"/file").put("").execute(c.s3Client)
             case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.mkdir(h.toHdfsPath).run(c.configuration)
           }
           dir <- checkDirLocation(loc, c)
@@ -137,7 +137,7 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
 
   def checkDirLocation(location: IvoryLocation, conf: IvoryConfiguration): RIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(p)) => Directories.exists(l.dirPath)
-    case S3IvoryLocation(S3Location(b, k), _)     => S3Prefix(b, k).exists.executeT(conf.s3Client)
+    case S3IvoryLocation(S3Location(b, k), _)     => S3Prefix(b, k).exists.execute(conf.s3Client)
     case h @ HdfsIvoryLocation(_, _, _, _)        => Hdfs.exists(h.toHdfsPath).run(conf.configuration)
   }
 }

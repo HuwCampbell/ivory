@@ -14,14 +14,13 @@ import com.ambiata.ivory.storage.fact.{FactsetVersionTwo, Namespaces}
 import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.repository.RecreateData._
-import com.ambiata.mundane.control.{ResultT, RIO}
+import com.ambiata.mundane.control.RIO
 import com.ambiata.mundane.io._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodec
 
 import scalaz.Scalaz._
-import scalaz.effect.IO
 import scalaz.Kleisli._
 import scalaz.{DList => _, _}
 import Namespaces._
@@ -214,10 +213,10 @@ object Recreate { outer =>
     kleisli[RIO, RecreateConfig, A](f)
 
   private def configuration: RecreateAction[RecreateConfig] =
-    (config: RecreateConfig) => ResultT.ok[IO, RecreateConfig](config)
+    (config: RecreateConfig) => RIO.ok[RecreateConfig](config)
 
   private def log(message: String): RecreateAction[Unit] =
-    (config: RecreateConfig) => ResultT.fromIO(config.logger(message))
+    (config: RecreateConfig) => RIO.fromIO(config.logger(message))
 
   private def fromScoobi[A](action: ScoobiAction[A]): RecreateAction[A] =
     (c: RecreateConfig) => action.run(c.sc)
@@ -234,7 +233,7 @@ object Recreate { outer =>
       action.flatMap(a => outer.log(f(a)))
 
     def when(condition: Boolean): RecreateAction[Unit] =
-      if (condition) action.void else fromRIO(ResultT.ok[IO, Unit](()))
+      if (condition) action.void else fromRIO(RIO.ok[Unit](()))
 
     def unless(condition: Boolean): RecreateAction[Unit] =
       when(!condition)

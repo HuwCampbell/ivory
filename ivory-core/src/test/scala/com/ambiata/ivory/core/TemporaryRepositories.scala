@@ -37,7 +37,7 @@ trait TemporaryRepositories {
   def withTemporaryRepositorySetup[T, R <: Repository](repository: TemporaryRepositorySetup[R])(f: R => RIO[T]): RIO[T] =
     for {
       _ <- repository.setup
-      t <- ResultT.using(ResultT.safe[IO, TemporaryRepositorySetup[R]](repository))(tmpRepo => f(tmpRepo.repository))
+      t <- RIO.using(RIO.safe[TemporaryRepositorySetup[R]](repository))(tmpRepo => f(tmpRepo.repository))
     } yield t
 
 }

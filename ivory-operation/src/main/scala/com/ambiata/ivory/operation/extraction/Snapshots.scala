@@ -12,7 +12,7 @@ import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.poacher.hdfs._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
-import scalaz.{DList => _, _}, Scalaz._, effect._
+import scalaz.{DList => _, _}, Scalaz._
 
 /**
  * Contains information that would be handy to return to the user of the CLI or
@@ -48,7 +48,7 @@ object Snapshots {
       result    <- latest match {
         case Some(m) =>
           for {
-            _ <- ResultT.fromIO(IO.putStrLn(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${m.storeId}'"))
+            _ <- RIO.putStrLn(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${m.storeId}'")
           } yield SnapshotJobSummary(m, latest)
         case None    => SnapshotMetadataStorage.latestSnapshot(repository, date).run >>= createSnapshot(repository, date)
       }
@@ -63,13 +63,13 @@ object Snapshots {
       newSnapmeta <- SnapshotMetadataStorage.toMetadata(repository, newSnapshot)
       _           <- for {
         _ <- runSnapshot(repository, newSnapshot, previousSnapshot, date, newSnapshot.snapshot)
-        _ <- ResultT.fromIO(IO.putStrLn(s"""| Running extractor on:
-                                            |
-                                            | Repository     : ${repository.root.show}
-                                            | Feature Store  : ${newSnapmeta.storeId}
-                                            | Date           : ${date.hyphenated}
-                                            | Output         : ${Repository.snapshot(newSnapshot.snapshot).name}
-                                            |""".stripMargin))
+        _ <- RIO.putStrLn(s"""| Running extractor on:
+                              |
+                              | Repository     : ${repository.root.show}
+                              | Feature Store  : ${newSnapmeta.storeId}
+                              | Date           : ${date.hyphenated}
+                              | Output         : ${Repository.snapshot(newSnapshot.snapshot).name}
+                              |""".stripMargin)
       } yield ()
     } yield SnapshotJobSummary(newSnapmeta, previousSnapshot)
 
@@ -83,7 +83,7 @@ object Snapshots {
       newFactsetGlobs <- calculateGlobs(repository, dictionary, windows, newSnapshot, previousSnapshot, date)
 
       /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
-      hr              <- repository.asHdfsRepository[IO]
+      hr              <- repository.asHdfsRepository
       output          =  hr.toIvoryLocation(Repository.snapshot(newSnapshot.snapshot))
       stats           <- job(hr, dictionary, previousSnapshot, newFactsetGlobs, date, output.toHdfsPath, windows, hr.codec).run(hr.configuration)
       _               <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(newSnapshot.snapshot) / ".dictionary", dictionary)
@@ -100,7 +100,7 @@ object Snapshots {
         pw            =  SnapshotWindows.planWindow(dictionary, sm.date)
         sp            =  SnapshotPartition.partitionIncremental(currentFeatureStore, prevStore, date, sm.date)
         spw           =  SnapshotPartition.partitionIncrementalWindowing(prevStore, sm.date, windows, pw)
-      } yield sp ++ spw, ResultT.ok[IO, List[SnapshotPartition]](SnapshotPartition.partitionAll(currentFeatureStore, date)))
+      } yield sp ++ spw, RIO.ok[List[SnapshotPartition]](SnapshotPartition.partitionAll(currentFeatureStore, date)))
       newFactsetGlobs <- newFactsetGlobs(repo, parts)
     } yield newFactsetGlobs
 

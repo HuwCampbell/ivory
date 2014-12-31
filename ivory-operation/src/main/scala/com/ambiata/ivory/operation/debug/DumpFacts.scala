@@ -3,8 +3,6 @@ package com.ambiata.ivory.operation.debug
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.metadata._
-import org.apache.hadoop.fs.Path
-import scalaz.effect.IO
 
 /**
  * Details of a debug-dump-facts request.
@@ -22,8 +20,8 @@ case class DumpFactsRequest(
 
 object DumpFacts {
   def dump(repository: Repository, request: DumpFactsRequest, location: IvoryLocation): RIO[Unit] = for {
-    output     <- location.asHdfsIvoryLocation[IO]
-    hdfs       <- repository.asHdfsRepository[IO]
+    output     <- location.asHdfsIvoryLocation
+    hdfs       <- repository.asHdfsRepository
     dictionary <- Metadata.latestDictionaryFromIvory(repository)
     _          <- DumpFactsJob.run(hdfs, dictionary, request, output.toHdfsPath, hdfs.root.codec)
   } yield ()

@@ -31,7 +31,7 @@ object SquashJob {
     //     and with upcoming changes like #427 this should then become always correct.
     commit     <- Metadata.findOrCreateLatestCommitId(repository)
     dictionary <- Snapshots.dictionaryForSnapshot(repository, snapmeta)
-    hdfsIvoryL <- repository.toIvoryLocation(Repository.snapshot(snapmeta.id)).asHdfsIvoryLocation[IO]
+    hdfsIvoryL <- repository.toIvoryLocation(Repository.snapshot(snapmeta.id)).asHdfsIvoryLocation
     in          = ShadowOutputDataset.fromIvoryLocation(hdfsIvoryL)
     job        <- SquashJob.initSnapshotJob(cluster.hdfsConfiguration, snapmeta.date)
     result     <- squash(repository, dictionary, in, conf, job, cluster)
@@ -55,13 +55,13 @@ object SquashJob {
     rs     <- ReducerSize.calculate(input.hdfsPath, 1.gb).run(cluster.hdfsConfiguration)
     _      <- initJob(job._1, input.hdfsPath)
     key    <- Repository.tmpDir(repository)
-    hr     <- repository.asHdfsRepository[IO]
+    hr     <- repository.asHdfsRepository
     shadow = ShadowOutputDataset.fromIvoryLocation(hr.toIvoryLocation(key))
     prof   <- run(job._1, job._2, rs, dictionary, shadow.hdfsPath, cluster.codec, conf, latest = true)
     _      <- IvoryLocation.writeUtf8Lines(hr.toIvoryLocation(key) </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof))
   } yield shadow
 
-  def initSnapshotJob(conf: Configuration, date: Date): RIO[(Job, MrContext)] = ResultT.safe {
+  def initSnapshotJob(conf: Configuration, date: Date): RIO[(Job, MrContext)] = RIO.safe {
     val job = Job.getInstance(conf)
     val ctx = MrContextIvory.newContext("ivory-squash-snapshot", job)
     job.setReducerClass(classOf[SquashReducerSnapshot])
@@ -69,7 +69,7 @@ object SquashJob {
     (job, ctx)
   }
 
-  def initChordJob(conf: Configuration, chord: Entities): RIO[(Job, MrContext)] = ResultT.safe {
+  def initChordJob(conf: Configuration, chord: Entities): RIO[(Job, MrContext)] = RIO.safe {
     val job = Job.getInstance(conf)
     val ctx = MrContextIvory.newContext("ivory-squash-chord", job)
     job.setReducerClass(classOf[SquashReducerChord])
@@ -77,7 +77,7 @@ object SquashJob {
     (job, ctx)
   }
 
-  def initJob(job: Job, input: Path): RIO[Unit] = ResultT.safe[IO, Unit] {
+  def initJob(job: Job, input: Path): RIO[Unit] = RIO.safe[Unit] {
     // reducer
     job.setOutputKeyClass(classOf[NullWritable])
     job.setOutputValueClass(classOf[BytesWritable])
