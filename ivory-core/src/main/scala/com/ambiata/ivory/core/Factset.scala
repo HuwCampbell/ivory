@@ -4,7 +4,7 @@ import com.ambiata.mundane.parse.ListParser
 import com.ambiata.mundane.io.FilePath
 import scalaz._
 
-case class Factset(id: FactsetId, partitions: List[Partition]) {
+case class Factset(id: FactsetId, format: FactsetFormat, partitions: List[Sized[Partition]]) {
   def show =
     s"""
        |Factset: $id
@@ -13,14 +13,16 @@ case class Factset(id: FactsetId, partitions: List[Partition]) {
      """.stripMargin
 
   def filterByPartition(pred: Partition => Boolean): Factset =
-    Factset(id, partitions.filter(pred))
+    Factset(id, format, partitions.filter(p => pred(p.value)))
 
   def filterByDate(pred: Date => Boolean): Factset =
     filterByPartition(p => pred(p.date))
+
+  def bytes: Long =
+    partitions.map(_.bytes).sum
 }
 
 object Factset {
-
   def parseFile(file: FilePath): Validation[String, (FactsetId, Partition)] =
     pathListParser.run(file.dirname.components.reverse)
 
@@ -29,5 +31,4 @@ object Factset {
     factset   <- FactsetId.listParser
     _         <- ListParser.consumeRest
   } yield (factset, partition)
-
 }

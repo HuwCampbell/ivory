@@ -79,30 +79,30 @@ object Metadata {
 
   /** Commit */
   def listCommitIds(repo: Repository): RIO[List[CommitId]] =
-    CommitTextStorage.listIds(repo)
+    CommitStorage.listIds(repo)
 
   def listCommitIdsT: RepositoryTIO[List[CommitId]] =
     fromRIO(listCommitIds(_))
 
   def latestCommitId(repo: Repository): RIO[Option[CommitId]] =
-    CommitTextStorage.latestId(repo)
+    CommitStorage.latestId(repo)
 
   def findOrCreateLatestCommitId(repo: Repository): RIO[CommitId] = for {
       store <- latestFeatureStoreOrFail(repo)
       dictionaryId <- latestDictionaryIdFromIvory(repo)
-      commitId <- CommitTextStorage.findOrCreateLatestId(repo, dictionaryId, store.id)
+      commitId <- CommitStorage.findOrCreateLatestId(repo, dictionaryId, store.id)
   } yield commitId
 
   def latestCommitIdT(repo: Repository): RepositoryTIO[Option[CommitId]] =
     fromRIO(latestCommitId(_))
 
-  def commitFromIvory(repo: Repository, commitId: CommitId): RIO[Commit] =
-    CommitTextStorage.fromId(repo, commitId) >>=
+  def commitFromIvory(repo: Repository, commitId: CommitId): RIO[CommitMetadata] =
+    CommitStorage.fromId(repo, commitId) >>=
       (commit => RIO.fromOption(commit, s"Commit not found in Ivory '$commitId'"))
 
   def incrementCommit(repo: Repository, dictionaryId: DictionaryId, featureStoreId: FeatureStoreId,
                       configId: RepositoryConfigId): RIO[CommitId] =
-    CommitTextStorage.increment(repo, Commit(dictionaryId, featureStoreId, Some(configId)))
+    CommitStorage.increment(repo, CommitMetadata(dictionaryId, featureStoreId, Some(configId)))
 
   def incrementCommitDictionary(repo: Repository, dictionaryId: DictionaryId): RIO[CommitId] =
     RepositoryT.runWithRepo(repo, incrementCommitOpts(Some(dictionaryId), None, None))
@@ -124,7 +124,7 @@ object Metadata {
     storeId      <- storeIdOpt.cata(_.pure[RepositoryTIO],
       Metadata.latestFeatureStoreIdT.flatMap(_.cata(_.point[RepositoryTIO], RepositoryT.fromRIO(repo => FeatureStoreTextStorage.increment(repo, Nil)))))
     configId     <- configIdOpt.cata(_.some.pure[RepositoryTIO], latestConfigurationId)
-    commitId     <- RepositoryT.fromRIO(repo => CommitTextStorage.increment(repo, Commit(dictionaryId, storeId, configId)))
+    commitId     <- RepositoryT.fromRIO(repo => CommitStorage.increment(repo, CommitMetadata(dictionaryId, storeId, configId)))
   } yield commitId
 
   def latestConfigurationId: RepositoryTIO[Option[RepositoryConfigId]] =

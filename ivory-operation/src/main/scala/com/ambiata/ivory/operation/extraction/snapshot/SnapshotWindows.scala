@@ -21,6 +21,6 @@ object SnapshotWindows {
   def planWindow(dictionary: Dictionary, date: Date): SnapshotWindows =
     SnapshotWindows(dictionary.byConcrete.sources.map {
       case (fid, windows) => SnapshotWindow(fid, windows.virtual.flatMap(_._2.window)
-        .map(Window.startingDate(_)(date)).sorted.headOption)
+        .map(Window.startingDate(_, date)).sorted.headOption)
     }.toList)
 }

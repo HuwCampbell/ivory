@@ -11,7 +11,7 @@ import scalaz._, Scalaz._
 import org.scalacheck._, Arbitrary._
 import com.ambiata.mundane.testing.RIOMatcher._
 
-class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"""
+class CommitStorageSpec extends Specification with ScalaCheck { def is = s2"""
 
   Parse a list of strings into a Commit                $stringsCommit
   Read a Commit from a Repository                      $readCommit
@@ -19,13 +19,13 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
   Can list all Commit Ids in a Repository              $listCommitIds
   Can get latest CommitId from a Repository            $latestCommitId
                                                        """
-  import CommitTextStorage._
+  import CommitStorage._
 
-  def stringsCommit = prop { commit: Commit =>
+  def stringsCommit = prop { commit: CommitMetadata =>
     fromLines.run(toLines(commit)).toEither must beRight(commit)
   }
 
-  def readCommit = prop { (commit: Commit, commitId: CommitId) =>
+  def readCommit = prop { (commit: CommitMetadata, commitId: CommitId) =>
     TemporaryDirPath.withDirPath { dir =>
       val repo = LocalRepository.create(dir)
 
@@ -34,7 +34,7 @@ class CommitTextStorageSpec extends Specification with ScalaCheck { def is = s2"
     } must beOkValue(Some(commit))
   }
 
-  def writeCommit = prop { (commit: Commit, commitId: CommitId) =>
+  def writeCommit = prop { (commit: CommitMetadata, commitId: CommitId) =>
     TemporaryDirPath.withDirPath { dir =>
       val repo = LocalRepository.create(dir)
       storeCommitToId(repo, commitId, commit) >>

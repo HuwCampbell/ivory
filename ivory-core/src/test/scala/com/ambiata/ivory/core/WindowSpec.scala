@@ -9,7 +9,7 @@ class WindowSpec extends Specification with ScalaCheck { def is = s2"""
 """
 
   def dateLookup = prop { (w: Window, d: Date) =>
-    Window.startingDate(w)(d) ==== startingDateJoda(w, d)
+    Window.startingDate(w, d) ==== startingDateJoda(w, d)
   }
 
   def startingDateJoda(window: Window, date: Date): Date = {

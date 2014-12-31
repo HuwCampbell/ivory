@@ -1,5 +1,7 @@
 package com.ambiata.ivory.core
 
+import scalaz._
+
 /** The feature store is a prioritized list of factsets. */
 case class FeatureStore(id: FeatureStoreId, factsets: List[Prioritized[Factset]]) {
   def unprioritizedIds: List[FactsetId] =
@@ -39,4 +41,7 @@ case class FeatureStore(id: FeatureStoreId, factsets: List[Prioritized[Factset]]
 object FeatureStore {
   def fromList(id: FeatureStoreId, factsets: List[Factset]): Option[FeatureStore] =
     Prioritized.fromList(factsets).map(FeatureStore(id, _))
+
+  implicit def FeatureStoreEqual: Equal[FeatureStore] =
+    Equal.equalA
 }

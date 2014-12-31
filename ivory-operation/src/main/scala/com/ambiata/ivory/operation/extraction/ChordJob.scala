@@ -192,7 +192,7 @@ class ChordFactsetMapper extends CombinableMapper[NullWritable, BytesWritable, B
 
 object ChordFactsetMapper {
 
-  // FIX VersionedFactConverter doesn't make sense, it is being called after deserialization into thrift????
+  // FIX VersionedFactConverter doesn't make sense, it is being called after deserialization into thrift?
   def map(tfact: ThriftFact, converter: VersionedFactConverter, input: BytesWritable, priority: Priority,
           kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable],
           okCounter: Counter, skipCounter: Counter, dropCounter: Counter, deserializer: ThriftSerialiser,
@@ -332,7 +332,7 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
     isSetLookup = FeatureLookups.isSetLookupToArray(isSetLookupThrift)
 
-    featureWindows = ChordReducer.setupWindows(ctx.thriftCache, context.getConfiguration).map(_.map(Window.startingDate))
+    featureWindows = ChordReducer.setupWindows(ctx.thriftCache, context.getConfiguration).map(_.map(a => (b: Date) => Window.startingDate(a, b)))
     windows = new Array(entities.maxChordSize)
     chordEmitter = new ChordWindowEmitter(emitter)
   }

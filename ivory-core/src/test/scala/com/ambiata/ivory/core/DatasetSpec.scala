@@ -64,7 +64,7 @@ Constructors
     ${ prop((s: FeatureStore, dates: UniqueDates) =>
       Dataset.within(s, dates.earlier, dates.later).forall({
         case Prioritized(_, FactsetDataset(f)) =>
-          f.partitions.forall(p => p.date > dates.earlier && p.date <= dates.later)
+          f.partitions.forall(p => p.value.date > dates.earlier && p.value.date <= dates.later)
         case Prioritized(_, SnapshotDataset(f)) =>
           false // should not be any snapshots
       })) }
@@ -72,7 +72,7 @@ Constructors
     ${ prop((s: FeatureStore, date: Date) =>
       Dataset.to(s, date).forall({
         case Prioritized(_, FactsetDataset(f)) =>
-          f.partitions.forall(p => p.date <= date)
+          f.partitions.forall(p => p.value.date <= date)
         case Prioritized(_, SnapshotDataset(f)) =>
           false // should not be any snapshots
       })) }

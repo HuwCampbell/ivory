@@ -52,7 +52,7 @@ Combinators
   prune leaves no empty datasets:
 
     ${ prop((ds: Datasets, p: Priority, f: FactsetId) =>
-         ds.add(p, FactsetDataset(Factset(f, Nil))).prune.sets.forall(!_.value.isEmpty)) }
+         ds.add(p, FactsetDataset(Factset(f, FactsetFormat.V2, Nil))).prune.sets.forall(!_.value.isEmpty)) }
 
 Constructors
 ------------

@@ -11,11 +11,11 @@ import scalaz.scalacheck.ScalaCheckBinding._
 
 
 trait Arbitraries {
-  implicit def CommitArbitrary: Arbitrary[Commit] =
-    Arbitrary(GenRepository.commit)
-
   implicit def CommitIdArbitrary: Arbitrary[CommitId] =
     Arbitrary(GenIdentifier.commit)
+
+  implicit def CommitMetadataArbitrary: Arbitrary[CommitMetadata] =
+    Arbitrary(GenRepository.commit)
 
   implicit def ConcreteDefinitionArbitrary: Arbitrary[ConcreteDefinition] =
     Arbitrary(GenDictionary.concrete)

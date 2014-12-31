@@ -9,8 +9,11 @@ import scalaz.scalacheck.ScalaCheckBinding._
 
 
 object GenRepository {
+  def size: Gen[Long] =
+    Gen.choose(0L, Long.MaxValue)
+
   def sized[A: Arbitrary]: Gen[Sized[A]] = for {
-    s <- Gen.choose(0L, Long.MaxValue)
+    s <- size
     v <- arbitrary[A]
   } yield Sized(v, s)
 
@@ -30,17 +33,19 @@ object GenRepository {
     f <- factsets
   } yield FeatureStore.fromList(s, f).get
 
-  def commit: Gen[Commit] = for {
+  def commit: Gen[CommitMetadata] = for {
     d <- GenIdentifier.dictionary
     s <- GenIdentifier.store
     c <- Gen.option(GenIdentifier.repositoryConfigId)
-  } yield Commit(d, s, c)
+  } yield CommitMetadata(d, s, c)
 
   def factset: Gen[Factset] =
     GenIdentifier.factset.flatMap(factsetWith)
 
-  def factsetWith(factsetId: FactsetId): Gen[Factset] =
-    partitions.map(Factset(factsetId, _))
+  def factsetWith(factsetId: FactsetId): Gen[Factset] = for {
+    ps <- partitions
+    ss <- ps.traverse(p => size.map(s => Sized(p, s)))
+  } yield Factset(factsetId, FactsetFormat.V2, ss)
 
   def factsets: Gen[List[Factset]] = for {
     f <- GenIdentifier.factsets
@@ -51,7 +56,10 @@ object GenRepository {
     i <- GenIdentifier.snapshot
     d <- GenDate.date
     s <- store
-  } yield Snapshot(i, d, s)
+    dv <- GenDictionary.dictionary
+    di <- GenIdentifier.dictionary
+    b <- size
+  } yield Snapshot(i, d, s, (di -> dv).some, b)
 
   def partition: Gen[Partition] = for {
     n <- GenString.name

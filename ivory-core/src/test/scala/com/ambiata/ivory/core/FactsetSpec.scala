@@ -11,12 +11,12 @@ Combinators
   `filterByPartition` is just a convenience on the underlying list of partitions.
 
     ${ prop((f: Factset, p: Partition) =>
-         f.filterByPartition(_ == p).partitions ==== f.partitions.filter(_ == p)) }
+         f.filterByPartition(_ == p).partitions ==== f.partitions.filter(_.value == p)) }
 
   `filterByDate` is just a convenience on the underlying list of partition dates.
 
     ${ prop((f: Factset, d: Date) =>
-         f.filterByDate(_ > d).partitions ==== f.partitions.filter(_.date > d)) }
+         f.filterByDate(_ > d).partitions ==== f.partitions.filter(_.value.date > d)) }
 
   Basic rules for filtering, i.e. const true is identity, const false is empty:
 

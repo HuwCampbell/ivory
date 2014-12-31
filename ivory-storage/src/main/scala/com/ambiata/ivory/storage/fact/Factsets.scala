@@ -5,7 +5,6 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.manifest.FactsetManifest
 import com.ambiata.ivory.storage.metadata.Metadata
-import com.ambiata.ivory.storage.partition._
 import com.ambiata.ivory.storage.version.Version
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
@@ -36,7 +35,8 @@ object Factsets {
   } yield factsets.sortBy(_.id)
 
   def factset(repository: Repository, id: FactsetId): RIO[Factset] =
-    Partitions.getFromFactset(repository, id).map(partitions => Factset(id, partitions.map(_.value).sorted))
+    FactsetManifest.io(repository, id).readOrFail.map(manifest =>
+      Factset(id, manifest.format, manifest.partitions.sorted))
 
   def updateFeatureStore(factsetId: FactsetId): RepositoryTIO[Option[FeatureStoreId]] = for {
     globs <- RepositoryT.fromRIO(r =>

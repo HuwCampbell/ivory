@@ -11,6 +11,9 @@ case class Dictionary(definitions: List[Definition]) {
   val sortedByFeatureId: List[Definition] =
     definitions.sortBy(_.featureId)
 
+  def featureIds: Set[FeatureId] =
+    definitions.map(d => d.featureId).toSet
+
   /** Index this dictionaries definitions by FeatureId. */
   val byFeatureId: Map[FeatureId, Definition] =
     definitions.map(d => d.featureId -> d).toMap
@@ -59,11 +62,12 @@ case class Dictionary(definitions: List[Definition]) {
   def append(other: Dictionary) =
     Dictionary(definitions ++ other.definitions)
 
-  /** Only required until chord supports windows as well */
-  def removeVirtualFeatures: Dictionary =
-    Dictionary(definitions.filter({
-      case Concrete(_, _) => true
-      case Virtual(_, _)  => false
+  /** List the windows for each concrete feature id, note this makes explicit the assumption that
+      _no window_ is the latest fact only. */
+  def windows: FeatureWindows =
+    FeatureWindows(byConcrete.sources.toList.map({
+      case (id, group) =>
+        FeatureWindow(id, group.virtual.map({ case (_, definition) => definition.window }).flatten)
     }))
 }
 
@@ -73,6 +77,9 @@ object Dictionary {
 
   def reduce(dictionaries: List[Dictionary]) =
     dictionaries.foldLeft(Dictionary.empty)(_ append _)
+
+  implicit def DictionaryEqual: Equal[Dictionary] =
+    Equal.equalA
 }
 
 /** Represents a dictionary grouped by the concrete definitions */

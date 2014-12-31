@@ -10,8 +10,28 @@ import com.ambiata.notion.core._
 import scalaz._, Scalaz._
 
 object SnapshotMetadataStorage {
-
   val allocated = KeyName.unsafe(".allocated")
+
+  def byId(repository: Repository, id: SnapshotId): RIO[Option[SnapshotMetadata]] = for {
+    manifest <- SnapshotManifest.io(repository, id).read
+    metadata <- manifest.traverseU(toMetadata(repository, _))
+  } yield metadata
+
+  def byIdOrFail(repository: Repository, id: SnapshotId): RIO[SnapshotMetadata] =
+    byId(repository, id).flatMap({
+      case Some(s) =>
+        s.pure[RIO]
+      case None =>
+        RIO.fail(s"Ivory invariant violated, could not locate snapshot metadata for $id")
+    })
+
+
+  def list(repository: Repository): RIO[List[SnapshotMetadata]] = for {
+    ids <- repository.store.listHeads(Repository.snapshots).map(_.filterHidden)
+    sids <- ids.flatMap(sid => SnapshotId.parse(sid.name).toList).pure[RIO]
+    manifests <- sids.traverseU(SnapshotManifest.io(repository, _).read).map(_.flatten)
+    metadatas <- manifests.traverseU(manifest => toMetadata(repository, manifest))
+  } yield metadatas
 
   def featureStoreSnapshot(repo: Repository, meta: SnapshotMetadata): RIO[legacy.FeatureStoreSnapshot] =
     Metadata.featureStoreFromIvory(repo, meta.storeId)

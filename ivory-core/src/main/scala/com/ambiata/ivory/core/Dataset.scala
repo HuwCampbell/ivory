@@ -17,6 +17,9 @@ sealed trait Dataset {
 
   def isEmpty: Boolean =
     fold(_.partitions.isEmpty, _ => false)
+
+  def bytes: Long =
+    fold(_.bytes, _.bytes)
 }
 
 case class FactsetDataset(factset: Factset) extends Dataset

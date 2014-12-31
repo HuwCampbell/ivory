@@ -151,7 +151,7 @@ Sorting
 
   def writeSnapshotsAndCommits(repo: Repository, manifest: SnapshotManifest): RIO[Unit] =
     manifest.storeOrCommit.toOption
-      .traverseU(cid => CommitTextStorage.storeCommitToId(repo, cid, Commit(DictionaryId.initial, FeatureStoreId.initial, None))).void >>
+      .traverseU(cid => CommitStorage.storeCommitToId(repo, cid, CommitMetadata(DictionaryId.initial, FeatureStoreId.initial, None))).void >>
       SnapshotManifest.io(repo, manifest.snapshot).write(manifest)
 
 

@@ -2,6 +2,7 @@ package com.ambiata.ivory.storage.fact
 
 import scalaz._, Scalaz._
 
+// FIX delete, use core.FactsetFormat.
 sealed abstract class FactsetVersion(val toByte: Byte) {
   override def toString() = toByte.toString
 }

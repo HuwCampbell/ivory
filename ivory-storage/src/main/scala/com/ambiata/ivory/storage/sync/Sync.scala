@@ -26,33 +26,33 @@ object Sync {
   }
 
   def getKeys(data: Datasets): List[Key] = data.sets.flatMap(_.value match {
-    case FactsetDataset(Factset(fid, parts)) =>
-      parts.map(Repository.factset(fid) / _.key)
-    case SnapshotDataset(Snapshot(sid, _, _)) =>
+    case FactsetDataset(Factset(fid, _, parts)) =>
+      parts.map(Repository.factset(fid) / _.value.key)
+    case SnapshotDataset(Snapshot(sid, _, _, _, _)) =>
       (Repository.snapshots / sid.asKeyName) :: Nil
   })
 
   def getS3data(data: Datasets, bucket: String, key: String, cluster: Cluster): RIO[List[S3Address]] = data.sets.traverseU(_.value match {
-    case FactsetDataset(Factset(fid, parts)) =>
-      parts.map(Repository.factset(fid) / _.key).traverseU(x =>
+    case FactsetDataset(Factset(fid, _, parts)) =>
+      parts.map(Repository.factset(fid) / _.value.key).traverseU(x =>
         getS3Info(S3Pattern(bucket, (Key.unsafe(key) / x).name)).execute(cluster.s3Client)).map(_.flatten)
-    case SnapshotDataset(Snapshot(sid, _, _)) =>
+    case SnapshotDataset(Snapshot(sid, _, _, _, _)) =>
       getS3Info(S3Pattern(bucket, (Repository.snapshots / sid.asKeyName).name)).execute(cluster.s3Client)
   }).map(_.flatten)
 
   def getHdfsFilePaths(data: Datasets, root: DirPath, cluster: Cluster): RIO[List[FilePath]] = data.sets.traverseU(_.value match {
-    case FactsetDataset(Factset(fid, parts)) =>
-      parts.map(Repository.factset(fid) / _.key).traverseU(x =>
+    case FactsetDataset(Factset(fid, _, parts)) =>
+      parts.map(Repository.factset(fid) / _.value.key).traverseU(x =>
         getFilePathInfosOnHdfs(root </> DirPath.unsafe(x.name)).run(cluster.hdfsConfiguration)).map(_.flatten)
-    case SnapshotDataset(Snapshot(sid, _, _)) =>
+    case SnapshotDataset(Snapshot(sid, _, _, _, _)) =>
       getFilePathInfosOnHdfs(root </> DirPath.unsafe((Repository.snapshots / sid.asKeyName).name)).run(cluster.hdfsConfiguration)
   }).map(_.flatten)
 
   def getLocalFilePaths(data: Datasets, root: DirPath, cluster: Cluster): RIO[List[FilePath]] = data.sets.traverseU(_.value match {
-    case FactsetDataset(Factset(fid, parts)) =>
-      parts.map(Repository.factset(fid) / _.key).traverseU(x =>
+    case FactsetDataset(Factset(fid, _, parts)) =>
+      parts.map(Repository.factset(fid) / _.value.key).traverseU(x =>
         Directories.list(root </> DirPath.unsafe(x.name))).map(_.flatten)
-    case SnapshotDataset(Snapshot(sid, _, _)) =>
+    case SnapshotDataset(Snapshot(sid, _, _, _, _)) =>
       Directories.list(root </> DirPath.unsafe((Repository.snapshots / sid.asKeyName).name))
   }).map(_.flatten)
 

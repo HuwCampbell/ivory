@@ -6,6 +6,7 @@ import com.ambiata.ivory.lookup.{FeatureIdLookup, SnapshotWindowLookup, FlagLook
 import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
+import com.ambiata.ivory.storage.plan._
 import com.ambiata.ivory.mr._
 import com.ambiata.mundane.control._
 import com.ambiata.poacher.mr._
@@ -16,9 +17,7 @@ import java.util.{Iterator => JIterator}
 import scala.collection.JavaConverters._
 
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.conf._
 import org.apache.hadoop.io._
-import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce.{Counter => _, _}
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
@@ -27,10 +26,10 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
  * This is a hand-coded MR job to squeeze the most out of snapshot performance.
  */
 object SnapshotJob {
-  def run(repository: HdfsRepository, conf: Configuration, dictionary: Dictionary, reducers: Int, date: Date, inputs: List[Prioritized[FactsetGlob]], output: Path,
-          windows: SnapshotWindows, incremental: Option[Path], codec: Option[CompressionCodec]): RIO[SnapshotStats] = {
 
-    val job = Job.getInstance(conf)
+  def run(repository: HdfsRepository, plan: SnapshotPlan, reducers: Int, output: Path): RIO[SnapshotStats] = {
+
+    val job = Job.getInstance(repository.configuration)
     val ctx = MrContextIvory.newContext("ivory-snapshot", job)
 
     job.setJarByClass(classOf[SnapshotReducer])
@@ -52,7 +51,7 @@ object SnapshotJob {
     job.setOutputValueClass(classOf[BytesWritable])
 
     // input
-    IvoryInputs.configure(ctx, job, repository, inputs, incremental, classOf[SnapshotFactsetMapper], classOf[SnapshotIncrementalMapper])
+    IvoryInputs.configure(ctx, job, repository, plan.datasets, classOf[SnapshotFactsetMapper], classOf[SnapshotIncrementalMapper])
 
     // output
     val tmpout = new Path(ctx.output, "snap")
@@ -60,19 +59,19 @@ object SnapshotJob {
     FileOutputFormat.setOutputPath(job, tmpout)
 
     // compression
-    codec.foreach(cc => {
+    repository.codec.foreach(cc => {
       Compress.intermediate(job, cc)
       Compress.output(job, cc)
     })
 
     // cache / config initializtion
-    job.getConfiguration.set(Keys.SnapshotDate, date.int.toString)
-    ctx.thriftCache.push(job, Keys.FactsetLookup, FactsetLookups.priorityTable(inputs))
-    ctx.thriftCache.push(job, Keys.FactsetVersionLookup, FactsetLookups.versionTable(inputs.map(_.value)))
-    val (featureIdLookup, windowLookup) = windowTable(dictionary, windows)
+    job.getConfiguration.set(Keys.SnapshotDate, plan.date.int.toString) // FIX why int toString and not render/parse date?
+    ctx.thriftCache.push(job, Keys.FactsetLookup, FactsetLookups.priorityDatasets(plan.datasets))
+    ctx.thriftCache.push(job, Keys.FactsetVersionLookup, FactsetLookups.versionDatasets(plan.datasets))
+    val (featureIdLookup, windowLookup) = windowTable(plan.commit.dictionary, plan.commit.dictionary.windows.byFeature(plan.date))
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup)
     ctx.thriftCache.push(job, Keys.WindowLookup, windowLookup)
-    ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(dictionary))
+    ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(plan.commit.dictionary))
 
     // run job
     if (!job.waitForCompletion(true))
@@ -82,7 +81,7 @@ object SnapshotJob {
     for {
       _ <- Committer.commit(ctx, {
         case "snap" => output
-      }, true).run(conf)
+      }, true).run(repository.configuration)
       now <- RIO.fromIO(DateTime.now)
     } yield {
       val featureIdToName = featureIdLookup.ids.asScala.mapValues(_.toString).map(_.swap)
@@ -92,12 +91,12 @@ object SnapshotJob {
     }
   }
 
-  def windowTable(dictionary: Dictionary, windows: SnapshotWindows): (FeatureIdLookup, SnapshotWindowLookup) = {
+  def windowTable(dictionary: Dictionary, ranges: FeatureRanges): (FeatureIdLookup, SnapshotWindowLookup) = {
     val featureIdLookup = FeatureLookups.featureIdTable(dictionary)
     val windowLookup = new SnapshotWindowLookup(new java.util.HashMap[Integer, Integer])
-    windows.windows.map(window => {
-      val id = featureIdLookup.getIds.get(window.featureId.toString)
-      windowLookup.putToWindow(id, window.startDate.getOrElse(Date.maxValue).int)
+    ranges.features.foreach(range => {
+      val id = featureIdLookup.getIds.get(range.id.toString)
+      windowLookup.putToWindow(id, range.fromOrMax.int)
     })
     (featureIdLookup, windowLookup)
   }

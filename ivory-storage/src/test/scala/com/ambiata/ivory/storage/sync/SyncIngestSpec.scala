@@ -66,13 +66,13 @@ Sync operations to cluster
       withCluster(cluster => {
         val datasets = Datasets(List(Prioritized(Priority.Min, FactsetDataset(one)), Prioritized(Priority.Min, FactsetDataset(two))))
         for {
-          _ <- one.partitions.map(Repository.factset(one.id) / _.key / Key("file")).traverseU(repo.store.utf8.write(_, data))
-          _ <- two.partitions.map(Repository.factset(two.id) / _.key / Key("file")).traverseU(repo.store.utf8.write(_, data))
+          _ <- one.partitions.map(Repository.factset(one.id) / _.value.key / Key("file")).traverseU(repo.store.utf8.write(_, data))
+          _ <- two.partitions.map(Repository.factset(two.id) / _.value.key / Key("file")).traverseU(repo.store.utf8.write(_, data))
           _ <- repo.store.utf8.write(Key("foo"), data)
           _ <- repo.store.utf8.write(Key("foos") / Key("bar"), data)
           s <- SyncIngest.toCluster(datasets, repo, cluster)
-          o <- one.partitions.traverseU(p => Hdfs.exists(new Path(s.root.toString + "/" + (Repository.factset(one.id) / p.key / Key("file")).name)).run(s.configuration))
-          t <- two.partitions.traverseU(p => Hdfs.exists(new Path(s.root.toString + "/" + (Repository.factset(two.id) / p.key / Key("file")).name)).run(s.configuration))
+          o <- one.partitions.traverseU(p => Hdfs.exists(new Path(s.root.toString + "/" + (Repository.factset(one.id) / p.value.key / Key("file")).name)).run(s.configuration))
+          t <- two.partitions.traverseU(p => Hdfs.exists(new Path(s.root.toString + "/" + (Repository.factset(two.id) / p.value.key / Key("file")).name)).run(s.configuration))
           f <- Hdfs.exists(new Path(cluster.root.toString + "/foo")).run(cluster.hdfsConfiguration).map(!_)
           b <- Hdfs.exists(new Path(cluster.root.toString + "foos/bar")).run(cluster.hdfsConfiguration).map(!_)
         } yield b :: f :: o ++ t

@@ -1,5 +1,7 @@
 package com.ambiata.ivory.core
 
+import scalaz._, Scalaz._
+
 case class Datasets(sets: List[Prioritized[Dataset]]) {
   def byPriority: Datasets =
     copy(sets = sets.sorted)
@@ -18,9 +20,22 @@ case class Datasets(sets: List[Prioritized[Dataset]]) {
 
   def prune: Datasets =
     Datasets(sets.filter(p => !p.value.isEmpty))
+
+  def bytes: Long =
+    sets.map(_.value.bytes).sum
+
+  def summary: DatasetsSummary  =
+    sets.foldLeft(DatasetsSummary(0, 0, None))((acc, p) => p.value match {
+      case FactsetDataset(factset) =>
+        acc.copy(partitions = factset.partitions.size + acc.partitions, bytes = factset.bytes + acc.bytes)
+      case SnapshotDataset(snapshot) =>
+        acc.copy(bytes = snapshot.bytes + acc.bytes, snapshot = snapshot.id.some)
+    })
 }
 
 object Datasets {
   def empty: Datasets =
     Datasets(Nil)
 }
+
+case class DatasetsSummary(partitions: Int, bytes: Long, snapshot: Option[SnapshotId])

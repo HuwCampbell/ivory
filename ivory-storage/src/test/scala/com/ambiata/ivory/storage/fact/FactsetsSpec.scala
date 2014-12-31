@@ -46,7 +46,7 @@ class FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
     RepositoryBuilder.using { repo =>
 
       factsets.factsets.traverseU(fs =>
-        fs.partitions.traverseU(p => writeDataFile(repo, Repository.factset(fs.id) / p.key))
+        fs.partitions.traverseU(p => writeDataFile(repo, Repository.factset(fs.id) / p.value.key))
       ) >> Factsets.factsets(repo)
     } must beOkLike(_ must containTheSameElementsAs(expected))
   }.set(minTestsOk = 10)
@@ -55,7 +55,7 @@ class FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
     val expected = factset.copy(partitions = factset.partitions.sorted)
     RepositoryBuilder.using { repo =>
 
-      factset.partitions.traverseU(p => writeDataFile(repo, Repository.factset(factset.id) / p.key)) >>
+      factset.partitions.traverseU(p => writeDataFile(repo, Repository.factset(factset.id) / p.value.key)) >>
         Factsets.factset(repo, factset.id)
     } must beOkValue(expected)
   }.set(minTestsOk = 10)

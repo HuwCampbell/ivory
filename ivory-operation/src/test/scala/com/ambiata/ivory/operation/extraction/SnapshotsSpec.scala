@@ -36,7 +36,7 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
     val facts = List(
       fact,
       fact.withTime(Time.unsafe(fact.time.seconds + 1)),
-      fact.withDate(Date.fromLocalDate(Window.startingDate(vdict.window)(fact.date).localDate.plusDays(1)))
+      fact.withDate(Date.fromLocalDate(Window.startingDate(vdict.window, fact.date).localDate.plusDays(1)))
     ).map(_.withFeatureId(vdict.vdict.vd.source))
 
     val deprioritized = List(
@@ -46,7 +46,7 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
     )
 
     val oldfacts = List(
-      fact.withDate(Window.startingDate(vdict.window)(fact.date))
+      fact.withDate(Window.startingDate(vdict.window, fact.date))
     ).map(_.withFeatureId(vdict.vdict.vd.source))
 
     RepositoryBuilder.using { repo => for {
@@ -82,7 +82,7 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
     def fact(d: Date, t: Time, v: Int): Fact =
       Fact.newFact(s"E${entity}", concrete.namespace.name, concrete.name, d, t, IntValue(v))
 
-    val firstDayOfWindow = Date.fromLocalDate(Window.startingDate(window)(date).localDate.plusDays(1))
+    val firstDayOfWindow = Date.fromLocalDate(Window.startingDate(window, date).localDate.plusDays(1))
     val facts = List(
         fact(date, time, 1)
       , fact(date, time, 2)
@@ -93,8 +93,8 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
     // Currently we're keeping the last fact outside the window, which is incorrect
     // https://github.com/ambiata/ivory/issues/376
     val outer = List(
-        fact(Window.startingDate(window)(date), Time(0), 5)
-      , fact(Window.startingDate(window)(date), Time(1), 6)
+        fact(Window.startingDate(window, date), Time(0), 5)
+      , fact(Window.startingDate(window, date), Time(1), 6)
       )
 
     RepositoryBuilder.using { repo => for {
