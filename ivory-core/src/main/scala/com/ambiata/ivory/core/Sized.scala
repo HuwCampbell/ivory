@@ -3,7 +3,7 @@ package com.ambiata.ivory.core
 import argonaut._, Argonaut._
 import scalaz._, Scalaz._
 
-case class Sized[A](value: A, bytes: Long)
+case class Sized[A](value: A, bytes: Bytes)
 
 object Sized {
   implicit def SizedEqual[A: Equal]: Equal[Sized[A]] =

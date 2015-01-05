@@ -12,8 +12,11 @@ object GenRepository {
   def size: Gen[Long] =
     Gen.choose(0L, Long.MaxValue)
 
+  def bytes: Gen[Bytes] =
+    size.map(Bytes.apply)
+
   def sized[A: Arbitrary]: Gen[Sized[A]] = for {
-    s <- size
+    s <- bytes
     v <- arbitrary[A]
   } yield Sized(v, s)
 
@@ -44,7 +47,7 @@ object GenRepository {
 
   def factsetWith(factsetId: FactsetId): Gen[Factset] = for {
     ps <- partitions
-    ss <- ps.traverse(p => size.map(s => Sized(p, s)))
+    ss <- ps.traverse(p => bytes.map(s => Sized(p, s)))
   } yield Factset(factsetId, FactsetFormat.V2, ss)
 
   def factsets: Gen[List[Factset]] = for {
@@ -58,7 +61,7 @@ object GenRepository {
     s <- store
     dv <- GenDictionary.dictionary
     di <- GenIdentifier.dictionary
-    b <- size
+    b <- bytes
   } yield Snapshot(i, d, s, (di -> dv).some, b)
 
   def partition: Gen[Partition] = for {

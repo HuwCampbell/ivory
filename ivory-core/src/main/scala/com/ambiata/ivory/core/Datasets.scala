@@ -21,21 +21,22 @@ case class Datasets(sets: List[Prioritized[Dataset]]) {
   def prune: Datasets =
     Datasets(sets.filter(p => !p.value.isEmpty))
 
-  def bytes: Long =
-    sets.map(_.value.bytes).sum
+  def bytes: Bytes =
+    sets.foldMap(_.value.bytes)
 
   def summary: DatasetsSummary  =
-    sets.foldLeft(DatasetsSummary(0, 0, None))((acc, p) => p.value match {
+    sets.foldMap(p => p.value match {
       case FactsetDataset(factset) =>
-        acc.copy(partitions = factset.partitions.size + acc.partitions, bytes = factset.bytes + acc.bytes)
+        DatasetsSummary(factset.partitions.size, p.value.bytes, None)
       case SnapshotDataset(snapshot) =>
-        acc.copy(bytes = snapshot.bytes + acc.bytes, snapshot = snapshot.id.some)
+        DatasetsSummary(0, p.value.bytes, snapshot.id.some)
     })
 }
 
 object Datasets {
   def empty: Datasets =
     Datasets(Nil)
-}
 
-case class DatasetsSummary(partitions: Int, bytes: Long, snapshot: Option[SnapshotId])
+  implicit def DatasetsEqual: Equal[Datasets] =
+    Equal.equalA
+}

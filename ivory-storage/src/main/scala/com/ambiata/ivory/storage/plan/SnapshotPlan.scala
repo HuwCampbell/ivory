@@ -69,7 +69,7 @@ object SnapshotPlan {
    * number of partitions.
    */
   def weight(plan: SnapshotPlan): Long =
-    plan.datasets.bytes
+    plan.datasets.bytes.toLong
 
   /**
    * Determine if a given snapshot is valid for the specified snapshot 'at' date

@@ -2,7 +2,7 @@ package com.ambiata.ivory.core
 
 import com.ambiata.mundane.parse.ListParser
 import com.ambiata.mundane.io.FilePath
-import scalaz._
+import scalaz._, Scalaz._
 
 case class Factset(id: FactsetId, format: FactsetFormat, partitions: List[Sized[Partition]]) {
   def show =
@@ -18,11 +18,14 @@ case class Factset(id: FactsetId, format: FactsetFormat, partitions: List[Sized[
   def filterByDate(pred: Date => Boolean): Factset =
     filterByPartition(p => pred(p.date))
 
-  def bytes: Long =
-    partitions.map(_.bytes).sum
+  def bytes: Bytes =
+    partitions.foldMap(_.bytes)
 }
 
 object Factset {
+  implicit def FactsetEqual: Equal[Factset] =
+    Equal.equalA
+
   def parseFile(file: FilePath): Validation[String, (FactsetId, Partition)] =
     pathListParser.run(file.dirname.components.reverse)
 

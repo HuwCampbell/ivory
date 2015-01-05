@@ -40,7 +40,7 @@ object Snapshots {
     for {
       commit <- CommitStorage.head(repository)
       ids <- SnapshotStorage.ids(repository)
-      plan <- SnapshotPlan.pessimistic(date, commit, ids, Kleisli[RIO, SnapshotId, Snapshot](id=> SnapshotStorage.byId(repository, id)))
+      plan <- SnapshotPlan.pessimistic(date, commit, ids, Kleisli[RIO, SnapshotId, Snapshot](id => SnapshotStorage.byId(repository, id)))
       summary <- plan.exact match {
         case Some(snapshot) =>
           SnapshotJobSummary(snapshot.toMetadata, snapshot.toMetadata.some).pure[RIO]
@@ -59,7 +59,7 @@ object Snapshots {
     manifest <- SnapshotMetadataStorage.createSnapshotManifest(repository, date) // WTF FIX pass in commit? WTF is this magic commit thing?
     metadata <- SnapshotMetadataStorage.toMetadata(repository, manifest) // WTF why is this not pure?
     _        <- RIO.putStrLn(s"Total input size: ${plan.datasets.bytes}")
-    reducers =  (plan.datasets.bytes / 2.gb.toBytes.value + 1).toInt // one reducer per 2GB of input
+    reducers =  (plan.datasets.bytes.toLong / 2.gb.toBytes.value + 1).toInt // one reducer per 2GB of input
     _        <- RIO.putStrLn(s"Number of reducers: $reducers")
     /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
     hr       <- repository.asHdfsRepository

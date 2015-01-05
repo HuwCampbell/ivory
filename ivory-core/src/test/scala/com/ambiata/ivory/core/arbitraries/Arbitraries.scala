@@ -11,6 +11,9 @@ import scalaz.scalacheck.ScalaCheckBinding._
 
 
 trait Arbitraries {
+  implicit def BytesArbitrary: Arbitrary[Bytes] =
+    Arbitrary(GenRepository.bytes)
+
   implicit def CommitIdArbitrary: Arbitrary[CommitId] =
     Arbitrary(GenIdentifier.commit)
 
