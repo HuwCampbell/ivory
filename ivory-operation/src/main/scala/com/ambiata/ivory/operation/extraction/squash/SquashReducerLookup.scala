@@ -2,7 +2,6 @@ package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, ReducerLookup}
-import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.poacher.mr.MrContext
 import org.apache.hadoop.conf.{Configuration, Configurable}

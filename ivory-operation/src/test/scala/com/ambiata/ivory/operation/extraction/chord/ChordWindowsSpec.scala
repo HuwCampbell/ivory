@@ -2,7 +2,6 @@ package com.ambiata.ivory.operation.extraction.chord
 
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
 import org.specs2.{ScalaCheck, Specification}
 
 class ChordWindowsSpec extends Specification with ScalaCheck { def is = s2"""

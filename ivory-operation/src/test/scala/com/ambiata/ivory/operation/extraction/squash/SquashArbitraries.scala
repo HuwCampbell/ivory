@@ -4,7 +4,6 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core.gen._
-import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
 import org.scalacheck._
 import scalaz._, Scalaz._
 
