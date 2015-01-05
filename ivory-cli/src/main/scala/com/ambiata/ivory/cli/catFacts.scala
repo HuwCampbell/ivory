@@ -1,15 +1,15 @@
 package com.ambiata.ivory.cli
 
-import com.ambiata.ivory.storage.fact.FactsetVersion
 import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.api.Ivory.printFacts
 import com.ambiata.ivory.cli.ScoptReaders._
 import com.ambiata.ivory.storage.control._
+import com.ambiata.ivory.core._
 import scalaz._, Scalaz._
 
 object catFacts extends IvoryApp {
-  case class CliArguments(delimiter: Char = '|', tombstone: String = "NA", paths: List[String] = Nil, version: FactsetVersion = FactsetVersion.latest)
+  case class CliArguments(delimiter: Char = '|', tombstone: String = "NA", paths: List[String] = Nil, version: FactsetFormat = FactsetFormat.V2)
 
   val parser = new scopt.OptionParser[CliArguments]("cat-facts") {
     head("""
@@ -25,7 +25,7 @@ object catFacts extends IvoryApp {
       "Delimiter (`|` by default)"
     opt[String]('t', "tombstone")   action { (x, c) => c.copy(tombstone = x) }        optional()             text
       "Tombstone (NA by default)"
-    opt[String]('v', "version")   action { (x, c) => c.copy(version = FactsetVersion.fromStringOrLatest(x)) }            optional()             text
+    opt[String]('v', "version")   action { (x, c) => c.copy(version = FactsetFormat.fromString(x).getOrElse(sys.error("Invalid version"))) }            optional()             text
       "Version (latest by default)"
   }
 

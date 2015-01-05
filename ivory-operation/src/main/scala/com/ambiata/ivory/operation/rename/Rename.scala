@@ -16,7 +16,7 @@ object Rename {
 
   def rename(mapping: RenameMapping, reducerSize: BytesQuantity): RepositoryTIO[(FactsetId, Option[FeatureStoreId], RenameStats)] = for {
     globs        <- prepareGlobsFromLatestStore(mapping)
-    lookups      <- prepareLookups(mapping, globs.map(_.value.factset), reducerSize)
+    lookups      <- prepareLookups(mapping, globs.map(_.value.factset.id), reducerSize)
     renameResult <- renameWithFactsets(mapping, globs, lookups)
     (fsid, stats) = renameResult
     sid          <- Factsets.updateFeatureStore(fsid)

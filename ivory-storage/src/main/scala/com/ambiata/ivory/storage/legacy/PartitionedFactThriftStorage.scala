@@ -1,7 +1,5 @@
 package com.ambiata.ivory.storage.legacy
 
-import com.ambiata.ivory.storage.fact.{FactsetVersionTwo, FactsetVersion, FactsetVersionOne}
-
 import scalaz.{DList => _, Value => _, _}
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.compress.CompressionCodec
@@ -66,9 +64,9 @@ object PartitionFactThriftStorageV1 extends PartitionFactThriftStorage
 object PartitionFactThriftStorageV2 extends PartitionFactThriftStorage
 
 object PartitionFactThriftStorage {
-  def parseThriftFact(factsetVersion: FactsetVersion, path: String)(tfact: ThriftFact): ParseError \/ Fact =
+  def parseThriftFact(factsetVersion: FactsetFormat, path: String)(tfact: ThriftFact): ParseError \/ Fact =
     factsetVersion match {
-      case FactsetVersionOne => PartitionFactThriftStorageV1.parseFact(path, tfact)
-      case FactsetVersionTwo => PartitionFactThriftStorageV2.parseFact(path, tfact)
+      case FactsetFormat.V1 => PartitionFactThriftStorageV1.parseFact(path, tfact)
+      case FactsetFormat.V2 => PartitionFactThriftStorageV2.parseFact(path, tfact)
     }
 }

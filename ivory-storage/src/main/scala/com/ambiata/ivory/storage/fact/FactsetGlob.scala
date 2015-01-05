@@ -1,29 +1,29 @@
 package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.partition._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 
-import scalaz._, effect.IO
+import scalaz._, Scalaz._
 
 // TODO remove once plan api is created
-case class FactsetGlob(repo: Repository, factset: FactsetId, version: FactsetVersion, partitions: List[Sized[Partition]]) {
+case class FactsetGlob(repo: Repository, factset: Factset) {
+  def partitions: List[Sized[Partition]] =
+    factset.partitions
+
   // FIX this type doesn't make sense why not empty list of partitions?
   def filterPartitions(f: Partition => Boolean): Option[FactsetGlob] = {
-    val filtered = partitions.filter(s => f(s.value))
-    if (filtered.isEmpty) None else Some(copy(partitions = filtered))
+    val filtered = factset.filterByPartition(f)
+    if (filtered.partitions.isEmpty) None else Some(copy(factset = filtered))
   }
 
   def keys: List[Key] =
-    partitions.map(p => Repository.factset(factset) / p.value.key)
+    partitions.map(p => Repository.factset(factset.id) / p.value.key)
 }
 
 object FactsetGlob {
-  def select(repository: Repository, factset: FactsetId): RIO[Option[FactsetGlob]] = for {
-    partitions <- Partitions.getFromFactset(repository, factset)
-    version    <- if (partitions.isEmpty) RIO.ok[Option[FactsetVersion]](None) else Versions.read(repository, factset).map(Some.apply)
-  } yield version.map(v => FactsetGlob(repository, factset, v, partitions))
+  def select(repository: Repository, factset: FactsetId): RIO[Option[FactsetGlob]] =
+    Factsets.factset(repository, factset).map(f => (!f.partitions.isEmpty).option(FactsetGlob(repository, f)))
 
   def before(repository: Repository, factset: FactsetId, to: Date): RIO[Option[FactsetGlob]] =
     filter(repository, factset, _.date.isBeforeOrEqual(to))

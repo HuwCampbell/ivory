@@ -11,6 +11,9 @@ sealed trait FactsetFormat {
     case V1 => 1
     case V2 => 2
   }
+
+  def toStringFormat: String =
+    toByte.toString
 }
 
 object FactsetFormat {
@@ -29,6 +32,9 @@ object FactsetFormat {
     case 2 => V2.some
     case _ => none
   }
+
+  def fromString(v: String): Option[FactsetFormat] =
+    v.parseByte.toOption.flatMap(fromByte)
 
   /* NOTE Don't forget the arbitrary if you add a format. */
 

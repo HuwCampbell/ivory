@@ -2,7 +2,6 @@ package com.ambiata.ivory.operation.display
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift.ThriftFact
-import com.ambiata.ivory.storage.fact.FactsetVersion
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.mundane.control.RIO
 import com.ambiata.mundane.io._
@@ -16,7 +15,7 @@ import scalaz.{Value => _, _}, Scalaz._, effect._
  */
 object PrintFacts {
 
-  def print(paths: List[Path], config: Configuration, delim: Char, tombstone: String, version: FactsetVersion): RIO[Unit] = for {
+  def print(paths: List[Path], config: Configuration, delim: Char, tombstone: String, version: FactsetFormat): RIO[Unit] = for {
     isPartitionPath  <- paths.traverseU(isPartition(config)).map(_.contains(true))
     _                <-
       if (isPartitionPath)
@@ -25,7 +24,7 @@ object PrintFacts {
         Print.printPathsWith(paths, config, createMutableFact, printFact(delim, tombstone))
   } yield ()
 
-  def printThriftFact(delim: Char, tombstone: String, version: FactsetVersion)(path: Path, tf: ThriftFact): IO[Unit] =
+  def printThriftFact(delim: Char, tombstone: String, version: FactsetFormat)(path: Path, tf: ThriftFact): IO[Unit] =
     PartitionFactThriftStorage.parseThriftFact(version, path.toString)(tf) match {
       case -\/(e) => IO.putStrLn("Error! "+e.message+ (e.data match {
         case TextError(line) => ": " + line

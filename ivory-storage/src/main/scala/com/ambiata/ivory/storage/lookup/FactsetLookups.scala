@@ -30,13 +30,13 @@ object FactsetLookups {
 
   def priorityTable(globs: List[Prioritized[FactsetGlob]]): FactsetLookup = {
     val lookup = new FactsetLookup
-    globs.foreach(p => lookup.putToPriorities(p.value.factset.render, p.priority.toShort))
+    globs.foreach(p => lookup.putToPriorities(p.value.factset.id.render, p.priority.toShort))
     lookup
   }
 
   def versionTable(globs: List[FactsetGlob]): FactsetVersionLookup = {
     val lookup = new FactsetVersionLookup
-    globs.foreach(g => lookup.putToVersions(g.factset.render, g.version.toByte))
+    globs.foreach(g => lookup.putToVersions(g.factset.id.render, g.factset.format.toByte))
     lookup
   }
 }

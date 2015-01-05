@@ -5,7 +5,6 @@ package repository
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
-import com.ambiata.ivory.storage.fact.{FactsetVersion, FactsetVersionTwo}
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.repository.RecreateFactsetJob.Keys
@@ -39,13 +38,8 @@ object RecreateFactsetJob {
    *
    *
    */
-<<<<<<< HEAD
-  def run(conf: Configuration, version: FactsetVersion, dictionary: Dictionary, namespaces: List[(Name, BytesQuantity)],
-          partitions: List[Path], target: Path, reducerSize: BytesQuantity, codec: Option[CompressionCodec]): RIO[Unit] = {
-=======
   def run(conf: Configuration, version: FactsetVersion, dictionary: Dictionary, namespaces: List[(Namespace, BytesQuantity)],
-          partitions: List[Path], target: Path, reducerSize: BytesQuantity, codec: Option[CompressionCodec]): Unit = {
->>>>>>> Rename Name -> Namespace.
+          partitions: List[Path], target: Path, reducerSize: BytesQuantity, codec: Option[CompressionCodec]): RIO[Unit] = {
     val reducerLookups = ReducerLookups.createLookups(dictionary, namespaces, reducerSize)
 
     val job = Job.getInstance(conf)
@@ -110,7 +104,7 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     }
 
     createFact =
-      if (FactsetVersion.fromString(version) == Some(FactsetVersionTwo))
+      if (FactsetFormat.fromString(version) == Some(FactsetFormat.V2))
         (tfact: ThriftFact) => PartitionFactThriftStorageV2.createFact(partition, tfact)
       else
         (tfact: ThriftFact) => PartitionFactThriftStorageV1.createFact(partition, tfact)
