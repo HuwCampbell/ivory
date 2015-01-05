@@ -14,11 +14,14 @@ trait Arbitraries {
   implicit def BytesArbitrary: Arbitrary[Bytes] =
     Arbitrary(GenRepository.bytes)
 
+  implicit def CommitArbitrary: Arbitrary[Commit] =
+    Arbitrary(GenRepository.commit)
+
   implicit def CommitIdArbitrary: Arbitrary[CommitId] =
     Arbitrary(GenIdentifier.commit)
 
   implicit def CommitMetadataArbitrary: Arbitrary[CommitMetadata] =
-    Arbitrary(GenRepository.commit)
+    Arbitrary(GenRepository.commitMetadata)
 
   implicit def ConcreteDefinitionArbitrary: Arbitrary[ConcreteDefinition] =
     Arbitrary(GenDictionary.concrete)

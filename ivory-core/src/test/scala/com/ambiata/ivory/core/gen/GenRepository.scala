@@ -36,7 +36,15 @@ object GenRepository {
     f <- factsets
   } yield FeatureStore.fromList(s, f).get
 
-  def commit: Gen[CommitMetadata] = for {
+  def commit: Gen[Commit] = for {
+    did <- GenIdentifier.dictionary
+    d <- GenDictionary.dictionary
+    s <- store
+    r <- repositoryConfig
+    c <- Gen.option(GenIdentifier.repositoryConfigId.map(_ -> r))
+  } yield Commit(did, d, s, c)
+
+  def commitMetadata: Gen[CommitMetadata] = for {
     d <- GenIdentifier.dictionary
     s <- GenIdentifier.store
     c <- Gen.option(GenIdentifier.repositoryConfigId)

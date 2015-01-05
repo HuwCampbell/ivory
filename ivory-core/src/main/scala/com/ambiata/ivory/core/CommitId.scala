@@ -26,6 +26,9 @@ object CommitId {
   def parse(strId: String): Option[CommitId] =
     Identifier.parse(strId).map(CommitId.apply)
 
+  implicit def CommitIdEqual: Equal[CommitId] =
+    Equal.equalA
+
   implicit def CommitIdOrder: Order[CommitId] =
     Order.order(_ order _)
 
