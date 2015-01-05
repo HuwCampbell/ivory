@@ -7,5 +7,5 @@ case class NamespaceRanges(namespaces: List[NamespaceRange]) {
       namespace.*/
   def containedBy(ranges: NamespaceRanges): Boolean ={
     val indexed = ranges.namespaces.groupBy(_.id)
-    namespaces.forall(required => indexed.get(required.id).exists(_.map(_.from).headOption.getOrElse(Date.minValue) <= required.from)) }
+    namespaces.forall(required => indexed.get(required.id).exists(_.map(_.fromOrMin).headOption.getOrElse(Date.minValue) <= required.fromOrMin)) }
   }
