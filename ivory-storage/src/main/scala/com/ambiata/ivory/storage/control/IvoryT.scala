@@ -14,6 +14,9 @@ case class IvoryT[F[_], A](run: Kleisli[F, IvoryRead, A]) {
 
   def flatMap[B](f: A => IvoryT[F, B])(implicit F: Monad[F]): IvoryT[F, B] =
     IvoryT(run.flatMap(f(_).run))
+
+  def on[B](f: F[A] => F[B]): IvoryT[F, B] =
+    IvoryT(Kleisli[F, IvoryRead, B](read => f(run.run(read))))
 }
 
 object IvoryT {
