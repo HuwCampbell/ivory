@@ -82,8 +82,8 @@ object LocalRepository {
  * tmpDirectory is a transient directory (on Hdfs) that is used to import data and
  * convert them to the ivory format before pushing them to S3
  */
-case class S3Repository(root: S3IvoryLocation, s3TmpDirectory: DirPath) extends Repository {
-  def store = S3Store(S3Prefix(root.location.bucket, root.location.key), root.s3Client, s3TmpDirectory)
+case class S3Repository(root: S3IvoryLocation) extends Repository {
+  def store = S3Store(S3Prefix(root.location.bucket, root.location.key), root.s3Client)
 
   def toIvoryLocation(key: Key): S3IvoryLocation =
     root </> DirPath.unsafe(key.name)
@@ -91,7 +91,7 @@ case class S3Repository(root: S3IvoryLocation, s3TmpDirectory: DirPath) extends 
 
 object S3Repository {
   def apply(location: S3Location, ivory: IvoryConfiguration): S3Repository =
-    new S3Repository(S3IvoryLocation(location, ivory.s3Client), ivory.s3TmpDirectory)
+    new S3Repository(S3IvoryLocation(location, ivory.s3Client))
 }
 
 object Repository {
@@ -112,15 +112,15 @@ object Repository {
   def featureStores: Key = metadata / "stores"
   def commits: Key       = metadata / "commits"
 
-  def config(id: RepositoryConfigId): Key                  = configs       / id.asKeyName
-  def dictionaryById(id: DictionaryId): Key                = dictionaries  / id.asKeyName
-  def featureStoreById(id: FeatureStoreId): Key            = featureStores / id.asKeyName
-  def commitById(id: CommitId): Key                        = commits       / id.asKeyName
-  def factset(id: FactsetId): Key                          = factsets      / id.asKeyName
+  def config(id: RepositoryConfigId): Key             = configs       / id.asKeyName
+  def dictionaryById(id: DictionaryId): Key           = dictionaries  / id.asKeyName
+  def featureStoreById(id: FeatureStoreId): Key       = featureStores / id.asKeyName
+  def commitById(id: CommitId): Key                   = commits       / id.asKeyName
+  def factset(id: FactsetId): Key                     = factsets      / id.asKeyName
   def namespace(set: FactsetId, namespace: Namespace): Key = factset(set)  / namespace.asKeyName
-  def snapshot(id: SnapshotId): Key                        = snapshots     / id.asKeyName
-  def version(set: FactsetId): Key                         = factset(set)  / ".version"
-  def tmp(task: KeyName, context: KeyName): Key            = root          / task / context
+  def snapshot(id: SnapshotId): Key                   = snapshots     / id.asKeyName
+  def version(set: FactsetId): Key                    = factset(set)  / ".version"
+  def tmp(task: KeyName, context: KeyName): Key       = root          / task / context
 
   def parseUri(uri: String, repositoryConfiguration: IvoryConfiguration): String \/ Repository =
     IvoryLocation.parseUri(uri, repositoryConfiguration).map(fromIvoryLocation(_, repositoryConfiguration))
@@ -131,7 +131,7 @@ object Repository {
   def fromIvoryLocation(location: IvoryLocation, repositoryConfiguration: IvoryConfiguration): Repository = location match {
     case l: HdfsIvoryLocation  => HdfsRepository(l)
     case l: LocalIvoryLocation => LocalRepository(l)
-    case l: S3IvoryLocation    => S3Repository(l, repositoryConfiguration.s3TmpDirectory)
+    case l: S3IvoryLocation    => S3Repository(l)
   }
 
   /** Creates a unique [[Key]] that can be used as a temporary directory (but doesn't actually create it) */

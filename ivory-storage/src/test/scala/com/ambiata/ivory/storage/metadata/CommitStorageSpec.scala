@@ -4,6 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.mundane.io._
+import com.ambiata.mundane.io.Arbitraries._
 import com.ambiata.mundane.control._
 
 import org.specs2._
@@ -25,37 +26,34 @@ class CommitStorageSpec extends Specification with ScalaCheck { def is = s2"""
     fromLines.run(toLines(commit)).toEither must beRight(commit)
   }
 
-  def readCommit = prop { (commit: CommitMetadata, commitId: CommitId) =>
-    TemporaryDirPath.withDirPath { dir =>
-      val repo = LocalRepository.create(dir)
-      storeCommitToId(repo, commitId, commit) >>
-      fromId(repo, commitId)
-    } must beOkValue(Some(commit))
-  }
+  def readCommit = prop((local: LocalTemporary, commit: CommitMetadata, commitId: CommitId) => for {
+    d <- local.directory
+    r = LocalRepository.create(d)
+    _ <- storeCommitToId(r, commitId, commit)
+    z <- fromId(r, commitId)
+  } yield z ==== commit.some)
 
-  def writeCommit = prop { (commit: CommitMetadata, commitId: CommitId) =>
-    TemporaryDirPath.withDirPath { dir =>
-      val repo = LocalRepository.create(dir)
-      storeCommitToId(repo, commitId, commit) >>
-      repo.store.linesUtf8.read(Repository.commitById(commitId))
-    } must beOkLike(_ must_== toLines(commit))
-  }
+  def writeCommit = prop((local: LocalTemporary, commit: CommitMetadata, commitId: CommitId) => for {
+    d <- local.directory
+    r = LocalRepository.create(d)
+    _ <- storeCommitToId(r, commitId, commit)
+    z <- r.store.linesUtf8.read(Repository.commitById(commitId))
+  } yield z ==== toLines(commit))
 
-  def listCommitIds = prop { ids: CommitIds =>
-    TemporaryDirPath.withDirPath { dir =>
-      val repo = LocalRepository.create(dir)
-      writeCommitIds(repo, ids.ids) >>
-      Metadata.listCommitIds(repo).map(_.toSet)
-    } must beOkValue(ids.ids.toSet)
-  }
+  def listCommitIds = prop((local: LocalTemporary, ids: CommitIds) => for {
+    d <- local.directory
+    r = LocalRepository.create(d)
+    _ <- writeCommitIds(r, ids.ids)
+    z <- Metadata.listCommitIds(r)
+    l = z.length
+  } yield z.toSet -> l ==== ids.ids.toSet -> ids.ids.length)
 
-  def latestCommitId = prop { ids: CommitIds =>
-    TemporaryDirPath.withDirPath { dir =>
-      val repo = LocalRepository.create(dir)
-      writeCommitIds(repo, ids.ids) >>
-      Metadata.latestCommitId(repo)
-    } must beOkValue(ids.ids.sortBy(_.id).lastOption)
-  }
+  def latestCommitId = prop((local: LocalTemporary, ids: CommitIds) => for {
+    d <- local.directory
+    r = LocalRepository.create(d)
+    _ <- writeCommitIds(r, ids.ids)
+    z <- Metadata.latestCommitId(r)
+  } yield z ==== ids.ids.sortBy(_.id).lastOption)
 
   def writeCommitIds(repo: Repository, ids: List[CommitId]): RIO[Unit] =
     ids.traverse(id => repo.store.linesUtf8.write(Repository.commits / id.asKeyName, List(""))).void

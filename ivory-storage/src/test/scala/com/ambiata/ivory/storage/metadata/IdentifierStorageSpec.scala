@@ -1,7 +1,7 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core.Identifier
-import com.ambiata.ivory.core.TemporaryRepositories._
+import com.ambiata.ivory.core.RepositoryTemporary._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._

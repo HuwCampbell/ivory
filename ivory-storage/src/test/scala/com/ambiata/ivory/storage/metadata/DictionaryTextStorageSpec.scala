@@ -37,7 +37,7 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
   def e4 = {
     val resource = FilePath.unsafe(getClass.getClassLoader.getResource("good_dictionary.txt").getFile)
     val location = IvoryLocation.fromFilePath(resource)
-    DictionaryTextStorage.fromSingleFile(location).run.unsafePerformIO().toDisjunction must_== Dictionary(List(
+    DictionaryTextStorage.fromSingleFile(location).unsafePerformIO.toDisjunction must_== Dictionary(List(
      Definition.concrete(FeatureId(Namespace("demo"), "gender"), StringEncoding, Mode.State, Some(CategoricalType), "Gender", List("☠")),
      Definition.concrete(FeatureId(Namespace("widgets"), "count.1W"), IntEncoding, Mode.State, Some(NumericalType), "Count in the last week", List("☠")),
      Definition.concrete(FeatureId(Namespace("demo"), "postcode"), StringEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))
@@ -46,7 +46,7 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
 
   def e5 = {
     val location = IvoryLocation.fromFilePath("ivory-storage" </> "src" </> "test" </> "resources" <|> "bad_dictionary.txt")
-    DictionaryTextStorage.fromSingleFile(location).run.unsafePerformIO().toEither must beLeft
+    DictionaryTextStorage.fromSingleFile(location).unsafePerformIO.toEither must beLeft
   }
 
   def parseEncoding =

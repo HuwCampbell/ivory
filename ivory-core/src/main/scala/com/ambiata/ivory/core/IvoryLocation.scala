@@ -181,7 +181,7 @@ object IvoryLocation {
   def exists(location: IvoryLocation): RIO[Boolean] = location match {
     case l @ LocalIvoryLocation(LocalLocation(path))            =>
       Files.exists(FilePath.unsafe(path)).flatMap(e => if (e) RIO.ok[Boolean](e) else Directories.exists(l.dirPath))
-    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).exists.execute(s3Client)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Pattern(bucket, key).exists.execute(s3Client)
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.exists(new Path(path)).run(conf)
   }
 

@@ -52,21 +52,18 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
     "2|ns2|fid3|boolean|categorical|desc|NA"
   )
 
-  def extractSparse(facts: List[List[Fact]], dictionary: Dictionary, escaping: TextEscaping)(repo: HdfsRepository): RIO[(String, List[String])] =
-    TemporaryDirPath.withDirPath { dir =>
-      TemporaryIvoryConfiguration.withConf(conf =>
-        for {
-          _               <- RepositoryBuilder.createRepo(repo, dictionary, facts)
-          eav             =  dir </> DirPath.unsafe("eav")
-          snapshot        <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.maxValue)
-          input           =  ShadowOutputDataset.fromIvoryLocation(repo.toIvoryLocation(Repository.snapshot(snapshot.id)))
-          _               <- SparseOutput.extractWithDictionary(repo, input, ShadowOutputDataset(HdfsLocation(eav.path)), dictionary, Delimiter.Psv, "NA", escaping)
-          dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, conf)
-          dictionaryLines <- IvoryLocation.readLines(dictLocation)
-          loc             <- IvoryLocation.fromUri(eav.path, conf)
-          eavLines        <- IvoryLocation.readLines(loc).map(_.sorted)
-        } yield (eavLines.mkString("\n").trim, dictionaryLines.toList)
-      )
-    }
+  def extractSparse(facts: List[List[Fact]], dictionary: Dictionary, escaping: TextEscaping)(repo: HdfsRepository): RIO[(String, List[String])] = for {
+    dir             <- LocalTemporary.random.directory
+    conf            <- IvoryConfigurationTemporary.random.conf
+    _               <- RepositoryBuilder.createRepo(repo, dictionary, facts)
+    eav             = dir </> DirPath.unsafe("eav")
+    s               <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.maxValue)
+    input           = ShadowOutputDataset.fromIvoryLocation(repo.toIvoryLocation(Repository.snapshot(s.id)))
+    _               <- SparseOutput.extractWithDictionary(repo, input, ShadowOutputDataset(HdfsLocation(eav.path)), dictionary, Delimiter.Psv, "NA", escaping)
+    dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, conf)
+    dictionaryLines <- IvoryLocation.readLines(dictLocation)
+    loc             <- IvoryLocation.fromUri(eav.path, conf)
+    eavLines        <- IvoryLocation.readLines(loc).map(_.sorted)
+  } yield (eavLines.mkString("\n").trim, dictionaryLines.toList)
 
 }

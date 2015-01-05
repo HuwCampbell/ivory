@@ -5,6 +5,7 @@ import com.ambiata.ivory.core.arbitraries.FactsWithDictionary
 import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.ivory.storage.control.IvoryRead
 import com.ambiata.mundane.io._
+import com.ambiata.mundane.io.Arbitraries._
 import com.ambiata.poacher.hdfs._
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.testing.RIOMatcher._
@@ -31,22 +32,18 @@ Recreate Factset Tests
     } yield (completed, recreated.incompleted)) must beOkValue(((List(FactsetId.initial, FactsetId.initial.next.get).map((_, true)), Nil)))
   ).set(minTestsOk = 3)
 
-  def commit =
-    TemporaryDirPath.withDirPath(base => {
-      val factset = new Path((base </> "factsets" </> "orig.factset" </> "data").path)
-      val tmp = new Path((base </> "tmp" </> "new.factset" </> "data").path)
-      val expired = new Path((base </> "tmp" </> "expided.factsets").path)
-
-      TemporaryIvoryConfiguration.runWithConf(base, conf => (for {
-        _ <- writeFile(factset, "old")
-        _ <- writeFile(tmp, "new")
-        _ <- RecreateFactset.commitFactset(factset.getParent, expired, tmp.getParent)
-        n <- Hdfs.readContentAsString(factset)
-        o <- Hdfs.readContentAsString(expired)
-      } yield (n, o)).run(conf.hdfs()))
-    }) must beOkValue(("new", "old"))
-
-  /* TODO: Remove when ambiata/mundane#74 has been merged, use Hdfs.write instead */
-  def writeFile(path: Path, content: String): Hdfs[Unit] =
-    Hdfs.writeWith(path, out => Streams.write(out, content, "UTF-8"))
+  def commit = prop((local: LocalTemporary) => for {
+    base <- local.directory
+    conf <- ConfigurationTemporary(base.path).conf
+    factset = new Path((base </> "factsets" </> "orig.factset" </> "data").path)
+    tmp = new Path((base </> "tmp" </> "new.factset" </> "data").path)
+    expired = new Path((base </> "tmp" </> "expided.factsets").path)
+    r <- (for {
+      _ <- Hdfs.write(factset, "old")
+      _ <- Hdfs.write(tmp, "new")
+      _ <- RecreateFactset.commitFactset(factset.getParent, expired, tmp.getParent)
+      n <- Hdfs.readContentAsString(factset)
+      o <- Hdfs.readContentAsString(expired)
+    } yield n -> o).run(conf)
+  } yield r ==== "new" -> "old")
 }

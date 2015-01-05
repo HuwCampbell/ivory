@@ -1,7 +1,6 @@
 package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.TemporaryIvoryConfiguration._
 import com.ambiata.ivory.core.thrift.NamespacedThriftFact
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.Factsets
@@ -13,18 +12,21 @@ import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.saws.core._
 import com.ambiata.poacher.scoobi.ScoobiAction
+import com.ambiata.saws.core._
 import com.nicta.scoobi.Scoobi._
 
 import scalaz.{DList => _, _}, Scalaz._
 
 object RepositoryBuilder {
+  def repository: RIO[HdfsRepository] = for {
+    d <- LocalTemporary.random.directory
+    _ <- Directories.mkdirs(d)
+    c <- IvoryConfigurationTemporary(d.path).conf
+    r = HdfsRepository(HdfsLocation(d.path), c)
+  } yield r
 
-  def using[A](f: HdfsRepository => RIO[A]): RIO[A] = TemporaryDirPath.withDirPath { dir =>
-    runWithConf(dir, conf => {
-      val repo = HdfsRepository(HdfsLocation(dir.path), conf)
-      f(repo)
-    })
-  }
+  def using[A](f: HdfsRepository => RIO[A]): RIO[A] =
+    repository >>= (f(_))
 
   def createCommit(repo: HdfsRepository, dictionary: Dictionary, facts: List[List[Fact]]): RIO[Commit] = for {
     d          <- createDictionary(repo, dictionary)

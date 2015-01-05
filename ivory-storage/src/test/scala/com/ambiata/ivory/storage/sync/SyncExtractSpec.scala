@@ -1,7 +1,8 @@
 package com.ambiata.ivory.storage.sync
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.TemporaryLocations._
+import com.ambiata.ivory.core.ClusterTemporary._
+import com.ambiata.ivory.core.IvoryLocationTemporary._
 import com.ambiata.ivory.storage.arbitraries.Arbitraries._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.RIOMatcher._

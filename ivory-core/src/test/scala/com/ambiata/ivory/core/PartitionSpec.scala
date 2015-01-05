@@ -5,7 +5,7 @@ import org.scalacheck._, Arbitrary._
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import scalaz._, Scalaz._
-import com.ambiata.ivory.core.arbitraries._, Arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 
 class PartitionSpec extends Specification with ScalaCheck { def is = s2"""
 

@@ -1,7 +1,6 @@
 package com.ambiata.ivory.core
 
 import com.ambiata.com.amazonaws.services.s3.AmazonS3Client
-import com.ambiata.mundane.io._
 import com.ambiata.saws.core.Clients
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.conf.Configuration
@@ -13,7 +12,6 @@ case class IvoryConfiguration(
     hdfs: () => Configuration,
     scoobi: () => ScoobiConfiguration,
     compressionCodec: () => Option[CompressionCodec]) {
-  val s3TmpDirectory: DirPath = IvoryConfiguration.defaultS3TmpDirectory
 
   lazy val configuration: Configuration             = hdfs()
   lazy val scoobiConfiguration: ScoobiConfiguration = scoobi()
@@ -36,6 +34,4 @@ object IvoryConfiguration {
       hdfs = () => sc.configuration,
       scoobi = () => sc,
       compressionCodec = () => None)
-
-  val defaultS3TmpDirectory: DirPath = DirPath(".s3repository")
 }
