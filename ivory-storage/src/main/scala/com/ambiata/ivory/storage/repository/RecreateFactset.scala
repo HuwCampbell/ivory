@@ -21,8 +21,9 @@ import scalaz._, Scalaz._, effect._
  */
 object RecreateFactset {
 
-  def recreateFactsets(repository: Repository, factsets: List[FactsetId]): IvoryTIO[List[OriginalFactset]] =
-    factsets.traverse(fid => recreateFactset(repository, fid))
+  def recreateFactsets(repository: Repository, factsets: List[FactsetId]): IvoryTIO[RecreatedFactsets] =
+    factsets.foldLeftM[IvoryTIO, RecreatedFactsets](RecreatedFactsets(List[OriginalFactset](), factsets))((recreated, fid) =>
+      recreateFactset(repository, fid).map(recreated.addCompleted).on(_.mapError(e => Result.prependThis(e, recreated.failString(fid)))))
 
   def recreateFactset(repository: Repository, factset: FactsetId): IvoryTIO[OriginalFactset] =
     IvoryT.read[ResultTIO] >>= (read => IvoryT.fromResultTIO(for {
@@ -56,4 +57,25 @@ object RecreateFactset {
 
 }
 
-case class OriginalFactset(factsetId: FactsetId, path: IvoryLocation)
+case class OriginalFactset(factsetId: FactsetId, path: IvoryLocation) {
+  def stringValue: String =
+  s"${factsetId} -> ${path}"
+}
+
+case class RecreatedFactsets(completed: List[OriginalFactset], incompleted: List[FactsetId]) {
+
+  def addCompleted(orig: OriginalFactset): RecreatedFactsets =
+    RecreatedFactsets(orig :: completed, incompleted.filter(_ != orig.factsetId))
+
+  def successString: String =
+    s"""Successful recreations with their original data:
+       |${completed.map(_.stringValue).mkString("\n")}""".stripMargin
+
+  def failString(failedId: FactsetId): String =
+    s"""Failed to recreate all factsets!
+       |${successString}
+       |
+       |Failed recreation: ${failedId}
+       |
+       |Not attempted: ${incompleted.mkString(", ")}""".stripMargin
+}

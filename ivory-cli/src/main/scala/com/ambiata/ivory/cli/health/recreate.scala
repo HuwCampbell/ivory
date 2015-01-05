@@ -22,8 +22,8 @@ object recreate extends IvoryApp {
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments(repository = "", factsets = Nil, reducerSize = None),
     IvoryRunner(configuration => c => for {
-      repo  <- IvoryT.fromResultTIO(HdfsRepository.fromUri(c.repository, configuration))
-      fids  <- c.factsets.traverseU(f => IvoryT.fromResultTIO(ResultT.fromOption(FactsetId.parse(f), s"Invalid factset id '${f}'!")))
-      origs <- RecreateFactset.recreateFactsets(repo, fids)
-    } yield origs.map(orig => s"Ivory factset '${orig.factsetId}' recreated! You can find the original at '${orig.path.show}'")))
+      repo      <- IvoryT.fromResultTIO(HdfsRepository.fromUri(c.repository, configuration))
+      fids      <- c.factsets.traverseU(f => IvoryT.fromResultTIO(ResultT.fromOption(FactsetId.parse(f), s"Invalid factset id '${f}'!")))
+      recreated <- RecreateFactset.recreateFactsets(repo, fids)
+    } yield List(recreated.successString)))
 }
