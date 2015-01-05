@@ -17,6 +17,7 @@ import scalaz.{Name => _,_}, Scalaz._
  * It contains only characters: [A-Z][a-z], numbers [0-9] and underscores '_' or dashes '-'
  * It cannot start with '_' (to avoid it being interpreted as a hidden file name)
  * It must not be empty.
+ * It must be less than 256 characters.
  *
  * As a result it can be used to create a file name
  */
@@ -80,7 +81,7 @@ object Name extends MacrosCompat {
     nameFromStringDisjunction(s).toOption
 
   def nameFromStringDisjunction(s: String): String \/ Name =
-    if (s.matches("([A-Z]|[a-z]|[0-9]|\\-|_)+") && !s.startsWith("_")) new Name(s).right
+    if (s.matches("([A-Z]|[a-z]|[0-9]|\\-|_)+") && !s.startsWith("_") && s.length < 256) new Name(s).right
     else                                                               s"$s is not a valid Name".left
 
   def createNameFromStringMacro(c: Context)(s: c.Expr[String]): c.Expr[Name] = {
