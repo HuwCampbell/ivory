@@ -21,7 +21,7 @@ import com.ambiata.notion.core.TemporaryType._
 import com.ambiata.poacher.mr.ThriftSerialiser
 import com.nicta.scoobi.Scoobi._
 import org.specs2.{ScalaCheck, Specification}
-import scalaz.{Name=>_,Value=>_,_}, Scalaz._
+import scalaz.{Value=>_,_}, Scalaz._
 import MemoryConversions._
 
 class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is = sequential ^ section("mr") ^ section("aws") ^ s2"""
@@ -60,7 +60,7 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
           IvoryLocation.writeUtf8Lines(location </> "part-r-00000", sampleFacts.flatten.map(toEavt)) >>
           IvoryLocation.writeUtf8Lines(location </> "part-r-00001", sampleFacts.flatten.map(toEavt)) >>
           Ingest.ingestFacts(repository, cluster, List(
-            (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited), Some(Name("ns1")), location)
+            (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited), Some(Namespace("ns1")), location)
           ), None, 100.mb).run.run(IvoryRead.create)
         }
       }
@@ -123,6 +123,6 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
 
   val dictionary =
     sampleDictionary append {
-      Dictionary(List(Definition.concrete(FeatureId(Name("ns1"), "fid3"), BooleanEncoding, Mode.State, Some(CategoricalType), "desc", Nil)))
+      Dictionary(List(Definition.concrete(FeatureId(Namespace("ns1"), "fid3"), BooleanEncoding, Mode.State, Some(CategoricalType), "desc", Nil)))
     }
 }

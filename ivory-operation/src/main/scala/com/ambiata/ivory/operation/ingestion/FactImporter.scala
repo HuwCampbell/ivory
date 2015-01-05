@@ -13,7 +13,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.joda.time.DateTimeZone
 
-import scalaz.{Name => _, DList => _, _}, Scalaz._, effect.IO
+import scalaz.{DList => _, _}, Scalaz._, effect.IO
 
 object FactImporter {
   def importFacts(
@@ -21,7 +21,7 @@ object FactImporter {
   , cluster: Cluster
   , optimal: BytesQuantity
   , factsetId: FactsetId
-  , inputs: List[(FileFormat, Option[Name], IvoryLocation)]
+  , inputs: List[(FileFormat, Option[Namespace], IvoryLocation)]
   , timezone: Option[DateTimeZone]
   ): IvoryTIO[Unit] = {
     val errorKey = Repository.errors / factsetId.asKeyName
@@ -39,7 +39,7 @@ object FactImporter {
   }
 
   def runJob(hr: HdfsRepository, optimal: BytesQuantity, dictionary: Dictionary, factsetId: FactsetId,
-             inputs: List[(FileFormat, Option[Name], Path)], errorPath: Path, timezone: Option[DateTimeZone],
+             inputs: List[(FileFormat, Option[Namespace], Path)], errorPath: Path, timezone: Option[DateTimeZone],
              config: RepositoryConfig): RIO[Unit] = for {
     paths      <- inputs.traverseU((prepareInput _).tupled).run(hr.configuration)
     partitions  = Namespaces.sum(paths.map(_._5).flatten)
@@ -58,16 +58,16 @@ object FactImporter {
       )
   } yield ()
 
-  def prepareInput(format: FileFormat, namespace: Option[Name], inputPath: Path): Hdfs[(FileFormat, Option[Name], Path, List[Path], List[(Name, BytesQuantity)])] = for {
+  def prepareInput(format: FileFormat, namespace: Option[Namespace], inputPath: Path): Hdfs[(FileFormat, Option[Namespace], Path, List[Path], List[(Namespace, BytesQuantity)])] = for {
     partitions    <- namespace.fold(Namespaces.namespaceSizes(inputPath))(ns => Namespaces.namespaceSizesSingle(inputPath, ns).map(List(_)))
     paths         <- getAllInputPaths(namespace, inputPath, partitions.map(_._1))
   } yield (format, namespace, inputPath, paths, partitions)
 
-  def getAllInputPaths(namespace: Option[Name], path: Path, namespaceNames: List[Name]): Hdfs[List[Path]] =
+  def getAllInputPaths(namespace: Option[Namespace], path: Path, namespaceNames: List[Namespace]): Hdfs[List[Path]] =
     if (namespace.isDefined) Hdfs.globFilesRecursively(path).filterHidden
     else                     namespaceNames.map(ns => Hdfs.globFilesRecursively(new Path(path, ns.name)).filterHidden).sequence.map(_.flatten)
 
-  def validateNamespaces(dictionary: Dictionary, namespaces: List[Name]): String \/ Unit = {
+  def validateNamespaces(dictionary: Dictionary, namespaces: List[Namespace]): String \/ Unit = {
     val unknown = namespaces.toSet diff dictionary.byFeatureId.keySet.map(_.namespace)
     if (unknown.isEmpty) ().right
     else                 ("Unknown namespaces: " + unknown.map(_.name).mkString(", ")).left

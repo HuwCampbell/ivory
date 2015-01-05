@@ -17,7 +17,7 @@ object EntityIterator {
    */
   def iterate[A](fact: MutableFact, mutator: FactByteMutator, iter: JIterator[BytesWritable])
                 (initial: A, callback: EntityCallback[A]): Unit = {
-    val state = new SquashReducerEntityState(null, Name("empty"))
+    val state = new SquashReducerEntityState(null, Namespace("empty"))
 
     var value: A = initial
     while (iter.hasNext) {
@@ -179,7 +179,7 @@ object SquashReducerState {
 
   // Write out the final reduced values
   def emit(emitFact: MutableFact, mutator: FactByteMutator, reducers: Iterable[(FeatureReduction, Reduction)],
-           emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, namespace: Name, entity: String,
+           emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, namespace: Namespace, entity: String,
            date: Date): Unit = {
     // Use emitFact here to avoid clobbering values in fact
     val nsfact = emitFact.toNamespacedThrift
@@ -204,7 +204,7 @@ object SquashReducerState {
   }
 }
 
-class SquashReducerEntityState(var entity: String, var namespace: Name) {
+class SquashReducerEntityState(var entity: String, var namespace: Namespace) {
 
   def isNewEntity(fact: Fact): Boolean =
     fact.entity != entity

@@ -4,12 +4,12 @@ import com.ambiata.ivory.core._
 import org.scalacheck._
 
 object GenString {
-  def name: Gen[Name] =
+  def namespace: Gen[Namespace] =
     Gen.frequency(
       9 -> sensible.map(_.take(20)),
       // Ideally this is 255 but we often append strings to names to guarantee uniqueness
       1 -> sensible.map(_.take(200))
-    ).map(Name.reviewed)
+    ).map(Namespace.reviewed)
 
   def word: Gen[String] =
     Gen.identifier

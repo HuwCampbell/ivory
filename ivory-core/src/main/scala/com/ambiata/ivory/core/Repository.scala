@@ -112,15 +112,15 @@ object Repository {
   def featureStores: Key = metadata / "stores"
   def commits: Key       = metadata / "commits"
 
-  def config(id: RepositoryConfigId): Key             = configs       / id.asKeyName
-  def dictionaryById(id: DictionaryId): Key           = dictionaries  / id.asKeyName
-  def featureStoreById(id: FeatureStoreId): Key       = featureStores / id.asKeyName
-  def commitById(id: CommitId): Key                   = commits       / id.asKeyName
-  def factset(id: FactsetId): Key                     = factsets      / id.asKeyName
-  def namespace(set: FactsetId, namespace: Name): Key = factset(set)  / namespace.asKeyName
-  def snapshot(id: SnapshotId): Key                   = snapshots     / id.asKeyName
-  def version(set: FactsetId): Key                    = factset(set)  / ".version"
-  def tmp(task: KeyName, context: KeyName): Key       = root          / task / context
+  def config(id: RepositoryConfigId): Key                  = configs       / id.asKeyName
+  def dictionaryById(id: DictionaryId): Key                = dictionaries  / id.asKeyName
+  def featureStoreById(id: FeatureStoreId): Key            = featureStores / id.asKeyName
+  def commitById(id: CommitId): Key                        = commits       / id.asKeyName
+  def factset(id: FactsetId): Key                          = factsets      / id.asKeyName
+  def namespace(set: FactsetId, namespace: Namespace): Key = factset(set)  / namespace.asKeyName
+  def snapshot(id: SnapshotId): Key                        = snapshots     / id.asKeyName
+  def version(set: FactsetId): Key                         = factset(set)  / ".version"
+  def tmp(task: KeyName, context: KeyName): Key            = root          / task / context
 
   def parseUri(uri: String, repositoryConfiguration: IvoryConfiguration): String \/ Repository =
     IvoryLocation.parseUri(uri, repositoryConfiguration).map(fromIvoryLocation(_, repositoryConfiguration))

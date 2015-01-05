@@ -6,9 +6,9 @@ import scalaz._, Scalaz._
 
 trait Fact {
   def entity: String
-  def namespace: Name
-  /** fast access method for the Fact Name which does not validate the namespace string */
-  def namespaceUnsafe: Name
+  def namespace: Namespace
+  /** fast access method for the Fact Namespace which does not validate the namespace string */
+  def namespaceUnsafe: Namespace
   def feature: String
   def featureId: FeatureId
   def date: Date
@@ -33,23 +33,23 @@ trait Fact {
   }
 
   def withEntity(newEntity: String): Fact =
-    Fact.newFactWithNamespaceName(newEntity, namespace, feature, date, time, value)
+    Fact.newFactWithNamespace(newEntity, namespace, feature, date, time, value)
 
   def withFeatureId(newFeatureId: FeatureId): Fact =
-    Fact.newFactWithNamespaceName(entity, newFeatureId.namespace, newFeatureId.name, date, time, value)
+    Fact.newFactWithNamespace(entity, newFeatureId.namespace, newFeatureId.name, date, time, value)
 
   def withDate(newDate: Date): Fact =
-    Fact.newFactWithNamespaceName(entity, namespace, feature, newDate, time, value)
+    Fact.newFactWithNamespace(entity, namespace, feature, newDate, time, value)
 
   def withTime(newTime: Time): Fact =
-    Fact.newFactWithNamespaceName(entity, namespace, feature, date, newTime, value)
+    Fact.newFactWithNamespace(entity, namespace, feature, date, newTime, value)
 
   def withValue(newValue: Value): Fact =
-    Fact.newFactWithNamespaceName(entity, namespace, feature, date, time, newValue)
+    Fact.newFactWithNamespace(entity, namespace, feature, date, time, newValue)
 }
 
 object Fact {
-  def newFactWithNamespaceName(entity: String, namespace: Name, feature: String, date: Date, time: Time, value: Value): Fact =
+  def newFactWithNamespace(entity: String, namespace: Namespace, feature: String, date: Date, time: Time, value: Value): Fact =
     newFact(entity, namespace.name, feature, date, time, value)
 
   def newFact(entity: String, namespace: String, feature: String, date: Date, time: Time, value: Value): Fact =
@@ -58,13 +58,13 @@ object Fact {
 
 trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
 
-    def namespace: Name =
+    def namespace: Namespace =
       // this name should be well-formed if the ThriftFact has been validated
       // if that's not the case an exception will be thrown here
-      Name.reviewed(nspace)
+      Namespace.reviewed(nspace)
 
-    def namespaceUnsafe: Name =
-      Name.unsafe(nspace)
+    def namespaceUnsafe: Namespace =
+      Namespace.unsafe(nspace)
 
     def feature: String =
       fact.attribute

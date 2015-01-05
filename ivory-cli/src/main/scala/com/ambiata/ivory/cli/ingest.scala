@@ -7,7 +7,7 @@ import com.ambiata.mundane.control.RIO
 import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.io._
 import org.joda.time.DateTimeZone
-import scalaz.{Name => _, _}, Scalaz._
+import scalaz._, Scalaz._
 
 object ingest extends IvoryApp {
 

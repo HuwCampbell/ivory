@@ -12,7 +12,7 @@ import org.joda.time.LocalDate
 import org.specs2.{ScalaCheck, Specification}
 import scalaz.scalacheck.ScalazArbitrary._
 
-import scalaz.{Name => _, _}, Scalaz._
+import scalaz._, Scalaz._
 
 class RenameSpec extends Specification with ScalaCheck { def is = s2"""
 Rename
@@ -62,9 +62,9 @@ Rename
   }) set(minTestsOk = 1, minSize = 1, maxSize = 5)
 
   def renamePriority = {
-    val id =    FeatureId(Name("ns1"), "fid1")
-    val other = FeatureId(Name("ns1"), "fid2")
-    val tid =   FeatureId(Name("ns2"), "fid3")
+    val id =    FeatureId(Namespace("ns1"), "fid1")
+    val other = FeatureId(Namespace("ns1"), "fid2")
+    val tid =   FeatureId(Namespace("ns2"), "fid3")
     def f(d: Int, t: Int, v: String, fid: FeatureId): Fact =
       StringFact("eid1", fid, Date.fromLocalDate(new LocalDate(2012, 9, d)), Time.unsafe(t), v)
     val mapping = RenameMapping(List(id -> tid))

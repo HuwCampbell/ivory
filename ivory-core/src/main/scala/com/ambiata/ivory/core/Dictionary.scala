@@ -33,7 +33,7 @@ case class Dictionary(definitions: List[Definition]) {
     sortedByFeatureId.map(_.featureId).zipWithIndex.toMap
 
   /** Create a `Dictionary` from `this` only containing features in the specified namespace. */
-  def forNamespace(namespace: Name): Dictionary =
+  def forNamespace(namespace: Namespace): Dictionary =
     Dictionary(definitions.filter(d => d.featureId.namespace === namespace))
 
   /** Create a `Dictionary` from `this` only containing the specified features. */

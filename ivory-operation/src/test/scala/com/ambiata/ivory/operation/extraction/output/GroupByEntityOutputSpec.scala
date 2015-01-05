@@ -38,14 +38,14 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
 
   def dense2 = {
     val facts = List(
-      IntFact(      "eid1", FeatureId(Name("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
-      , IntFact(    "eid3", FeatureId(Name("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
-      , StringFact( "eid1", FeatureId(Name("ns1"), "fid1"), Date(2012,  9,  1), Time(0), "abc")
-      , StringFact( "eid1", FeatureId(Name("ns1"), "fid1"), Date(2012, 10,  1), Time(0), "ghi")
-      , StringFact( "eid1", FeatureId(Name("ns1"), "fid1"), Date(2012,  7,  2), Time(0), "def")
-      , IntFact(    "eid2", FeatureId(Name("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
-      , IntFact(    "eid2", FeatureId(Name("ns1"), "fid2"), Date(2012, 11,  1), Time(0), 11)
-      , BooleanFact("eid3", FeatureId(Name("ns2"), "fid3"), Date(2012,  3, 20), Time(0), true)
+      IntFact(      "eid1", FeatureId(Namespace("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
+      , IntFact(    "eid3", FeatureId(Namespace("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
+      , StringFact( "eid1", FeatureId(Namespace("ns1"), "fid1"), Date(2012,  9,  1), Time(0), "abc")
+      , StringFact( "eid1", FeatureId(Namespace("ns1"), "fid1"), Date(2012, 10,  1), Time(0), "ghi")
+      , StringFact( "eid1", FeatureId(Namespace("ns1"), "fid1"), Date(2012,  7,  2), Time(0), "def")
+      , IntFact(    "eid2", FeatureId(Namespace("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
+      , IntFact(    "eid2", FeatureId(Namespace("ns1"), "fid2"), Date(2012, 11,  1), Time(0), 11)
+      , BooleanFact("eid3", FeatureId(Namespace("ns2"), "fid3"), Date(2012,  3, 20), Time(0), true)
     )
     RepositoryBuilder.using(createDenseText(List(facts), sampleDictionary)) must beOkValue(
       """|eid1|ghi|10|NA

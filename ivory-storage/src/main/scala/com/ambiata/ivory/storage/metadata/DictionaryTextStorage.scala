@@ -4,7 +4,7 @@ import com.ambiata.mundane.control.{RIO, ResultT}
 import com.ambiata.notion.core.Location
 
 import scalaz.effect.IO
-import scalaz.{Name => _, Value => _, _}, Scalaz._
+import scalaz.{Value => _, _}, Scalaz._
 import com.ambiata.mundane.parse._
 import com.ambiata.ivory.core._
 
@@ -44,7 +44,7 @@ object DictionaryTextStorage extends TextStorage[(FeatureId, ConcreteDefinition)
   def parseDictionaryEntry(entry: String): Validation[String, (FeatureId, ConcreteDefinition)] = {
     import ListParser._
     val parser: ListParser[(FeatureId, ConcreteDefinition)] = for {
-      namespace <- Name.listParser
+      namespace <- Namespace.listParser
       name      <- string
       encoding  <- for {
         s <- string

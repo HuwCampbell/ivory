@@ -9,7 +9,7 @@ import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.parse.ListParser.string
 import com.ambiata.mundane.parse.Delimited
 
-import scalaz.{Name => _, _}, Scalaz._
+import scalaz._, Scalaz._
 
 object renameFacts extends IvoryApp {
 

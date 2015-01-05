@@ -3,7 +3,7 @@ package com.ambiata.ivory.storage.metadata
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import org.specs2.{ScalaCheck, Specification}
-import scalaz.{Name => _, _}, Scalaz._
+import scalaz._, Scalaz._
 
 class DictionaryTextStorageV2Spec extends Specification with ScalaCheck { def is = s2"""
   Parsing a dictionary on:

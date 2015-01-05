@@ -46,6 +46,6 @@ class SnapshotPartitionSpec extends Specification with ScalaCheck { def is = s2"
       SnapshotWindows(List(w.copy(startDate = sd1))), SnapshotWindows(List(w.copy(startDate = sd2)))))
   }
 
-  def withNamespace(ns: Name)(f: Factset): Factset =
+  def withNamespace(ns: Namespace)(f: Factset): Factset =
     f.copy(partitions = f.partitions.map(x => x.copy(value = x.value.copy(namespace = ns))))
 }

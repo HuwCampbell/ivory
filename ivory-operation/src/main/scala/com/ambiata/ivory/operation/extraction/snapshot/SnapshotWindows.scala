@@ -9,7 +9,7 @@ case class SnapshotWindows(windows: List[SnapshotWindow]) {
   def getByFeature(fid: FeatureId): Option[SnapshotWindow] =
     windows.find(_.featureId == fid)
 
-  def byNamespace: Map[Name, Option[Date]] =
+  def byNamespace: Map[Namespace, Option[Date]] =
     windows.groupBy(_.featureId.namespace).mapValues(_.flatMap(_.startDate).sorted.headOption)
 }
 

@@ -2,7 +2,7 @@ package com.ambiata.ivory.core.thrift
 
 import com.ambiata.ivory.core._
 import scala.collection.JavaConverters._
-import scalaz.{Name => _, Value => _, _}, Scalaz._, BijectionT._
+import scalaz.{Value => _, _}, Scalaz._, BijectionT._
 
 object DictionaryThriftConversion {
 
@@ -155,7 +155,7 @@ object DictionaryThriftConversion {
     def to(fid: FeatureId): ThriftDictionaryFeatureId =
       new ThriftDictionaryFeatureId(fid.namespace.name, fid.name)
     def from(featureId: ThriftDictionaryFeatureId): String \/ FeatureId =
-      Name.nameFromStringDisjunction(featureId.ns).map { namespace =>
+      Namespace.nameFromStringDisjunction(featureId.ns).map { namespace =>
         FeatureId(namespace, featureId.name)
       }
   }

@@ -73,8 +73,8 @@ object Ivory
   type Partition = com.ambiata.ivory.core.Partition
   val Partition = com.ambiata.ivory.core.Partition
 
-  type Name = com.ambiata.ivory.core.Name
-  val Name = com.ambiata.ivory.core.Name
+  type Namespace = com.ambiata.ivory.core.Namespace
+  val Namespace = com.ambiata.ivory.core.Namespace
 
   val Extraction = com.ambiata.ivory.operation.extraction.Extraction
 

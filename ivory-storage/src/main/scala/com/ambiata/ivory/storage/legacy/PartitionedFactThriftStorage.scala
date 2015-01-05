@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.legacy
 
 import com.ambiata.ivory.storage.fact.{FactsetVersionTwo, FactsetVersion, FactsetVersionOne}
 
-import scalaz.{Name => _, DList => _, Value => _, _}
+import scalaz.{DList => _, Value => _, _}
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.compress.CompressionCodec
 import com.ambiata.notion.core._

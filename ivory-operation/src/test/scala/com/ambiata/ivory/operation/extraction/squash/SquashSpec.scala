@@ -50,7 +50,7 @@ class SquashSpec extends Specification with ScalaCheck { def is = s2"""
       out   = repo.toIvoryLocation(Key(KeyName.unsafe("dump")))
       _    <- SquashDumpJob.dump(repo, res.meta.id, out, entities.values.flatten.toList, entities.keys.toList)
       dump <- IvoryLocation.readLines(out).map(_.map(_.split("\\|", -1) match {
-        case Array(e, ns, a, _, _, _) =>  e -> FeatureId(Name.unsafe(ns), a)
+        case Array(e, ns, a, _, _, _) =>  e -> FeatureId(Namespace.unsafe(ns), a)
       }).toSet)
     } yield dump
     } must beOkValue(sf.allFacts.flatMap(f => entities.get(f.entity).toList.flatten.map(f.entity ->)).toSet)

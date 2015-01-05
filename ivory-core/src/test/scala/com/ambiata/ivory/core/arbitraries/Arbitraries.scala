@@ -6,7 +6,7 @@ import com.ambiata.ivory.core.gen._
 import org.scalacheck._, Arbitrary._
 import org.joda.time.DateTimeZone
 
-import scalaz.{Name => _, Value => _, _}, Scalaz._
+import scalaz.{Value => _, _}, Scalaz._
 import scalaz.scalacheck.ScalaCheckBinding._
 
 
@@ -92,8 +92,8 @@ trait Arbitraries {
   implicit def ModeArbitrary: Arbitrary[Mode] =
     Arbitrary(GenDictionary.mode)
 
-  implicit def NameArbitrary: Arbitrary[Name] =
-    Arbitrary(GenString.name)
+  implicit def NamespaceArbitrary: Arbitrary[Namespace] =
+    Arbitrary(GenString.namespace)
 
   implicit def OutputFormatArbitrary: Arbitrary[OutputFormat] =
     Arbitrary(GenFileFormat.output)

@@ -5,7 +5,7 @@ import com.ambiata.mundane.parse._, ListParser._
 
 import org.joda.time.DateTimeZone
 
-import scalaz.{Name => _, Value => _, _}, Scalaz._
+import scalaz.{Value => _, _}, Scalaz._
 
 // FIX should be in storage.fact
 object EavtParsers {
@@ -16,18 +16,18 @@ object EavtParsers {
       case other                   => other
     }
 
-  def parser(dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] =
+  def parser(dictionary: Dictionary, namespace: Namespace, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] =
     fact(dictionary, namespace, ivoryTimezone, ingestTimezone)
 
-  def fact(dictionary: Dictionary, namespace: Name, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] = for {
+  def fact(dictionary: Dictionary, namespace: Namespace, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] = for {
     entity <- string.nonempty
     name   <- string.nonempty
     rawv   <- string
     v      <- value(validateFeature(dictionary, FeatureId(namespace, name), rawv))
     time   <- Dates.parser(ingestTimezone, ivoryTimezone)
     f       = time match {
-                case \/-(dt) => Fact.newFactWithNamespaceName(entity, namespace, name, dt.date, dt.time, v)
-                case -\/(d)  => Fact.newFactWithNamespaceName(entity, namespace, name, d, Time(0), v)
+                case \/-(dt) => Fact.newFactWithNamespace(entity, namespace, name, dt.date, dt.time, v)
+                case -\/(d)  => Fact.newFactWithNamespace(entity, namespace, name, d, Time(0), v)
               }
     fact   <- value(Value.validateFact(f, dictionary))
   } yield fact

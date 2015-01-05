@@ -1,7 +1,7 @@
 package com.ambiata.ivory.storage.plan
 
 import com.ambiata.ivory.core._, Lists.findMapM
-import scalaz.{Name => _, _}, Scalaz._
+import scalaz._, Scalaz._
 
 case class SnapshotPlan(date: Date, commit: Commit, snapshot: Option[Snapshot], datasets: Datasets){
   def exact: Option[Snapshot] =

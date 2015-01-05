@@ -48,7 +48,7 @@ object Ingest {
    * @param timezone each fact has a date and time but we must specify the timezone when importing
    * @param optimal size of each reducer ingesting facts
    */
-  def ingestFacts(repository: Repository, cluster: Cluster, inputs: List[(FileFormat, Option[Name], IvoryLocation)],
+  def ingestFacts(repository: Repository, cluster: Cluster, inputs: List[(FileFormat, Option[Namespace], IvoryLocation)],
                   timezone: Option[DateTimeZone], optimal: BytesQuantity): IvoryTIO[FactsetId] =
     for {
       factsetId <- Factsets.allocateFactsetIdI(repository)

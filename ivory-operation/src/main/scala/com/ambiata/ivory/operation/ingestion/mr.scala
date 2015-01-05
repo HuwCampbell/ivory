@@ -28,7 +28,7 @@ import org.joda.time.DateTimeZone
  */
 object IngestJob {
   def run(conf: Configuration, dictionary: Dictionary, reducerLookups: ReducerLookups, ivoryZone: DateTimeZone,
-          ingestZone: Option[DateTimeZone], inputs: List[(FileFormat, Option[Name], Path, List[Path])], target: Path,
+          ingestZone: Option[DateTimeZone], inputs: List[(FileFormat, Option[Namespace], Path, List[Path])], target: Path,
           errors: Path, codec: Option[CompressionCodec]): RIO[Unit] = {
 
     val job = Job.getInstance(conf)
@@ -145,7 +145,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, BytesWritable, BytesWritable] {
 
   override def map(key: K, value: I, context: Mapper[K, I, BytesWritable, BytesWritable]#Context): Unit = {
 
-    parse(Name.unsafe(namespace), value) match {
+    parse(Namespace.unsafe(namespace), value) match {
 
       case Success(f) =>
 
@@ -170,7 +170,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, BytesWritable, BytesWritable] {
     }
   }
 
-  def parse(namespace: Name, v: I): Validation[ParseError, Fact]
+  def parse(namespace: Namespace, v: I): Validation[ParseError, Fact]
 }
 
 trait TextIngestMapper extends IngestMapper[LongWritable, Text] {
@@ -184,7 +184,7 @@ trait TextIngestMapper extends IngestMapper[LongWritable, Text] {
     delim = MapString.fromString(context.getConfiguration.get(IngestJob.Keys.Delims, "")).getOrElse(splitPath.toString, "|").charAt(0)
   }
 
-  override def parse(namespace: Name, value: Text): Validation[ParseError, Fact] = {
+  override def parse(namespace: Namespace, value: Text): Validation[ParseError, Fact] = {
     val line = value.toString
     EavtParsers.parser(dict, namespace, ivoryZone, ingestZone).run(splitter(line)).leftMap(ParseError(_, TextError(line)))
   }
@@ -208,7 +208,7 @@ class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {
   val deserializer = ThriftSerialiser()
   val thrift = new ThriftFact
 
-  override def parse(namespace: Name, value: BytesWritable): Validation[ParseError, Fact] = {
+  override def parse(namespace: Namespace, value: BytesWritable): Validation[ParseError, Fact] = {
     thrift.clear()
     try deserializer.fromBytesViewUnsafe(thrift, value.getBytes, 0, value.getLength)
     catch {

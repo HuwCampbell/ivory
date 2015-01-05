@@ -4,7 +4,7 @@ import com.ambiata.mundane.io.{MemoryConversions, BytesQuantity}
 import com.ambiata.poacher.mr.ThriftSerialiser
 import com.nicta.scoobi.Scoobi.WireFormat
 import com.nicta.scoobi.Scoobi._
-import scalaz.{Name => _, DList => _, Value => _, _}, Scalaz._
+import scalaz.{DList => _, Value => _, _}, Scalaz._
 import java.io._
 
 import com.ambiata.ivory.core._
@@ -19,7 +19,7 @@ trait WireFormats {
    */
   def featureIdWireFormat =
     implicitly[WireFormat[(String, String)]].xmap(
-      (nsn: (String, String)) => FeatureId(Name.unsafe(nsn._1), nsn._2),
+      (nsn: (String, String)) => FeatureId(Namespace.unsafe(nsn._1), nsn._2),
       (x: FeatureId) => (x.namespace.name, x.name))
 
   /**

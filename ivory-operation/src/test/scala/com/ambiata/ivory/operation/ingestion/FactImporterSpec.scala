@@ -19,7 +19,7 @@ import org.specs2._
 import org.specs2.execute.{AsResult, Result}
 import org.specs2.matcher.{MustThrownMatchers, FileMatchers}
 import org.specs2.specification._
-import scalaz.{Name => _, _}
+import scalaz._
 import syntax.bind._
 
 
@@ -79,7 +79,7 @@ class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
   lazy val input = repository.root </> "input"
   lazy val namespaced = input </> "ns1"
   lazy val errors = repository.root </> "errors"
-  lazy val ns1 = Name("ns1")
+  lazy val ns1 = Namespace("ns1")
 
   val dictionary =
     Dictionary(
@@ -154,9 +154,9 @@ class FactImporterPureSpec extends Specification with ScalaCheck { def is = s2""
     FactImporter.validateNamespaces(dict, dict.byFeatureId.keys.toList.map(_.namespace)).toEither must beRight
   })
 
-  def validateNamespacesFail = prop((dict: Dictionary, names: List[Name]) => {
+  def validateNamespacesFail = prop((dict: Dictionary, names: List[Namespace]) => {
     // Lazy way of create at least one name that isn't in the dictionary
-    val name = Name.unsafe(dict.definitions.map(_.featureId.namespace.name).mkString)
+    val name = Namespace.unsafe(dict.definitions.map(_.featureId.namespace.name).mkString)
     val allNames = (name :: names).filter(dict.forNamespace(_).definitions.isEmpty)
     FactImporter.validateNamespaces(dict, allNames).toEither must beLeft
   })

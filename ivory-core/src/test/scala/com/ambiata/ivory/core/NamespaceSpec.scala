@@ -5,12 +5,12 @@ import Prop._
 import org.specs2.matcher.ThrownExpectations
 import org.specs2.{ScalaCheck, Specification}
 import shapeless.test.illTyped
-import Name._
+import Namespace._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 
 
-class NameSpec extends Specification with ScalaCheck with ThrownExpectations { def is = s2"""
+class NamespaceSpec extends Specification with ScalaCheck with ThrownExpectations { def is = s2"""
 
  A Name is a constrained string which can be used to give a "simple" name to things.
 
@@ -25,7 +25,7 @@ class NameSpec extends Specification with ScalaCheck with ThrownExpectations { d
   def wellformed = forAll(randomStrings) { string: String =>
     val nameOption = nameFromString(string)
     Prop.collect(nameOption.isDefined) {
-      nameOption must beSome { name: Name =>
+      nameOption must beSome { name: Namespace =>
         name.name
           .filterNot(('a' to 'z').contains)
           .filterNot(('A' to 'Z').contains)
@@ -36,13 +36,13 @@ class NameSpec extends Specification with ScalaCheck with ThrownExpectations { d
   }
 
   def valid = forAll(validStrings) { string: String =>
-    nameFromString(string) aka string must beSome(Name.unsafe(string))
+    nameFromString(string) aka string must beSome(Namespace.unsafe(string))
   }
 
   def notBeEmpty = forAll(randomStrings) { string: String =>
     val nameOption = nameFromString(string)
     Prop.collect(nameOption.isDefined) {
-      nameOption must beSome { name: Name =>
+      nameOption must beSome { name: Namespace =>
         name.name must not(beEmpty)
       }.when(nameOption.isDefined)
     }
@@ -51,19 +51,19 @@ class NameSpec extends Specification with ScalaCheck with ThrownExpectations { d
   def notStartWith_ = forAll(randomStrings) { string: String =>
     val nameOption = nameFromString(string)
     Prop.collect(string.startsWith("_")) {
-      nameOption must beSome { name: Name =>
+      nameOption must beSome { name: Namespace =>
         name.name must not(startWith("_"))
       }.when(nameOption.isDefined)
     }
   }
 
   def compilationError = {
-    illTyped(""" ("a/b/c": Name) """)
+    illTyped(""" ("a/b/c": Namespace) """)
     ok
   }
 
   def validStrings: Gen[String] =
-    arbitrary[Name].map(_.name)
+    arbitrary[Namespace].map(_.name)
 
   def randomStrings: Gen[String] =
     arbitrary[RandomName].map(_.name)

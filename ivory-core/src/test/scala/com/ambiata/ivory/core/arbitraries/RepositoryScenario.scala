@@ -6,7 +6,7 @@ import Arbitraries._
 
 import org.scalacheck._, Arbitrary._
 
-import scalaz.{Name => _, _}, Scalaz._, scalacheck.ScalaCheckBinding._
+import scalaz._, Scalaz._, scalacheck.ScalaCheckBinding._
 
 /**
  * Represents a somewhat realistic set of repository metadata.

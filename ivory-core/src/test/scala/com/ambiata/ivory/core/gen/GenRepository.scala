@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 
 import org.scalacheck._, Arbitrary.arbitrary
 
-import scalaz.{Name => _, Value => _, _}, Scalaz._
+import scalaz.{Value => _, _}, Scalaz._
 import scalaz.scalacheck.ScalaCheckBinding._
 
 
@@ -65,7 +65,7 @@ object GenRepository {
   } yield Snapshot(i, d, s, (di -> dv).some, b)
 
   def partition: Gen[Partition] = for {
-    n <- GenString.name
+    n <- GenString.namespace
     d <- GenDate.date
   } yield Partition(n, d)
 
@@ -78,7 +78,7 @@ object GenRepository {
   /* Generate a list of Partitions with the size up to n namespaces x n dates */
   def partitionsOf(nNamespaces: Int, nDates: Int): Gen[List[Partition]] = for {
     // Make sure we generate distinct namespaces here, so that the dates below are actually distinct
-    namespaces <- Gen.listOfN(nNamespaces, GenString.name).map(_.distinct)
+    namespaces <- Gen.listOfN(nNamespaces, GenString.namespace).map(_.distinct)
     partitions <- namespaces.traverse(namespace => for {
       d <- Gen.listOfN(nDates * 2, GenDate.date)
     } yield d.distinct.map(Partition(namespace, _)))

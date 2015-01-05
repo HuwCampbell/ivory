@@ -9,7 +9,7 @@ object GenIdentifier {
     identifier.map(DictionaryId.apply)
 
   def feature: Gen[FeatureId] = for {
-    ns <- GenString.name
+    ns <- GenString.namespace
     name <- GenString.sensible
   } yield FeatureId(ns, name)
 

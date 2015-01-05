@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 
 import org.scalacheck._, Arbitrary.arbitrary
 
-import scalaz.{Name => _, _}, Scalaz._
+import scalaz._, Scalaz._
 import scalaz.scalacheck.ScalaCheckBinding._
 
 
@@ -29,7 +29,7 @@ object GenDictionary {
 
   def structEncoding: Gen[StructEncoding] =
     Gen.choose(1, 5).flatMap(n => Gen.mapOfN[String, StructEncodedValue](n, for {
-      name <- GenString.name.map(_.name)
+      name <- GenString.namespace.map(_.name)
       enc <- primitiveEncoding
       optional <- arbitrary[Boolean]
     } yield name -> StructEncodedValue(enc, optional)).map(StructEncoding))
@@ -176,7 +176,7 @@ object GenDictionary {
   def virtual(gen: (FeatureId, ConcreteDefinition), featureIdOffset: Int): Gen[(FeatureId, VirtualDefinition)] = for {
     exp <- expression(gen._2)
     // Also give the virtual feature a different namespace
-    fid  = FeatureId(Name.reviewed(gen._1.namespace.name + "_v"), gen._1.name + "_" + featureIdOffset)
+    fid  = FeatureId(Namespace.reviewed(gen._1.namespace.name + "_v"), gen._1.name + "_" + featureIdOffset)
     filter <- filter(gen._2)
     window <- Gen.option(GenDictionary.window)
     query = Query(exp, filter.map(FilterTextV0.asString).map(_.render).map(Filter.apply))
