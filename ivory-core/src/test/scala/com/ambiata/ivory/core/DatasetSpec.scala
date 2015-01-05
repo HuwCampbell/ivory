@@ -4,7 +4,14 @@ import org.specs2._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 
+import scalaz._, Scalaz._
+import scalaz.scalacheck.ScalazProperties._
+
 class DatasetSpec extends Specification with ScalaCheck { def is = s2"""
+
+Laws
+----
+  Equal                                        ${equal.laws[Dataset]}
 
 Combinators
 -----------

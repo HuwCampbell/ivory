@@ -1,8 +1,14 @@
 package com.ambiata.ivory.core
 
+import arbitraries.Arbitraries._
 import org.specs2._
+import scalaz.scalacheck.ScalazProperties._
 
 class DictionarySpec extends Specification with ScalaCheck { def is = s2"""
+
+Laws
+----
+  Equal                                        ${equal.laws[Dictionary]}
 
 Dictionary Tests
 ----------------
@@ -35,7 +41,7 @@ Append:
 Exists:
   Checking the existence of virtual features                     $hasVirtual
 """
-  import arbitraries.Arbitraries._
+
 
   def byFeatureId = propNoShrink((dictionary: Dictionary) =>
     seqToResult(dictionary.definitions.map(d =>

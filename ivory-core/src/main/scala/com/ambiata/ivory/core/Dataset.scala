@@ -1,5 +1,7 @@
 package com.ambiata.ivory.core
 
+import scalaz._
+
 sealed trait Dataset {
   def fold[X](
     factset: Factset => X
@@ -40,4 +42,7 @@ object Dataset {
 
   def to(features: FeatureStore, to: Date): List[Prioritized[Dataset]] =
     features.filterByDate(_ <= to).toDataset
+
+  implicit def DatasetEqual: Equal[Dataset] =
+    Equal.equalA
 }
