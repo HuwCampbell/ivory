@@ -1,7 +1,6 @@
 package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.thrift.NamespacedThriftFact
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.Factsets
 import com.ambiata.ivory.storage.legacy.PartitionFactThriftStorage
@@ -10,10 +9,10 @@ import com.ambiata.poacher.mr.ThriftSerialiser
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
-import com.ambiata.saws.core._
 import com.ambiata.poacher.scoobi.ScoobiAction
 import com.ambiata.saws.core._
 import com.nicta.scoobi.Scoobi._
+import org.apache.hadoop.conf.Configuration
 
 import scalaz.{DList => _, _}, Scalaz._
 
@@ -48,18 +47,20 @@ object RepositoryBuilder {
     createFacts(repo, List(facts)).map(_._2.head)
 
   def createFacts(repo: HdfsRepository, facts: List[List[Fact]]): RIO[(FeatureStoreId, List[FactsetId])] = {
-    val serialiser = ThriftSerialiser()
     facts.foldLeftM(NonEmptyList(FactsetId.initial))({ case (factsetIds, facts) =>
       val groups = facts.groupBy(f => Partition(f.namespace, f.date)).toList
       groups.traverse({
         case (partition, facts) =>
           val out = repo.toIvoryLocation(Repository.factset(factsetIds.head) / partition.key / "data-output").location
-          SequenceUtil.writeBytes(out, repo.configuration, Clients.s3, None)(
-            writer => RIO.safe(facts.foreach(f => writer(serialiser.toBytes(f.toThrift)))))
+          writeFacts(repo.configuration, facts, out)
       }).as(factsetIds.head.next.get <:: factsetIds)
     }).map(_.tail.reverse).flatMap(factsets =>
       RepositoryT.runWithRepo(repo, writeFactsetVersion(factsets)).map(_.last -> factsets))
   }
+
+  def writeFacts(config: Configuration, facts: List[Fact], out: Location): RIO[Unit] =
+    SequenceUtil.writeBytes(out, config, Clients.s3, None)(
+      writer => RIO.safe(facts.foreach(f => writer(ThriftSerialiser().toBytes(f.toThrift)))))
 
   def factsFromIvoryFactset(repo: HdfsRepository, factset: FactsetId): ScoobiAction[DList[ParseError \/ Fact]] =
     PartitionFactThriftStorage.loadScoobiWith(repo, factset)

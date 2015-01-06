@@ -13,7 +13,7 @@ import scalaz._, effect._
 object PrintErrors {
 
   def print(paths: List[Path], config: Configuration, delim: String): RIO[Unit] =
-    Print.printPathsWith(paths, config, new ThriftParseError, printParseError(delim))
+    Print.printPathsWith(paths, config, new ThriftParseError)(printParseError(delim))
 
   def printParseError(delim: String)(path: Path, thrift: ThriftParseError): IO[Unit] = {
     val p = ParseError.fromThrift(thrift)

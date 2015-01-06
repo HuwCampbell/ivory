@@ -1,39 +1,34 @@
 package com.ambiata.ivory.operation.display
 
-import org.specs2._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
+import com.ambiata.ivory.core.arbitraries.FactsWithDictionary
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
-import com.ambiata.ivory.operation.extraction._
-import com.ambiata.mundane.control.RIO
 import com.ambiata.mundane.testing.RIOMatcher._
-import org.joda.time.LocalDate
-import org.apache.hadoop.fs.Path
-import scalaz.effect.IO
+import org.specs2._
 
-class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""
+class PrintFactsSpec extends Specification with ScalaCheck { def is = s2"""
 
- A sequence file containing facts can be read and printed on the console $a1
+ A sequence file containing facts can be read and printed on the console $print
+ Can render a fact                                                       $renderFact
 
 """
 
-  def a1 =
-    RepositoryBuilder.using { repo => for {
-      _         <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
-      snapshot  <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.fromLocalDate(LocalDate.now))
-      buffer     = new StringBuffer
-      stringBufferLogging = (p: Path, f: Fact) => IO { buffer.append(PrintFacts.renderFact('|', "NA", p, f)+"\n"); ()}
-      _ <- Print.printPathsWith(
-        List(repo.toIvoryLocation(Repository.snapshot(snapshot.id)).toHdfsPath),
-        repo.configuration,
-        createMutableFact,
-        stringBufferLogging)
-    } yield buffer.toString
-    } must beOkValue(
+  def print = prop { facts: FactsWithDictionary => (for {
+    repo <- RepositoryBuilder.repository
+    _    <- RepositoryBuilder.createDictionary(repo, facts.dictionary)
+    fs   <- RepositoryBuilder.createFactset(repo, facts.facts)
+    _    <- PrintFacts.print(
+      List(repo.toIvoryLocation(Repository.factset(fs)).toHdfsPath),
+      repo.configuration,
+      '|',
+      "NA",
+      FactsetFormat.V2
+    )} yield ()) must beOk
+  }.set(minTestsOk = 3)
 
-      """|eid1|ns1|fid1|abc|2012-10-01|00:00:00
-         |eid2|ns1|fid2|11|2012-11-01|00:00:00
-         |eid3|ns2|fid3|true|2012-03-20|00:00:00
-         |""".stripMargin
-    )
+  def renderFact = prop { (d: Char, t: String, f: Fact) =>
+    val s = TextEscaping.split(d, PrintFacts.renderFact(d, t, f))
+    (s(0), s.length) ==== ((f.entity, 6))
+  }.set(minTestsOk = 10)
 }

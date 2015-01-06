@@ -1,16 +1,14 @@
 package com.ambiata.ivory.operation.extraction
 
-import org.specs2._, execute.{Failure => SpecsFailure}
 import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.ivory.core._, arbitraries._, Arbitraries._
-
 import com.ambiata.ivory.mr.FactFormats._
-import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.nicta.scoobi.Scoobi._
-import org.joda.time.LocalDate
 
-class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def is = s2"""
+import org.specs2._
+
+class SnapshotsSpec extends Specification with ScalaCheck { def is = s2"""
 
   A snapshot of the features can be extracted as a sequence file $snapshot         ${tag("mr")}
   A snapshot of the features can be extracted over a window      $windowing        ${tag("mr")}
@@ -18,16 +16,16 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
 
 """
 
-  def snapshot = {
+  def snapshot = prop { facts: FactsWithDictionary =>
     RepositoryBuilder.using { repo => for {
-      _ <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
-      s <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.fromLocalDate(LocalDate.now))
+      _ <- RepositoryBuilder.createRepo(repo, facts.dictionary, List(facts.facts))
+      s <- Snapshots.takeSnapshot(repo, IvoryFlags.default, facts.facts.map(_.date).max)
       f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.id)).toHdfs).run(repo.scoobiConfiguration)
     } yield f.map(_.featureId).toSet} must beOkValue(
       // FIX: Capture "simple" snapshot logic which handles priority and set/state so we can check the counts
-      sampleFacts.flatten.map(_.featureId).toSet
+      facts.facts.map(_.featureId).toSet
     )
-  }
+  }.set(minTestsOk = 3)
 
   def windowing = propNoShrink((vdict: VirtualDictionaryWindow, fact: Fact) => {
     val facts = List(
