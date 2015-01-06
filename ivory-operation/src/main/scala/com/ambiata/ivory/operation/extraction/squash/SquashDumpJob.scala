@@ -29,7 +29,7 @@ object SquashDumpJob {
     input       = Repository.snapshot(snapshotId)
 
     // When we're filtering, there's a very good chance we only need a reducer per concrete feature
-    reducers    = dictionary.byConcrete.sources.size
+    reducers    = filteredDct.byConcrete.sources.size
 
     // HDFS below here
     hr         <- repository.asHdfsRepository
