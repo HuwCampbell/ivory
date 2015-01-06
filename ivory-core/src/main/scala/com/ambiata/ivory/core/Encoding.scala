@@ -61,4 +61,16 @@ object Encoding {
       case _: StructEncoding    => false
       case _: ListEncoding      => false
     }
+
+  def isNumeric(enc: Encoding): Boolean =
+    enc match {
+      case IntEncoding       => true
+      case LongEncoding      => true
+      case DoubleEncoding    => true
+      case BooleanEncoding   => false
+      case DateEncoding      => false
+      case StructEncoding(_) => false
+      case ListEncoding(_)   => false
+      case StringEncoding    => false
+    }
 }

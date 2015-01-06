@@ -316,4 +316,23 @@ object Value {
       case _               => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${value.toString}].'")
     }
   }
+
+  def toPrimitive(value: ThriftFactValue): Option[ThriftFactPrimitiveValue] = value match {
+    case tv if tv.isSetD => Some(ThriftFactPrimitiveValue.d(tv.getD))
+    case tv if tv.isSetS => Some(ThriftFactPrimitiveValue.s(tv.getS))
+    case tv if tv.isSetI => Some(ThriftFactPrimitiveValue.i(tv.getI))
+    case tv if tv.isSetL => Some(ThriftFactPrimitiveValue.l(tv.getL))
+    case tv if tv.isSetB => Some(ThriftFactPrimitiveValue.b(tv.getB))
+    case tv if tv.isSetDate => Some(ThriftFactPrimitiveValue.date(tv.getDate))
+    case _               => None
+  }
+
+  def fromPrimitive(value: ThriftFactPrimitiveValue): ThriftFactValue = value match {
+    case tsv if tsv.isSetD => ThriftFactValue.d(tsv.getD)
+    case tsv if tsv.isSetS => ThriftFactValue.s(tsv.getS)
+    case tsv if tsv.isSetI => ThriftFactValue.i(tsv.getI)
+    case tsv if tsv.isSetL => ThriftFactValue.l(tsv.getL)
+    case tsv if tsv.isSetB => ThriftFactValue.b(tsv.getB)
+    case tsv if tsv.isSetDate => ThriftFactValue.date(tsv.getDate)
+  }
 }

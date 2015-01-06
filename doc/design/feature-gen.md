@@ -21,6 +21,11 @@ less than or equal to `ref`);
 ### `latest`
 Return the most recent fact in `facts` with respect to `ref`.
 
+### `latestN`
+Return the most recent "n" facts if `facts` with respect to `ref`.
+Not available for "list" facts. Struct facts can optionally have an additional
+`field` specified.
+
 ### `count`
 Return the number of facts in `facts`.
 
@@ -85,6 +90,11 @@ occuring on weekends divided by the total number of facts. (Timezone?)
 ### `proportion(field, value)`
 Proportion of facts in `facts` with a value of `value` for field `field`.
 
+### `inverse`
+Written before another expression which returns a "continous" ("numerical") result. Takes the
+inverse before returning the expression. Note that this functions inverse is not the same as the
+JVM implementation under devision by 0 (which is infinity or -infinity for -0), but rather returns
+not a number.
 
 ### gradient
 

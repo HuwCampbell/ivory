@@ -46,6 +46,7 @@ object Reduction {
     case Interval(StandardDeviation)  => Some(new IntervalReducer(dates.dates, new StandardDeviationReducer, ReductionValueDouble))
     case Interval(Gradient)           => Some(new IntervalReducer(dates.dates, new GradientReducer(dates.dates), ReductionValueDouble))
     case Interval(_)                  => None
+    case Inverse(x)                   => fromExpression(x, encoding, dates).map(new InverseReducer(_))
     case DaysSinceLatest              => Some(new DaysSinceLatestReducer(dates.dates))
     case MeanInDays                   => Some(new DateReduction(dates.dates, new MeanInDaysReducer, ReductionValueDouble))
     case MeanInWeeks                  => Some(new DateReduction(dates.dates, new MeanInWeeksReducer, ReductionValueDouble))
@@ -79,6 +80,7 @@ object Reduction {
     }
 
     case BasicExpression(Latest)      => Some(new LatestReducer)
+    case BasicExpression(LatestN(n))  => Some(new LatestNReducer(n))
     case BasicExpression(sexp)        => encoding match {
       case pe: PrimitiveEncoding      => fromSubExpression(sexp, pe, dates, new EncodedReduction {
         def s[A, B](f: ReductionFoldWithDate[A, String, B], to: ReductionValueTo[B]): Reduction =
@@ -123,6 +125,14 @@ object Reduction {
       case LongEncoding    => Some(f.l(new LatestStructReducer[Long](0), new ReductionValueOrTombstone(ReductionValueLong)))
       case DoubleEncoding  => Some(f.d(new LatestStructReducer[Double](0), new ReductionValueOrTombstone(ReductionValueDouble)))
       case DateEncoding    => Some(f.date(new LatestStructReducer[Int](0), new ReductionValueOrTombstone(ReductionValueDate)))
+    }
+    case LatestN(n) => encoding match {
+      case StringEncoding  => Some(f.s(new LatestNStructReducer[String]("", n), new ReductionValueList(ReductionValueString)))
+      case BooleanEncoding => Some(f.b(new LatestNStructReducer[Boolean](false, n), new ReductionValueList(ReductionValueBoolean)))
+      case IntEncoding     => Some(f.i(new LatestNStructReducer[Int](0, n), new ReductionValueList(ReductionValueInt)))
+      case LongEncoding    => Some(f.l(new LatestNStructReducer[Long](0, n), new ReductionValueList(ReductionValueLong)))
+      case DoubleEncoding  => Some(f.d(new LatestNStructReducer[Double](0, n), new ReductionValueList(ReductionValueDouble)))
+      case DateEncoding    => Some(f.date(new LatestNStructReducer[Int](0, n), new ReductionValueList(ReductionValueDate)))
     }
     case Sum => condOpt(encoding) {
       case IntEncoding    => f.i(new ReductionFoldIntToLong(new SumReducer[Long]), ReductionValueLong)

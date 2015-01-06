@@ -20,7 +20,8 @@ class ExpressionSpec extends Specification with ScalaCheck { def is = s2"""
     "quantile_in_days,3,s",
     "quantile_in_weeks,s,3",
     "proportion_by_time,24,3",
-    "interval,noexpression"
+    "interval,noexpression",
+    "inverse,countby,things"
   ).map(s => Expression.parse(s).toEither must beLeft))
 
 

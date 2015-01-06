@@ -140,8 +140,8 @@ trait Arbitraries {
   implicit def TypeArbitrary: Arbitrary[Type] =
     Arbitrary(GenDictionary.type_)
 
-  implicit def ValueArbitrary: Arbitrary[Value] =
-    Arbitrary(GenValue.value)
+  implicit def PrimitiveValueArbitrary: Arbitrary[PrimitiveValue] =
+    Arbitrary(GenValue.primitiveValue)
 
   implicit def WindowArbitrary: Arbitrary[Window] =
     Arbitrary(GenDictionary.window)
