@@ -40,6 +40,11 @@ Append:
 
 Exists:
   Checking the existence of virtual features                     $hasVirtual
+
+Windows:
+  Same number of window entries as concrete features             $windowCount
+  Windows match feature windows                                  $window
+
 """
 
 
@@ -105,6 +110,16 @@ Exists:
     d1.append(d2) must_== Dictionary(d1.definitions ++ d2.definitions))
 
   def hasVirtual = propNoShrink((d1: Dictionary) =>
-    d1.hasVirtual ==== d1.byConcrete.sources.values.exists(_.virtual.nonEmpty)
-  )
+    d1.hasVirtual ==== d1.byConcrete.sources.values.exists(_.virtual.nonEmpty))
+
+  def windowCount = prop((d: Dictionary) =>
+    d.windows.features.size ==== d.byConcrete.sources.size)
+
+  def window = prop((d: Dictionary) =>
+    d.windows.features.flatMap(_.windows).toSet ==== d.definitions.flatMap({
+      case Concrete(id, definition) =>
+        Nil
+      case Virtual(id, definition) =>
+        definition.window.toList
+    }).toSet)
 }
