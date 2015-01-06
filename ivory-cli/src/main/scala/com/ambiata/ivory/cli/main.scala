@@ -18,7 +18,6 @@ object main {
     debug.catThrift,
     debug.dumpFacts,
     debug.dumpReduction,
-    factDiff,
     importDictionary,
     ingest,
     recompress,

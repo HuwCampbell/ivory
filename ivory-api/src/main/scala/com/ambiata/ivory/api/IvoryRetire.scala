@@ -1,6 +1,5 @@
 package com.ambiata.ivory.api
 
-import com.ambiata.ivory.operation.diff.CompareSnapshots
 import com.ambiata.ivory.operation.ingestion.Ingest
 
 /**
@@ -25,7 +24,6 @@ object IvoryRetire {
    * ivory, without concern for the current implementation.
    */
   val snapshotFromHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotFromHdfs _
-  val compareHdfsSnapshots = CompareSnapshots.compareHdfsSnapshots _
 
   val createRepository = com.ambiata.ivory.storage.repository.Repositories.create _
 
@@ -57,6 +55,5 @@ object IvoryRetire {
    * Bespoke debugging tools.
    */
   val countFacts = com.ambiata.ivory.operation.statistics.FactCount.flatFacts _
-  val diffFacts = com.ambiata.ivory.operation.diff.FactDiff.flatFacts _
   val statsFacts = com.ambiata.ivory.operation.statistics.FactStats.statisticsForFactSet _
 }
