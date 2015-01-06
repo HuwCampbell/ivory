@@ -38,6 +38,6 @@ object Extraction {
     List(".profile", ".manifest.json").traverseU(n => for {
       e <- lio.exists(input.location </> FileName.unsafe(n))
       // TODO Need to add a readUTF8 on LocationIO
-      _ <- RIO.when(e, lio.readLines(input.location) >>= (c => lio.writeUtf8Lines(output.location </> FileName.unsafe(n), c)))
+      _ <- RIO.when(e, lio.readLines(input.location </> FileName.unsafe(n)) >>= (c => lio.writeUtf8Lines(output.location </> FileName.unsafe(n), c)))
     } yield ()).void
 }
