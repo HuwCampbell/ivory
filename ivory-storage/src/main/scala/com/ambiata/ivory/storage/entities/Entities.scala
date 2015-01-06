@@ -1,4 +1,4 @@
-package com.ambiata.ivory.operation.extraction
+package com.ambiata.ivory.storage.entities
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.ChordEntities
@@ -15,9 +15,8 @@ import Entities._
  * This class stores a map of (entities name, dates)
  * which describes the points in time at which we want to retrieve facts for a given entity
  */
+// FIX split into pure/io parts, move pure entities data structure to core.
 case class Entities(entities: Mappings) {
-  type PrioritizedFact = (Priority, Fact)
-
   private case class DateRange(earliest: Date, latest: Date, maxCount: Int)
 
   /** get the earliest date and the latest date across all entities */
@@ -74,6 +73,7 @@ case class Entities(entities: Mappings) {
 }
 
 object Entities {
+ type PrioritizedFact = (Priority, Fact)
 
   /**
    * Map of entity name to a sorted non-empty array of Dates, represented as Ints.

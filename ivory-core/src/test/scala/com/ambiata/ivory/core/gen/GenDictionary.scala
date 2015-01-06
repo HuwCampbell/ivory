@@ -50,6 +50,9 @@ object GenDictionary {
     unit <- Gen.oneOf(Days, Weeks, Months, Years)
   } yield Window(length, unit)
 
+  def identified: Gen[Identified[DictionaryId, Dictionary]] =
+    GenIdentifier.identified(Arbitrary(GenIdentifier.dictionary), Arbitrary(GenDictionary.dictionary))
+
   def dictionary: Gen[Dictionary] = for {
     n <- Gen.sized(s => Gen.choose(3, math.min(s, 20)))
     i <- Gen.listOfN(n, GenIdentifier.feature).map(_.distinct)

@@ -16,12 +16,8 @@ import scalaz.{DList => _, _}, Scalaz._
  * Ivory "as a library" that doesnt have to go in the snapshot metadata for persistence
  * in the repository itself.
  */
-case class SnapshotJobSummary[A](
-    meta: A
-  , incremental: Option[SnapshotMetadata]) { // FIX why is this relevant, I think it can only lead to a bug that it is available
-
-  def map[B](f: A => B): SnapshotJobSummary[B] = SnapshotJobSummary(f(meta), incremental)
-}
+// FIX why is incremental relevant, I think it can only lead to a bug that it is available
+case class SnapshotJobSummary(snapshot: Snapshot)
 
 /**
  * Snapshots are used to store the latest feature values at a given date.
@@ -36,14 +32,19 @@ case class SnapshotJobSummary[A](
  * Note that in between 2 snapshots, the FeatureStore might have changed
  */
 object Snapshots {
-  def takeSnapshot(repository: Repository, date: Date): RIO[SnapshotJobSummary[SnapshotMetadata]] =
+  def takeSnapshot(repository: Repository, date: Date): RIO[SnapshotJobSummary] =
     for {
       commit <- CommitStorage.head(repository)
       ids <- SnapshotStorage.ids(repository)
+      summary <- takeSnapshotOn(repository, commit, ids, date)
+    } yield summary
+
+  def takeSnapshotOn(repository: Repository, commit: Commit, ids: List[SnapshotId], date: Date): RIO[SnapshotJobSummary] =
+    for {
       plan <- SnapshotPlan.pessimistic(date, commit, ids, Kleisli[RIO, SnapshotId, Snapshot](id => SnapshotStorage.byId(repository, id)))
       summary <- plan.exact match {
         case Some(snapshot) =>
-          SnapshotJobSummary(snapshot.toMetadata, snapshot.toMetadata.some).pure[RIO]
+          SnapshotJobSummary(snapshot).pure[RIO]
         case None =>
           createSnapshot(repository, date, commit, plan)
       }
@@ -54,7 +55,7 @@ object Snapshots {
     // 3. save dictionary
     // 4. save manifest
     // 5. save stats
-  def createSnapshot(repository: Repository, date: Date, commit: Commit, plan: SnapshotPlan): RIO[SnapshotJobSummary[SnapshotMetadata]] = for {
+  def createSnapshot(repository: Repository, date: Date, commit: Commit, plan: SnapshotPlan): RIO[SnapshotJobSummary] = for {
     // FIX detangle IO and pure code here...
     manifest <- SnapshotMetadataStorage.createSnapshotManifest(repository, date) // WTF FIX pass in commit? WTF is this magic commit thing?
     metadata <- SnapshotMetadataStorage.toMetadata(repository, manifest) // WTF why is this not pure?
@@ -65,8 +66,10 @@ object Snapshots {
     hr       <- repository.asHdfsRepository
     output   =  hr.toIvoryLocation(Repository.snapshot(manifest.snapshot))
     stats    <- SnapshotJob.run(hr, plan, reducers, output.toHdfsPath)
-    _        <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(manifest.snapshot) / ".dictionary", commit.dictionary)
+    _        <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(manifest.snapshot) / ".dictionary", commit.dictionary.value)
     _        <- SnapshotManifest.io(repository, manifest.snapshot).write(manifest)
     _        <- SnapshotStats.save(repository, manifest.snapshot, stats)
-  } yield SnapshotJobSummary(metadata, plan.snapshot.map(_.toMetadata))
+    bytes    <- SnapshotStorage.size(repository, manifest.snapshot)
+    snapshot =  Snapshot(manifest.snapshot, date, commit.store, commit.dictionary.some, bytes)
+  } yield SnapshotJobSummary(snapshot)
 }

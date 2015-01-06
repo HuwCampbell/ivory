@@ -137,4 +137,7 @@ object Repository {
   /** Creates a unique [[Key]] that can be used as a temporary directory (but doesn't actually create it) */
   def tmpDir(task: KeyName): RIO[Key] =
     RIO.safe(Repository.tmp(task, KeyName.fromUUID(java.util.UUID.randomUUID)))
+
+  def tmpLocation(repository: Repository, task: KeyName): RIO[IvoryLocation] =
+    tmpDir(task).map(repository.toIvoryLocation)
 }

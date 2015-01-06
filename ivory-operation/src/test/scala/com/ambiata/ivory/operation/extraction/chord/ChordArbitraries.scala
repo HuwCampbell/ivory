@@ -4,8 +4,8 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core.gen._
+import com.ambiata.ivory.storage.entities._
 import com.ambiata.ivory.lookup.ChordEntities
-import com.ambiata.ivory.operation.extraction.Entities
 import org.scalacheck._
 import scala.collection.JavaConverters._
 

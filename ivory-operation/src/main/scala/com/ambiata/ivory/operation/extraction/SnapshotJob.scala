@@ -68,10 +68,10 @@ object SnapshotJob {
     job.getConfiguration.set(Keys.SnapshotDate, plan.date.int.toString) // FIX why int toString and not render/parse date?
     ctx.thriftCache.push(job, Keys.FactsetLookup, FactsetLookups.priorityDatasets(plan.datasets))
     ctx.thriftCache.push(job, Keys.FactsetVersionLookup, FactsetLookups.versionDatasets(plan.datasets))
-    val (featureIdLookup, windowLookup) = windowTable(plan.commit.dictionary, plan.commit.dictionary.windows.byFeature(plan.date))
+    val (featureIdLookup, windowLookup) = windowTable(plan.commit.dictionary.value, plan.commit.dictionary.value.windows.byFeature(plan.date))
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup)
     ctx.thriftCache.push(job, Keys.WindowLookup, windowLookup)
-    ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(plan.commit.dictionary))
+    ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(plan.commit.dictionary.value))
 
     // run job
     if (!job.waitForCompletion(true))

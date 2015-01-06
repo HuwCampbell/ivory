@@ -3,10 +3,10 @@ package com.ambiata.ivory.core
 import scalaz._
 
 case class Commit(
-  dictionaryId: DictionaryId
-, dictionary: Dictionary
+  id: CommitId
+, dictionary: Identified[DictionaryId, Dictionary]
 , store: FeatureStore
-, config: Option[(RepositoryConfigId, RepositoryConfig)]
+, config: Option[Identified[RepositoryConfigId, RepositoryConfig]]
 )
 
 object Commit {

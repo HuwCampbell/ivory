@@ -16,6 +16,7 @@ class SquashSpec extends Specification with ScalaCheck { def is = s2"""
 
   A count of the facts can be squashed out of a snapshot      $count  ${tag("mr")}
   A dump of reductions can be squashed out of a snapshot      $dump   ${tag("mr")}
+
 """
 
   def count = propNoShrink((sf: SquashFactsMultiple) => sf.hasVirtual ==> {
@@ -28,9 +29,8 @@ class SquashSpec extends Specification with ScalaCheck { def is = s2"""
       RepositoryBuilder.using { repo => for {
         _ <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
         res <- Snapshots.takeSnapshot(repo, sf.date)
-        s     = res.meta
         out   = OutputDataset.fromIvoryLocation(repo.toIvoryLocation(Key(KeyName.unsafe("out"))))
-        key <- SquashJob.squashFromSnapshotWith(repo, s, SquashConfig.testing, cluster)
+        key <- SquashJob.squashFromSnapshotWith(repo, res.snapshot.toMetadata, SquashConfig.testing, cluster)
         f   <- RIO.safe[List[Fact]](postProcess(valueFromSequenceFile[Fact](key._1.hdfsPath.toString).run(repo.scoobiConfiguration).toList))
       } yield f }
     } must beOkValue(postProcess(expectedFacts))
@@ -48,7 +48,7 @@ class SquashSpec extends Specification with ScalaCheck { def is = s2"""
       _    <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
       res  <- Snapshots.takeSnapshot(repo, sf.date)
       out   = repo.toIvoryLocation(Key(KeyName.unsafe("dump")))
-      _    <- SquashDumpJob.dump(repo, res.meta.id, out, entities.values.flatten.toList, entities.keys.toList)
+      _    <- SquashDumpJob.dump(repo, res.snapshot.id, out, entities.values.flatten.toList, entities.keys.toList)
       dump <- IvoryLocation.readLines(out).map(_.map(_.split("\\|", -1) match {
         case Array(e, ns, a, _, _, _) =>  e -> FeatureId(Namespace.unsafe(ns), a)
       }).toSet)

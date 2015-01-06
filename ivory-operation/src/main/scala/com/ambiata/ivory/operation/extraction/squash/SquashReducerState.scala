@@ -4,8 +4,8 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.ivory.lookup.FeatureReduction
 import com.ambiata.ivory.mr._
-import com.ambiata.ivory.operation.extraction.Entities
 import com.ambiata.ivory.operation.extraction.reduction.Reduction
+import com.ambiata.ivory.storage.entities._
 import java.util.{Iterator => JIterator}
 import org.apache.hadoop.io.{BytesWritable, NullWritable, Text}
 

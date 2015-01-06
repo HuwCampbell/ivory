@@ -10,8 +10,6 @@ import com.ambiata.ivory.storage.control._
 import org.joda.time.LocalDate
 import java.util.{Calendar, UUID}
 
-import scalaz._, Scalaz._
-
 object snapshot extends IvoryApp {
 
   case class CliArguments(date: LocalDate, squash: SquashConfig, formats: ExtractOutput)
@@ -49,15 +47,10 @@ object snapshot extends IvoryApp {
       IvoryT.fromRIO { for {
         of   <- Extract.parse(configuration, c.formats)
         res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date))
-        meta  = res.meta
-        x    <- SquashJob.squashFromSnapshotWith(repo, meta, c.squash, cluster)
+        x    <- SquashJob.squashFromSnapshotWith(repo, res.snapshot.toMetadata, c.squash, cluster)
         (output, dictionary) = x
         r    <- RepositoryRead.fromRepository(repo)
         _    <- Extraction.extract(of, output, dictionary, cluster).run(r)
-      } yield List(
-        banner,
-        s"Output path: ${meta.id}",
-        res.incremental.cata(incr => s"Incremental snapshot used: ${incr.id}", "No Incremental Snapshot was used."),
-        "Status -- SUCCESS") }
+      } yield List(banner, s"Snapshot complete: ${res.snapshot.id}") }
   })
 }

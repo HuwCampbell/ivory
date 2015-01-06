@@ -3,7 +3,8 @@ package com.ambiata.ivory.operation.extraction.squash
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
 import com.ambiata.ivory.mr.MrContextIvory
-import com.ambiata.ivory.operation.extraction.{ChordJob, Entities, Snapshots, SnapshotJob}
+import com.ambiata.ivory.operation.extraction.{ChordJob, Snapshots, SnapshotJob}
+import com.ambiata.ivory.storage.entities._
 import com.ambiata.ivory.storage.lookup.{FeatureLookups, ReducerLookups, ReducerSize, WindowLookup}
 import com.ambiata.ivory.storage.manifest.{SnapshotExtractManifest, SnapshotManifest}
 import com.ambiata.ivory.storage.metadata._
@@ -32,7 +33,7 @@ object SquashJob {
     //     and with upcoming changes like #427 this should then become always correct.
     commitId   <- Metadata.findOrCreateLatestCommitId(repository)
     commit     <- CommitStorage.byIdOrFail(repository, commitId)
-    dictionary =  commit.dictionary
+    dictionary =  commit.dictionary.value
     hdfsIvoryL <- repository.toIvoryLocation(Repository.snapshot(snapmeta.id)).asHdfsIvoryLocation
     in          = ShadowOutputDataset.fromIvoryLocation(hdfsIvoryL)
     job        <- SquashJob.initSnapshotJob(cluster.hdfsConfiguration, snapmeta.date)

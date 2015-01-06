@@ -5,9 +5,7 @@ import scalaz._, Scalaz._
 
 case class SnapshotPlan(date: Date, commit: Commit, snapshot: Option[Snapshot], datasets: Datasets){
   def exact: Option[Snapshot] =
-    snapshot.filter(s => s.date === date && s.store === commit.store && s.dictionary.forall({
-      case (id, _) => id == commit.dictionaryId
-    }))
+    snapshot.filter(s => s.date === date && s.store === commit.store && s.dictionary.forall(_.id === commit.dictionary.id))
 }
 
 /**
@@ -17,7 +15,19 @@ case class SnapshotPlan(date: Date, commit: Commit, snapshot: Option[Snapshot], 
 object SnapshotPlan {
   /**
    * Determine the plan datasets for the given snapshot 'at' date, and repository
-   * state using an pessismistic strategy to determine validity using all
+   * state using an in-memory strategy to determine validity using provided
+   * snapshots and select best using a weighting function.
+   */
+  def inmemory(
+    at: Date
+  , commit: Commit
+  , snapshots: List[Snapshot]
+  ): SnapshotPlan =
+    snapshots.flatMap(evaluate(at, commit, _).toList).sortBy(weight).headOption.getOrElse(fallback(at, commit))
+
+  /**
+   * Determine the plan datasets for the given snapshot 'at' date, and repository
+   * state using a pessismistic strategy to determine validity using all
    * snapshots and select best using a weighting function.
    */
   def pessimistic[F[_]: Monad](
@@ -86,14 +96,14 @@ object SnapshotPlan {
    * same.
    */
   def sameDictionary(commit: Commit, snapshot: Snapshot): Boolean =
-    snapshot.dictionary.exists(_._1 === commit.dictionaryId)
+    snapshot.dictionary.exists(_.id === commit.dictionary.id)
 
   /**
    * A snapshot from the pre-commit world is valid if and only if the current dictionary doesn't
    * have any windows.
    */
   def noWindows(commit: Commit, snapshot: Snapshot): Boolean =
-    !snapshot.dictionary.isDefined && !commit.dictionary.windows.hasWindows
+    !snapshot.dictionary.isDefined && !commit.dictionary.value.windows.hasWindows
 
   /**
    * We need to check that any feature ids that exists at the time of the old snapshot,
@@ -106,14 +116,13 @@ object SnapshotPlan {
    * actual dataset by.
    */
   def containedBy(at: Date, commit: Commit, snapshot: Snapshot): Boolean =
-    snapshot.dictionary.exists({
-      case (_, dictionary) =>
-        // if the old dictionary doesn't know about the feature, we know it is ok
-        // because the relevant data will only be in the new commits, so we can
-        // ignore them and happily use a snapshot that doesn't know about those
-        // features, even for overlapping date ranges.
-        val restricted = commit.dictionary.forFeatureIds(dictionary.featureIds)
-        restricted.windows.byNamespace(at).containedBy(dictionary.windows.byNamespace(at))
+    snapshot.dictionary.exists(dictionary => {
+      // if the old dictionary doesn't know about the feature, we know it is ok
+      // because the relevant data will only be in the new commits, so we can
+      // ignore them and happily use a snapshot that doesn't know about those
+      // features, even for overlapping date ranges.
+      val restricted = commit.dictionary.value.forFeatureIds(dictionary.value.featureIds)
+      restricted.windows.byNamespace(at).containedBy(dictionary.value.windows.byNamespace(at))
     })
 
   /**

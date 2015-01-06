@@ -10,13 +10,10 @@ import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.nicta.scoobi.Scoobi._
 import org.joda.time.LocalDate
 
-import scalaz._, Scalaz._
-
 class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def is = s2"""
 
   A snapshot of the features can be extracted as a sequence file $snapshot         ${tag("mr")}
   A snapshot of the features can be extracted over a window      $windowing        ${tag("mr")}
-  A snapshot builds incrementally on the last if it exists       $incremental      ${tag("mr")}
   A snapshot of the set features can be extracted over a window  $sets             ${tag("mr")}
 
 """
@@ -25,7 +22,7 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
     RepositoryBuilder.using { repo => for {
       _ <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
       m <- Snapshots.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now))
-      f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(m.meta.id)).toHdfs).run(repo.scoobiConfiguration)
+      f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(m.snapshot.id)).toHdfs).run(repo.scoobiConfiguration)
     } yield f.map(_.featureId).toSet} must beOkValue(
       // FIX: Capture "simple" snapshot logic which handles priority and set/state so we can check the counts
       sampleFacts.flatten.map(_.featureId).toSet
@@ -52,26 +49,10 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
     RepositoryBuilder.using { repo => for {
         _ <- RepositoryBuilder.createRepo(repo, vdict.vd.dictionary, List(deprioritized, facts ++ oldfacts))
         s <- Snapshots.takeSnapshot(repo, fact.date)
-        f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.meta.id)).toHdfs).run(repo.scoobiConfiguration)
+        f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.snapshot.id)).toHdfs).run(repo.scoobiConfiguration)
       } yield f
     }.map(_.toSet) must beOkValue((oldfacts.sortBy(_.date).lastOption.toList ++ facts).toSet)
   }).set(minTestsOk = 3)
-
-  def incremental = prop(
-    (dictionary: Dictionary, featureId: FeatureId, fact: Fact) => {
-      val feature = dictionary.definitions.headOption.cata(_.featureId, featureId)
-      val facts = fact.withFeatureId(feature).pure[List]
-      val facts2 = facts.map(_.withDate(Date.fromLocalDate(fact.date.localDate.plusDays(1))))
-      RepositoryBuilder.using((repo: HdfsRepository) =>
-        for {
-          _ <- RepositoryBuilder.createRepo(repo, dictionary, facts.pure[List])
-          res <- Snapshots.takeSnapshot(repo, fact.date)
-          _ <- RepositoryBuilder.createFactset(repo, facts2)
-          res2 <- Snapshots.takeSnapshot(repo, fact.date)
-        } yield (res, res2.incremental.map(_.id))) must beOkLike(
-          (t: (SnapshotJobSummary[SnapshotMetadata], Option[SnapshotId])) =>
-            t._2.cata((sid: SnapshotId) => sid must_== t._1.meta.id, SpecsFailure("No incremental was used in the second snapshot")))
-    }).set(minTestsOk = 3)
 
   def sets = propNoShrink((concrete: FeatureId, virtual: FeatureId, window: Window, date: Date, time: Time, entity: Int) => {
     val dictionary = Dictionary(List(
@@ -100,7 +81,7 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
     RepositoryBuilder.using { repo => for {
         _ <- RepositoryBuilder.createRepo(repo, dictionary, List(facts ++ outer))
         s <- Snapshots.takeSnapshot(repo, date)
-        f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.meta.id)).toHdfs).run(repo.scoobiConfiguration)
+        f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.snapshot.id)).toHdfs).run(repo.scoobiConfiguration)
       } yield f
     }.map(_.toSet) must beOkValue((outer.sortBy(f => f.datetime.long).lastOption.toList ++ facts).toSet)
   }).set(minTestsOk = 3)

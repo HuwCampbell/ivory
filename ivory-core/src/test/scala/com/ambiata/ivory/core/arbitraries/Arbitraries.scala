@@ -80,6 +80,9 @@ trait Arbitraries {
   implicit def FormArbitrary: Arbitrary[Form] =
     Arbitrary(GenFileFormat.form)
 
+  implicit def IdentifiedArbitrary[A: Arbitrary, B: Arbitrary]: Arbitrary[Identified[A, B]] =
+    Arbitrary(GenIdentifier.identified)
+
   implicit def IdentifierArbitrary: Arbitrary[Identifier] =
     Arbitrary(GenIdentifier.identifier)
 

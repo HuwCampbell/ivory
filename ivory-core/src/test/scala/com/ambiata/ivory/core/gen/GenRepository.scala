@@ -37,12 +37,11 @@ object GenRepository {
   } yield FeatureStore.fromList(s, f).get
 
   def commit: Gen[Commit] = for {
-    did <- GenIdentifier.dictionary
-    d <- GenDictionary.dictionary
+    id <- GenIdentifier.commit
+    d <- GenDictionary.identified
     s <- store
-    r <- repositoryConfig
-    c <- Gen.option(GenIdentifier.repositoryConfigId.map(_ -> r))
-  } yield Commit(did, d, s, c)
+    c <- Gen.option(identifiedRepositoryConfig)
+  } yield Commit(id, d, s, c)
 
   def commitMetadata: Gen[CommitMetadata] = for {
     d <- GenIdentifier.dictionary
@@ -65,12 +64,11 @@ object GenRepository {
 
   def snapshot: Gen[Snapshot] = for {
     i <- GenIdentifier.snapshot
-    d <- GenDate.date
+    x <- GenDate.date
     s <- store
-    dv <- GenDictionary.dictionary
-    di <- GenIdentifier.dictionary
+    d <- GenDictionary.identified
     b <- bytes
-  } yield Snapshot(i, d, s, (di -> dv).some, b)
+  } yield Snapshot(i, x, s, d.some, b)
 
   def partition: Gen[Partition] = for {
     n <- GenString.namespace
@@ -94,4 +92,7 @@ object GenRepository {
 
   def repositoryConfig: Gen[RepositoryConfig] =
     GenDate.zone.map(RepositoryConfig(MetadataVersion.V1, _))
+
+  def identifiedRepositoryConfig: Gen[Identified[RepositoryConfigId, RepositoryConfig]] =
+    GenIdentifier.identified(Arbitrary(GenIdentifier.repositoryConfigId), Arbitrary(repositoryConfig))
 }

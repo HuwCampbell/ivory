@@ -1,4 +1,4 @@
-package com.ambiata.ivory.operation.extraction
+package com.ambiata.ivory.storage.entities
 
 import java.util.HashMap
 
@@ -6,7 +6,7 @@ import com.ambiata.ivory.core.TemporaryLocations._
 import com.ambiata.ivory.core.{Date, Fact}
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.operation.extraction.Chord.PrioritizedFact
+import com.ambiata.ivory.storage.entities.Entities.PrioritizedFact
 import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core.TemporaryType
 import org.scalacheck.{Arbitrary, Gen}, Arbitrary.arbitrary

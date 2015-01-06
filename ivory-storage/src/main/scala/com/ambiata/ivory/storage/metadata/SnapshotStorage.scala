@@ -16,8 +16,11 @@ object SnapshotStorage {
 
   def byMetadata(repository: Repository, metadata: SnapshotMetadata): RIO[Snapshot] = for {
     store <- FeatureStoreTextStorage.fromId(repository, metadata.storeId)
-    dictionary <- metadata.dictionaryId.traverseU(id => Metadata.dictionaryFromIvory(repository, id).map(id -> _))
-    // FIX add size to metadata
-    size <- IvoryLocation.size(repository.toIvoryLocation(Repository.snapshot(metadata.id)))
-  } yield Snapshot(metadata.id, metadata.date, store, dictionary, size)
+    dictionary <- metadata.dictionaryId.traverseU(id => Metadata.dictionaryFromIvory(repository, id).map(Identified(id, _)))
+    bytes <- size(repository, metadata.id)
+  } yield Snapshot(metadata.id, metadata.date, store, dictionary, bytes)
+
+  // FIX add size to metadata
+  def size(repository: Repository, id: SnapshotId): RIO[Bytes] =
+    IvoryLocation.size(repository.toIvoryLocation(Repository.snapshot(id)))
 }

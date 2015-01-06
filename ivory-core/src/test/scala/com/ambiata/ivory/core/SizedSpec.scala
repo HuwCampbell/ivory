@@ -18,6 +18,7 @@ Laws
   Encode/Decode Json                           ${encodedecode[Sized[Int]]}
   Equal                                        ${equal.laws[Sized[Int]]}
   Order                                        ${order.laws[Sized[Int]]}
+  Functor                                      ${functor.laws[Sized]}
 
 """
 }

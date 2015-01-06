@@ -1,7 +1,7 @@
 package com.ambiata.ivory.core.gen
 
 import com.ambiata.ivory.core._
-import org.scalacheck._
+import org.scalacheck._, Arbitrary.arbitrary
 
 
 object GenIdentifier {
@@ -16,6 +16,11 @@ object GenIdentifier {
   // In many cases bad/strange things happen when using the same FeatureId for different Definitions
   def featureUnique(other: Set[FeatureId]): Gen[FeatureId] =
     feature.retryUntil(!other.contains(_))
+
+  def identified[A: Arbitrary, B: Arbitrary]: Gen[Identified[A, B]] = for {
+    a <- arbitrary[A]
+    b <- arbitrary[B]
+  } yield Identified(a, b)
 
   def identifier: Gen[Identifier] =
     Gen.choose(0, Int.MaxValue).map(Identifier.unsafe)

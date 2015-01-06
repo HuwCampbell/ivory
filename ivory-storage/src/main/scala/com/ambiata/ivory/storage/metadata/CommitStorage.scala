@@ -22,7 +22,7 @@ object CommitStorage {
     x <- if (exists) for {
              lines <- repository.store.linesUtf8.read(Repository.commitById(id))
              metadata <- RIO.fromDisjunctionString(fromLines.run(lines).disjunction)
-             commit <- hydrate(repository, metadata)
+             commit <- hydrate(repository, id, metadata)
            } yield commit.some
          else
            none[Commit].pure[RIO]
@@ -36,22 +36,12 @@ object CommitStorage {
         RIO.fail(s"Ivory invariant violated, no commit id $id.")
     })
 
-  def hydrate(repository: Repository, metadata: CommitMetadata): RIO[Commit] = for {
+  def hydrate(repository: Repository, id: CommitId, metadata: CommitMetadata): RIO[Commit] = for {
     dictionary <- Metadata.dictionaryFromIvory(repository, metadata.dictionaryId)
     read <- RepositoryRead.fromRepository(repository)
-    config <- metadata.configId.traverseU(id => RepositoryConfigTextStorage.loadById(id).run(read).map(id -> _))
+    config <- metadata.configId.traverseU(id => RepositoryConfigTextStorage.loadById(id).run(read).map(Identified(id, _)))
     store <- FeatureStoreTextStorage.fromId(repository, metadata.featureStoreId)
-  } yield Commit(metadata.dictionaryId, dictionary, store, config)
-
-  def increment(repository: Repository, c: CommitMetadata): RIO[CommitId] = for {
-    latest      <- latestId(repository)
-    nextId      <- RIO.fromOption[CommitId](latest.map(_.next).getOrElse(Some(CommitId.initial)),
-      s"""The number of possible commits ids for this Ivory repository has exceeded the limit (which is quite large).
-         |
-         |${Crash.raiseIssue}
-      """.stripMargin)
-    _           <- storeCommitToId(repository, nextId, c)
-  } yield nextId
+  } yield Commit(id, Identified(metadata.dictionaryId, dictionary), store, config)
 
   def fromId(repository: Repository, id: CommitId): RIO[Option[CommitMetadata]] = for {
     commitId <- listIds(repository).map(_.find(_ === id))
@@ -87,6 +77,16 @@ object CommitStorage {
           increment(repo, CommitMetadata(dictionaryId, featureStoreId, rcid)))
     }
   } yield commitId
+
+  def increment(repository: Repository, c: CommitMetadata): RIO[CommitId] = for {
+    latest      <- latestId(repository)
+    nextId      <- RIO.fromOption[CommitId](latest.map(_.next).getOrElse(Some(CommitId.initial)),
+      s"""The number of possible commits ids for this Ivory repository has exceeded the limit (which is quite large).
+         |
+         |${Crash.raiseIssue}
+      """.stripMargin)
+    _           <- storeCommitToId(repository, nextId, c)
+  } yield nextId
 
   def latestId(repository: Repository): RIO[Option[CommitId]] =
     IdentifierStorage.latestId(repository, Repository.commits).map(_.map(CommitId.apply))

@@ -3,9 +3,16 @@ package com.ambiata.ivory.core
 import argonaut._, Argonaut._
 import scalaz._, Scalaz._
 
-case class Sized[A](value: A, bytes: Bytes)
+case class Sized[A](value: A, bytes: Bytes) {
+  def map[B](f: A => B): Sized[B] =
+    Sized(f(value), bytes)
+}
 
 object Sized {
+  implicit def SizedFunctor: Functor[Sized] = new Functor[Sized] {
+    def map[A, B](v: Sized[A])(f: A => B) = v map f
+  }
+
   implicit def SizedEqual[A: Equal]: Equal[Sized[A]] =
     Equal.equal((a, b) =>  a.value === b.value && a.bytes === b.bytes)
 
