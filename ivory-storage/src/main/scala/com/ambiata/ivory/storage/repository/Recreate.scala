@@ -149,7 +149,7 @@ object Recreate { outer =>
       partitions    <- ScoobiAction.fromHdfs(Hdfs.globFiles(from.toIvoryLocation(Repository.factset(id)).toHdfsPath, "*/*/*/*/*").filterHidden)
       version        = FactsetVersionTwo
       _             <- {
-        ScoobiAction.safe(RecreateFactsetJob.run(configuration, version, dictionary, namespaces, partitions, to.toIvoryLocation(Repository.factset(id)).toHdfsPath, reducerSize, codec))
+        ScoobiAction.fromRIO(RecreateFactsetJob.run(configuration, version, dictionary, namespaces, partitions, to.toIvoryLocation(Repository.factset(id)).toHdfsPath, reducerSize, codec))
       }.unless(dry)
     } yield ()
 

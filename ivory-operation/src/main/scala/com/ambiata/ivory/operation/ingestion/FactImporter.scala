@@ -44,7 +44,7 @@ object FactImporter {
     paths      <- inputs.traverseU((prepareInput _).tupled).run(hr.configuration)
     partitions  = Namespaces.sum(paths.map(_._5).flatten)
     _          <- Hdfs.fromDisjunction(validateNamespaces(dictionary, partitions.keys.toList)).run(hr.configuration)
-    _          <- RIO.safe[Unit] {
+    _          <-
       IngestJob.run(
         hr.configuration,
         dictionary,
@@ -56,7 +56,6 @@ object FactImporter {
         errorPath,
         hr.codec
       )
-    }
   } yield ()
 
   def prepareInput(format: FileFormat, namespace: Option[Name], inputPath: Path): Hdfs[(FileFormat, Option[Name], Path, List[Path], List[(Name, BytesQuantity)])] = for {
