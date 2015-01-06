@@ -48,4 +48,11 @@ object Factsets {
         _  <- Metadata.incrementCommitFeatureStoreT(fs)
       } yield fs)
     } yield r
+
+  // TODO Remove
+  def updateFactsetMetadata(repository: Repository, factsetId: FactsetId): RIO[Unit] = for {
+    _     <- Version.write(repository, Repository.factset(factsetId), Version(FactsetVersionTwo.toString))
+    globs <- FactsetGlob.select(repository, factsetId)
+    _     <- globs.traverseU(g => FactsetManifest.io(repository, factsetId).write(FactsetManifest.create(factsetId, FactsetFormat.V2, g.partitions)))
+    } yield ()
 }

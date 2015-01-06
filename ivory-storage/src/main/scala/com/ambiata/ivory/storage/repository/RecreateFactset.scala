@@ -2,8 +2,7 @@ package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.metadata.Metadata
-import com.ambiata.ivory.storage.legacy.IvoryStorage
-import com.ambiata.ivory.storage.fact.{Namespaces, Versions}
+import com.ambiata.ivory.storage.fact.{Factsets, Namespaces, Versions}
 import com.ambiata.ivory.storage.control._
 
 import com.ambiata.notion.core.KeyName
@@ -14,7 +13,7 @@ import org.joda.time.DateTime
 import org.apache.hadoop.fs.Path
 import MemoryConversions._
 
-import scalaz._, Scalaz._, effect._
+import scalaz._, Scalaz._
 
 /**
  * This is used to recreate factsets so they have the latest format/compression/block size
@@ -26,8 +25,8 @@ object RecreateFactset {
       recreateFactset(repository, fid).map(recreated.addCompleted).on(_.mapError(e => Result.prependThis(e, recreated.failString(fid)))))
 
   def recreateFactset(repository: Repository, factset: FactsetId): IvoryTIO[OriginalFactset] =
-    IvoryT.read[ResultTIO] >>= (read => IvoryT.fromResultTIO(for {
-      hr         <- repository.asHdfsRepository[IO]
+    IvoryT.read[RIO] >>= (read => IvoryT.fromRIO(for {
+      hr         <- repository.asHdfsRepository
       config     <- Metadata.configuration.toIvoryT(repository).run(read)
       dictionary <- Metadata.latestDictionaryFromIvory(repository)
       factsetPath = hr.toIvoryLocation(Repository.factset(factset)).toHdfsPath
@@ -35,18 +34,17 @@ object RecreateFactset {
       partitions <- Hdfs.globFiles(factsetPath, HdfsGlobs.FactsetPartitionsGlob + "/*").filterHidden.run(hr.configuration)
       version    <- Versions.read(hr, factset)
       tmpOut     <- Repository.tmpDir("recreate").map(hr.toIvoryLocation)
-      _          <- ResultT.safe[IO, Unit](
-                      RecreateFactsetJob.run(hr.configuration
+      _          <- RecreateFactsetJob.run(hr.configuration
                                            , version
                                            , dictionary
                                            , namespaces
                                            , partitions
                                            , tmpOut.toHdfsPath
                                            , 1.gb // 1GB per reducer
-                                           , hr.codec))
+                                           , hr.codec)
       expired     = hr.toIvoryLocation(Repository.tmp("expired", KeyName.unsafe(factset.render + "." + DateTime.now(config.timezone).toString("yyyyMMddhhmmss"))))
       _          <- commitFactset(factsetPath, expired.toHdfsPath, tmpOut.toHdfsPath).run(hr.configuration)
-      _          <- IvoryStorage.writeFactsetVersion(hr, List(factset))
+      _          <- Factsets.updateFactsetMetadata(hr, factset)
     } yield OriginalFactset(factset, expired)))
 
   def commitFactset(factset: Path, expired: Path, tmp: Path): Hdfs[Unit] = for {
@@ -57,9 +55,9 @@ object RecreateFactset {
 
 }
 
-case class OriginalFactset(factsetId: FactsetId, path: IvoryLocation) {
+case class OriginalFactset(factsetId: FactsetId, path: HdfsIvoryLocation) {
   def stringValue: String =
-  s"${factsetId} -> ${path}"
+    s"${factsetId} -> ${path.show}"
 }
 
 case class RecreatedFactsets(completed: List[OriginalFactset], incompleted: List[FactsetId]) {
