@@ -75,3 +75,9 @@ case class ReductionValueStruct[K, V](TO: ReductionValueToPrim[V]) extends Reduc
     // NOTE: We _have_ to convert to a String key at this point
     value.setStructSparse(new ThriftFactStructSparse(d.map.asScala.map { case (k, v) => k.toString -> TO.toPrim(v)}.asJava))
 }
+
+case class ReductionValueList[A](TO: ReductionValueToPrim[A]) extends ReductionValueTo[List[A]] {
+  import scala.collection.JavaConverters._
+  def to(d: List[A], value: ThriftFactValue) =
+    value.setLst(new ThriftFactList(d.map { case a => ThriftFactListValue.p(TO.toPrim(a))}.asJava))
+}

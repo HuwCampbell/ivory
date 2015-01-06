@@ -5,7 +5,7 @@ import org.scalacheck._, Arbitrary._
 
 
 object GenValue {
-  def value: Gen[Value] =
+  def primitiveValue: Gen[PrimitiveValue] =
     Gen.frequency(
         1 -> (Gen.identifier map StringValue.apply)
       , 2 -> (arbitrary[Int] map IntValue.apply)

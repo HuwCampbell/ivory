@@ -74,7 +74,7 @@ Eavt Parse Formats
       ).run(List(feature.namespace.name, entity.value, feature.name, bad.value, date.hyphenated)).toOption must beNone)
 
   def badattribute =
-    prop((entity: Entity, value: Value, feature: FeatureId, date: Date, zone: DateTimeZone) => {
+    prop((entity: Entity, value: PrimitiveValue, feature: FeatureId, date: Date, zone: DateTimeZone) => {
       EavtParsers.fact(
         Dictionary.empty
       , feature.namespace

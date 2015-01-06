@@ -24,13 +24,13 @@ class CatThriftSpec extends Specification with ScalaCheck { def is = s2"""
     run(CatThriftFact, facts.map(_.toNamespacedThrift).map(Conversion.fact2thrift)) must beOkValue(facts.map(_.entity))
   }.set(minTestsOk = 3, maxSize = 5)
 
-  def dense = propNoShrink { (vs: List[List[Value]]) =>
+  def dense = propNoShrink { (vs: List[List[PrimitiveValue]]) =>
     val values = vs.zipWithIndex
     val t = values.map { case (v, e) => new ThriftFactDense(e.toString, v.map(valueToThrift).asJava) }
     run(CatThriftDense, t) must beOkValue(values.map(_._2.toString))
   }.set(minTestsOk = 3, maxSize = 5)
 
-  def sparse = propNoShrink { (vs: List[List[Value]]) =>
+  def sparse = propNoShrink { (vs: List[List[PrimitiveValue]]) =>
     val values = vs.zipWithIndex
     val t = values.map { case (v, e) => new ThriftFactSparse(e.toString, v.map(valueToThrift).zipWithIndex.map(x => x._2.toString -> x._1).toMap.asJava) }
     val expected = values.flatMap(v => v._1.map(_ => v._2.toString))
@@ -50,6 +50,6 @@ class CatThriftSpec extends Specification with ScalaCheck { def is = s2"""
     }
   }
 
-  def valueToThrift(value: Value): ThriftFactValue =
+  def valueToThrift(value: PrimitiveValue): ThriftFactValue =
     Conversion.value2thrift(Value.toThrift(value))
 }

@@ -63,8 +63,10 @@ object GenDictionary {
 
   // FIX ARB Could do with some polish.
   def expression(cd: ConcreteDefinition): Gen[Expression] = {
+    val numericSubs = Gen.oneOf(Sum, Min, Mean, Max, Gradient, StandardDeviation, NumFlips)
     val fallback = Gen.frequency(
       15 -> Gen.oneOf(Count, DaysSinceLatest, DaysSinceEarliest, MeanInDays, MaximumInDays, MinimumInDays,
+        Inverse(Count), Inverse(DaysSinceLatest), Inverse(DaysSinceEarliest), Inverse(Interval(Mean)),
         MeanInWeeks, MaximumInWeeks, MinimumInWeeks, CountDays, Interval(Min), Interval(Mean), Interval(Max), Interval(Gradient), Interval(StandardDeviation)),
       1 -> (for {
         q <- Gen.choose(10, 100)
@@ -75,7 +77,11 @@ object GenDictionary {
     Gen.oneOf(fallback, cd.encoding match {
       case StructEncoding(values) =>
         val subexpGen = Gen.oneOf(values.toList).flatMap {
-          case (name, sve) => subExpression(sve.encoding).map(se => StructExpression(name, se))
+          case (name, sve) => Gen.oneOf(subExpression(sve.encoding).map(se => StructExpression(name, se)),
+            if (Encoding.isNumeric(sve.encoding))
+              numericSubs.map(se => Inverse(StructExpression(name, se)))
+            else Gen.const(NumFlips).map(se => Inverse(StructExpression(name, se)))
+          )
         }
         // SumBy and CountBySecondary are a little more complicated
         (for {
@@ -83,13 +89,17 @@ object GenDictionary {
           ie <- values.find(v => v._1 != se && List(StringEncoding).contains(v._2.encoding)).map(ie => CountBySecondary(se, ie._1)) orElse
             values.find(v => List(IntEncoding, LongEncoding, DoubleEncoding).contains(v._2.encoding)).map(ie => SumBy(se, ie._1))
         } yield ie).cata(v => Gen.frequency(5 -> Gen.const(v), 5 -> subexpGen), subexpGen)
-      case p: PrimitiveEncoding   => subExpression(p).map(BasicExpression)
+      case p: PrimitiveEncoding   => Gen.oneOf(subExpression(p).map(BasicExpression),
+                  p match {
+                    case IntEncoding | LongEncoding | DoubleEncoding => numericSubs.map(x => Inverse(BasicExpression(x)))
+                    case _ => Gen.const(NumFlips).map( x=> Inverse(BasicExpression(x)))
+                  })
       case l: ListEncoding        => fallback
     })
   }
 
   def subExpression(pe: PrimitiveEncoding): Gen[SubExpression] = {
-    val all = Gen.oneOf(Latest, NumFlips)
+    val all = Gen.oneOf(Gen.const(Latest), Gen.choose(2,10).map(LatestN), Gen.const(NumFlips))
     val numeric = Gen.oneOf(Sum, Min, Mean, Max, Gradient, StandardDeviation)
     pe match {
       case IntEncoding =>
