@@ -21,7 +21,6 @@ object main {
     health.recreate,
     importDictionary,
     ingest,
-    recompress,
     snapshot,
     statsFactset,
     update
