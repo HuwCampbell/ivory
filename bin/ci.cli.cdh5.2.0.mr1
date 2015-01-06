@@ -1,0 +1,5 @@
+#!/bin/sh
+
+DIR=$(dirname $0)/..
+export PATH=${DIR}/bin:$PATH
+HADOOP="hadoop-2.5.0-cdh5.2.0" HADOOP_VERSION="cdh4" ${DIR}/ivory-cli/src/test/bin/run
