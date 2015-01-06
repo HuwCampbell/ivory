@@ -22,14 +22,16 @@ object SquashDumpJob {
   def dump(repository: Repository, snapshotId: SnapshotId, output: IvoryLocation, features: List[FeatureId],
            entities: List[String]): RIO[Unit] = for {
     dictionary <- Metadata.latestDictionaryFromIvory(repository)
-    filteredDct = if (features.isEmpty) dictionary else SquashDump.filterByConcreteOrVirtual(dictionary, features.toSet)
+    filteredDct <-
+      if (features.isEmpty) RIO.ok(dictionary)
+      else RIO.fromDisjunctionString(SquashDump.filterByConcreteOrVirtual(dictionary, features.toSet))
     lookup      = FeatureLookups.entityFilter(features.flatMap(SquashDump.lookupConcreteFromVirtual(dictionary, _)), entities)
     sm         <- SnapshotManifest.io(repository, snapshotId).read
     date       <- RIO.fromOption[SnapshotManifest](sm, s"Unknown snapshot ${snapshotId.render}").map(_.date)
     input       = Repository.snapshot(snapshotId)
 
     // When we're filtering, there's a very good chance we only need a reducer per concrete feature
-    reducers    = dictionary.byConcrete.sources.size
+    reducers    = filteredDct.byConcrete.sources.size
 
     // HDFS below here
     hr         <- repository.asHdfsRepository
