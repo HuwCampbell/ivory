@@ -50,7 +50,7 @@ object RepositoryBuilder {
     RepositoryT.runWithRepo(repo, writeFactsetVersion(factsets)).map(_.last -> factsets)
   }
   def factsFromIvoryFactset(repo: HdfsRepository, factset: FactsetId): ScoobiAction[DList[ParseError \/ Fact]] =
-    PartitionFactThriftStorageV2.PartitionedFactThriftLoader(repo, factset).loadScoobi
+    PartitionFactThriftStorageV2.loadScoobiWith(repo, factset)
 
   def writeFactsetVersion(factsets: List[FactsetId]): RepositoryTIO[List[FeatureStoreId]] =
     factsets.traverseU(Factsets.updateFeatureStore).map(_.flatten)

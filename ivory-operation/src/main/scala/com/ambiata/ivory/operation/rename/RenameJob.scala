@@ -4,7 +4,6 @@ import com.ambiata.mundane.control._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.mr.MrContextIvory
 import com.ambiata.ivory.operation.extraction.{SnapshotJob, IvoryInputs}
-import com.ambiata.ivory.storage.fact.FactsetGlob
 import com.ambiata.ivory.storage.lookup.{ReducerLookups, FactsetLookups}
 import com.ambiata.ivory.storage.task.FactsetJobKeys
 import com.ambiata.ivory.storage.plan._

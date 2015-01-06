@@ -3,6 +3,7 @@ package fact
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
+import com.ambiata.ivory.storage.partition._
 import com.ambiata.ivory.storage.manifest.FactsetManifest
 import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.mundane.control._
@@ -37,21 +38,20 @@ object Factsets {
     FactsetManifest.io(repository, id).readOrFail.map(manifest =>
       Factset(id, manifest.format, manifest.partitions.sorted))
 
-  def updateFeatureStore(factsetId: FactsetId): RepositoryTIO[Option[FeatureStoreId]] = for {
-    globs <- RepositoryT.fromRIO(r =>
-      // TODO Very very short-term hack. We'll need to do a second sweep to remove the old version completely (which shouldn't be hard)
-      FactsetGlob.select(r, factsetId))
-    r <- globs.traverseU(g => for {
-        fs <- Metadata.incrementFeatureStore(List(factsetId))
-        _  <- RepositoryT.fromRIO(r => FactsetManifest.io(r, factsetId).write(FactsetManifest.create(factsetId, FactsetFormat.V2, g.partitions)))
-        _  <- Metadata.incrementCommitFeatureStoreT(fs)
-      } yield fs)
-    } yield r
+  def updateFeatureStore(factsetId: FactsetId): RepositoryTIO[Option[FeatureStoreId]] =
+    RepositoryT.fromRIO(r => Partitions.scrapeFromFactset(r, factsetId)).flatMap(partitions =>
+      if (partitions.isEmpty)
+        none[FeatureStoreId].pure[RepositoryTIO]
+      else for {
+          fs <- Metadata.incrementFeatureStore(List(factsetId))
+          _  <- RepositoryT.fromRIO(r => FactsetManifest.io(r, factsetId).write(FactsetManifest.create(factsetId, FactsetFormat.V2, partitions)))
+          _  <- Metadata.incrementCommitFeatureStoreT(fs)
+        } yield fs.some)
 
-  // TODO Remove
-  def updateFactsetMetadata(repository: Repository, factsetId: FactsetId): RIO[Unit] = for {
-    _     <- Version.write(repository, Repository.factset(factsetId), Version(FactsetVersionTwo.toString))
-    globs <- FactsetGlob.select(repository, factsetId)
-    _     <- globs.traverseU(g => FactsetManifest.io(repository, factsetId).write(FactsetManifest.create(factsetId, FactsetFormat.V2, g.partitions)))
-    } yield ()
+  def updateFactsetMetadata(repository: Repository, factsetId: FactsetId): RIO[Unit] =
+    Partitions.scrapeFromFactset(repository, factsetId).flatMap(partitions =>
+      if (partitions.isEmpty)
+        none[FeatureStoreId].pure[RIO]
+      else
+        FactsetManifest.io(r, factsetId).write(FactsetManifest.create(factsetId, FactsetFormat.V2, partitions)))
 }

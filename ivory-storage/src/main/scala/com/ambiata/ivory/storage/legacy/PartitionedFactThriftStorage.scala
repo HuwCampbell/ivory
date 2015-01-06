@@ -7,7 +7,6 @@ import com.ambiata.notion.core._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.storage.fact.FactsetGlob
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.mr._
 import FactFormats._
@@ -24,15 +23,8 @@ trait PartitionFactThriftStorage {
   def createFact(partition: Partition, tfact: ThriftFact): Fact =
     FatThriftFact(partition.namespace.name, partition.date, tfact)
 
-  def loadScoobiWith(repo: HdfsRepository, factset: FactsetId, from: Option[Date], to: Option[Date]): ScoobiAction[DList[ParseError \/ Fact]] = for {
-    glob  <- ScoobiAction.fromRIO((from, to) match {
-               case (Some(f), Some(t)) => FactsetGlob.between(repo, factset, f, t)
-               case (Some(f), None)    => FactsetGlob.after(repo, factset, f)
-               case (None, Some(t))    => FactsetGlob.before(repo, factset, t)
-               case (None, None)       => FactsetGlob.select(repo, factset)
-             })
-    dlist <- loadScoobiFromPaths(glob.map(_.keys.map(k => repo.toIvoryLocation(k).toHdfs)).getOrElse(Nil))
-  } yield dlist
+  def loadScoobiWith(repo: HdfsRepository, factset: FactsetId): ScoobiAction[DList[ParseError \/ Fact]] =
+    loadScoobiFromPaths(List(repo.toIvoryLocation(Repository.factset(factset)).toHdfs))
 
   def loadScoobiFromPaths(paths: List[String]): ScoobiAction[DList[ParseError \/ Fact]] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
@@ -41,11 +33,6 @@ trait PartitionFactThriftStorage {
       else
         DList[ParseError \/ Fact]()
     })
-
-  case class PartitionedFactThriftLoader(repo: HdfsRepository, factset: FactsetId, from: Option[Date] = None, to: Option[Date] = None) {
-    def loadScoobi: ScoobiAction[DList[ParseError \/ Fact]] =
-      loadScoobiWith(repo, factset, from, to)
-  }
 
   val partitionPath: ((String, Date)) => String = scalaz.Memo.mutableHashMapMemo { nsd =>
     Partition.stringPath(nsd._1, nsd._2)

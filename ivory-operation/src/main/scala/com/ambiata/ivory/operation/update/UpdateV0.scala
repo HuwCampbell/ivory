@@ -6,7 +6,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.manifest._
 import com.ambiata.ivory.storage.metadata._
-import com.ambiata.ivory.storage.fact._
+import com.ambiata.ivory.storage.partition._
 import com.ambiata.ivory.storage._
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
@@ -22,8 +22,8 @@ object UpdateV0 {
   def updateFactsets: RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
     factsets <- Metadata.findFactsets(repository)
     _ <- factsets.traverseU(f => for {
-      glob <- FactsetGlob.select(repository, f)
-      _    <- glob.traverseU(g => FactsetManifest.io(repository, f).write(FactsetManifest.create(f, FactsetFormat.V2, g.partitions)))
+      partitions <- Partitions.scrapeFromFactset(repository, f).map(p => (!p.isEmpty).option(p))
+      _    <- partitions.traverseU(ps => FactsetManifest.io(repository, f).write(FactsetManifest.create(f, FactsetFormat.V2, ps)))
     } yield ())
   } yield ())
 
