@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# TODO This is not "quick" like 'hadoop-dev' due to differences in hadoop-conf.sh
+
+DIR=$(dirname $0)/..
+
+. ${DIR}/bin/hadoop-config.sh
+
+JAR="$1"; shift
+# Ignore the main class - picked up by 'hadoop jar'
+shift
+
+exec ${PROJECT}/target/${HADOOP}/bin-mapreduce1/hadoop jar ${JAR} "$@"
