@@ -23,7 +23,7 @@ class SquashDumpSpec extends Specification with ScalaCheck { def is = s2"""
     SquashDump.filterByConcreteOrVirtual(virt.dictionary append dict, Set(virt.fid)) ==== virt.dictionary.right
   })
 
-  def filterMissing = prop((dict: Dictionary, featureId: FeatureId) => {
+  def filterMissing = prop((dict: Dictionary, featureId: FeatureId) => !dict.byFeatureId.keySet.contains(featureId) ==> {
     SquashDump.filterByConcreteOrVirtual(dict, Set(featureId)).toEither must beLeft
   })
 
