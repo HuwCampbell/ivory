@@ -92,8 +92,8 @@ class EntitiesSpec extends Specification with ScalaCheck with ThrownExpectations
     id          <- arbitrary[Entity]
     datesNumber <- Gen.choose(1, 4)
     dates       <- Gen.listOfN(datesNumber, DateArbitrary.arbitrary)
-    // Make sure we sort the result in the way that is expected
-  } yield (id, dates.sorted.reverse)
+    // Make sure we filter/sort the result in the way that is expected
+  } yield (id, dates.distinct.sorted.reverse)
 
   def genEntities: Gen[Entities] = Gen.sized { n =>
     Gen.listOfN(n + 1, genEntityDates).map { list =>
