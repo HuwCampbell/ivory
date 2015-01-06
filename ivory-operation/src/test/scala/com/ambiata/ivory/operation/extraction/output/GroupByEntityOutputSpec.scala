@@ -76,7 +76,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
       denseFacts =>
         // We're not actually checking the contexts of 'value' here
         (denseFacts.map(_.getEntity).sorted, denseFacts.map(_.getValue.size()).max) ====
-        (facts.facts.groupBy(_.entity).keySet.toList.sorted -> facts.dictionary.size)
+        (facts.facts.filter(!_.isTombstone).groupBy(_.entity).keySet.toList.sorted -> facts.dictionary.size)
     }
   }.set(minTestsOk = 5, maxDiscardRatio = 10)
 
