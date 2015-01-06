@@ -9,12 +9,13 @@ import com.ambiata.ivory.operation.extraction._
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.task.FactsetJobKeys
 import com.ambiata.ivory.storage.fact._
+import com.ambiata.ivory.mr.{Counter => _, _}
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.io._
+import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs
-import org.apache.hadoop.mapreduce.{Counter, Mapper, Reducer}
 
-class RenameMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
+class RenameMapper extends CombinableMapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
 
   type MapperContext = Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context
 
@@ -38,16 +39,15 @@ class RenameMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, By
 
   var counter: Counter = null
 
-  override def setup(context: MapperContext): Unit = {
+  override def setupSplit(context: MapperContext, split: InputSplit): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
     val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, SnapshotJob.Keys.FactsetLookup,
-      SnapshotJob.Keys.FactsetVersionLookup, context.getConfiguration, context.getInputSplit)
+      SnapshotJob.Keys.FactsetVersionLookup, context.getConfiguration, split)
     converter = factsetInfo.factConverter
     priority = factsetInfo.priority
     ctx.thriftCache.pop(context.getConfiguration, RenameJob.Keys.Mapping, mapping)
     counter = context.getCounter("ivory", RenameJob.Keys.MapCounter)
   }
-
 
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
     serializer.fromBytesViewUnsafe(tfact, value.getBytes, 0, value.getLength)

@@ -1,6 +1,6 @@
 package com.ambiata.ivory.core
 
-import scalaz._
+import scalaz._, Scalaz._
 
 sealed trait Dataset {
   def fold[X](
@@ -10,6 +10,12 @@ sealed trait Dataset {
     case FactsetDataset(f) => factset(f)
     case SnapshotDataset(s) => snapshot(s)
   }
+
+  def toFactset: Option[Factset] =
+    fold(_.some, _ => none)
+
+  def toSnapshot: Option[Snapshot] =
+    fold(_ => none, _.some)
 
   def isFactset: Boolean =
     fold(_ => true, _ => false)

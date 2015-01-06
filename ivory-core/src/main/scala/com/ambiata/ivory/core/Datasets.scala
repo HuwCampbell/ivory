@@ -24,13 +24,16 @@ case class Datasets(sets: List[Prioritized[Dataset]]) {
   def bytes: Bytes =
     sets.foldMap(_.value.bytes)
 
-  def summary: DatasetsSummary  =
+  def summary: DatasetsSummary =
     sets.foldMap(p => p.value match {
       case FactsetDataset(factset) =>
         DatasetsSummary(factset.partitions.size, p.value.bytes, None)
       case SnapshotDataset(snapshot) =>
         DatasetsSummary(0, p.value.bytes, snapshot.id.some)
     })
+
+  def factsets: List[FactsetId] =
+    sets.flatMap(p => p.value.toFactset.map(_.id).toList)
 }
 
 object Datasets {

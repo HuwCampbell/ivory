@@ -3,9 +3,11 @@ package com.ambiata.ivory.operation.rename
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.control.RepositoryT._
+import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.metadata.Metadata
+import com.ambiata.ivory.storage.plan._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.BytesQuantity
 import com.nicta.scoobi.impl.ScoobiConfiguration
@@ -15,9 +17,10 @@ import scalaz._, Scalaz._
 object Rename {
 
   def rename(mapping: RenameMapping, reducerSize: BytesQuantity): RepositoryTIO[(FactsetId, Option[FeatureStoreId], RenameStats)] = for {
-    globs        <- prepareGlobsFromLatestStore(mapping)
-    lookups      <- prepareLookups(mapping, globs.map(_.value.factset.id), reducerSize)
-    renameResult <- renameWithFactsets(mapping, globs, lookups)
+    commit       <- fromRIO(repository => CommitStorage.head(repository))
+    plan         =  RenamePlan.inmemory(commit)
+    lookups      <- prepareLookups(mapping, plan.datasets.factsets, reducerSize)
+    renameResult <- renameWithFactsets(mapping, plan, lookups)
     (fsid, stats) = renameResult
     sid          <- Factsets.updateFeatureStore(fsid)
   } yield (fsid, sid, stats)
@@ -33,19 +36,11 @@ object Rename {
     lookup      = ReducerLookups.createLookups(subdict, partitions, reducerSize)
   } yield lookup
 
-  def prepareGlobsFromLatestStore(mapping: RenameMapping): RepositoryTIO[List[Prioritized[FactsetGlob]]] = for {
-    repository <- getHdfs
-    storeIdO   <- Metadata.latestFeatureStoreIdT
-    storeId    <- fromRIO(_ => RIO.fromOption[FeatureStoreId](storeIdO, "Repository doesn't yet contain a store"))
-    store      <- Metadata.featureStoreFromRepositoryT(storeId)
-    inputs     <- fromRIO(FeatureStoreGlob.filter(_, store, p => mapping.mapping.exists(_._1.namespace == p.namespace)))
-  } yield inputs.globs
-
-  def renameWithFactsets(mapping: RenameMapping, inputs: List[Prioritized[FactsetGlob]], reducerLookups: ReducerLookups): RepositoryTIO[(FactsetId, RenameStats)] = for {
+  def renameWithFactsets(mapping: RenameMapping, plan: RenamePlan, reducerLookups: ReducerLookups): RepositoryTIO[(FactsetId, RenameStats)] = for {
     factset    <- RepositoryT.fromRIO(repository => Factsets.allocateFactsetId(repository))
     hdfs       <- getHdfs
     output      = hdfs.toIvoryLocation(Repository.factset(factset)).toHdfsPath
-    stats      <- fromRIO(_ => RenameJob.run(hdfs, mapping, inputs, output, reducerLookups, hdfs.codec).run(ScoobiConfiguration(hdfs.configuration)))
+    stats      <- fromRIO(_ => RenameJob.run(hdfs, mapping, plan, output, reducerLookups))
   } yield factset -> stats
 
   def getHdfs: RepositoryTIO[HdfsRepository] =
