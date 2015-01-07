@@ -45,12 +45,12 @@ object snapshot extends IvoryApp {
                       |""".stripMargin
       println(banner)
       IvoryT.fromRIO { for {
-        of   <- Extract.parse(configuration, c.formats)
-        res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date))
-        x    <- SquashJob.squashFromSnapshotWith(repo, res.snapshot.toMetadata, c.squash, cluster)
+        of        <- Extract.parse(configuration, c.formats)
+        snapshot  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date))
+        x         <- SquashJob.squashFromSnapshotWith(repo, snapshot.toMetadata, c.squash, cluster)
         (output, dictionary) = x
-        r    <- RepositoryRead.fromRepository(repo)
-        _    <- Extraction.extract(of, output, dictionary, cluster).run(r)
-      } yield List(banner, s"Snapshot complete: ${res.snapshot.id}") }
+        r         <- RepositoryRead.fromRepository(repo)
+        _         <- Extraction.extract(of, output, dictionary, cluster).run(r)
+      } yield List(banner, s"Snapshot complete: ${snapshot.id}") }
   })
 }

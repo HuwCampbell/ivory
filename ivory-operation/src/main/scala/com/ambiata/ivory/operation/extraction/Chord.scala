@@ -50,8 +50,8 @@ object Chord {
   def planning(repository: Repository, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[ChordPlan] =
     SnapshotStorage.ids(repository).flatMap(ids => takeSnapshot match {
       case true =>
-        Snapshots.takeSnapshotOn(repository, commit, ids, entities.earliestDate).map(summary =>
-          ChordPlan.inmemory(entities, commit, List(summary.snapshot)))
+        Snapshots.takeSnapshotOn(repository, commit, ids, entities.earliestDate).map(snapshot =>
+          ChordPlan.inmemory(entities, commit, List(snapshot)))
       case false =>
         val source = Kleisli[RIO, SnapshotId, Snapshot](id => SnapshotStorage.byId(repository, id))
         ChordPlan.pessimistic(entities, commit, ids, source)
