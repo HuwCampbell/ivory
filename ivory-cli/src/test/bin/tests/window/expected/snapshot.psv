@@ -71,7 +71,7 @@ ID00000003|filter_state|age|25
 ID00000003|filter_state|adult|0
 ID00000000|halibut|mean|0.9210451973872679
 ID00000000|halibut|std_dev|0.0649531814019123
-ID00000000|halibut|gradient|0.004190527832381745
+ID00000000|halibut|gradient|0.004190527832423387
 ID00000000|halibut|sum|1.8420903947745357
 ID00000000|halibut|quantile_in_weeks|0.0
 ID00000000|halibut|quantile_in_days|0.0
@@ -87,7 +87,7 @@ ID00000000|halibut|latte|2
 ID00000000|halibut|cooldown|1
 ID00000001|halibut|mean|0.750207190217764
 ID00000001|halibut|std_dev|0.17638111079797913
-ID00000001|halibut|gradient|0.011379426503096987
+ID00000001|halibut|gradient|0.011379426503134843
 ID00000001|halibut|sum|1.500414380435528
 ID00000001|halibut|quantile_in_weeks|0.0
 ID00000001|halibut|quantile_in_days|0.0
@@ -134,7 +134,7 @@ ID00000003|halibut|cooldown|0
 ID00000000|halibut_state|swiss_cheese|0.98599837878918
 ID00000000|halibut_state|mean|0.628039118350039
 ID00000000|halibut_state|std_dev|0.41775319893651897
-ID00000000|halibut_state|gradient|0.017647657449681473
+ID00000000|halibut_state|gradient|0.01764765744974925
 ID00000000|halibut_state|sum|1.8841173550501171
 ID00000000|halibut_state|quantile_in_weeks|0.0
 ID00000000|halibut_state|quantile_in_days|0.0
@@ -151,7 +151,7 @@ ID00000000|halibut_state|cooldown|2
 ID00000001|halibut_state|swiss_cheese|0.9265883010157432
 ID00000001|halibut_state|mean|0.777375948587827
 ID00000001|halibut_state|std_dev|0.14905193846540316
-ID00000001|halibut_state|gradient|0.006905204544599392
+ID00000001|halibut_state|gradient|0.006905204544621375
 ID00000001|halibut_state|sum|2.332127845763481
 ID00000001|halibut_state|quantile_in_weeks|0.0
 ID00000001|halibut_state|quantile_in_days|0.0
