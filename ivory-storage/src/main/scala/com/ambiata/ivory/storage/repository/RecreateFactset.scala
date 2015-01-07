@@ -57,7 +57,7 @@ object RecreateFactset {
 
 case class OriginalFactset(factsetId: FactsetId, path: HdfsIvoryLocation) {
   def stringValue: String =
-    s"${factsetId} -> ${path.show}"
+    s"${factsetId.render} -> ${path.show}"
 }
 
 case class RecreatedFactsets(completed: List[OriginalFactset], incompleted: List[FactsetId]) {
@@ -73,7 +73,7 @@ case class RecreatedFactsets(completed: List[OriginalFactset], incompleted: List
     s"""Failed to recreate all factsets!
        |${successString}
        |
-       |Failed recreation: ${failedId}
+       |Failed recreation: ${failedId.render}
        |
-       |Not attempted: ${incompleted.mkString(", ")}""".stripMargin
+       |Not attempted: ${incompleted.map(_.render).mkString(", ")}""".stripMargin
 }
