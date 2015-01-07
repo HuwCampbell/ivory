@@ -31,7 +31,5 @@ Properties
          FactsetLookups.versionTable(d).getVersions.asScala.mapValues(_.toByte).toSet ====
            d.sets.flatMap(dd => dd.value.toFactset.toList.map(f => (f.id.render, f.format.toByte))).toSet) }
 
-
 """
-
 }

@@ -10,13 +10,12 @@ import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.repository.RecreateFactsetJob.Keys
 import com.ambiata.ivory.storage.repository.RecreateFactsetMapper._
 import com.ambiata.ivory.storage.task.{FactsetWritable, FactsetJob}
+import com.ambiata.ivory.storage.partition._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.{BytesQuantity, FilePath}
 import com.ambiata.poacher.mr._
-import org.apache.hadoop.conf._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io._
-import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat, SequenceFileInputFormat}
 
@@ -38,20 +37,21 @@ object RecreateFactsetJob {
    *
    *
    */
-  def run(conf: Configuration, version: FactsetVersion, dictionary: Dictionary, namespaces: List[(Namespace, BytesQuantity)],
-          partitions: List[Path], target: Path, reducerSize: BytesQuantity, codec: Option[CompressionCodec]): RIO[Unit] = {
+  def run(repository: HdfsRepository, dictionary: Dictionary, namespaces: List[(Namespace, BytesQuantity)],
+          factset: Factset, target: Path, reducerSize: BytesQuantity): RIO[Unit] = {
     val reducerLookups = ReducerLookups.createLookups(dictionary, namespaces, reducerSize)
 
-    val job = Job.getInstance(conf)
-    val ctx = FactsetJob.configureJob("ivory-recreate-factset", job, dictionary, reducerLookups, target, codec)
+    val job = Job.getInstance(repository.configuration)
+    val ctx = FactsetJob.configureJob("ivory-recreate-factset", job, dictionary, reducerLookups, target, repository.codec)
 
     /** input */
+    val partitions = Partitions.globs(repository, factset.id, factset.partitions.map(_.value))
     job.setInputFormatClass(classOf[SequenceFileInputFormat[_, _]])
     FileInputFormat.addInputPaths(job, partitions.mkString(","))
 
     /** map */
     job.setMapperClass(classOf[RecreateFactsetMapper])
-    job.getConfiguration.set(Keys.Version, version.toString)
+    job.getConfiguration.set(Keys.Version, factset.format.toStringFormat)
 
     /** run job */
     if (!job.waitForCompletion(true))
@@ -60,7 +60,7 @@ object RecreateFactsetJob {
     /** commit files to factset */
     Committer.commit(ctx, {
       case "factset" => target
-    }, true).run(conf)
+    }, true).run(repository.configuration)
   }
 
   object Keys {

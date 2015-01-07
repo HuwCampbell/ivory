@@ -7,6 +7,7 @@ import com.ambiata.ivory.storage.manifest._
 import com.ambiata.ivory.storage.legacy.FeatureStoreSnapshot
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.plan._
+import com.ambiata.notion.core.KeyName
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
 import scalaz._
@@ -37,7 +38,7 @@ object Chord {
 
   def createChordRaw(repository: Repository, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[(ShadowOutputDataset, Dictionary)] = for {
     plan     <- planning(repository, entities, commit, takeSnapshot)
-    output   <- Repository.tmpLocation(repository).flatMap(_.asHdfsIvoryLocation)
+    output   <- Repository.tmpLocation(repository, "chord").flatMap(_.asHdfsIvoryLocation)
     _        <- RIO.putStrLn(s"Total input size: ${plan.datasets.bytes}")
     reducers =  (plan.datasets.bytes.toLong / 2.gb.toBytes.value + 1).toInt // one reducer per 2GB of input
     _        <- RIO.putStrLn(s"Number of reducers: $reducers")

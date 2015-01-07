@@ -51,7 +51,7 @@ object Factsets {
   def updateFactsetMetadata(repository: Repository, factsetId: FactsetId): RIO[Unit] =
     Partitions.scrapeFromFactset(repository, factsetId).flatMap(partitions =>
       if (partitions.isEmpty)
-        none[FeatureStoreId].pure[RIO]
+        RIO.unit
       else
-        FactsetManifest.io(r, factsetId).write(FactsetManifest.create(factsetId, FactsetFormat.V2, partitions)))
+        FactsetManifest.io(repository, factsetId).write(FactsetManifest.create(factsetId, FactsetFormat.V2, partitions)))
 }

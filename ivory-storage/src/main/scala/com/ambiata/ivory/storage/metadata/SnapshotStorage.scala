@@ -20,7 +20,7 @@ object SnapshotStorage {
     bytes <- size(repository, metadata.id)
   } yield Snapshot(metadata.id, metadata.date, store, dictionary, bytes)
 
-  // FIX add size to metadata
+  /*  This should be coming from metadata, see: https://github.com/ambiata/ivory/issues/556 */
   def size(repository: Repository, id: SnapshotId): RIO[Bytes] =
     IvoryLocation.size(repository.toIvoryLocation(Repository.snapshot(id)))
 }

@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.metadata
 
 import org.specs2._
 
-class SnapshotMetadataStorageSpec extends Specification with ScalaCheck { def is = s2"""
+class SnapshotStorageSpec extends Specification with ScalaCheck { def is = s2"""
 
 Properties
 ----------
