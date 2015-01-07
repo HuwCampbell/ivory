@@ -67,9 +67,4 @@ class ReducerBench extends SimpleScalaBenchmark {
   def time_date_joda(n: Int) =
     repeat(n)(JodaDays.daysBetween(startDateJoda, dateJoda).getDays)
 
-  def time_datetime(n: Int) =
-    repeat(n)(DateTimeUtil.toSeconds(dt))
-
-  def time_datetime_joda(n: Int) =
-    repeat(n)(JodaSeconds.secondsBetween(startDateTimeJoda, datetimeJoda).getSeconds)
 }
