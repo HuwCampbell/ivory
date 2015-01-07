@@ -8,6 +8,9 @@ import com.ambiata.notion.core._
 import scalaz._, Scalaz._
 
 object SnapshotStorage {
+  def source(repository: Repository): Kleisli[RIO, SnapshotId, Option[Snapshot]] =
+    Kleisli[RIO, SnapshotId, Option[Snapshot]](id => SnapshotStorage.byId(repository, id))
+
   def allocateId(repository: Repository): RIO[SnapshotId] =
     IdentifierStorage.write(repository, Repository.snapshots, ".allocated", scodec.bits.ByteVector.empty).map(SnapshotId.apply)
 

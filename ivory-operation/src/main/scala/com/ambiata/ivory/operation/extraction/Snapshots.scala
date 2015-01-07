@@ -33,7 +33,7 @@ object Snapshots {
 
   def takeSnapshotOn(repository: Repository, commit: Commit, ids: List[SnapshotId], date: Date): RIO[Snapshot] =
     for {
-      plan <- SnapshotPlan.pessimistic(date, commit, ids, Kleisli[RIO, SnapshotId, Option[Snapshot]](id => SnapshotStorage.byId(repository, id)))
+      plan <- SnapshotPlan.pessimistic(date, commit, ids, SnapshotStorage.source(repository))
       snapshot <- plan.exact match {
         case Some(snapshot) =>
           snapshot.pure[RIO]

@@ -10,7 +10,6 @@ import com.ambiata.ivory.storage.plan._
 import com.ambiata.notion.core.KeyName
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
-import scalaz._
 
 /**
  * A Chord is the extraction of feature values for some entities at some dates
@@ -53,7 +52,6 @@ object Chord {
         Snapshots.takeSnapshotOn(repository, commit, ids, entities.earliestDate).map(snapshot =>
           ChordPlan.inmemory(entities, commit, List(snapshot)))
       case false =>
-        val source = Kleisli[RIO, SnapshotId, Option[Snapshot]](id => SnapshotStorage.byId(repository, id))
-        ChordPlan.pessimistic(entities, commit, ids, source)
+        ChordPlan.pessimistic(entities, commit, ids, SnapshotStorage.source(repository))
     })
 }
