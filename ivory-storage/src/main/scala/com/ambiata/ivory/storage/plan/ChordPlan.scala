@@ -31,7 +31,7 @@ object ChordPlan {
     entities: Entities
   , commit: Commit
   , snapshots: List[SnapshotId]
-  , getSnapshot: Kleisli[F, SnapshotId, Snapshot]
+  , getSnapshot: Kleisli[F, SnapshotId, Option[Snapshot]]
   ): F[ChordPlan] =
     ???
 
@@ -45,7 +45,7 @@ object ChordPlan {
     entities: Entities
   , commit: Commit
   , snapshots: List[SnapshotMetadata]
-  , getSnapshot: Kleisli[F, SnapshotId, Snapshot]
+  , getSnapshot: Kleisli[F, SnapshotId, Option[Snapshot]]
   ): F[ChordPlan] =
     ???
 

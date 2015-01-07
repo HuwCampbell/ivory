@@ -53,8 +53,7 @@ object Chord {
         Snapshots.takeSnapshotOn(repository, commit, ids, entities.earliestDate).map(snapshot =>
           ChordPlan.inmemory(entities, commit, List(snapshot)))
       case false =>
-        // FIX this shouldn't be or fail.
-        val source = Kleisli[RIO, SnapshotId, Snapshot](id => SnapshotStorage.byIdOrFail(repository, id))
+        val source = Kleisli[RIO, SnapshotId, Snapshot](id => SnapshotStorage.byId(repository, id))
         ChordPlan.pessimistic(entities, commit, ids, source)
     })
 }

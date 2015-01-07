@@ -34,9 +34,9 @@ object SnapshotPlan {
     at: Date
   , commit: Commit
   , snapshots: List[SnapshotId]
-  , getSnapshot: Kleisli[F, SnapshotId, Snapshot]
+  , getSnapshot: Kleisli[F, SnapshotId, Option[Snapshot]]
   ): F[SnapshotPlan] =
-    snapshots.traverse(getSnapshot.run(_).map(evaluate(at, commit, _)))
+    snapshots.traverse(getSnapshot.run(_).flatMap(evaluate(at, commit, _)))
       .map(_.flatten.sortBy(weight).headOption.getOrElse(fallback(at, commit)))
 
   /**
@@ -49,11 +49,11 @@ object SnapshotPlan {
     at: Date
   , commit: Commit
   , snapshots: List[SnapshotMetadata]
-  , getSnapshot: Kleisli[F, SnapshotId, Snapshot]
+  , getSnapshot: Kleisli[F, SnapshotId, Option[Snapshot]]
   ): F[SnapshotPlan] = {
     val candidates = snapshots.filter(_.date <= at).sortBy(metadata => ~metadata.date.int)
     findMapM(candidates)(metadata =>
-      getSnapshot.run(metadata.id).map(evaluate(at, commit, _))
+      getSnapshot.run(metadata.id).flatMap(evaluate(at, commit, _))
     ).map(_.getOrElse(fallback(at, commit)))
   }
 
