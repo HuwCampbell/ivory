@@ -3,10 +3,14 @@ package com.ambiata.ivory.storage.metadata
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage._
 import com.ambiata.mundane.control._
+import com.ambiata.notion.core._
 
 import scalaz._, Scalaz._
 
 object SnapshotStorage {
+  def allocateId(repo: Repository): RIO[SnapshotId] =
+    IdentifierStorage.write(repo, Repository.snapshots, ".allocated", scodec.bits.ByteVector.empty).map(SnapshotId.apply)
+
   def ids(repository: Repository): RIO[List[SnapshotId]] =
     repository.store.listHeads(Repository.snapshots).map(_.filterHidden).map(ids =>
       ids.flatMap(sid => SnapshotId.parse(sid.name).toList))

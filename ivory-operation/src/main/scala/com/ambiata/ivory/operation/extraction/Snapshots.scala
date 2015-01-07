@@ -48,19 +48,17 @@ object Snapshots {
     // 4. save manifest
     // 5. save stats
   def createSnapshot(repository: Repository, date: Date, commit: Commit, plan: SnapshotPlan): RIO[Snapshot] = for {
-    // FIX detangle IO and pure code here...
-    manifest <- SnapshotMetadataStorage.createSnapshotManifest(repository, date) // WTF FIX pass in commit? WTF is this magic commit thing?
-    metadata <- SnapshotMetadataStorage.toMetadata(repository, manifest) // WTF why is this not pure?
+    id       <- SnapshotStorage.allocateId(repository)
     _        <- RIO.putStrLn(s"Total input size: ${plan.datasets.bytes}")
     reducers =  (plan.datasets.bytes.toLong / 2.gb.toBytes.value + 1).toInt // one reducer per 2GB of input
     _        <- RIO.putStrLn(s"Number of reducers: $reducers")
     /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
     hr       <- repository.asHdfsRepository
-    output   =  hr.toIvoryLocation(Repository.snapshot(manifest.snapshot))
+    output   =  hr.toIvoryLocation(Repository.snapshot(id))
     stats    <- SnapshotJob.run(hr, plan, reducers, output.toHdfsPath)
-    _        <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(manifest.snapshot) / ".dictionary", commit.dictionary.value)
-    _        <- SnapshotManifest.io(repository, manifest.snapshot).write(manifest)
-    _        <- SnapshotStats.save(repository, manifest.snapshot, stats)
-    bytes    <- SnapshotStorage.size(repository, manifest.snapshot)
-  } yield Snapshot(manifest.snapshot, date, commit.store, commit.dictionary.some, bytes)
+    _        <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(id) / ".dictionary", commit.dictionary.value)
+    _        <- SnapshotManifest.io(repository, id).write(SnapshotManifest.createLatest(commit.id, id, date))
+    _        <- SnapshotStats.save(repository, id, stats)
+    bytes    <- SnapshotStorage.size(repository, id)
+  } yield Snapshot(id, date, commit.store, commit.dictionary.some, bytes)
 }
