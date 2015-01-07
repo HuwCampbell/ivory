@@ -7,7 +7,7 @@ import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.Factsets
 import com.ambiata.ivory.storage.legacy.PartitionFactThriftStorageV2
-import com.ambiata.ivory.storage.metadata.Metadata
+import com.ambiata.ivory.storage.metadata._
 import com.ambiata.poacher.mr.ThriftSerialiser
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
@@ -26,8 +26,16 @@ object RepositoryBuilder {
     })
   }
 
-  def createDictionary(repo: HdfsRepository, dictionary: Dictionary): RIO[Unit] =
-    Metadata.dictionaryToIvory(repo, dictionary)
+  def createCommit(repo: HdfsRepository, dictionary: Dictionary, facts: List[List[Fact]]): RIO[Commit] = for {
+    d          <- createDictionary(repo, dictionary)
+    r          <- createFacts(repo, facts)
+    (s, _)     =  r
+    c          <- CommitStorage.findOrCreateLatestId(repo, d, s)
+    store      <- FeatureStoreTextStorage.fromId(repo, s)
+  } yield Commit(c, Identified(d, dictionary), store, None)
+
+  def createDictionary(repo: HdfsRepository, dictionary: Dictionary): RIO[DictionaryId] =
+    DictionaryThriftStorage(repo).store(dictionary)
 
   def createRepo(repo: HdfsRepository, dictionary: Dictionary, facts: List[List[Fact]]): RIO[FeatureStoreId] = for {
     _      <- createDictionary(repo, dictionary)

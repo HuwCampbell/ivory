@@ -1,8 +1,8 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.control.RepositoryT._
 import com.ambiata.ivory.storage.control._
+import com.ambiata.ivory.storage.control.RepositoryT._
 import com.ambiata.mundane.control._
 import scalaz.effect.IO
 import scalaz._, Scalaz._

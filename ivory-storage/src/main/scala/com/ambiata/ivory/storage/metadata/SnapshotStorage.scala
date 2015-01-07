@@ -8,15 +8,26 @@ import com.ambiata.notion.core._
 import scalaz._, Scalaz._
 
 object SnapshotStorage {
-  def allocateId(repo: Repository): RIO[SnapshotId] =
-    IdentifierStorage.write(repo, Repository.snapshots, ".allocated", scodec.bits.ByteVector.empty).map(SnapshotId.apply)
+  def allocateId(repository: Repository): RIO[SnapshotId] =
+    IdentifierStorage.write(repository, Repository.snapshots, ".allocated", scodec.bits.ByteVector.empty).map(SnapshotId.apply)
 
   def ids(repository: Repository): RIO[List[SnapshotId]] =
     repository.store.listHeads(Repository.snapshots).map(_.filterHidden).map(ids =>
       ids.flatMap(sid => SnapshotId.parse(sid.name).toList))
 
-  def byId(repository: Repository, id: SnapshotId): RIO[Snapshot] =
-    SnapshotMetadataStorage.byIdOrFail(repository, id).flatMap(byMetadata(repository, _))
+  def byId(repository: Repository, id: SnapshotId): RIO[Option[Snapshot]] =
+    SnapshotMetadataStorage.byId(repository, id).flatMap(_.traverse(byMetadata(repository, _)))
+
+  def byIdOrFail(repository: Repository, id: SnapshotId): RIO[Snapshot] =
+    byId(repository, id).flatMap({
+      case Some(s) =>
+        s.pure[RIO]
+      case None =>
+        RIO.fail(s"Ivory invariant violated, could not locate snapshot data for $id")
+    })
+
+  def list(repository: Repository): RIO[List[Snapshot]] =
+    ids(repository).flatMap(_.traverse(byId(repository, _)).map(_.flatten))
 
   def byMetadata(repository: Repository, metadata: SnapshotMetadata): RIO[Snapshot] = for {
     store <- FeatureStoreTextStorage.fromId(repository, metadata.storeId)

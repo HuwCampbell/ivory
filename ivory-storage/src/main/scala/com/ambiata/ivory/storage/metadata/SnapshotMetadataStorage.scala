@@ -7,10 +7,8 @@ import com.ambiata.mundane.control._
 import scalaz._, Scalaz._
 
 object SnapshotMetadataStorage {
-  def byId(repository: Repository, id: SnapshotId): RIO[Option[SnapshotMetadata]] = for {
-    manifest <- SnapshotManifest.io(repository, id).read
-    metadata <- manifest.traverseU(fromManifest(repository, _))
-  } yield metadata
+  def byId(repository: Repository, id: SnapshotId): RIO[Option[SnapshotMetadata]] =
+    SnapshotManifest.io(repository, id).read.flatMap(_.traverseU(fromManifest(repository, _)))
 
   def byIdOrFail(repository: Repository, id: SnapshotId): RIO[SnapshotMetadata] =
     byId(repository, id).flatMap({
