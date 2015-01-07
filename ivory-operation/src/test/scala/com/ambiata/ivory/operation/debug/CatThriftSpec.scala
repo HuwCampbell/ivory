@@ -7,7 +7,7 @@ import com.ambiata.ivory.operation.ingestion.thrift._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.testing.RIOMatcher._
-import com.ambiata.notion.core.SequenceUtil
+import com.ambiata.notion.core.{KeyName, SequenceUtil}
 import com.ambiata.poacher.mr.ThriftSerialiser
 import org.specs2._
 import scalaz.{Value => _, _}, Scalaz._
@@ -39,8 +39,8 @@ class CatThriftSpec extends Specification with ScalaCheck { def is = s2"""
 
   def run[A <: ThriftLike](format: CatThriftFormat, thrifts: List[A]): RIO[List[String]] = {
     RepositoryBuilder.using { repo => for {
-      i <- Repository.tmpDir(repo).map(repo.toIvoryLocation)
-      o <- Repository.tmpDir(repo).map(repo.toIvoryLocation)
+      i <- Repository.tmpDir("cat-thrift-spec").map(repo.toIvoryLocation)
+      o <- Repository.tmpDir("cat-thrift-spec").map(repo.toIvoryLocation)
       _ <- SequenceUtil.writeHdfsBytes(i.location, repo.configuration, repo.codec) {
         w => RIO.io(thrifts.map(t => w(ThriftSerialiser().toBytes(t)))).void
       }.run(repo.configuration)

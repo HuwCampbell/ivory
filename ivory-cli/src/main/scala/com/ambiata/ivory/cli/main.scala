@@ -18,10 +18,9 @@ object main {
     debug.catThrift,
     debug.dumpFacts,
     debug.dumpReduction,
+    health.recreate,
     importDictionary,
     ingest,
-    recompress,
-    recreate,
     snapshot,
     statsFactset,
     update

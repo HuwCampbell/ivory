@@ -66,7 +66,7 @@ object Chord {
       _                     = println(s"Calculating globs using, store = ${store.id}, latest date = ${entities.latestDate}, snapshot: ${featureStoreSnapshot.map(_.snapshotId)}.")
       factsetGlobs         <- calculateGlobs(repository, store, entities.latestDate, featureStoreSnapshot)
       _                     = println(s"Calculated ${factsetGlobs.size} globs.")
-      outputPath           <- Repository.tmpDir(repository)
+      outputPath           <- Repository.tmpDir("chord")
       hdfsIvoryLocation    <- repository.toIvoryLocation(outputPath).asHdfsIvoryLocation
       out                   = ShadowOutputDataset.fromIvoryLocation(hdfsIvoryLocation)
       /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */

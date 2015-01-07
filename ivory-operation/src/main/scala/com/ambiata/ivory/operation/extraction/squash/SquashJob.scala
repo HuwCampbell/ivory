@@ -10,6 +10,7 @@ import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FileName
 import com.ambiata.mundane.io.MemoryConversions._
+import com.ambiata.notion.core._
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
@@ -54,7 +55,7 @@ object SquashJob {
     // This is about the best we can do at the moment, until we have more size information about each feature
     rs     <- ReducerSize.calculate(input.hdfsPath, 1.gb).run(cluster.hdfsConfiguration)
     _      <- initJob(job._1, input.hdfsPath)
-    key    <- Repository.tmpDir(repository)
+    key    <- Repository.tmpDir("squash")
     hr     <- repository.asHdfsRepository
     shadow = ShadowOutputDataset.fromIvoryLocation(hr.toIvoryLocation(key))
     prof   <- run(job._1, job._2, rs, dictionary, shadow.hdfsPath, cluster.codec, conf, latest = true)

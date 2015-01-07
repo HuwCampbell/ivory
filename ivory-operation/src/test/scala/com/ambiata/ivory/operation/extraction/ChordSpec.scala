@@ -3,6 +3,7 @@ package com.ambiata.ivory.operation.extraction
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.RIOMatcher._
+import com.ambiata.notion.core._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.mr.FactFormats._
@@ -54,7 +55,7 @@ ChordSpec
             _                <- RepositoryBuilder.createRepo(repo, dictionary, facts.allFacts)
             entitiesLocation =  IvoryLocation.fromDirPath(directory </> "entities")
             _                <- IvoryLocation.writeUtf8Lines(entitiesLocation, entities)
-            out              <- Repository.tmpDir(repo).map(repo.toIvoryLocation)
+            out              <- Repository.tmpDir("chord-spec").map(repo.toIvoryLocation)
             output           = OutputDataset(out.location)
             outPath          <- Chord.createChordWithSquash(repo, entitiesLocation, facts.takeSnapshot, SquashConfig.testing, cluster)
             facts            <- RIO.safe[List[Fact]](valueFromSequenceFile[Fact](outPath._1.hdfsPath.toString).run.toList)

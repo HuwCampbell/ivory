@@ -13,7 +13,7 @@ import scalaz._, Scalaz._, effect.IO
 object Extraction {
 
   def extract(formats: OutputFormats, input: ShadowOutputDataset, dictionary: Dictionary, cluster: Cluster): RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
-    t <- Repository.tmpDir(repository)
+    t <- Repository.tmpDir("extraction")
     i = repository.toIvoryLocation(t)
     h <- i.asHdfsIvoryLocation
     s = ShadowOutputDataset(h.location)

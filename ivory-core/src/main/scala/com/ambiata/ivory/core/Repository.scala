@@ -120,6 +120,7 @@ object Repository {
   def namespace(set: FactsetId, namespace: Name): Key = factset(set)  / namespace.asKeyName
   def snapshot(id: SnapshotId): Key                   = snapshots     / id.asKeyName
   def version(set: FactsetId): Key                    = factset(set)  / ".version"
+  def tmp(task: KeyName, context: KeyName): Key       = root          / task / context
 
   def parseUri(uri: String, repositoryConfiguration: IvoryConfiguration): String \/ Repository =
     IvoryLocation.parseUri(uri, repositoryConfiguration).map(fromIvoryLocation(_, repositoryConfiguration))
@@ -134,6 +135,6 @@ object Repository {
   }
 
   /** Creates a unique [[Key]] that can be used as a temporary directory (but doesn't actually create it) */
-  def tmpDir(repository: Repository): RIO[Key] =
-    RIO.safe(Repository.root / "tmp" / KeyName.fromUUID(java.util.UUID.randomUUID))
+  def tmpDir(task: KeyName): RIO[Key] =
+    RIO.safe(Repository.tmp(task, KeyName.fromUUID(java.util.UUID.randomUUID)))
 }
