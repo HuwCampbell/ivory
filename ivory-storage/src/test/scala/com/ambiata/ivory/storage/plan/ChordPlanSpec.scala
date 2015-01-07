@@ -12,7 +12,7 @@ import scala.collection.JavaConverters._
 object ChordPlanSpec extends Specification with ScalaCheck { def is = s2"""
 
 ChordPlan
-============
+=========
 
 Scenario 1 - Planning a Chord, where there are valid incremental snapshots
 --------------------------------------------------------------------------
@@ -21,6 +21,12 @@ Scenario 1 - Planning a Chord, where there are valid incremental snapshots
   snapshot as the ChordPlan.
 
     ${scenario1.consistency}
+
+  The pessismistic and inmemory strategies should always return the same result.
+    ${scenario1.consistency2}
+
+  The conservative and inmemory strategies should always return the same result.
+    ${scenario1.consistency3}
 
 
 Invariants 1 - Things that always hold true for ChordPlan
@@ -43,12 +49,23 @@ Invariants 1 - Things that always hold true for ChordPlan
   import SnapshotPlanSpec._
 
   object scenario1 {
-
     def consistency = prop((scenario: RepositoryScenario) => {
       val entities = Entities(scenario.entities.asJava)
       val chord = ChordPlan.inmemory(entities, scenario.commit, scenario.snapshots)
       val snapshot = SnapshotPlan.inmemory(entities.earliestDate, scenario.commit, scenario.snapshots)
       chord.snapshot ==== snapshot.snapshot })
+
+    def consistency2 = prop((scenario: RepositoryScenario) => {
+      val entities = Entities(scenario.entities.asJava)
+      val memory = ChordPlan.inmemory(entities, scenario.commit, scenario.snapshots)
+      val pessimistic = ChordPlan.pessimistic(entities, scenario.commit, scenario.snapshots.map(_.id), source(scenario.snapshots))
+      pessimistic ==== memory })
+
+    def consistency3 = prop((scenario: RepositoryScenario) => {
+      val entities = Entities(scenario.entities.asJava)
+      val memory = ChordPlan.inmemory(entities, scenario.commit, scenario.snapshots)
+      val conservative = ChordPlan.conservative(entities, scenario.commit, scenario.snapshots.map(_.id), source(scenario.snapshots))
+      conservative ==== memory })
   }
 
   object invariants1 {
@@ -72,5 +89,4 @@ Invariants 1 - Things that always hold true for ChordPlan
 
   def validSnapshotEntities(scenario: RepositoryScenario): Boolean =
     validSnapshotAt(scenario, Entities(scenario.entities.asJava).earliestDate)
-
 }

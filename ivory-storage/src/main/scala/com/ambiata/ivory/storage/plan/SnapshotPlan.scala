@@ -41,6 +41,27 @@ object SnapshotPlan {
 
   /**
    * Determine the plan datasets for the given snapshot 'at' date, and repository
+   * state using a conservative strategy to determine validity using all
+   * snapshots and select best using a weighting function. This is the same as the
+   * pessimisitc strategy except that it gains a smaller memory footprint by
+   * performing additional IO.
+   */
+  def conservative[F[_]: Monad](
+    at: Date
+  , commit: Commit
+  , snapshots: List[SnapshotId]
+  , getSnapshot: Kleisli[F, SnapshotId, Option[Snapshot]]
+  ): F[SnapshotPlan] =
+    snapshots.traverse(getSnapshot.run(_).map(s => for {
+      snapshot <- s
+      plan <- evaluate(at, commit, snapshot)
+    } yield snapshot.id -> weight(plan))).flatMap(_.flatten.sortBy(_._2).headOption.traverse({
+      case (id, _) =>
+        getSnapshot(id).map(_.flatMap(evaluate(at, commit, _)))
+    })).map(_.flatten.getOrElse(fallback(at, commit)))
+
+  /**
+   * Determine the plan datasets for the given snapshot 'at' date, and repository
    * state using an optimistic strategy to using SnapshotMetadata to filter
    * candidates and order by 'likelihood', and then take the first valid
    * snapshot that it hits.

@@ -42,6 +42,21 @@ object ChordPlan {
 
   /**
    * Determine the plan datasets for the given chord entites, and repository
+   * state using a conservative strategy to determine validity using all
+   * snapshots and select best using a weighting function. This is the
+   * same as pessimisitic this uses requires memory at the cost of more io.
+   */
+  def conservative[F[_]: Monad](
+    entities: Entities
+  , commit: Commit
+  , snapshots: List[SnapshotId]
+  , getSnapshot: Kleisli[F, SnapshotId, Option[Snapshot]]
+  ): F[ChordPlan] =
+    SnapshotPlan.conservative(entities.earliestDate, commit, snapshots, getSnapshot).map(p =>
+      ChordPlan(entities, commit, p.snapshot, build(entities, commit, p)))
+
+  /**
+   * Determine the plan datasets for the given chord entites, and repository
    * state using an optimistic strategy to using SnapshotMetadata to filter
    * candidates and order by 'likelihood', and then take the first valid
    * snapshot that it hits.

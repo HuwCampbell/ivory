@@ -45,6 +45,9 @@ Scenario 1 - Planning a Snapshot, where there are valid incremental snapshots
   The pessismistic and inmemory strategies should always return the same result.
     ${scenario1.consistency}
 
+  The conservative and inmemory strategies should always return the same result.
+    ${scenario1.consistency2}
+
   All partitions at or before the snapshot 'at' date and after the incremental
   snapshot date must be included (and no others).
     ${scenario1.soundness}
@@ -173,6 +176,11 @@ Invariants 1 - Things that always hold true for SnapshotPlan
       prop((scenario: RepositoryScenario) =>
         SnapshotPlan.inmemory(scenario.at, scenario.commit, scenario.snapshots) ====
           SnapshotPlan.pessimistic(scenario.at, scenario.commit, scenario.snapshots.map(_.id), source(scenario.snapshots)))
+
+    def consistency2 =
+      prop((scenario: RepositoryScenario) =>
+        SnapshotPlan.inmemory(scenario.at, scenario.commit, scenario.snapshots) ====
+          SnapshotPlan.conservative(scenario.at, scenario.commit, scenario.snapshots.map(_.id), source(scenario.snapshots)))
 
     // this is a critical test, be very, very careful if you ever want to change this, the basic
     // idea is that we are doing a cross check and calculating the datasets in a different way
