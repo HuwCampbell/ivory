@@ -230,8 +230,8 @@ object build extends Build {
     logBuffered := false
   , cancelable := true
   , fork in Test := Option(System.getenv("NO_FORK")).map(_ != "true").getOrElse(true)
-  , javaOptions in Test ++= Seq("-Dfile.encoding=UTF8", "-XX:MaxPermSize=512m", "-Xms512m", "-Xmx2g", "-XX:+CMSClassUnloadingEnabled", "-XX:+UseConcMarkSweepGC", "-Dlog4j.configuration=file:../etc/log4j-test.properties")
-  , testOptions in Test += Tests.Setup(() => System.setProperty("log4j.configuration", "file:../etc/log4j-test.properties"))
+  , javaOptions in Test ++= Seq("-Dfile.encoding=UTF8", "-XX:MaxPermSize=512m", "-Xms512m", "-Xmx2g", "-XX:+CMSClassUnloadingEnabled", "-XX:+UseConcMarkSweepGC")
+  , testOptions in Test += Tests.Setup(() => System.setProperty("log4j.configuration", "file:etc/log4j-test.properties"))
   , testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "tracefilter", "/.*specs2.*,.*mundane.testing.*")
   , testOptions in Test ++= (if (Option(System.getenv("FORCE_AWS")).isDefined || Option(System.getenv("AWS_ACCESS_KEY")).isDefined)
                                Seq()
