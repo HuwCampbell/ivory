@@ -7,6 +7,7 @@ import com.ambiata.ivory.mr.MapString
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.parse._
 import com.ambiata.ivory.storage.task.{FactsetWritable, FactsetJob}
+import com.ambiata.mundane.control._
 import com.ambiata.poacher.mr._
 
 import scalaz.{Name =>_, Reducer => _, Value => _, _}
@@ -28,7 +29,7 @@ import org.joda.time.DateTimeZone
 object IngestJob {
   def run(conf: Configuration, dictionary: Dictionary, reducerLookups: ReducerLookups, ivoryZone: DateTimeZone,
           ingestZone: Option[DateTimeZone], inputs: List[(FileFormat, Option[Name], Path, List[Path])], target: Path,
-          errors: Path, codec: Option[CompressionCodec]): Unit = {
+          errors: Path, codec: Option[CompressionCodec]): RIO[Unit] = {
 
     val job = Job.getInstance(conf)
     val ctx = FactsetJob.configureJob("ivory-ingest", job, dictionary, reducerLookups, target, codec)
@@ -67,8 +68,7 @@ object IngestJob {
     Committer.commit(ctx, {
       case "errors"  => errors
       case "factset" => target
-    }, true).run(conf).run.unsafePerformIO()
-    ()
+    }, true).run(conf)
   }
 
   object Keys {

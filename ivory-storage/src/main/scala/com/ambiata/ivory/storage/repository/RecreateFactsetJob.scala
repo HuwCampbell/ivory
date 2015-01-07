@@ -11,6 +11,7 @@ import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.repository.RecreateFactsetJob.Keys
 import com.ambiata.ivory.storage.repository.RecreateFactsetMapper._
 import com.ambiata.ivory.storage.task.{FactsetWritable, FactsetJob}
+import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.{BytesQuantity, FilePath}
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.conf._
@@ -39,7 +40,7 @@ object RecreateFactsetJob {
    *
    */
   def run(conf: Configuration, version: FactsetVersion, dictionary: Dictionary, namespaces: List[(Name, BytesQuantity)],
-          partitions: List[Path], target: Path, reducerSize: BytesQuantity, codec: Option[CompressionCodec]): Unit = {
+          partitions: List[Path], target: Path, reducerSize: BytesQuantity, codec: Option[CompressionCodec]): RIO[Unit] = {
     val reducerLookups = ReducerLookups.createLookups(dictionary, namespaces, reducerSize)
 
     val job = Job.getInstance(conf)
@@ -60,8 +61,7 @@ object RecreateFactsetJob {
     /** commit files to factset */
     Committer.commit(ctx, {
       case "factset" => target
-    }, true).run(conf).run.unsafePerformIO
-    ()
+    }, true).run(conf)
   }
 
   object Keys {
