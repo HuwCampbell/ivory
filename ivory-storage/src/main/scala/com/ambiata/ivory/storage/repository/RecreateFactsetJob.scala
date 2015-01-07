@@ -101,12 +101,7 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
       case Success(p) => p
       case Failure(e) => Crash.error(Crash.Serialization, s"Can not parse partition $e")
     }
-
-    createFact =
-      if (FactsetFormat.fromString(version) == Some(FactsetFormat.V2))
-        (tfact: ThriftFact) => PartitionFactThriftStorageV2.createFact(partition, tfact)
-      else
-        (tfact: ThriftFact) => PartitionFactThriftStorageV1.createFact(partition, tfact)
+    createFact = PartitionFactThriftStorage.createFact(partition, _)
   }
 
   val serializer = ThriftSerialiser()

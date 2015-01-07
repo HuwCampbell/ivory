@@ -10,9 +10,9 @@ sealed trait VersionedFactConverter {
 }
 case class VersionOneFactConverter(partition: Partition) extends VersionedFactConverter {
   def convert(tfact: ThriftFact): Fact =
-    PartitionFactThriftStorageV1.createFact(partition, tfact)
+    PartitionFactThriftStorage.createFact(partition, tfact)
 }
 case class VersionTwoFactConverter(partition: Partition) extends VersionedFactConverter {
   def convert(tfact: ThriftFact): Fact =
-    PartitionFactThriftStorageV2.createFact(partition, tfact)
+    PartitionFactThriftStorage.createFact(partition, tfact)
 }

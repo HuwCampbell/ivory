@@ -5,7 +5,7 @@ import com.ambiata.ivory.core.TemporaryIvoryConfiguration._
 import com.ambiata.ivory.core.thrift.NamespacedThriftFact
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.fact.Factsets
-import com.ambiata.ivory.storage.legacy.PartitionFactThriftStorageV2
+import com.ambiata.ivory.storage.legacy.PartitionFactThriftStorage
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.poacher.mr.ThriftSerialiser
 import com.ambiata.mundane.control._
@@ -60,7 +60,7 @@ object RepositoryBuilder {
   }
 
   def factsFromIvoryFactset(repo: HdfsRepository, factset: FactsetId): ScoobiAction[DList[ParseError \/ Fact]] =
-    PartitionFactThriftStorageV2.loadScoobiWith(repo, factset)
+    PartitionFactThriftStorage.loadScoobiWith(repo, factset)
 
   def writeFactsetVersion(factsets: List[FactsetId]): RepositoryTIO[List[FeatureStoreId]] =
     factsets.traverseU(Factsets.updateFeatureStore).map(_.flatten)
