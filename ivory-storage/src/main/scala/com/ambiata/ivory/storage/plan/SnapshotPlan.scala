@@ -36,7 +36,7 @@ object SnapshotPlan {
   , snapshots: List[SnapshotId]
   , getSnapshot: Kleisli[F, SnapshotId, Option[Snapshot]]
   ): F[SnapshotPlan] =
-    snapshots.traverse(getSnapshot.run(_).flatMap(evaluate(at, commit, _)))
+    snapshots.traverse(getSnapshot.run(_).map(s => s.flatMap(evaluate(at, commit, _))))
       .map(_.flatten.sortBy(weight).headOption.getOrElse(fallback(at, commit)))
 
   /**
@@ -52,9 +52,9 @@ object SnapshotPlan {
   , getSnapshot: Kleisli[F, SnapshotId, Option[Snapshot]]
   ): F[SnapshotPlan] = {
     val candidates = snapshots.filter(_.date <= at).sortBy(metadata => ~metadata.date.int)
-    findMapM(candidates)(metadata =>
-      getSnapshot.run(metadata.id).flatMap(evaluate(at, commit, _))
-    ).map(_.getOrElse(fallback(at, commit)))
+    findMapM(candidates)(metadata => {
+      getSnapshot.run(metadata.id).map(s => s.flatMap(evaluate(at, commit, _)))
+    }).map(_.getOrElse(fallback(at, commit)))
   }
 
   /**
@@ -65,11 +65,15 @@ object SnapshotPlan {
    */
   def evaluate(at: Date, commit: Commit, snapshot: Snapshot): Option[SnapshotPlan] =
     isValid(at, commit, snapshot).option({
-      val included = commit.store.unprioritizedIds.toSet
-      SnapshotPlan(at, commit, snapshot.some,
-        Datasets(Dataset.prioritizedSnapshot(snapshot) ::
-                 Dataset.within(commit.store, snapshot.date, at) :::
-                 Dataset.to(commit.store.filterByFactsetId(id => !included.contains(id)), at)).prune) })
+      // work out what data is included in the snapshot
+      val included = snapshot.store.unprioritizedIds.toSet
+      // This is all the factset data that was available at the snapshot date, but not included in the snapshot
+      val before = Dataset.to(commit.store.filterByFactsetId(id => !included.contains(id)), snapshot.date)
+      // This is all the factset data after the snapshot date and before the at date (from both, before and after snapshot)
+      val after = Dataset.within(commit.store, snapshot.date, at)
+      // include the snapshot itself in the dataset
+      val s = Dataset.prioritizedSnapshot(snapshot)
+      SnapshotPlan(at, commit, snapshot.some, Datasets(s :: before ::: after).prune) })
 
   /**
    * Determine the weight of the dataset, a lower weight is better, and the lowest weight

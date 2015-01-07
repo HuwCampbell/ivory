@@ -1,8 +1,8 @@
 package com.ambiata.ivory.storage.plan
 
-import com.ambiata.ivory.core._ //, Lists.findMapM
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.entities._
-import scalaz._//, Scalaz._
+import scalaz._, Scalaz._
 
 case class ChordPlan(entities: Entities, commit: Commit, snapshot: Option[Snapshot], datasets: Datasets)
 
@@ -20,8 +20,12 @@ object ChordPlan {
     entities: Entities
   , commit: Commit
   , snapshots: List[Snapshot]
-  ): ChordPlan =
-    ???
+  ): ChordPlan = {
+    val p = SnapshotPlan.inmemory(entities.earliestDate, commit, snapshots)
+    val datasets = build(entities, commit, p)
+    ChordPlan(entities, commit, p.snapshot, datasets)
+  }
+
   /**
    * Determine the plan datasets for the given chord entites, and repository
    * state using a pessismistic strategy to determine validity using all
@@ -33,7 +37,8 @@ object ChordPlan {
   , snapshots: List[SnapshotId]
   , getSnapshot: Kleisli[F, SnapshotId, Option[Snapshot]]
   ): F[ChordPlan] =
-    ???
+    SnapshotPlan.pessimistic(entities.earliestDate, commit, snapshots, getSnapshot).map(p =>
+      ChordPlan(entities, commit, p.snapshot, build(entities, commit, p)))
 
   /**
    * Determine the plan datasets for the given chord entites, and repository
@@ -47,18 +52,19 @@ object ChordPlan {
   , snapshots: List[SnapshotMetadata]
   , getSnapshot: Kleisli[F, SnapshotId, Option[Snapshot]]
   ): F[ChordPlan] =
-    ???
+    SnapshotPlan.optimistic(entities.earliestDate, commit, snapshots, getSnapshot).map(p =>
+      ChordPlan(entities, commit, p.snapshot, build(entities, commit, p)))
 
 
-/*
-  def calculateGlobs(repository: Repository, featureStore: FeatureStore, latestDate: Date,
-                     featureStoreSnapshot: Option[FeatureStoreSnapshot]): RIO[List[Prioritized[FactsetGlob]]] =
-    featureStoreSnapshot.cata(snapshot => for {
-      oldGlobs    <- FeatureStoreGlob.strictlyAfterAndBefore(repository, snapshot.store, snapshot.date, latestDate).map(_.globs)
-      newFactsets  = featureStore diff snapshot.store
-      _            = println(s"Reading factsets up to '$latestDate'\n${newFactsets.factsets}")
-      newGlobs    <- FeatureStoreGlob.before(repository, newFactsets, latestDate).map(_.globs)
-    } yield oldGlobs ++ newGlobs, FeatureStoreGlob.before(repository, featureStore, latestDate).map(_.globs))
-*/
-
+  /**
+   * ChordPlan is effectively a special case of SnapshotPlan where we use the
+   * most recent date in the entities file as the 'at' date. This assumes that the
+   * provided SnapshotPlan is for the oldest date in the entities file, this makes
+   * this method _unsafe_ to call without the contextual checks in the planning
+   * methods above, and as such is being made private to prevent it from being
+   * called to ensure the invariant can't be violated.
+   */
+  private def build(entities: Entities, commit: Commit, snapshot: SnapshotPlan): Datasets =
+    snapshot.snapshot.flatMap(SnapshotPlan.evaluate(entities.latestDate, commit, _)).map(_.datasets).getOrElse(
+      Datasets(Dataset.to(commit.store, entities.latestDate)))
 }

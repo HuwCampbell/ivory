@@ -13,8 +13,10 @@ object RenamePlan {
    * Determine the plan datasets for the given commit using an in memory
    * strategy.
    */
-  def inmemory(
-    commit: Commit
-  ): RenamePlan =
-    ???
+  def inmemory(commit: Commit, ids: List[FeatureId]): RenamePlan = {
+    val namespaces = ids.map(_.namespace).toSet
+    val selected = commit.store.filterByPartition(p => namespaces.contains(p.namespace))
+    val datasets = Datasets(selected.toDataset).prune
+    RenamePlan(commit, datasets)
+  }
 }

@@ -4,6 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
+import com.ambiata.ivory.storage.manifest._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core._
@@ -44,9 +45,10 @@ class FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
   def factsets = prop { factsets: Factsets =>
     val expected = factsets.factsets.map(fs => fs.copy(partitions = fs.partitions.sorted)).sortBy(_.id)
     RepositoryBuilder.using { repo =>
-
       factsets.factsets.traverseU(fs =>
-        fs.partitions.traverseU(p => writeDataFile(repo, Repository.factset(fs.id) / p.value.key))
+        fs.partitions.traverseU(p =>
+          writeDataFile(repo, Repository.factset(fs.id) / p.value.key)) >>
+            FactsetManifest.io(repo, fs.id).write(FactsetManifest.create(fs.id, FactsetFormat.V2, fs.partitions))
       ) >> Factsets.factsets(repo)
     } must beOkLike(_ must containTheSameElementsAs(expected))
   }.set(minTestsOk = 10)
@@ -54,9 +56,9 @@ class FactsetsSpec extends Specification with ScalaCheck { def is = s2"""
   def factset = prop { factset: Factset =>
     val expected = factset.copy(partitions = factset.partitions.sorted)
     RepositoryBuilder.using { repo =>
-
       factset.partitions.traverseU(p => writeDataFile(repo, Repository.factset(factset.id) / p.value.key)) >>
-        Factsets.factset(repo, factset.id)
+        FactsetManifest.io(repo, factset.id).write(FactsetManifest.create(factset.id, FactsetFormat.V2, factset.partitions)) >>
+          Factsets.factset(repo, factset.id)
     } must beOkValue(expected)
   }.set(minTestsOk = 10)
 

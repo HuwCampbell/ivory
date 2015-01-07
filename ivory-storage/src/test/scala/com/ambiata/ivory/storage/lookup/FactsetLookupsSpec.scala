@@ -14,7 +14,7 @@ Properties
 
     ${ prop((d: Datasets) =>
          FactsetLookups.priorityTable(d).getPriorities.size ====
-           d.sets.filter(_.value.isFactset).size) }
+           d.sets.filter(_.value.isFactset).size ) }
 
     ${ prop((d: Datasets) =>
          FactsetLookups.priorityTable(d).getPriorities.asScala.mapValues(_.toShort).toSet ====

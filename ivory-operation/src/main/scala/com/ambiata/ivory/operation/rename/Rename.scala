@@ -18,20 +18,19 @@ object Rename {
 
   def rename(mapping: RenameMapping, reducerSize: BytesQuantity): RepositoryTIO[(FactsetId, Option[FeatureStoreId], RenameStats)] = for {
     commit       <- fromRIO(repository => CommitStorage.head(repository))
-    plan         =  RenamePlan.inmemory(commit)
-    lookups      <- prepareLookups(mapping, plan.datasets.factsets, reducerSize)
+    plan         =  RenamePlan.inmemory(commit, mapping.oldFeatures)
+    lookups      <- prepareLookups(commit, mapping, plan.datasets.factsets, reducerSize)
     renameResult <- renameWithFactsets(mapping, plan, lookups)
     (fsid, stats) = renameResult
     sid          <- Factsets.updateFeatureStore(fsid)
   } yield (fsid, sid, stats)
 
-  def prepareLookups(mapping: RenameMapping, factsets: List[FactsetId], reducerSize: BytesQuantity): RepositoryTIO[ReducerLookups] = for {
-    dictionary <- Metadata.latestDictionaryFromRepositoryT
+  def prepareLookups(commit: Commit, mapping: RenameMapping, factsets: List[FactsetId], reducerSize: BytesQuantity): RepositoryTIO[ReducerLookups] = for {
     hdfs       <- getHdfs
-    subdict     = renameDictionary(mapping, dictionary)
+    subdict     = renameDictionary(mapping, commit.dictionary.value)
     namespaces  = subdict.byFeatureId.groupBy(_._1.namespace).keys.toList
     partitions <- fromRIO(_ => Namespaces.allNamespaceSizes(hdfs, namespaces, factsets).run(hdfs.configuration))
-    _          <- fromRIO(_ => RIO.fromDisjunction[Unit](validate(mapping, dictionary).leftMap(\&/.This.apply)))
+    _          <- fromRIO(_ => RIO.fromDisjunction[Unit](validate(mapping, commit.dictionary.value).leftMap(\&/.This.apply)))
     // Create a subset of the dictionary with only the featureIds that we care about
     lookup      = ReducerLookups.createLookups(subdict, partitions, reducerSize)
   } yield lookup

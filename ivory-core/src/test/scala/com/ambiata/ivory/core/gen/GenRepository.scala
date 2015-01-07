@@ -10,7 +10,7 @@ import scalaz.scalacheck.ScalaCheckBinding._
 
 object GenRepository {
   def size: Gen[Long] =
-    Gen.choose(0L, Long.MaxValue)
+    Gen.choose(0L, Int.MaxValue.toLong)
 
   def bytes: Gen[Bytes] =
     size.map(Bytes.apply)

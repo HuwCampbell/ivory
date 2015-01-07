@@ -40,7 +40,6 @@ object RecreateFactsetJob {
   def run(repository: HdfsRepository, dictionary: Dictionary, namespaces: List[(Namespace, BytesQuantity)],
           factset: Factset, target: Path, reducerSize: BytesQuantity): RIO[Unit] = {
     val reducerLookups = ReducerLookups.createLookups(dictionary, namespaces, reducerSize)
-
     val job = Job.getInstance(repository.configuration)
     val ctx = FactsetJob.configureJob("ivory-recreate-factset", job, dictionary, reducerLookups, target, repository.codec)
 
