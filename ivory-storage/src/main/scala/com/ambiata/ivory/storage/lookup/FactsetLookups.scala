@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FactsetLookup, FactsetVersionLookup}
 
 object FactsetLookups {
-  def priorityDatasets(datasets: Datasets): FactsetLookup = {
+  def priorityTable(datasets: Datasets): FactsetLookup = {
     val lookup = new FactsetLookup
     datasets.sets.foreach(p => p.value match {
       case FactsetDataset(factset) =>
@@ -15,7 +15,7 @@ object FactsetLookups {
     lookup
   }
 
-  def versionDatasets(datasets: Datasets): FactsetVersionLookup = {
+  def versionTable(datasets: Datasets): FactsetVersionLookup = {
     val lookup = new FactsetVersionLookup
     datasets.sets.foreach(p => p.value match {
       case FactsetDataset(factset) =>

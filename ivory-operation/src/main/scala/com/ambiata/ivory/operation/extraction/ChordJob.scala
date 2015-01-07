@@ -67,8 +67,8 @@ object ChordJob {
     })
 
     // cache / config initializtion
-    ctx.thriftCache.push(job, Keys.FactsetLookup, FactsetLookups.priorityDatasets(plan.datasets))
-    ctx.thriftCache.push(job, Keys.FactsetVersionLookup, FactsetLookups.versionDatasets(plan.datasets))
+    ctx.thriftCache.push(job, Keys.FactsetLookup, FactsetLookups.priorityTable(plan.datasets))
+    ctx.thriftCache.push(job, Keys.FactsetVersionLookup, FactsetLookups.versionTable(plan.datasets))
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup(plan.commit.dictionary.value))
     ctx.thriftCache.push(job, Keys.ChordEntitiesLookup, Entities.toChordEntities(plan.entities))
     ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(plan.commit.dictionary.value))

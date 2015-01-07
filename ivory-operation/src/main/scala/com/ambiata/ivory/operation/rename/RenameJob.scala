@@ -58,10 +58,10 @@ object RenameJob {
 
       /* cache / config initializtion */
       ctx.thriftCache.push(job, Keys.Mapping, RenameMapping.toThrift(mapping, reducerLookups.features))
-      ctx.thriftCache.push(job, SnapshotJob.Keys.FactsetLookup, FactsetLookups.priorityDatasets(plan.datasets))
+      ctx.thriftCache.push(job, SnapshotJob.Keys.FactsetLookup, FactsetLookups.priorityTable(plan.datasets))
       ctx.thriftCache.push(job, ReducerLookups.Keys.NamespaceLookup, reducerLookups.namespaces)
       ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,   reducerLookups.reducers)
-      ctx.thriftCache.push(job, SnapshotJob.Keys.FactsetVersionLookup, FactsetLookups.versionDatasets(plan.datasets))
+      ctx.thriftCache.push(job, SnapshotJob.Keys.FactsetVersionLookup, FactsetLookups.versionTable(plan.datasets))
 
       /* run job */
       if (!job.waitForCompletion(true))
