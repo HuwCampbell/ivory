@@ -12,7 +12,7 @@ $IVORY cat-facts "${REPOSITORY}/factsets/00000000/halibut/2014/*/*/*" | sort > "
 diff_test "${DIR}/expected/halibut-facts.psv" "${TARGET}/facts.psv"
 
 ### recreate the factset
-$IVORY recreate-factset -r "${REPOSITORY}" -f "00000000"
+$IVORY health-recreate -r "${REPOSITORY}" -f "00000000"
 
 ### check factset after recreation ###
 $IVORY cat-facts "${REPOSITORY}/factsets/00000000/halibut/2014/*/*/*" | sort > "${TARGET}/facts.psv"
