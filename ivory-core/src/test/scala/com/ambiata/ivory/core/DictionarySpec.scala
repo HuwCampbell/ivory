@@ -44,6 +44,7 @@ Exists:
 Windows:
   Same number of window entries as concrete features             $windowCount
   Windows match feature windows                                  $window
+  Window counts match                                            $windowAllCounts
 
 """
 
@@ -122,4 +123,11 @@ Windows:
       case Virtual(id, definition) =>
         definition.window.toList
     }).toSet)
+
+  def windowAllCounts = prop((d: Dictionary) =>
+    d.windows.features.map(v => v.id -> v.windows.size).toSet ====
+      d.byConcrete.sources.toList.map({
+        case (id, group) =>
+          id -> group.virtual.map(_._2.window.toList.size).sum
+      }).toSet)
 }

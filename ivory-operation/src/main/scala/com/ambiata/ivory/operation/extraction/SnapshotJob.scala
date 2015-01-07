@@ -91,10 +91,10 @@ object SnapshotJob {
     }
   }
 
-  def windowTable(dictionary: Dictionary, ranges: FeatureRanges): (FeatureIdLookup, SnapshotWindowLookup) = {
+  def windowTable(dictionary: Dictionary, ranges: Ranges[FeatureId]): (FeatureIdLookup, SnapshotWindowLookup) = {
     val featureIdLookup = FeatureLookups.featureIdTable(dictionary)
     val windowLookup = new SnapshotWindowLookup(new java.util.HashMap[Integer, Integer])
-    ranges.features.foreach(range => {
+    ranges.values.foreach(range => {
       val id = featureIdLookup.getIds.get(range.id.toString)
       windowLookup.putToWindow(id, range.fromOrMax.int)
     })

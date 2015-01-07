@@ -74,6 +74,12 @@ trait Arbitraries {
   implicit def FeatureStoreIdArbitrary: Arbitrary[FeatureStoreId] =
     Arbitrary(GenIdentifier.store)
 
+  implicit def FeatureWindowArbitrary: Arbitrary[FeatureWindow] =
+    Arbitrary(GenDictionary.featureWindow)
+
+  implicit def FeatureWindowsArbitrary: Arbitrary[FeatureWindows] =
+    Arbitrary(GenDictionary.featureWindows)
+
   implicit def FileFormatArbitrary: Arbitrary[FileFormat] =
     Arbitrary(GenFileFormat.format)
 
@@ -115,6 +121,12 @@ trait Arbitraries {
 
   implicit def PriorityArbitrary: Arbitrary[Priority] =
     Arbitrary(Gen.choose(Priority.Min.toShort, Priority.Max.toShort).map(Priority.unsafe))
+
+  implicit def RangeArbitrary[A: Arbitrary]: Arbitrary[Range[A]] =
+    Arbitrary(GenDictionary.range[A])
+
+  implicit def RangesArbitrary[A: Arbitrary: Equal]: Arbitrary[Ranges[A]] =
+    Arbitrary(GenDictionary.ranges[A])
 
   implicit def RepositoryConfigArbitrary: Arbitrary[RepositoryConfig] =
     Arbitrary(GenRepository.repositoryConfig)

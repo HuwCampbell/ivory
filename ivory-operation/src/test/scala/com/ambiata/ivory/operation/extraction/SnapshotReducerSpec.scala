@@ -30,7 +30,7 @@ SnapshotReducerSpec
       Definition.concrete(fid, e, m, None, fid.toString, Nil)
     }))
     val index = dictionary.byFeatureIndex.map({ case (n, d) => d.featureId -> n })
-    val lookup = SnapshotJob.windowTable(dictionary, FeatureRanges(l.list.map({ case (f, date) => FeatureRange(f, date.toList, x) })))._2
+    val lookup = SnapshotJob.windowTable(dictionary, Ranges(l.list.map({ case (f, date) => Range(f, date.toList, x) })))._2
     val a = SnapshotReducer.windowLookupToArray(lookup)
     seqToResult(l.list.map {
       case (fid, w) => a(index(fid)) ==== w.getOrElse(Date.maxValue).int
