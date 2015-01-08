@@ -22,12 +22,7 @@ object SnapshotStorage {
     SnapshotMetadataStorage.byId(repository, id).flatMap(_.traverse(byMetadata(repository, _)))
 
   def byIdOrFail(repository: Repository, id: SnapshotId): RIO[Snapshot] =
-    byId(repository, id).flatMap({
-      case Some(s) =>
-        s.pure[RIO]
-      case None =>
-        RIO.fail(s"Ivory invariant violated, could not locate snapshot data for $id")
-    })
+    byId(repository, id).flatMap(RIO.fromOption(_, s"Ivory invariant violated, could not locate snapshot data for $id"))
 
   def list(repository: Repository): RIO[List[Snapshot]] =
     ids(repository).flatMap(_.traverse(byId(repository, _)).map(_.flatten))
