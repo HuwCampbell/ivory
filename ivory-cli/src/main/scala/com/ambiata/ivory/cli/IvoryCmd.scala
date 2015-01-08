@@ -70,22 +70,23 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
 
 object IvoryCmd {
   def diagnostic(repository: Repository, flags: IvoryFlags): RIO[Unit] =
-    RIO.putStrLn(s"""================================================================================
-                    |
-                    |Ivory:
-                    |  Version:             ${IvoryVersion.get.version}
-                    |  Path:                ${repository.root.show}
-                    |  Planning Strategy:   ${flags.plan.render}
-                    |
-                    |Hadoop:
-                    |  Version:             ${org.apache.hadoop.util.VersionInfo.getVersion}
-                    |
-                    |JVM:
-                    |  Version:             ${System.getProperty("java.version")}
-                    |  Maximum Memory:      ${Runtime.getRuntime.maxMemory}
-                    |
-                    |================================================================================
-                    |""".stripMargin)
+    RIO.safe(System.err.println(
+      s"""================================================================================
+         |
+         |Ivory:
+         |  Version:             ${IvoryVersion.get.version}
+         |  Path:                ${repository.root.show}
+         |  Planning Strategy:   ${flags.plan.render}
+         |
+         |Hadoop:
+         |  Version:             ${org.apache.hadoop.util.VersionInfo.getVersion}
+         |
+         |JVM:
+         |  Version:             ${System.getProperty("java.version")}
+         |  Maximum Memory:      ${Runtime.getRuntime.maxMemory}
+         |
+         |================================================================================
+         |""".stripMargin))
 
   def withRepo[A](parser: scopt.OptionParser[A], initial: A,
                   runner: Repository => IvoryConfiguration => IvoryFlags => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
