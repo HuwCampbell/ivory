@@ -19,7 +19,7 @@ sealed trait StrategyFlag {
     case PessimisticStrategyFlag =>
       "pessimistic"
     case OptimisticStrategyFlag =>
-      "optimisitic"
+      "optimistic"
     case ConservativeStrategyFlag =>
       "conservative"
   }
@@ -36,7 +36,7 @@ object StrategyFlag {
   def fromString(s: String): Option[StrategyFlag] = s match {
     case "pessimistic" =>
       PessimisticStrategyFlag.some
-    case "optimisitic" =>
+    case "optimistic" =>
       OptimisticStrategyFlag.some
     case "conservative" =>
       ConservativeStrategyFlag.some
