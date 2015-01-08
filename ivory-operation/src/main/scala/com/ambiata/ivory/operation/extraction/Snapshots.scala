@@ -33,7 +33,7 @@ object Snapshots {
 
   def takeSnapshotOn(repository: Repository, flags: IvoryFlags, commit: Commit, ids: List[SnapshotId], date: Date): RIO[Snapshot] =
     for {
-      plan <- SnapshotPlan.pessimistic(date, commit, ids, SnapshotStorage.source(repository))
+      plan <- planner(repository, flags, commit, ids, date)
       snapshot <- plan.exact match {
         case Some(snapshot) =>
           snapshot.pure[RIO]
@@ -61,4 +61,17 @@ object Snapshots {
     _        <- SnapshotStats.save(repository, id, stats)
     bytes    <- SnapshotStorage.size(repository, id)
   } yield Snapshot(id, date, commit.store, commit.dictionary.some, bytes)
+
+  def planner(repository: Repository, flags: IvoryFlags, commit: Commit, ids: List[SnapshotId], date: Date): RIO[SnapshotPlan] = {
+    val source = SnapshotStorage.source(repository)
+    flags.plan match {
+      case PessimisticStrategyFlag =>
+        SnapshotPlan.pessimistic(date, commit, ids, source)
+      case OptimisticStrategyFlag =>
+        ids.traverse(SnapshotMetadataStorage.byId(repository, _)).flatMap(metadatas =>
+          SnapshotPlan.optimistic(date, commit, metadatas.flatten, source))
+      case ConservativeStrategyFlag =>
+        SnapshotPlan.conservative(date, commit, ids, source)
+    }
+  }
 }
