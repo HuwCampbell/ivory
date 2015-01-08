@@ -27,7 +27,7 @@ class CommitStorageSpec extends Specification with ScalaCheck { def is = s2"""
 
   def readCommit = prop { (commit: CommitMetadata, commitId: CommitId) =>
     TemporaryDirPath.withDirPath { dir =>
-      val repo = LocalRepository.create(dir, IvoryFlags.default)
+      val repo = LocalRepository.create(dir)
       storeCommitToId(repo, commitId, commit) >>
       fromId(repo, commitId)
     } must beOkValue(Some(commit))
@@ -35,7 +35,7 @@ class CommitStorageSpec extends Specification with ScalaCheck { def is = s2"""
 
   def writeCommit = prop { (commit: CommitMetadata, commitId: CommitId) =>
     TemporaryDirPath.withDirPath { dir =>
-      val repo = LocalRepository.create(dir, IvoryFlags.default)
+      val repo = LocalRepository.create(dir)
       storeCommitToId(repo, commitId, commit) >>
       repo.store.linesUtf8.read(Repository.commitById(commitId))
     } must beOkLike(_ must_== toLines(commit))
@@ -43,7 +43,7 @@ class CommitStorageSpec extends Specification with ScalaCheck { def is = s2"""
 
   def listCommitIds = prop { ids: CommitIds =>
     TemporaryDirPath.withDirPath { dir =>
-      val repo = LocalRepository.create(dir, IvoryFlags.default)
+      val repo = LocalRepository.create(dir)
       writeCommitIds(repo, ids.ids) >>
       Metadata.listCommitIds(repo).map(_.toSet)
     } must beOkValue(ids.ids.toSet)
@@ -51,7 +51,7 @@ class CommitStorageSpec extends Specification with ScalaCheck { def is = s2"""
 
   def latestCommitId = prop { ids: CommitIds =>
     TemporaryDirPath.withDirPath { dir =>
-      val repo = LocalRepository.create(dir, IvoryFlags.default)
+      val repo = LocalRepository.create(dir)
       writeCommitIds(repo, ids.ids) >>
       Metadata.latestCommitId(repo)
     } must beOkValue(ids.ids.sortBy(_.id).lastOption)

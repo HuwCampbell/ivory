@@ -16,7 +16,7 @@ object config extends IvoryApp {
     help("help") text "shows this usage text"
   }
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(), repo => conf => {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(), repo => flags => conf => {
     case CliArguments() =>
       (for {
         config <- Metadata.configuration

@@ -69,12 +69,13 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
 }
 
 object IvoryCmd {
-  def diagnostic(repo: Repository): RIO[Unit] =
+  def diagnostic(repository: Repository, flags: IvoryFlags): RIO[Unit] =
     RIO.putStrLn(s"""================================================================================
                     |
                     |Ivory:
                     |  Version:             ${IvoryVersion.get.version}
-                    |  Planning Strategy:   ${repo.flags.plan.render}
+                    |  Path:                ${repository.root.show}
+                    |  Planning Strategy:   ${flags.plan.render}
                     |
                     |Hadoop:
                     |  Version:             ${org.apache.hadoop.util.VersionInfo.getVersion}
@@ -87,14 +88,14 @@ object IvoryCmd {
                     |""".stripMargin)
 
   def withRepo[A](parser: scopt.OptionParser[A], initial: A,
-                  runner: Repository => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
-    withRepoBypassVersionCheck(parser, initial, repo => config => c =>
-      checkVersion.toIvoryT(repo) >> runner(repo)(config)(c))
+                  runner: Repository => IvoryConfiguration => IvoryFlags => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
+    withRepoBypassVersionCheck(parser, initial, repo => config => flags => c =>
+      checkVersion.toIvoryT(repo) >> runner(repo)(config)(flags)(c))
   }
 
   /** Should _only_ be called by upgrade - everything else related to a repository should call [[withRepo]] */
   def withRepoBypassVersionCheck[A](parser: scopt.OptionParser[A], initial: A,
-                                    runner: Repository => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
+                                    runner: Repository => IvoryConfiguration => IvoryFlags => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
     // Oh god this is an ugly/evil hack - the world will be a better place when we upgrade to Pirate
     // Composition, it's a thing scopt, look it up
     var repoArg: Option[String] = None
@@ -108,26 +109,28 @@ object IvoryCmd {
       for {
         repoPath        <- IvoryT.fromRIO { RIO.fromOption[String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
           "-r|--repository was missing or environment variable IVORY_REPOSITORY not set") }
-        repo            <- IvoryT.fromRIO { Repository.fromUri(repoPath, config, strategy.cata(IvoryFlags.apply, IvoryFlags.default)) }
-        result          <- runner(repo)(config)(c)
+        flags           =  strategy.cata(IvoryFlags.apply, IvoryFlags.default)
+        repo            <- IvoryT.fromRIO { Repository.fromUri(repoPath, config) }
+        _               <- IvoryT.fromRIO { diagnostic(repo, flags) }
+        result          <- runner(repo)(config)(flags)(c)
       } yield result
     ))
   }
 
   def withCluster[A](parser: scopt.OptionParser[A], initial: A,
-                     runner: Repository => Cluster  => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
+                     runner: Repository => Cluster  => IvoryConfiguration => IvoryFlags => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
     var syncParallelismArg: Option[Int] = None
     var shadowRepoArg: Option[String] = None
     parser.opt[String]("shadow-repository") action { (x, c) => shadowRepoArg = Some(x); c} optional() text
       "Path to a shadow repository, defaults to environment variable SHADOW_REPOSITORY if set"
     parser.opt[Int]("sync-parallelism") action { (x, c) => syncParallelismArg = Some(x); c} optional() text
       "Number of parallel nodes to run operations with, defaults to 20"
-    withRepo(parser, initial, repo => config => c =>
+    withRepo(parser, initial, repo => config => flags => c =>
       for {
         shadowPath      <- IvoryT.fromRIO[String] { RIO.ok(shadowRepoArg.orElse(sys.env.get("SHADOW_REPOSITORY")).getOrElse(s"/tmp/ivory-shadow-${UUID.randomUUID()}")) }
         syncParallelism <- IvoryT.fromRIO { RIO.ok[Int](syncParallelismArg.getOrElse(20)) }
-        cluster         = Cluster.fromIvoryConfiguration(new Path(shadowPath), config, syncParallelism)
-        result          <- runner(repo)(cluster)(config)(c)
+        cluster         =  Cluster.fromIvoryConfiguration(new Path(shadowPath), config, syncParallelism)
+        result          <- runner(repo)(cluster)(config)(flags)(c)
       } yield result
     )
   }

@@ -23,20 +23,19 @@ sealed trait Repository {
   def store: Store[RIO]
   def root: IvoryLocation
   def toIvoryLocation(key: Key): IvoryLocation
-  def flags: IvoryFlags
 
   /** This is far from ok, but is acting as a magnet for broken code that depends on this
       nonsense casting. This will be removed with s3 changes. */
   def asHdfsRepository: RIO[HdfsRepository] =
     this match {
-      case h @ HdfsRepository(_, _) =>
+      case h @ HdfsRepository(_) =>
         h.pure[RIO]
       case _ =>
         RIO.fail[HdfsRepository]("This ivory operation currently only supports hdfs repositories.")
     }
 }
 
-case class HdfsRepository(root: HdfsIvoryLocation, flags: IvoryFlags) extends Repository {
+case class HdfsRepository(root: HdfsIvoryLocation) extends Repository {
   def configuration       = root.configuration
   def scoobiConfiguration = root.scoobiConfiguration
   def codec               = root.codec
@@ -48,21 +47,21 @@ case class HdfsRepository(root: HdfsIvoryLocation, flags: IvoryFlags) extends Re
 }
 
 object HdfsRepository {
-  def create(dir: DirPath, ivory: IvoryConfiguration, flags: IvoryFlags): HdfsRepository =
-    apply(HdfsLocation(dir.path), ivory, flags)
+  def create(dir: DirPath, ivory: IvoryConfiguration): HdfsRepository =
+    apply(HdfsLocation(dir.path), ivory)
 
-  def apply(location: HdfsLocation, ivory: IvoryConfiguration, flags: IvoryFlags): HdfsRepository =
-    new HdfsRepository(HdfsIvoryLocation(location, ivory.configuration, ivory.scoobiConfiguration, ivory.codec), flags)
+  def apply(location: HdfsLocation, ivory: IvoryConfiguration): HdfsRepository =
+    new HdfsRepository(HdfsIvoryLocation(location, ivory.configuration, ivory.scoobiConfiguration, ivory.codec))
 
-  def fromUri(uri: String, ivory: IvoryConfiguration, flags: IvoryFlags): RIO[HdfsRepository] =
-    Repository.fromUri(uri, ivory, flags).flatMap {
+  def fromUri(uri: String, ivory: IvoryConfiguration): RIO[HdfsRepository] =
+    Repository.fromUri(uri, ivory).flatMap {
       case h: HdfsRepository => RIO.ok[HdfsRepository](h)
       case r                 => RIO.fail[HdfsRepository](s"${r.root.show} is not an HDFS repository")
     }
 
 }
 
-case class LocalRepository(root: LocalIvoryLocation, flags: IvoryFlags) extends Repository {
+case class LocalRepository(root: LocalIvoryLocation) extends Repository {
   def store = PosixStore(root.dirPath)
 
   def toIvoryLocation(key: Key): LocalIvoryLocation =
@@ -70,11 +69,11 @@ case class LocalRepository(root: LocalIvoryLocation, flags: IvoryFlags) extends 
 }
 
 object LocalRepository {
-  def create(dir: DirPath, flags: IvoryFlags): LocalRepository =
-    apply(LocalLocation(dir.path), flags)
+  def create(dir: DirPath): LocalRepository =
+    apply(LocalLocation(dir.path))
 
-  def apply(location: LocalLocation, flags: IvoryFlags): LocalRepository =
-    new LocalRepository(LocalIvoryLocation(location), flags)
+  def apply(location: LocalLocation): LocalRepository =
+    new LocalRepository(LocalIvoryLocation(location))
 }
 
 /**
@@ -83,7 +82,7 @@ object LocalRepository {
  * tmpDirectory is a transient directory (on Hdfs) that is used to import data and
  * convert them to the ivory format before pushing them to S3
  */
-case class S3Repository(root: S3IvoryLocation, s3TmpDirectory: DirPath, flags: IvoryFlags) extends Repository {
+case class S3Repository(root: S3IvoryLocation, s3TmpDirectory: DirPath) extends Repository {
   def store = S3Store(S3Prefix(root.location.bucket, root.location.key), root.s3Client, s3TmpDirectory)
 
   def toIvoryLocation(key: Key): S3IvoryLocation =
@@ -91,8 +90,8 @@ case class S3Repository(root: S3IvoryLocation, s3TmpDirectory: DirPath, flags: I
 }
 
 object S3Repository {
-  def apply(location: S3Location, ivory: IvoryConfiguration, flags: IvoryFlags): S3Repository =
-    new S3Repository(S3IvoryLocation(location, ivory.s3Client), ivory.s3TmpDirectory, flags)
+  def apply(location: S3Location, ivory: IvoryConfiguration): S3Repository =
+    new S3Repository(S3IvoryLocation(location, ivory.s3Client), ivory.s3TmpDirectory)
 }
 
 object Repository {
@@ -123,16 +122,16 @@ object Repository {
   def version(set: FactsetId): Key                         = factset(set)  / ".version"
   def tmp(task: KeyName, context: KeyName): Key            = root          / task / context
 
-  def parseUri(uri: String, repositoryConfiguration: IvoryConfiguration, flags: IvoryFlags): String \/ Repository =
-    IvoryLocation.parseUri(uri, repositoryConfiguration).map(fromIvoryLocation(_, repositoryConfiguration, flags))
+  def parseUri(uri: String, repositoryConfiguration: IvoryConfiguration): String \/ Repository =
+    IvoryLocation.parseUri(uri, repositoryConfiguration).map(fromIvoryLocation(_, repositoryConfiguration))
 
-  def fromUri(uri: String, repositoryConfiguration: IvoryConfiguration, flags: IvoryFlags): RIO[Repository] =
-    RIO.fromDisjunction[Repository](parseUri(uri, repositoryConfiguration, flags).leftMap(This.apply))
+  def fromUri(uri: String, repositoryConfiguration: IvoryConfiguration): RIO[Repository] =
+    RIO.fromDisjunction[Repository](parseUri(uri, repositoryConfiguration).leftMap(This.apply))
 
-  def fromIvoryLocation(location: IvoryLocation, repositoryConfiguration: IvoryConfiguration, flags: IvoryFlags): Repository = location match {
-    case l: HdfsIvoryLocation  => HdfsRepository(l, flags)
-    case l: LocalIvoryLocation => LocalRepository(l, flags)
-    case l: S3IvoryLocation    => S3Repository(l, repositoryConfiguration.s3TmpDirectory, flags)
+  def fromIvoryLocation(location: IvoryLocation, repositoryConfiguration: IvoryConfiguration): Repository = location match {
+    case l: HdfsIvoryLocation  => HdfsRepository(l)
+    case l: LocalIvoryLocation => LocalRepository(l)
+    case l: S3IvoryLocation    => S3Repository(l, repositoryConfiguration.s3TmpDirectory)
   }
 
   /** Creates a unique [[Key]] that can be used as a temporary directory (but doesn't actually create it) */

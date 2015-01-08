@@ -36,7 +36,7 @@ object ingest extends IvoryApp {
 
   val cmd = IvoryCmd.withCluster[CliArguments](parser,
       CliArguments(Nil, None, 256.mb),
-      repo => cluster => configuration => c => for {
+      repo => cluster => configuration => _ => c => for {
         inputs  <- IvoryT.fromRIO(RIO.fromDisjunctionString(
           c.inputs.traverseU(InputFormat.fromString).flatMap(_.traverseU {
             case (f, ns, i) => IvoryLocation.parseUri(i, configuration).map(il => (f, ns, il))

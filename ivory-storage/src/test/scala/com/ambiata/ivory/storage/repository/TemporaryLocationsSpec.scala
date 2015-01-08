@@ -36,13 +36,13 @@ class TemporaryLocationsSpec extends Specification { def is = s2"""
 
 """
   def s3Repository =
-    withRepository(c => S3Repository(createUniqueS3Location(c), c.s3TmpDirectory, IvoryFlags.default))
+    withRepository(c => S3Repository(createUniqueS3Location(c), c.s3TmpDirectory))
 
   def localRepository =
-    withRepository(_ => LocalRepository(createUniqueLocalLocation, IvoryFlags.default))
+    withRepository(_ => LocalRepository(createUniqueLocalLocation))
 
   def hdfsRepository =
-    withRepository(c => HdfsRepository(createUniqueHdfsLocation(c), IvoryFlags.default))
+    withRepository(c => HdfsRepository(createUniqueHdfsLocation(c)))
 
   def s3Store =
     withStore(c => S3Store(S3Prefix(testBucket, s3TempPath), c.s3Client, c.s3TmpDirectory))

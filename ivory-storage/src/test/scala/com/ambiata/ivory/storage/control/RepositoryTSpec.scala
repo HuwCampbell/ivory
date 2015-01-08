@@ -19,7 +19,7 @@ RepositoryT Laws
 
   implicit def RepositoryTEqual[M[_]](implicit M: Equal[M[Int]]): Equal[RepositoryT[M, Int]] = new Equal[RepositoryT[M, Int]] {
     def equal(a1: RepositoryT[M, Int], a2: RepositoryT[M, Int]): Boolean = {
-      val read = RepositoryRead.fromIvoryRead(LocalRepository(LocalLocation("/"), IvoryFlags.default), IvoryRead.create)
+      val read = RepositoryRead.fromIvoryRead(LocalRepository(LocalLocation("/")), IvoryRead.create)
       val mb1: M[Int] = a1.run(read)
       val mb2: M[Int] = a2.run(read)
       M.equal(mb1, mb2)

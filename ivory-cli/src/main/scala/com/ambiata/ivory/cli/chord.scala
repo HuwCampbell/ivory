@@ -28,7 +28,7 @@ object chord extends IvoryApp {
         "WARNING: Decreasing this number will degrade performance."
   })(c => f => c.copy(formats = f(c.formats)))
 
-  val cmd = IvoryCmd.withCluster[CliArguments](parser, CliArguments("", true, SquashConfig.default, ExtractOutput()), { repo => cluster => conf => c =>
+  val cmd = IvoryCmd.withCluster[CliArguments](parser, CliArguments("", true, SquashConfig.default, ExtractOutput()), { repo => cluster => conf => flags => c =>
     IvoryT.fromRIO { for {
       ent  <- IvoryLocation.fromUri(c.entities, conf)
       of   <- Extract.parse(conf, c.formats)

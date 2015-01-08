@@ -31,7 +31,7 @@ object snapshot extends IvoryApp {
   })(c => f => c.copy(formats = f(c.formats)))
 
   val cmd = IvoryCmd.withCluster[CliArguments](parser, CliArguments(LocalDate.now(), SquashConfig.default, ExtractOutput()), {
-    repo => cluster => configuration => c =>
+    repo => cluster => configuration => flags => c =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
                       |

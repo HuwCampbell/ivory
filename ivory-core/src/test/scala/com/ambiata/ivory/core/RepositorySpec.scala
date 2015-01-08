@@ -23,30 +23,29 @@ Repository Known Answer Tests
 
 """
   lazy val conf = IvoryConfiguration.fromScoobiConfiguration(ScoobiConfiguration())
-  lazy val flags = IvoryFlags.default
 
   def hdfs =
-    Repository.parseUri("hdfs:///some/path", conf, flags) must
-      be_\/-(HdfsRepository(HdfsLocation("/some/path"), conf, flags))
+    Repository.parseUri("hdfs:///some/path", conf) must
+      be_\/-(HdfsRepository(HdfsLocation("/some/path"), conf))
 
   def s3 =
-    Repository.parseUri("s3://bucket/key", conf, flags) must
-      be_\/-(S3Repository(S3Location("bucket", "key"), conf, flags))
+    Repository.parseUri("s3://bucket/key", conf) must
+      be_\/-(S3Repository(S3Location("bucket", "key"), conf))
 
   def local =
-    Repository.parseUri("file:///some/path", conf, flags) must
-      be_\/-(LocalRepository(LocalLocation("/some/path"), flags))
+    Repository.parseUri("file:///some/path", conf) must
+      be_\/-(LocalRepository(LocalLocation("/some/path")))
 
   def relative =
-    Repository.parseUri("file:some/path", conf, flags) must
-      be_\/-(LocalRepository(LocalLocation("some/path"), flags))
+    Repository.parseUri("file:some/path", conf) must
+      be_\/-(LocalRepository(LocalLocation("some/path")))
 
   def dfault =
-    Repository.parseUri("/some/path", conf, flags) must
-      be_\/-(HdfsRepository(HdfsLocation("/some/path"), conf, flags))
+    Repository.parseUri("/some/path", conf) must
+      be_\/-(HdfsRepository(HdfsLocation("/some/path"), conf))
 
   def fragment =
-    Repository.parseUri("some/path", conf, flags) must
-      be_\/-(HdfsRepository(HdfsIvoryLocation(HdfsLocation((DirPath.unsafe(new File(".").getAbsolutePath).dirname </> "some" </> "path").path), conf.configuration, conf.scoobiConfiguration, conf.codec), flags))
+    Repository.parseUri("some/path", conf) must
+      be_\/-(HdfsRepository(HdfsIvoryLocation(HdfsLocation((DirPath.unsafe(new File(".").getAbsolutePath).dirname </> "some" </> "path").path), conf.configuration, conf.scoobiConfiguration, conf.codec)))
 
 }

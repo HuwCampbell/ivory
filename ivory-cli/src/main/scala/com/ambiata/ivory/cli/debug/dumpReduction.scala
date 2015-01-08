@@ -23,7 +23,7 @@ object dumpReduction extends IvoryApp {
     opt[String]('f', "feature")  action { (x, c) => c.copy(features = x :: c.features) }            unbounded() text "A set of virtual features to debug, or none to include them all"
   }
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(Nil, Nil, "", ""), { repo => conf => c =>
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(Nil, Nil, "", ""), { repo => conf => flags => c =>
     IvoryT.fromRIO { for {
       sid <- RIO.fromOption[SnapshotId](SnapshotId.parse(c.snapshot), s"Invalid snapshot ${c.snapshot}")
       out <- RIO.fromDisjunctionString[IvoryLocation](IvoryLocation.parseUri(c.output, conf))
