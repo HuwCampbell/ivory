@@ -6,6 +6,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.repository.Codec
 import com.ambiata.ivory.storage.metadata.Metadata
+import com.ambiata.ivory.cli.ScoptReaders._
 import com.ambiata.mundane.control._
 import com.ambiata.saws.core.Clients
 import com.nicta.scoobi.Scoobi._
@@ -68,6 +69,22 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
 }
 
 object IvoryCmd {
+  def diagnostic(repo: Repository): RIO[Unit] =
+    RIO.putStrLn(s"""================================================================================
+                    |
+                    |Ivory:
+                    |  Version:             ${IvoryVersion.get.version}
+                    |  Planning Strategy:   ${repo.flags.plan.render}
+                    |
+                    |Hadoop:
+                    |  Version:             ${org.apache.hadoop.util.VersionInfo.getVersion}
+                    |
+                    |JVM:
+                    |  Version:             ${System.getProperty("java.version")}
+                    |  Maximum Memory:      ${Runtime.getRuntime.maxMemory}
+                    |
+                    |================================================================================
+                    |""".stripMargin)
 
   def withRepo[A](parser: scopt.OptionParser[A], initial: A,
                   runner: Repository => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
@@ -81,13 +98,17 @@ object IvoryCmd {
     // Oh god this is an ugly/evil hack - the world will be a better place when we upgrade to Pirate
     // Composition, it's a thing scopt, look it up
     var repoArg: Option[String] = None
+    var strategy: Option[StrategyFlag] = None
     parser.opt[String]('r', "repository") action { (x, c) => repoArg = Some(x); c} text
       "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"
+    parser.opt[StrategyFlag]("plan-strategy") action { (x, c) => strategy = Some(x); c} optional() text
+      "Run with the specified plan strategy, one of: pessimsitic - minimal IO, best answer, higher memory; " +
+      "conservative - higher IO, best answer, lower memory; optimistic - higher IO, good answer, quicker."
     new IvoryCmd[A](parser, initial, IvoryRunner(config => c =>
       for {
         repoPath        <- IvoryT.fromRIO { RIO.fromOption[String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
           "-r|--repository was missing or environment variable IVORY_REPOSITORY not set") }
-        repo            <- IvoryT.fromRIO { Repository.fromUri(repoPath, config) }
+        repo            <- IvoryT.fromRIO { Repository.fromUri(repoPath, config, strategy.cata(IvoryFlags.apply, IvoryFlags.default)) }
         result          <- runner(repo)(config)(c)
       } yield result
     ))

@@ -15,11 +15,11 @@ trait TemporaryRepositories {
   def createRepository(temporaryType: TemporaryType, conf: IvoryConfiguration): Repository =
     temporaryType match {
       case Posix =>
-        LocalRepository(createUniqueLocalLocation)
+        LocalRepository(createUniqueLocalLocation, IvoryFlags.default)
       case S3 =>
-        S3Repository(createUniqueS3Location(conf), conf.s3TmpDirectory)
+        S3Repository(createUniqueS3Location(conf), conf.s3TmpDirectory, IvoryFlags.default)
       case Hdfs =>
-        HdfsRepository(createUniqueHdfsLocation(conf))
+        HdfsRepository(createUniqueHdfsLocation(conf), IvoryFlags.default)
     }
 
   def withRepository[A](temporaryType: TemporaryType)(f: Repository => RIO[A]): RIO[A] =
@@ -28,7 +28,7 @@ trait TemporaryRepositories {
 
   def withHdfsRepository[A](f: HdfsRepository => RIO[A]): RIO[A] =
     withConf(conf =>
-      runWithRepository(HdfsRepository(createUniqueHdfsLocation(conf)))(f))
+      runWithRepository(HdfsRepository(createUniqueHdfsLocation(conf), IvoryFlags.default))(f))
 
   /**
    * run a function with a temporary repository that is going to run some setup operations first and

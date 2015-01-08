@@ -38,7 +38,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
     val dict = Dictionary(List(Definition.concrete(FeatureId(Namespace("demo"), "postcode"), StringEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))))
     TemporaryIvoryConfiguration.withConf(conf =>
       TemporaryDirPath.withDirPath { dir =>
-        val repository = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf)
+        val repository = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf, IvoryFlags.default)
         val dictionaryPath = dir <|> "dictionary.psv"
 
         for {
@@ -54,7 +54,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
     val dict2 = Dictionary(List(Definition.concrete(FeatureId(Namespace("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
     TemporaryIvoryConfiguration.withConf(conf =>
       TemporaryDirPath.withDirPath { dir =>
-        val repository = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf)
+        val repository = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf, IvoryFlags.default)
         for {
           _    <- fromDictionary(repository, dict1, opts.copy(ty = Override))
           _    <- fromDictionary(repository, dict2, opts.copy(ty = Update))
@@ -68,7 +68,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
     val dict1 = Dictionary(List(Definition.concrete(fid, StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
     val dict2 = Dictionary(List(Definition.concrete(fid, BooleanEncoding, Mode.State, Some(CategoricalType), "", Nil)))
     TemporaryDirPath.withDirPath { dir =>
-      val repo = LocalRepository.create(dir)
+      val repo = LocalRepository.create(dir, IvoryFlags.default)
       fromDictionary(repo, dict1, opts.copy(ty = Override))
         .flatMap(_ => fromDictionary(repo, dict2, opts.copy(ty = Override, force = force)))
     }

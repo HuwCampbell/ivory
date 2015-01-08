@@ -28,7 +28,7 @@ object createRepository extends IvoryApp {
   val cmd = IvoryCmd[CliArguments](parser, CliArguments("", ""), IvoryRunner { configuration => c =>
     println("Created configuration: " + configuration)
     IvoryT.fromRIO(for {
-      repo     <- Repository.fromUri(c.path, configuration)
+      repo     <- Repository.fromUri(c.path, configuration, IvoryFlags.default)
       timezone <- RIO.fromDisjunction[DateTimeZone](DateTimeZoneUtil.forID(c.timezone).leftMap(\&/.This.apply))
       _        <- Repositories.create(repo, RepositoryConfig(MetadataVersion.V2, timezone))
     } yield Nil)

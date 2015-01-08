@@ -21,7 +21,7 @@ object RepositoryBuilder {
 
   def using[A](f: HdfsRepository => RIO[A]): RIO[A] = TemporaryDirPath.withDirPath { dir =>
     runWithConf(dir, conf => {
-      val repo = HdfsRepository(HdfsLocation(dir.path), conf)
+      val repo = HdfsRepository(HdfsLocation(dir.path), conf, IvoryFlags.default)
       f(repo)
     })
   }

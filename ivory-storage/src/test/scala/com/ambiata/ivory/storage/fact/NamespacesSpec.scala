@@ -42,7 +42,7 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
   def e3 = managed { temp: TemporaryDirPath => (nsInc: Set[Namespace], nsExc: Set[Namespace], fsInc: FactsetIds, fsExc: FactsetIds) =>
     !nsInc.exists(nsExc.contains) ==> {
       val sc = ScoobiConfiguration()
-      val repo = HdfsRepository(HdfsLocation(temp.dir.path), IvoryConfiguration.fromScoobiConfiguration(sc))
+      val repo = HdfsRepository(HdfsLocation(temp.dir.path), IvoryConfiguration.fromScoobiConfiguration(sc), IvoryFlags.default)
       val namespaces = (nsInc ++ nsExc).toList.flatMap(ns => (fsInc.ids ++ fsExc.ids).map(fs => fs -> ns)).map {
         case (fs, ns) => Repository.namespace(fs, ns)
       }
@@ -60,7 +60,7 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
     val ns1 = KeyName.unsafe("ns1")
     val ns2 = KeyName.unsafe("ns2")
     for {
-      repository <- TemporaryIvoryConfiguration.withConf(conf => Repository.fromUri(dir.path, conf))
+      repository <- TemporaryIvoryConfiguration.withConf(conf => Repository.fromUri(dir.path, conf, IvoryFlags.default))
       _          <- List(ns1 / "f1", ns2 / "f2", Key.Root / ".ignore").traverse(createFile(repository))
       result     <- f(new Path(dir.path))
     } yield result
