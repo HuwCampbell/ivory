@@ -1,0 +1,30 @@
+#!/bin/sh -eux
+
+DIR=$(dirname $0)
+. "${DIR}/../../setup.sh"
+
+$IVORY create-repository -z Australia/Sydney "${REPOSITORY}"
+$IVORY import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
+$IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts-v0"
+$IVORY snapshot
+$IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts-v2"
+
+$IVORY snapshot -o "sparse:psv=${TARGET}/snapshot"
+diff_test_mr "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot"
+
+rm -rf "${REPOSITORY}/snapshots" "${TARGET}/snapshot"
+
+$IVORY snapshot --plan-strategy optimistic -o "sparse:psv=${TARGET}/snapshot"
+diff_test_mr "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot"
+
+rm -rf "${REPOSITORY}/snapshots/00000001" "${TARGET}/snapshot"
+
+$IVORY snapshot --plan-strategy pessimistic -o "sparse:psv=${TARGET}/snapshot"
+diff_test_mr "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot"
+
+rm -rf "${REPOSITORY}/snapshots/00000001" "${TARGET}/snapshot"
+
+$IVORY snapshot --plan-strategy conservative  -o "sparse:psv=${TARGET}/snapshot"
+diff_test_mr "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot"
+
+rm -rf "${REPOSITORY}/snapshots/00000001" "${TARGET}/snapshot"
