@@ -237,6 +237,10 @@ object build extends Build {
                                Seq()
                              else
                                Seq(Tests.Argument("--", "exclude", "aws")))
+  , testOptions in Test ++= (if (Option(System.getenv("NO_MR")).isDefined)
+                               Seq(Tests.Argument("--", "exclude", "mr"))
+                             else
+                               Seq())
   )
 
   lazy val prompt = shellPrompt in ThisBuild := { state =>
