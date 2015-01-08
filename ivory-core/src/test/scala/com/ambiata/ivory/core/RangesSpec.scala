@@ -70,7 +70,7 @@ Namespace Ranges
       fresh <- arbitrary[List[FeatureId]].map(_.filter(f => !base.values.exists(_.id === f)))
       extra <- fresh.traverse(GenDictionary.rangeOf)
       warped <- base.values.traverse(r => for {
-        days <- Gen.choose(0, 100)
+        days <- Gen.frequency(2 -> Gen.const(0), 2 -> Gen.choose(0, 5), 1 -> Gen.choose(0, 100))
         froms = r.froms.map(DateTimeUtil.minusDays(_, days))
       } yield Range(r.id, froms, r.to))
       containedBy = base.copy(values = warped ++ extra)
