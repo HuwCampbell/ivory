@@ -3,9 +3,10 @@ package com.ambiata.ivory.storage.legacy
 import scalaz.{DList => _, Value => _, _}
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.compress.CompressionCodec
-
+import org.apache.hadoop.fs.Path
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.poacher.scoobi._
 import com.ambiata.ivory.mr._
 import FactFormats._
@@ -23,7 +24,7 @@ object PartitionFactThriftStorage {
     FatThriftFact(partition.namespace.name, partition.date, tfact)
 
   def loadScoobiWith(repo: HdfsRepository, factset: FactsetId): ScoobiAction[DList[ParseError \/ Fact]] =
-    loadScoobiFromPaths(List(repo.toIvoryLocation(Repository.factset(factset)).toHdfs))
+    loadScoobiFromPaths(List(new Path(repo.toIvoryLocation(Repository.factset(factset)).toHdfs, HdfsGlobs.FactsetPartitionsGlob).toString))
 
   def loadScoobiFromPaths(paths: List[String]): ScoobiAction[DList[ParseError \/ Fact]] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
