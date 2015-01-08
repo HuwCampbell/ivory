@@ -7,6 +7,9 @@ case class IvoryFlags(
 )
 
 object IvoryFlags {
+  implicit def IvoryFlagsEqual: Equal[IvoryFlags] =
+    Equal.equalA
+
   def default: IvoryFlags =
     IvoryFlags(PessimisticStrategyFlag)
 }
@@ -21,6 +24,7 @@ sealed trait StrategyFlag {
       "conservative"
   }
 }
+
 case object PessimisticStrategyFlag extends StrategyFlag
 case object OptimisticStrategyFlag extends StrategyFlag
 case object ConservativeStrategyFlag extends StrategyFlag

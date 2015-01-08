@@ -92,6 +92,9 @@ trait Arbitraries {
   implicit def IdentifierArbitrary: Arbitrary[Identifier] =
     Arbitrary(GenIdentifier.identifier)
 
+  implicit def IvoryFlagsArbitrary: Arbitrary[IvoryFlags] =
+    Arbitrary(GenFlags.flags)
+
   implicit def IvoryVersionArbitrary: Arbitrary[IvoryVersion] =
     Arbitrary(GenIdentifier.version)
 
@@ -145,6 +148,9 @@ trait Arbitraries {
 
   implicit def SnapshotIdArbitrary: Arbitrary[SnapshotId] =
     Arbitrary(GenIdentifier.snapshot)
+
+  implicit def StrategyFlagArbitrary: Arbitrary[StrategyFlag] =
+    Arbitrary(GenFlags.plan)
 
   implicit def StructEncodingArbitrary: Arbitrary[StructEncoding] =
     Arbitrary(GenDictionary.structEncoding)
