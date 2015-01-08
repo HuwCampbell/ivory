@@ -4,8 +4,7 @@ scala:
 jdk:
   - oraclejdk7
 env:
-  - NO_FORK=true
-  - NO_MR=true
+  - NO_FORK=true NO_MR=true
 before_script:
  - "echo JAVA_HOME $JAVA_HOME"
  - "echo 'which java' `which java`"
