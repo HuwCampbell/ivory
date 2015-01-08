@@ -54,8 +54,10 @@ object GenDictionary {
     w <- Gen.listOf(window)
   } yield FeatureWindow(id, w)
 
-  def featureWindows: Gen[FeatureWindows] =
-    Gen.nonEmptyListOf(featureWindow).map(w => FeatureWindows(w.distinct))
+  def featureWindows: Gen[FeatureWindows] = for {
+    w <- featureWindow
+    ws <- Gen.listOf(featureWindow)
+  } yield FeatureWindows((w :: ws).distinct)
 
   def range[A: Arbitrary]: Gen[Range[A]] = for {
     id <- arbitrary[A]
@@ -63,8 +65,9 @@ object GenDictionary {
   } yield r
 
   def rangeOf[A](id: A): Gen[Range[A]] = for {
-    dates <- Gen.nonEmptyListOf(GenDate.date)
-    to = dates.max
+    date <- GenDate.date
+    dates <- Gen.listOf(GenDate.date)
+    to = (date :: dates).max
   } yield Range(id, dates.filter(_ /== to), to)
 
   def ranges[A: Arbitrary: Equal]: Gen[Ranges[A]] = for {
