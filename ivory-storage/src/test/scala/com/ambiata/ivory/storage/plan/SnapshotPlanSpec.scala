@@ -26,7 +26,7 @@ Scenario 1 - Planning a Snapshot, where there are valid incremental snapshots
     ${scenario1.exactDataset}
 
   When the 'at' date and the current feature store matches an incremental snapshot
-  date/store, the plan dataset should be availabel as the 'exact' match in the plan.
+  date/store, the plan dataset should be available as the 'exact' match in the plan.
     ${scenario1.exact}
 
   There must not be factset partitions in the plan dataset before any snapshot
@@ -72,7 +72,7 @@ Scenario 3 - Planning a Snapshot, independent of incremental snapshot state
     ${scenario3.optimal}
 
 
-Support 1 - Attempting to build a dataset form a snapshot
+Support 1 - Attempting to build a dataset from a snapshot
 ---------------------------------------------------------
 
   Never build a dataset if the snapshot store is not a subset of the current store.
@@ -81,7 +81,7 @@ Support 1 - Attempting to build a dataset form a snapshot
   Never include a snapshot from a future date.
     ${support1.future}
 
-  When sucessful, output datasets must not include any date after 'at' date.
+  When successful, output datasets must not include any date after 'at' date.
     ${support1.snapshot}
 
 

@@ -18,7 +18,7 @@ class SnapshotStorageSpec extends Specification with ScalaCheck { def is = s2"""
 Properties
 ----------
 
-  We should be able to allocate and read a bunch of snapshot ids, reguardless of whether they are used:
+  We should be able to allocate and read a bunch of snapshot ids, regardless of whether they are used:
     $ids
 
   We should be able to retrieve a snapshot with complete metadata via id:
