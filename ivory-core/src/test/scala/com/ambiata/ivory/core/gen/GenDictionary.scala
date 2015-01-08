@@ -27,11 +27,11 @@ object GenDictionary {
     Gen.oneOf(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding, DateEncoding)
 
   def structEncoding: Gen[StructEncoding] =
-    Gen.choose(1, 5).flatMap(n => Gen.mapOfN[String, StructEncodedValue](n, for {
-      name <- GenString.namespace.map(_.name)
+    Gen.choose(1, 5).flatMap(n => Gen.listOfN(n, for {
+      name <- GenString.sensible
       enc <- primitiveEncoding
       optional <- arbitrary[Boolean]
-    } yield name -> StructEncodedValue(enc, optional)).map(StructEncoding))
+    } yield name -> StructEncodedValue(enc, optional)).map(x => StructEncoding(x.toMap)))
 
   def concrete: Gen[ConcreteDefinition] =
     concreteWith(encoding)
