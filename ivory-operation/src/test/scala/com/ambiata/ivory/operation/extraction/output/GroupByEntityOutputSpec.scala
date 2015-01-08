@@ -103,7 +103,7 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
         // Filter out tombstones to simplify the assertions - we're not interested in the snapshot logic here
         _      <- RepositoryBuilder.createRepo(repo, dictionary, facts.map(_.filter(!_.isTombstone)))
         dense  <- TemporaryIvoryConfiguration.withConf(conf => IvoryLocation.fromUri((dir </> "dense").path, conf))
-        s      <- Snapshots.takeSnapshot(repo, Date.maxValue)
+        s      <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.maxValue)
         input  = repo.toIvoryLocation(Repository.snapshot(s.id))
         inputS = ShadowOutputDataset(HdfsLocation(input.show))
         denseS = ShadowOutputDataset(HdfsLocation(dense.show))

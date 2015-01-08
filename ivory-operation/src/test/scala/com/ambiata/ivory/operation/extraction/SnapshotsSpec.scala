@@ -21,7 +21,7 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
   def snapshot = {
     RepositoryBuilder.using { repo => for {
       _ <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
-      s <- Snapshots.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now))
+      s <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.fromLocalDate(LocalDate.now))
       f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.id)).toHdfs).run(repo.scoobiConfiguration)
     } yield f.map(_.featureId).toSet} must beOkValue(
       // FIX: Capture "simple" snapshot logic which handles priority and set/state so we can check the counts
@@ -48,7 +48,7 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
 
     RepositoryBuilder.using { repo => for {
         _ <- RepositoryBuilder.createRepo(repo, vdict.vd.dictionary, List(deprioritized, facts ++ oldfacts))
-        s <- Snapshots.takeSnapshot(repo, fact.date)
+        s <- Snapshots.takeSnapshot(repo, IvoryFlags.default, fact.date)
         f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.id)).toHdfs).run(repo.scoobiConfiguration)
       } yield f
     }.map(_.toSet) must beOkValue((oldfacts.sortBy(_.date).lastOption.toList ++ facts).toSet)
@@ -80,7 +80,7 @@ class SnapshotsSpec extends Specification with SampleFacts with ScalaCheck { def
 
     RepositoryBuilder.using { repo => for {
         _ <- RepositoryBuilder.createRepo(repo, dictionary, List(facts ++ outer))
-        s <- Snapshots.takeSnapshot(repo, date)
+        s <- Snapshots.takeSnapshot(repo, IvoryFlags.default, date)
         f  = valueFromSequenceFile[Fact](repo.toIvoryLocation(Repository.snapshot(s.id)).toHdfs).run(repo.scoobiConfiguration)
       } yield f
     }.map(_.toSet) must beOkValue((outer.sortBy(f => f.datetime.long).lastOption.toList ++ facts).toSet)

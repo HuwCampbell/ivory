@@ -20,7 +20,7 @@ class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""
   def a1 =
     RepositoryBuilder.using { repo => for {
       _         <- RepositoryBuilder.createRepo(repo, sampleDictionary, sampleFacts)
-      snapshot  <- Snapshots.takeSnapshot(repo, Date.fromLocalDate(LocalDate.now))
+      snapshot  <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.fromLocalDate(LocalDate.now))
       buffer     = new StringBuffer
       stringBufferLogging = (p: Path, f: Fact) => IO { buffer.append(PrintFacts.renderFact('|', "NA", p, f)+"\n"); ()}
       _ <- Print.printPathsWith(

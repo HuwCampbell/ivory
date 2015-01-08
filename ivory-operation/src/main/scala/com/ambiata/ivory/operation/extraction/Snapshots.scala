@@ -24,14 +24,14 @@ import scalaz.{DList => _, _}, Scalaz._
  * Note that in between 2 snapshots, the FeatureStore might have changed
  */
 object Snapshots {
-  def takeSnapshot(repository: Repository, date: Date): RIO[Snapshot] =
+  def takeSnapshot(repository: Repository, flags: IvoryFlags, date: Date): RIO[Snapshot] =
     for {
       commit <- CommitStorage.head(repository)
       ids <- SnapshotStorage.ids(repository)
-      snapshot <- takeSnapshotOn(repository, commit, ids, date)
+      snapshot <- takeSnapshotOn(repository, flags, commit, ids, date)
     } yield snapshot
 
-  def takeSnapshotOn(repository: Repository, commit: Commit, ids: List[SnapshotId], date: Date): RIO[Snapshot] =
+  def takeSnapshotOn(repository: Repository, flags: IvoryFlags, commit: Commit, ids: List[SnapshotId], date: Date): RIO[Snapshot] =
     for {
       plan <- SnapshotPlan.pessimistic(date, commit, ids, SnapshotStorage.source(repository))
       snapshot <- plan.exact match {

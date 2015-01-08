@@ -58,7 +58,7 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
         for {
           _               <- RepositoryBuilder.createRepo(repo, dictionary, facts)
           eav             =  dir </> DirPath.unsafe("eav")
-          snapshot        <- Snapshots.takeSnapshot(repo, Date.maxValue)
+          snapshot        <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.maxValue)
           input           =  ShadowOutputDataset.fromIvoryLocation(repo.toIvoryLocation(Repository.snapshot(snapshot.id)))
           _               <- SparseOutput.extractWithDictionary(repo, input, ShadowOutputDataset(HdfsLocation(eav.path)), dictionary, Delimiter.Psv, "NA", escaping)
           dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, conf)

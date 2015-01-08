@@ -21,11 +21,11 @@ object Chord {
    * Create a chord from a list of entities
    * If takeSnapshot = true, take a snapshot first, otherwise use the latest available snapshot
    */
-  def createChordWithSquash(repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean,
+  def createChordWithSquash(repository: Repository, flags: IvoryFlags, entitiesLocation: IvoryLocation, takeSnapshot: Boolean,
                             config: SquashConfig, cluster: Cluster): RIO[(ShadowOutputDataset, Dictionary)] = for {
     commit   <- CommitStorage.head(repository)
     entities <- Entities.readEntitiesFrom(entitiesLocation)
-    out      <- createChordRaw(repository, entities, commit, takeSnapshot)
+    out      <- createChordRaw(repository, flags, entities, commit, takeSnapshot)
     (o, dict) = out
     hr       <- repository.asHdfsRepository
     job      <- SquashJob.initChordJob(hr.configuration, entities)
@@ -35,8 +35,8 @@ object Chord {
     _        <- ChordExtractManifest.io(cluster.toIvoryLocation(r.location)).write(ChordExtractManifest.create(commit.id))
   } yield r -> dict
 
-  def createChordRaw(repository: Repository, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[(ShadowOutputDataset, Dictionary)] = for {
-    plan     <- planning(repository, entities, commit, takeSnapshot)
+  def createChordRaw(repository: Repository, flags: IvoryFlags, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[(ShadowOutputDataset, Dictionary)] = for {
+    plan     <- planning(repository, flags, entities, commit, takeSnapshot)
     output   <- Repository.tmpLocation(repository, "chord").flatMap(_.asHdfsIvoryLocation)
     _        <- RIO.putStrLn(s"Total input size: ${plan.datasets.bytes}")
     reducers =  (plan.datasets.bytes.toLong / 2.gb.toBytes.value + 1).toInt // one reducer per 2GB of input
@@ -46,10 +46,10 @@ object Chord {
     _        <- ChordJob.run(hr, plan, reducers, output.toHdfsPath)
   } yield (ShadowOutputDataset.fromIvoryLocation(output), commit.dictionary.value)
 
-  def planning(repository: Repository, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[ChordPlan] =
+  def planning(repository: Repository, flags: IvoryFlags, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[ChordPlan] =
     SnapshotStorage.ids(repository).flatMap(ids => takeSnapshot match {
       case true =>
-        Snapshots.takeSnapshotOn(repository, commit, ids, entities.earliestDate).map(snapshot =>
+        Snapshots.takeSnapshotOn(repository, flags, commit, ids, entities.earliestDate).map(snapshot =>
           ChordPlan.inmemory(entities, commit, List(snapshot)))
       case false =>
         ChordPlan.pessimistic(entities, commit, ids, SnapshotStorage.source(repository))

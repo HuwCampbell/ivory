@@ -28,7 +28,7 @@ class SquashSpec extends Specification with ScalaCheck { def is = s2"""
     TemporaryLocations.withCluster { cluster =>
       RepositoryBuilder.using { repo => for {
         _   <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
-        s   <- Snapshots.takeSnapshot(repo, sf.date)
+        s   <- Snapshots.takeSnapshot(repo, IvoryFlags.default, sf.date)
         out = OutputDataset.fromIvoryLocation(repo.toIvoryLocation(Key(KeyName.unsafe("out"))))
         key <- SquashJob.squashFromSnapshotWith(repo, s.toMetadata, SquashConfig.testing, cluster)
         f   <- RIO.safe[List[Fact]](postProcess(valueFromSequenceFile[Fact](key._1.hdfsPath.toString).run(repo.scoobiConfiguration).toList))
@@ -46,7 +46,7 @@ class SquashSpec extends Specification with ScalaCheck { def is = s2"""
       ).groupBy(_._1).mapValues(_.map(_._2))
     RepositoryBuilder.using { repo => for {
       _    <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
-      s    <- Snapshots.takeSnapshot(repo, sf.date)
+      s    <- Snapshots.takeSnapshot(repo, IvoryFlags.default, sf.date)
       out  =  repo.toIvoryLocation(Key(KeyName.unsafe("dump")))
       _    <- SquashDumpJob.dump(repo, s.id, out, entities.values.flatten.toList, entities.keys.toList)
       dump <- IvoryLocation.readLines(out).map(_.map(_.split("\\|", -1) match {

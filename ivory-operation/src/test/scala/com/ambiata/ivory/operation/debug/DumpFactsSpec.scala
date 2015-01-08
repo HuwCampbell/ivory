@@ -32,7 +32,7 @@ class DumpFactsSpec extends Specification with ScalaCheck { def is = s2"""
     T.withIvoryLocationDir(TT.Hdfs) { location =>
       RepositoryBuilder.using { repository => for {
         _ <- RepositoryBuilder.createRepo(repository, removeVirtualFeatures(data.dictionary), List(data.facts))
-        _ <- Snapshots.takeSnapshot(repository, Date.maxValue)
+        _ <- Snapshots.takeSnapshot(repository, IvoryFlags.default, Date.maxValue)
         _ <- DumpFacts.dump(repository, DumpFactsRequest(Nil, SnapshotId.initial :: Nil, Nil, Nil), location)
         r <- IvoryLocation.readLines(location)
       } yield r }
@@ -45,7 +45,7 @@ class DumpFactsSpec extends Specification with ScalaCheck { def is = s2"""
     T.withIvoryLocationDir(TT.Hdfs) { location =>
       RepositoryBuilder.using { repository => for {
         _ <- RepositoryBuilder.createRepo(repository, removeVirtualFeatures(data.dictionary), List(facts))
-        _ <- Snapshots.takeSnapshot(repository, Date.maxValue)
+        _ <- Snapshots.takeSnapshot(repository, IvoryFlags.default, Date.maxValue)
         _ <- DumpFacts.dump(repository, DumpFactsRequest(FactsetId.initial :: Nil, SnapshotId.initial :: Nil, Nil, Nil), location)
         r <- IvoryLocation.readLines(location)
       } yield r}

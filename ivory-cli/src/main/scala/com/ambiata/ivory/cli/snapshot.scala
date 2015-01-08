@@ -46,7 +46,7 @@ object snapshot extends IvoryApp {
       println(banner)
       IvoryT.fromRIO { for {
         of        <- Extract.parse(configuration, c.formats)
-        snapshot  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date))
+        snapshot  <- IvoryRetire.takeSnapshot(repo, flags, Date.fromLocalDate(c.date))
         x         <- SquashJob.squashFromSnapshotWith(repo, snapshot.toMetadata, c.squash, cluster)
         (output, dictionary) = x
         r         <- RepositoryRead.fromRepository(repo)
