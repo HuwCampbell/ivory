@@ -34,7 +34,7 @@ Properties
   def ids = propNoShrink((n: NaturalInt) => RepositoryBuilder.using(repository => for  {
     allocated <- (1 to limit(n)).toList.traverse(_ => SnapshotStorage.allocateId(repository))
     read <- SnapshotStorage.ids(repository)
-  } yield allocated -> read) must beOkLike({ case (allocated, read) => (read -> read.size) ==== (allocated -> limit(n)) }))
+  } yield allocated -> read) must beOkLike({ case (allocated, read) => (read.sorted -> read.size) ==== (allocated.sorted -> limit(n)) }))
     .set(minTestsOk = 20)
 
   def byId = propNoShrink((x: FactsWithDictionary, date: Date) =>  RepositoryBuilder.using(repository => for {
