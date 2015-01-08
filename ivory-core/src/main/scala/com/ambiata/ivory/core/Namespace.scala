@@ -70,8 +70,10 @@ object Namespace extends MacrosCompat {
     nameFromStringDisjunction(s).toOption
 
   def nameFromStringDisjunction(s: String): String \/ Namespace =
-    if (s.matches("[A-Za-z0-9_-]+") && !s.startsWith("_")) new Namespace(s.intern()).right
-    else                                                   s"$s is not a valid Namespace".left
+    if (s.matches("[A-Za-z0-9_-]+") && !s.startsWith("_") && s.length < 256)
+      new Namespace(s.intern()).right
+    else
+      s"$s is not a valid Namespace".left
 
   def createNamespaceFromStringMacro(c: Context)(s: c.Expr[String]): c.Expr[Namespace] = {
     import c.universe._
