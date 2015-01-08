@@ -31,7 +31,7 @@ class DumpFactsSpec extends Specification with ScalaCheck { def is = s2"""
     val facts = uniqueEntities(data.facts)
     T.withIvoryLocationDir(TT.Hdfs) { location =>
       RepositoryBuilder.using { repository => for {
-        _ <- RepositoryBuilder.createRepo(repository, removeVirtualFeatures(data.dictionary), List(data.facts))
+        _ <- RepositoryBuilder.createRepo(repository, data.dictionary, List(data.facts))
         _ <- Snapshots.takeSnapshot(repository, IvoryFlags.default, Date.maxValue)
         _ <- DumpFacts.dump(repository, DumpFactsRequest(Nil, SnapshotId.initial :: Nil, Nil, Nil), location)
         r <- IvoryLocation.readLines(location)
@@ -44,7 +44,7 @@ class DumpFactsSpec extends Specification with ScalaCheck { def is = s2"""
     val facts = uniqueEntities(data.facts)
     T.withIvoryLocationDir(TT.Hdfs) { location =>
       RepositoryBuilder.using { repository => for {
-        _ <- RepositoryBuilder.createRepo(repository, removeVirtualFeatures(data.dictionary), List(facts))
+        _ <- RepositoryBuilder.createRepo(repository, data.dictionary, List(facts))
         _ <- Snapshots.takeSnapshot(repository, IvoryFlags.default, Date.maxValue)
         _ <- DumpFacts.dump(repository, DumpFactsRequest(FactsetId.initial :: Nil, SnapshotId.initial :: Nil, Nil, Nil), location)
         r <- IvoryLocation.readLines(location)
@@ -56,10 +56,4 @@ class DumpFactsSpec extends Specification with ScalaCheck { def is = s2"""
   // We're not here to test the snapshot logic, which involves complex windowing and priority
   def uniqueEntities(facts: List[Fact]): List[Fact] =
     facts.groupBy(_.entity).values.toList.flatMap(_.headOption)
-
-  def removeVirtualFeatures(dictionary: Dictionary): Dictionary =
-    Dictionary(dictionary.definitions.filter({
-      case Concrete(_, _) => true
-      case Virtual(_, _)  => false
-    }))
 }
