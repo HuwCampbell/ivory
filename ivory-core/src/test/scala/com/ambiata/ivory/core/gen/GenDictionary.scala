@@ -4,9 +4,8 @@ import com.ambiata.ivory.core._
 
 import org.scalacheck._, Arbitrary.arbitrary
 
-import scalaz.{Name => _, _}, Scalaz._
+import scalaz._, Scalaz._
 import scalaz.scalacheck.ScalaCheckBinding._
-
 
 object GenDictionary {
   def mode: Gen[Mode] =
@@ -28,11 +27,11 @@ object GenDictionary {
     Gen.oneOf(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding, DateEncoding)
 
   def structEncoding: Gen[StructEncoding] =
-    Gen.choose(1, 5).flatMap(n => Gen.mapOfN[String, StructEncodedValue](n, for {
-      name <- GenString.name.map(_.name)
+    Gen.choose(1, 5).flatMap(n => Gen.listOfN(n, for {
+      name <- GenString.sensible
       enc <- primitiveEncoding
       optional <- arbitrary[Boolean]
-    } yield name -> StructEncodedValue(enc, optional)).map(StructEncoding))
+    } yield name -> StructEncodedValue(enc, optional)).map(x => StructEncoding(x.toMap)))
 
   def concrete: Gen[ConcreteDefinition] =
     concreteWith(encoding)
@@ -49,6 +48,32 @@ object GenDictionary {
     length <- GenPlus.posNum[Int]
     unit <- Gen.oneOf(Days, Weeks, Months, Years)
   } yield Window(length, unit)
+
+  def featureWindow: Gen[FeatureWindow] = for {
+    id <- GenIdentifier.feature
+    w <- Gen.listOf(window)
+  } yield FeatureWindow(id, w)
+
+  def featureWindows: Gen[FeatureWindows] =
+    GenPlus.nonEmptyListOf(featureWindow).map(w => FeatureWindows(w.distinct))
+
+  def range[A: Arbitrary]: Gen[Range[A]] = for {
+    id <- arbitrary[A]
+    r <- rangeOf(id)
+  } yield r
+
+  def rangeOf[A](id: A): Gen[Range[A]] = for {
+    dates <- GenPlus.nonEmptyListOf(GenDate.date)
+    to = (dates).max
+  } yield Range(id, dates.filter(_ /== to), to)
+
+  def ranges[A: Arbitrary: Equal]: Gen[Ranges[A]] = for {
+    n <- Gen.sized(s => Gen.choose(1, math.min(s, 20)))
+    r <- Gen.listOfN(n, range[A])
+  } yield Ranges(distinctBy(r)(_.id))
+
+  def identified: Gen[Identified[DictionaryId, Dictionary]] =
+    GenIdentifier.identified(Arbitrary(GenIdentifier.dictionary), Arbitrary(GenDictionary.dictionary))
 
   def dictionary: Gen[Dictionary] = for {
     n <- Gen.sized(s => Gen.choose(3, math.min(s, 20)))
@@ -176,9 +201,20 @@ object GenDictionary {
   def virtual(gen: (FeatureId, ConcreteDefinition), featureIdOffset: Int): Gen[(FeatureId, VirtualDefinition)] = for {
     exp <- expression(gen._2)
     // Also give the virtual feature a different namespace
-    fid  = FeatureId(Name.reviewed(gen._1.namespace.name + "_v"), gen._1.name + "_" + featureIdOffset)
+    fid  = FeatureId(Namespace.reviewed(gen._1.namespace.name + "_v"), gen._1.name + "_" + featureIdOffset)
     filter <- filter(gen._2)
     window <- Gen.option(GenDictionary.window)
     query = Query(exp, filter.map(FilterTextV0.asString).map(_.render).map(Filter.apply))
   } yield (fid, VirtualDefinition(gen._1, query, window))
+
+  class DistinctKey[A, B](val key: A, val value: B) {
+    override def hashCode: Int =
+      key.hashCode
+    override def equals(o: Any): Boolean =
+      o.isInstanceOf[DistinctKey[A, B]] &&
+        value.equals(o.asInstanceOf[DistinctKey[A, B]].value)
+  }
+
+  def distinctBy[A, B: Equal](l: List[A])(f: A => B): List[A] =
+    l.map(v => new DistinctKey(f(v), v)).distinct.map(_.value)
 }

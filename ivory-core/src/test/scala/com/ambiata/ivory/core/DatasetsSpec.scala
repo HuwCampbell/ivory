@@ -3,8 +3,13 @@ package com.ambiata.ivory.core
 import org.specs2._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import scalaz._, Scalaz._
+import scalaz.scalacheck.ScalazProperties._
 
 class DatasetsSpec extends Specification with ScalaCheck { def is = s2"""
+
+Laws
+----
+  Equal                                        ${equal.laws[Datasets]}
 
 Combinators
 -----------
@@ -52,7 +57,7 @@ Combinators
   prune leaves no empty datasets:
 
     ${ prop((ds: Datasets, p: Priority, f: FactsetId) =>
-         ds.add(p, FactsetDataset(Factset(f, Nil))).prune.sets.forall(!_.value.isEmpty)) }
+         ds.add(p, FactsetDataset(Factset(f, FactsetFormat.V2, Nil))).prune.sets.forall(!_.value.isEmpty)) }
 
 Constructors
 ------------

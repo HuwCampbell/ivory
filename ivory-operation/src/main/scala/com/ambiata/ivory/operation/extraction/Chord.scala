@@ -1,18 +1,16 @@
 package com.ambiata.ivory.operation.extraction
 
-import com.ambiata.ivory.core.IvorySyntax._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.extraction.squash.{SquashConfig, SquashJob}
-import com.ambiata.ivory.storage.fact._
+import com.ambiata.ivory.storage.entities._
 import com.ambiata.ivory.storage.manifest._
 import com.ambiata.ivory.storage.legacy.FeatureStoreSnapshot
-import com.ambiata.ivory.storage.metadata._, Metadata._
+import com.ambiata.ivory.storage.metadata._
+import com.ambiata.ivory.storage.plan._
+import com.ambiata.notion.core.KeyName
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
-import com.ambiata.notion.core._
-import com.ambiata.poacher.hdfs._
-import org.apache.hadoop.io.compress._
-import scalaz.{Store => _, _}, Scalaz._, effect.IO
+import scalaz._, Scalaz._
 
 /**
  * A Chord is the extraction of feature values for some entities at some dates
@@ -20,85 +18,50 @@ import scalaz.{Store => _, _}, Scalaz._, effect.IO
  * Use the latest snapshot (if available) to get the latest values
  */
 object Chord {
-
-  type PrioritizedFact = (Priority, Fact)
-
   /**
    * Create a chord from a list of entities
    * If takeSnapshot = true, take a snapshot first, otherwise use the latest available snapshot
    */
-  def createChordWithSquash(repository: Repository, entitiesLocation: IvoryLocation, takeSnapshot: Boolean,
+  def createChordWithSquash(repository: Repository, flags: IvoryFlags, entitiesLocation: IvoryLocation, takeSnapshot: Boolean,
                             config: SquashConfig, cluster: Cluster): RIO[(ShadowOutputDataset, Dictionary)] = for {
-    commit   <- Metadata.findOrCreateLatestCommitId(repository)
+    commit   <- CommitStorage.head(repository)
     entities <- Entities.readEntitiesFrom(entitiesLocation)
-    out      <- createChordRaw(repository, entities, takeSnapshot)
+    out      <- createChordRaw(repository, flags, entities, commit, takeSnapshot)
     (o, dict) = out
     hr       <- repository.asHdfsRepository
     job      <- SquashJob.initChordJob(hr.configuration, entities)
     // We always need to squash because the entities need to be rewritten, which is _only_ handled by squash
     // This can technically be optimized to do the entity rewriting in the reducer - see the Git history for an example
     r        <- SquashJob.squash(repository, dict, o, config, job, cluster)
-    _        <- ChordExtractManifest.io(cluster.toIvoryLocation(r.location)).write(ChordExtractManifest.create(commit))
+    _        <- ChordExtractManifest.io(cluster.toIvoryLocation(r.location)).write(ChordExtractManifest.create(commit.id))
   } yield r -> dict
 
-  /** Create the raw chord, which is now unusable without the squash step */
-  def createChordRaw(repository: Repository, entities: Entities, takeSnapshot: Boolean): RIO[(ShadowOutputDataset, Dictionary)] = for {
-    _                   <- checkThat(repository, repository.isInstanceOf[HdfsRepository], "Chord only works on HDFS repositories at this stage.")
-    _                    = println(s"Earliest date in chord file is '${entities.earliestDate}'")
-    _                    = println(s"Latest date in chord file is '${entities.latestDate}'")
-    store               <- Metadata.latestFeatureStoreOrFail(repository)
-    _                    = println(s"Latest store: ${store.id}")
-    _                    = println(s"Are we taking a snapshot? ${takeSnapshot}")
-    snapshot            <- if (takeSnapshot) Snapshots.takeSnapshot(repository, entities.earliestDate).map(_.meta.pure[Option])
-                           else              SnapshotMetadataStorage.latestSnapshot(repository, entities.earliestDate).run
-    _                    = println(s"Using snapshot: ${snapshot.map(_.id)}.")
-    out                 <- runChord(repository, store, entities, snapshot)
-  } yield out
+  def createChordRaw(repository: Repository, flags: IvoryFlags, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[(ShadowOutputDataset, Dictionary)] = for {
+    plan     <- planning(repository, flags, entities, commit, takeSnapshot)
+    output   <- Repository.tmpLocation(repository, "chord").flatMap(_.asHdfsIvoryLocation)
+    _        <- RIO.putStrLn(s"Total input size: ${plan.datasets.bytes}")
+    reducers =  (plan.datasets.bytes.toLong / 2.gb.toBytes.value + 1).toInt // one reducer per 2GB of input
+    _        <- RIO.putStrLn(s"Number of reducers: $reducers")
+    /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
+    hr       <- repository.asHdfsRepository
+    _        <- ChordJob.run(hr, plan, reducers, output.toHdfsPath)
+  } yield (ShadowOutputDataset.fromIvoryLocation(output), commit.dictionary.value)
 
-  /**
-   * Run the chord extraction on Hdfs, returning the [[Key]] where the chord was written to.
-   */
-  def runChord(repository: Repository, store: FeatureStore, entities: Entities,
-               incremental: Option[SnapshotMetadata]): RIO[(ShadowOutputDataset, Dictionary)] = {
-    for {
-      featureStoreSnapshot <- incremental.traverseU(SnapshotMetadataStorage.featureStoreSnapshot(repository, _))
-      dictionary           <- latestDictionaryFromIvory(repository)
-      _                     = println(s"Calculating globs using, store = ${store.id}, latest date = ${entities.latestDate}, snapshot: ${featureStoreSnapshot.map(_.snapshotId)}.")
-      factsetGlobs         <- calculateGlobs(repository, store, entities.latestDate, featureStoreSnapshot)
-      _                     = println(s"Calculated ${factsetGlobs.size} globs.")
-      outputPath           <- Repository.tmpDir("chord")
-      hdfsIvoryLocation    <- repository.toIvoryLocation(outputPath).asHdfsIvoryLocation
-      out                   = ShadowOutputDataset.fromIvoryLocation(hdfsIvoryLocation)
-      /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
-      hr                   <- repository.asHdfsRepository
-      _                    <- job(hr, dictionary, factsetGlobs, outputPath, entities, featureStoreSnapshot, hr.codec).run(hr.configuration)
-    } yield (out, dictionary)
-  }
-
-  def calculateGlobs(repository: Repository, featureStore: FeatureStore, latestDate: Date,
-                     featureStoreSnapshot: Option[FeatureStoreSnapshot]): RIO[List[Prioritized[FactsetGlob]]] =
-    featureStoreSnapshot.cata(snapshot => for {
-      oldGlobs    <- FeatureStoreGlob.strictlyAfterAndBefore(repository, snapshot.store, snapshot.date, latestDate).map(_.globs)
-      newFactsets  = featureStore diff snapshot.store
-      _            = println(s"Reading factsets up to '$latestDate'\n${newFactsets.factsets}")
-      newGlobs    <- FeatureStoreGlob.before(repository, newFactsets, latestDate).map(_.globs)
-    } yield oldGlobs ++ newGlobs, FeatureStoreGlob.before(repository, featureStore, latestDate).map(_.globs))
-
-  /**
-   * create a new chord as a Map-Reduce job
-   */
-  def job(repository: HdfsRepository, dictionary: Dictionary, factsetsGlobs: List[Prioritized[FactsetGlob]],
-          outputPath: Key, entities: Entities, snapshot: Option[FeatureStoreSnapshot],
-          codec: Option[CompressionCodec]): Hdfs[Unit] = for {
-    conf    <- Hdfs.configuration
-    incrPath = snapshot.map(snap => repository.toIvoryLocation(Repository.snapshot(snap.snapshotId)).toHdfsPath)
-    paths    =  factsetsGlobs.flatMap(_.value.keys.map(key => repository.toIvoryLocation(key).toHdfsPath)) ++ incrPath.toList
-    size    <- paths.traverse(Hdfs.size).map(_.sum)
-    _       <- Hdfs.log(s"Total input size: $size")
-    reducers =  size.toBytes.value / 2.gb.toBytes.value + 1 // one reducer per 2GB of input
-    _       <- Hdfs.log(s"Number of reducers: $reducers")
-    outPath  = repository.toIvoryLocation(outputPath).toHdfsPath
-    _       <- Hdfs.fromRIO(ChordJob.run(repository, reducers.toInt, factsetsGlobs, outPath, entities, dictionary,
-      incrPath, codec))
-  } yield ()
+  def planning(repository: Repository, flags: IvoryFlags, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[ChordPlan] =
+    SnapshotStorage.ids(repository).flatMap(ids => takeSnapshot match {
+      case true =>
+        Snapshots.takeSnapshotOn(repository, flags, commit, ids, entities.earliestDate).map(snapshot =>
+          ChordPlan.inmemory(entities, commit, List(snapshot)))
+      case false =>
+        val source = SnapshotStorage.source(repository)
+        flags.plan match {
+          case PessimisticStrategyFlag =>
+            ChordPlan.pessimistic(entities, commit, ids, source)
+          case OptimisticStrategyFlag =>
+            ids.traverse(SnapshotMetadataStorage.byId(repository, _)).flatMap(metadatas =>
+              ChordPlan.optimistic(entities, commit, metadatas.flatten, source))
+          case ConservativeStrategyFlag =>
+            ChordPlan.conservative(entities, commit, ids, source)
+        }
+    })
 }

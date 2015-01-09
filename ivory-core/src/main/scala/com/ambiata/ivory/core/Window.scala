@@ -3,7 +3,6 @@ package com.ambiata.ivory.core
 case class Window(length: Int, unit: WindowUnit)
 
 object Window {
-
   def asString(window: Window): String =
     window.length + " " + ((window.length, window.unit) match {
       case (1, Days)   => "day"
@@ -34,12 +33,12 @@ object Window {
    * NOTE: We are using our own [[DateTimeUtil]] because we can't run Joda on Hadoop for various reasons,
    * one of which is performance.
    */
-  def startingDate(window: Window): Date => Date =
+  def startingDate(window: Window, date: Date): Date =
     window.unit match {
-      case Days   => d => DateTimeUtil.minusDays(d, window.length)
-      case Weeks  => d => DateTimeUtil.minusDays(d, window.length * 7)
-      case Months => d => DateTimeUtil.minusMonths(d, window.length)
-      case Years  => d => DateTimeUtil.minusYears(d, window.length)
+      case Days   => DateTimeUtil.minusDays(date, window.length)
+      case Weeks  => DateTimeUtil.minusDays(date, window.length * 7)
+      case Months => DateTimeUtil.minusMonths(date, window.length)
+      case Years  => DateTimeUtil.minusYears(date, window.length)
     }
 
   def isFactWithinWindowRange(windowStartDate: Date, windowEndDate: Date, fact: Fact): Boolean = {

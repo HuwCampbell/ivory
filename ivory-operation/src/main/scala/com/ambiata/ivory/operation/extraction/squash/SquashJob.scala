@@ -3,7 +3,8 @@ package com.ambiata.ivory.operation.extraction.squash
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
 import com.ambiata.ivory.mr.MrContextIvory
-import com.ambiata.ivory.operation.extraction.{ChordJob, Entities, Snapshots, SnapshotJob}
+import com.ambiata.ivory.operation.extraction.{ChordJob, Snapshots, SnapshotJob}
+import com.ambiata.ivory.storage.entities._
 import com.ambiata.ivory.storage.lookup.{FeatureLookups, ReducerLookups, ReducerSize, WindowLookup}
 import com.ambiata.ivory.storage.manifest.{SnapshotExtractManifest, SnapshotManifest}
 import com.ambiata.ivory.storage.metadata._
@@ -30,13 +31,14 @@ object SquashJob {
     //     to handle this (and is related to the fact that it is possible for this to be run at _not_ the
     //     latest commit incorrectly). Currently this is just taking the latest commit, which _should_ be correct
     //     and with upcoming changes like #427 this should then become always correct.
-    commit     <- Metadata.findOrCreateLatestCommitId(repository)
-    dictionary <- Snapshots.dictionaryForSnapshot(repository, snapmeta)
+    commitId   <- Metadata.findOrCreateLatestCommitId(repository)
+    commit     <- CommitStorage.byIdOrFail(repository, commitId)
+    dictionary =  commit.dictionary.value
     hdfsIvoryL <- repository.toIvoryLocation(Repository.snapshot(snapmeta.id)).asHdfsIvoryLocation
     in          = ShadowOutputDataset.fromIvoryLocation(hdfsIvoryL)
     job        <- SquashJob.initSnapshotJob(cluster.hdfsConfiguration, snapmeta.date)
     result     <- squash(repository, dictionary, in, conf, job, cluster)
-    _          <- SnapshotExtractManifest.io(cluster.toIvoryLocation(result.location)).write(SnapshotExtractManifest.create(commit, snapmeta.id))
+    _          <- SnapshotExtractManifest.io(cluster.toIvoryLocation(result.location)).write(SnapshotExtractManifest.create(commitId, snapmeta.id))
   } yield result -> dictionary
 
   /**

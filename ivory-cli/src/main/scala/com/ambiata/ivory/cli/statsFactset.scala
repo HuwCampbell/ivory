@@ -21,12 +21,12 @@ object statsFactset extends IvoryApp {
     opt[String]('f', "fact-set")   action { (x, c) => c.copy(factSet = x) }  required() text "Input ivory factset ID."
   }
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(""), { repo => configuration => c =>
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(""), { repo => configuration => flags => c =>
 
     IvoryT.fromRIO { for {
-      repo          <- HdfsRepository.fromUri(repo.root.show, configuration)
+      hdfs          <- repo.asHdfsRepository
       factsetId     <- RIO.fromOption[FactsetId](FactsetId.parse(c.factSet), s"Could not parse FactsetId ${c.factSet}")
-      res            = IvoryRetire.statsFacts(repo, factsetId)
+      res            = IvoryRetire.statsFacts(hdfs, factsetId)
       _             <- res.run(configuration.scoobiConfiguration)
     } yield List("🎹 ") }
   })

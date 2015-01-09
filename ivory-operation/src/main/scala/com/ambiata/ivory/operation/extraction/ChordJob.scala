@@ -7,6 +7,8 @@ import com.ambiata.ivory.operation.extraction.chord._
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
+import com.ambiata.ivory.storage.plan._
+import com.ambiata.ivory.storage.entities._
 import com.ambiata.ivory.mr._
 import com.ambiata.mundane.control._
 import com.ambiata.poacher.mr._
@@ -19,7 +21,6 @@ import scala.collection.JavaConverters._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf._
 import org.apache.hadoop.io._
-import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce.{Counter => _, _}
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
@@ -30,9 +31,7 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
  * This uses the SnapshotWritable in the exact same way snapshot does
  */
 object ChordJob {
-  def run(repository: HdfsRepository, reducers: Int, inputs: List[Prioritized[FactsetGlob]], output: Path, entities: Entities,
-          dictionary: Dictionary, incremental: Option[Path], codec: Option[CompressionCodec]): RIO[Unit] = {
-
+  def run(repository: HdfsRepository, plan: ChordPlan, reducers: Int, output: Path): RIO[Unit] = {
     val job = Job.getInstance(repository.configuration)
     val ctx = MrContextIvory.newContext("ivory-chord", job)
 
@@ -54,7 +53,7 @@ object ChordJob {
     job.setOutputKeyClass(classOf[NullWritable])
     job.setOutputValueClass(classOf[BytesWritable])
 
-    IvoryInputs.configure(ctx, job, repository, inputs, incremental, classOf[ChordFactsetMapper], classOf[ChordIncrementalMapper])
+    IvoryInputs.configure(ctx, job, repository, plan.datasets, classOf[ChordFactsetMapper], classOf[ChordIncrementalMapper])
 
     // output
     val tmpout = new Path(ctx.output, "chord")
@@ -62,18 +61,18 @@ object ChordJob {
     FileOutputFormat.setOutputPath(job, tmpout)
 
     // compression
-    codec.foreach(cc => {
+    repository.codec.foreach(cc => {
       Compress.intermediate(job, cc)
       Compress.output(job, cc)
     })
 
     // cache / config initializtion
-    ctx.thriftCache.push(job, Keys.FactsetLookup, FactsetLookups.priorityTable(inputs))
-    ctx.thriftCache.push(job, Keys.FactsetVersionLookup, FactsetLookups.versionTable(inputs.map(_.value)))
-    ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup(dictionary))
-    ctx.thriftCache.push(job, Keys.ChordEntitiesLookup, Entities.toChordEntities(entities))
-    ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(dictionary))
-    ctx.thriftCache.push(job, Keys.ChordWindowsLookup, FeatureLookups.windowTable(dictionary))
+    ctx.thriftCache.push(job, Keys.FactsetLookup, FactsetLookups.priorityTable(plan.datasets))
+    ctx.thriftCache.push(job, Keys.FactsetVersionLookup, FactsetLookups.versionTable(plan.datasets))
+    ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup(plan.commit.dictionary.value))
+    ctx.thriftCache.push(job, Keys.ChordEntitiesLookup, Entities.toChordEntities(plan.entities))
+    ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(plan.commit.dictionary.value))
+    ctx.thriftCache.push(job, Keys.ChordWindowsLookup, FeatureLookups.windowTable(plan.commit.dictionary.value))
 
     // run job
     if (!job.waitForCompletion(true))
@@ -192,7 +191,7 @@ class ChordFactsetMapper extends CombinableMapper[NullWritable, BytesWritable, B
 
 object ChordFactsetMapper {
 
-  // FIX VersionedFactConverter doesn't make sense, it is being called after deserialization into thrift????
+  // FIX VersionedFactConverter doesn't make sense, it is being called after deserialization into thrift?
   def map(tfact: ThriftFact, converter: VersionedFactConverter, input: BytesWritable, priority: Priority,
           kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable],
           okCounter: Counter, skipCounter: Counter, dropCounter: Counter, deserializer: ThriftSerialiser,
@@ -332,7 +331,7 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
     isSetLookup = FeatureLookups.isSetLookupToArray(isSetLookupThrift)
 
-    featureWindows = ChordReducer.setupWindows(ctx.thriftCache, context.getConfiguration).map(_.map(Window.startingDate))
+    featureWindows = ChordReducer.setupWindows(ctx.thriftCache, context.getConfiguration).map(_.map(a => (b: Date) => Window.startingDate(a, b)))
     windows = new Array(entities.maxChordSize)
     chordEmitter = new ChordWindowEmitter(emitter)
   }

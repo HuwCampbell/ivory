@@ -38,14 +38,14 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
 
   def dense2 = {
     val facts = List(
-      IntFact(      "eid1", FeatureId(Name("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
-      , IntFact(    "eid3", FeatureId(Name("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
-      , StringFact( "eid1", FeatureId(Name("ns1"), "fid1"), Date(2012,  9,  1), Time(0), "abc")
-      , StringFact( "eid1", FeatureId(Name("ns1"), "fid1"), Date(2012, 10,  1), Time(0), "ghi")
-      , StringFact( "eid1", FeatureId(Name("ns1"), "fid1"), Date(2012,  7,  2), Time(0), "def")
-      , IntFact(    "eid2", FeatureId(Name("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
-      , IntFact(    "eid2", FeatureId(Name("ns1"), "fid2"), Date(2012, 11,  1), Time(0), 11)
-      , BooleanFact("eid3", FeatureId(Name("ns2"), "fid3"), Date(2012,  3, 20), Time(0), true)
+      IntFact(      "eid1", FeatureId(Namespace("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
+      , IntFact(    "eid3", FeatureId(Namespace("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
+      , StringFact( "eid1", FeatureId(Namespace("ns1"), "fid1"), Date(2012,  9,  1), Time(0), "abc")
+      , StringFact( "eid1", FeatureId(Namespace("ns1"), "fid1"), Date(2012, 10,  1), Time(0), "ghi")
+      , StringFact( "eid1", FeatureId(Namespace("ns1"), "fid1"), Date(2012,  7,  2), Time(0), "def")
+      , IntFact(    "eid2", FeatureId(Namespace("ns1"), "fid2"), Date(2012, 10,  1), Time(0), 10)
+      , IntFact(    "eid2", FeatureId(Namespace("ns1"), "fid2"), Date(2012, 11,  1), Time(0), 11)
+      , BooleanFact("eid3", FeatureId(Namespace("ns2"), "fid3"), Date(2012,  3, 20), Time(0), true)
     )
     RepositoryBuilder.using(createDenseText(List(facts), sampleDictionary)) must beOkValue(
       """|eid1|ghi|10|NA
@@ -103,9 +103,8 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
         // Filter out tombstones to simplify the assertions - we're not interested in the snapshot logic here
         _      <- RepositoryBuilder.createRepo(repo, dictionary, facts.map(_.filter(!_.isTombstone)))
         dense  <- TemporaryIvoryConfiguration.withConf(conf => IvoryLocation.fromUri((dir </> "dense").path, conf))
-        res    <- Snapshots.takeSnapshot(repo, Date.maxValue)
-        meta   = res.meta
-        input  = repo.toIvoryLocation(Repository.snapshot(meta.id))
+        s      <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.maxValue)
+        input  = repo.toIvoryLocation(Repository.snapshot(s.id))
         inputS = ShadowOutputDataset(HdfsLocation(input.show))
         denseS = ShadowOutputDataset(HdfsLocation(dense.show))
         _      <- GroupByEntityOutput.createWithDictionary(repo, inputS, denseS, dictionary, format)

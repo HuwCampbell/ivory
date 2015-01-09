@@ -7,8 +7,9 @@ import com.ambiata.ivory.core.thrift.NamespacedThriftFact
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.reduction.Reduction
-import com.ambiata.ivory.operation.extraction.{ChordJob, Entities, SnapshotJob}
+import com.ambiata.ivory.operation.extraction.{ChordJob, SnapshotJob}
 import com.ambiata.ivory.storage.lookup.FeatureLookups
+import com.ambiata.ivory.storage.entities._
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.io.{BytesWritable, NullWritable, Text, Writable}
 import org.apache.hadoop.mapreduce.{Mapper, Reducer}

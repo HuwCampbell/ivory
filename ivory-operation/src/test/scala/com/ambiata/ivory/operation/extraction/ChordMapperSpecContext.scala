@@ -4,6 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.mr._
 import com.ambiata.ivory.lookup._
+import com.ambiata.ivory.storage.entities._
 import com.ambiata.poacher.mr._
 import org.scalacheck._, Arbitrary.arbitrary
 

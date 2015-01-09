@@ -4,8 +4,8 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core.gen._
+import com.ambiata.ivory.storage.entities._
 import com.ambiata.ivory.lookup.ChordEntities
-import com.ambiata.ivory.operation.extraction.Entities
 import org.scalacheck._
 import scala.collection.JavaConverters._
 
@@ -62,7 +62,7 @@ object ChordArbitraries {
 
     def expectedWindows: (Option[Window], Boolean) => (Date, List[Fact], List[Fact]) => List[Fact] =
       (window, rwDate) => (d, fs, prev) =>
-        window.map(Window.startingDate(_)(d)).map {
+        window.map(Window.startingDate(_, d)).map {
           sd =>
             // _Always_ emit the last fact before the window (for state-based features)
             (prev ++ fs).filter(!Window.isFactWithinWindow(sd, _)).lastOption.toList ++
@@ -84,7 +84,7 @@ object ChordArbitraries {
     lazy val expectedWindow: List[Fact] = ce.expectedWindow(fact, Mode.State, window, false)
     lazy val expectedWindowSet: List[Fact] = ce.expectedWindow(fact, Mode.Set, window, false)
     lazy val windowDateArray: Option[Array[Int]] = window.map {
-      win => ce.dates.map(_._1).map(Window.startingDate(win)(_).int).sorted.reverse.toArray
+      win => ce.dates.map(_._1).map(Window.startingDate(win, _).int).sorted.reverse.toArray
     }
   }
 
@@ -116,7 +116,7 @@ object ChordArbitraries {
         .flatMap(_.dates.headOption).flatMap(_._2.headOption).isDefined
     lazy val expectedSquashState: List[Fact] = ces.sortBy(_.entity).flatMap {
       ce => ce.toFacts(factAndMeta.fact, factAndMeta.meta.mode) { (d, fs, prev) =>
-        val sd = window.map(Window.startingDate(_)(d)).getOrElse(d)
+        val sd = window.map(Window.startingDate(_, d)).getOrElse(d)
         val pfs = prev ++ fs
         val last = pfs.lastOption
         val (beforeWindow, inWindow) = pfs.partition(!Window.isFactWithinWindow(sd, _))
@@ -132,7 +132,7 @@ object ChordArbitraries {
     }
     lazy val expectedSquashSet: List[Fact] = ces.sortBy(_.entity).flatMap {
       ce => ce.toFacts(factAndMeta.fact, factAndMeta.meta.mode) { (d, fs, prev) =>
-        val sd = window.map(Window.startingDate(_)(d)).getOrElse(d)
+        val sd = window.map(Window.startingDate(_, d)).getOrElse(d)
         val inWindow = (prev ++ fs).filter(Window.isFactWithinWindow(sd, _))
         List(Fact.newFact("", fid.namespace.name, fid.name, d, Time(0), LongValue(inWindow.size))).map(_.withEntity(ce.entity + ":" + d.hyphenated))
       }

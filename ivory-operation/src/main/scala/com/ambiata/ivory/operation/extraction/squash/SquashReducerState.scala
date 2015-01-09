@@ -4,8 +4,8 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.ivory.lookup.FeatureReduction
 import com.ambiata.ivory.mr._
-import com.ambiata.ivory.operation.extraction.Entities
 import com.ambiata.ivory.operation.extraction.reduction.Reduction
+import com.ambiata.ivory.storage.entities._
 import java.util.{Iterator => JIterator}
 import org.apache.hadoop.io.{BytesWritable, NullWritable, Text}
 
@@ -17,7 +17,7 @@ object EntityIterator {
    */
   def iterate[A](fact: MutableFact, mutator: FactByteMutator, iter: JIterator[BytesWritable])
                 (initial: A, callback: EntityCallback[A]): Unit = {
-    val state = new SquashReducerEntityState(null, Name("empty"))
+    val state = new SquashReducerEntityState(null, Namespace("empty"))
 
     var value: A = initial
     while (iter.hasNext) {
@@ -179,7 +179,7 @@ object SquashReducerState {
 
   // Write out the final reduced values
   def emit(emitFact: MutableFact, mutator: FactByteMutator, reducers: Iterable[(FeatureReduction, Reduction)],
-           emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, namespace: Name, entity: String,
+           emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, namespace: Namespace, entity: String,
            date: Date): Unit = {
     // Use emitFact here to avoid clobbering values in fact
     val nsfact = emitFact.toNamespacedThrift
@@ -204,7 +204,7 @@ object SquashReducerState {
   }
 }
 
-class SquashReducerEntityState(var entity: String, var namespace: Name) {
+class SquashReducerEntityState(var entity: String, var namespace: Namespace) {
 
   def isNewEntity(fact: Fact): Boolean =
     fact.entity != entity

@@ -14,7 +14,7 @@ import org.apache.hadoop.fs.Path
 import org.specs2.{ScalaCheck, Specification}
 import Namespaces._
 import com.ambiata.mundane.testing.RIOMatcher._
-import scalaz.{Name => _, _}, Scalaz._
+import scalaz._, Scalaz._
 import MemoryConversions._
 
 class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManagedProperties { def is = s2"""
@@ -33,13 +33,13 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
 
   def e1 = prepare { factsetPath =>
     namespaceSizes(factsetPath).run(new Configuration).map(_.toMap)
-  } must beOkValue(Map(Name("ns1") -> 4.bytes, Name("ns2") -> 4.bytes))
+  } must beOkValue(Map(Namespace("ns1") -> 4.bytes, Namespace("ns2") -> 4.bytes))
 
   def e2 = prepare { factsetPath =>
-    namespaceSizesSingle(new Path(factsetPath, "ns1"), Name("namespace")).run(new Configuration)
-  } must beOkValue((Name("namespace"), 4.bytes))
+    namespaceSizesSingle(new Path(factsetPath, "ns1"), Namespace("namespace")).run(new Configuration)
+  } must beOkValue((Namespace("namespace"), 4.bytes))
 
-  def e3 = managed { temp: TemporaryDirPath => (nsInc: Set[Name], nsExc: Set[Name], fsInc: FactsetIds, fsExc: FactsetIds) =>
+  def e3 = managed { temp: TemporaryDirPath => (nsInc: Set[Namespace], nsExc: Set[Namespace], fsInc: FactsetIds, fsExc: FactsetIds) =>
     !nsInc.exists(nsExc.contains) ==> {
       val sc = ScoobiConfiguration()
       val repo = HdfsRepository(HdfsLocation(temp.dir.path), IvoryConfiguration.fromScoobiConfiguration(sc))
@@ -69,11 +69,11 @@ class NamespacesSpec extends Specification with ScalaCheck with ScalaCheckManage
   def createFile(repository: Repository)(key: Key): RIO[Unit] =
     repository.store.utf8.write(key, "test")
 
-  def sumNames = prop { (l: List[(Name, Long)]) =>
+  def sumNames = prop { (l: List[(Namespace, Long)]) =>
     Namespaces.sum(l.map(x => x._1 -> x._2.bytes)).keySet == l.map(_._1).toSet
   }
 
-  def sumTotal = prop { (l: List[(Name, Long)]) =>
+  def sumTotal = prop { (l: List[(Namespace, Long)]) =>
     Namespaces.sum(l.map(x => x._1 -> x._2.bytes)).values.map(_.toBytes.value).sum == l.map(_._2).sum
   }
 }

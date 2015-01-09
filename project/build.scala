@@ -233,11 +233,16 @@ object build extends Build {
   , javaOptions in Test ++= Seq("-Dfile.encoding=UTF8", "-XX:MaxPermSize=512m", "-Xms512m", "-Xmx2g", "-XX:+CMSClassUnloadingEnabled", "-XX:+UseConcMarkSweepGC")
   , testOptions in Test += Tests.Setup(() => System.setProperty("log4j.configuration", "file:etc/log4j-test.properties"))
   , testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "tracefilter", "/.*specs2.*,.*mundane.testing.*")
-  , testOptions in Test ++= (if (Option(System.getenv("FORCE_AWS")).isDefined || Option(System.getenv("AWS_ACCESS_KEY")).isDefined)
-                               Seq()
-                             else
-                               Seq(Tests.Argument("--", "exclude", "aws")))
-  )
+  , testOptions in Test ++= Seq(Tests.Argument("--"))
+  , testOptions in Test ++= {
+    val aws = Option(System.getenv("FORCE_AWS")).isDefined || Option(System.getenv("AWS_ACCESS_KEY")).isDefined
+    val mr = !Option(System.getenv("NO_MR")).isDefined
+    val excludes = List("aws").filter(_ => !aws) ++ List("mr").filter(_ => !mr)
+    if (excludes.isEmpty)
+      Seq()
+    else
+      Seq(Tests.Argument("exclude", excludes.mkString(",")))
+  })
 
   lazy val prompt = shellPrompt in ThisBuild := { state =>
     val name = Project.extract(state).currentRef.project

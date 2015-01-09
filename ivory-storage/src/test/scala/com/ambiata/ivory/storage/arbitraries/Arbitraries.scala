@@ -2,7 +2,6 @@ package com.ambiata.ivory.storage.arbitraries
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.storage.fact.{FactsetVersionTwo, FactsetVersionOne, FactsetVersion}
 import com.ambiata.ivory.storage.manifest.{VersionManifest, SnapshotManifest}
 import com.ambiata.notion.core.TemporaryType
 import com.ambiata.notion.core.TemporaryType.{Hdfs, S3, Posix}
@@ -16,10 +15,6 @@ trait Arbitraries {
   if (!awsEnabled) {
     println("WARNING: AWS has been disabled for this build")
   }
-
-  implicit def FactsetVersionArbitrary: Arbitrary[FactsetVersion] =
-    Arbitrary(Gen.oneOf(FactsetVersionOne, FactsetVersionTwo))
-
   // TODO We should expose this from notion when we add the 'tool' dependency support
   implicit def StoreTypeArbitrary: Arbitrary[TemporaryType] =
     Arbitrary(if (awsEnabled) Gen.oneOf(Posix, S3, Hdfs) else Gen.oneOf(Posix, Hdfs))

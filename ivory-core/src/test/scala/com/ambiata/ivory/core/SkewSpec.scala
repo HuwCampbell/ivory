@@ -30,11 +30,11 @@ Skew Tests
 """
    def small = {
      val namespaces = List(
-         Name("demographics") -> 1.mb
-       , Name("offers"      ) -> 1.mb
-       , Name("widgets"     ) -> 1.mb
-       , Name("knobs"       ) -> 1.mb
-       , Name("flavours"    ) -> 1.mb
+         Namespace("demographics") -> 1.mb
+       , Namespace("offers"      ) -> 1.mb
+       , Namespace("widgets"     ) -> 1.mb
+       , Namespace("knobs"       ) -> 1.mb
+       , Namespace("flavours"    ) -> 1.mb
      )
      val (reducersNb, _) = Skew.calculate(dictionary, namespaces, optimalSize)
      reducersNb must_== namespaces.size
@@ -46,7 +46,7 @@ Skew Tests
   def largeFeature =
     checkAll(Dictionary(featureIdsWithLargeFeature.map(fake.toDefinition)), largeNamespace)
 
-  def checkSpread(dict: Dictionary, namespace: List[(Name, BytesQuantity)]): Result = {
+  def checkSpread(dict: Dictionary, namespace: List[(Namespace, BytesQuantity)]): Result = {
     val (_, r) = Skew.calculate(dict, namespace, optimalSize)
     seqToResult(namespace.map { case (name, size) =>
       val all = r.filter(_._1 == name)
@@ -76,11 +76,11 @@ Skew Tests
     checkAll(dict, namespace)
   }
 
-  def checkAll(dict: Dictionary, namespace: List[(Name, BytesQuantity)]): Result =
+  def checkAll(dict: Dictionary, namespace: List[(Namespace, BytesQuantity)]): Result =
     checkSpread(dict, namespace) and everyReducerBeingUsed(dict, namespace)
 
   /** Calculate whether given the number of reducers, at _least_ one feature is utilising it */
-  def everyReducerBeingUsed(dict: Dictionary, namespace: List[(Name, BytesQuantity)]): Result = {
+  def everyReducerBeingUsed(dict: Dictionary, namespace: List[(Namespace, BytesQuantity)]): Result = {
     val (nb, r) = Skew.calculate(dict, namespace, optimalSize)
     val a = new Array[Boolean](nb)
     r.foreach {
@@ -92,11 +92,11 @@ Skew Tests
   }
 
   def largeNamespace = List(
-    Name("demographics") -> 25986865.bytes
-  , Name("offers"      ) -> 57890389.bytes
-  , Name("widgets"     ) -> 329028927.bytes
-  , Name("knobs"       ) -> 8380852917L.bytes
-  , Name("flavours"    ) -> 184072795.bytes
+    Namespace("demographics") -> 25986865.bytes
+  , Namespace("offers"      ) -> 57890389.bytes
+  , Namespace("widgets"     ) -> 329028927.bytes
+  , Namespace("knobs"       ) -> 8380852917L.bytes
+  , Namespace("flavours"    ) -> 184072795.bytes
   )
 
   def fake = ConcreteDefinition(DoubleEncoding, Mode.State, Some(ContinuousType), "desc", Nil)
@@ -105,16 +105,16 @@ Skew Tests
   /** create a dictionary */
   def dictionary = Dictionary(featureIds.map(fake.toDefinition))
   def featureIds =
-    (1 to 10).map(n => FeatureId(Name("demographics"), "d" + n)).toList ++
-    (1 to 10).map(n => FeatureId(Name("offers"), "o" + n)).toList ++
-    (1 to 10).map(n => FeatureId(Name("widgets"), "w" + n)).toList ++
-    (1 to 10).map(n => FeatureId(Name("knobs"), "k" + n)).toList ++
-    (1 to 10).map(n => FeatureId(Name("flavours"), "f" + n)).toList
+    (1 to 10).map(n => FeatureId(Namespace("demographics"), "d" + n)).toList ++
+    (1 to 10).map(n => FeatureId(Namespace("offers"), "o" + n)).toList ++
+    (1 to 10).map(n => FeatureId(Namespace("widgets"), "w" + n)).toList ++
+    (1 to 10).map(n => FeatureId(Namespace("knobs"), "k" + n)).toList ++
+    (1 to 10).map(n => FeatureId(Namespace("flavours"), "f" + n)).toList
 
   def featureIdsWithLargeFeature =
-    (1 to 10).map(n => FeatureId(Name("demographics"), "d" + n)).toList ++
-      (1 to 10).map(n => FeatureId(Name("offers"), "o" + n)).toList ++
-      (1 to 10).map(n => FeatureId(Name("widgets"), "w" + n)).toList ++
-      (1 to 1).map(n => FeatureId(Name("knobs"), "k" + n)).toList ++
-      (1 to 10).map(n => FeatureId(Name("flavours"), "f" + n)).toList
+    (1 to 10).map(n => FeatureId(Namespace("demographics"), "d" + n)).toList ++
+      (1 to 10).map(n => FeatureId(Namespace("offers"), "o" + n)).toList ++
+      (1 to 10).map(n => FeatureId(Namespace("widgets"), "w" + n)).toList ++
+      (1 to 1).map(n => FeatureId(Namespace("knobs"), "k" + n)).toList ++
+      (1 to 10).map(n => FeatureId(Namespace("flavours"), "f" + n)).toList
 }

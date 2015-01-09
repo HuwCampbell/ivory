@@ -32,7 +32,7 @@ object ReducerPool {
           win  = WindowLookup.fromInt(fr.window)
           // If there is no starting date update the one provided, which will either be a snapshot or chord date
           // This is especially important for chord where it's used to calculate the "latest" date within a window
-          srt  = win.map(Window.startingDate(_)(date)).getOrElse(date)
+          srt  = win.map(Window.startingDate(_, date)).getOrElse(date)
           of   = DateOffsets.calculateLazyCompact(srt, date)
           r   <- Reduction.compile(fr, exp, of, profile(fr, _))
           r2   = if (isSet) new SetReduction(srt, date, r) else new StateReduction(srt, date, r)

@@ -35,7 +35,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
 
   def local = {
 
-    val dict = Dictionary(List(Definition.concrete(FeatureId(Name("demo"), "postcode"), StringEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))))
+    val dict = Dictionary(List(Definition.concrete(FeatureId(Namespace("demo"), "postcode"), StringEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))))
     TemporaryIvoryConfiguration.withConf(conf =>
       TemporaryDirPath.withDirPath { dir =>
         val repository = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf)
@@ -50,8 +50,8 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
   }
 
   def updated = {
-    val dict1 = Dictionary(List(Definition.concrete(FeatureId(Name("a"), "b"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
-    val dict2 = Dictionary(List(Definition.concrete(FeatureId(Name("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
+    val dict1 = Dictionary(List(Definition.concrete(FeatureId(Namespace("a"), "b"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
+    val dict2 = Dictionary(List(Definition.concrete(FeatureId(Namespace("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
     TemporaryIvoryConfiguration.withConf(conf =>
       TemporaryDirPath.withDirPath { dir =>
         val repository = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf)
@@ -64,7 +64,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
   }
 
   def invalidUpgrade(force: Boolean) = {
-    val fid = FeatureId(Name("a"), "b")
+    val fid = FeatureId(Namespace("a"), "b")
     val dict1 = Dictionary(List(Definition.concrete(fid, StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
     val dict2 = Dictionary(List(Definition.concrete(fid, BooleanEncoding, Mode.State, Some(CategoricalType), "", Nil)))
     TemporaryDirPath.withDirPath { dir =>
@@ -93,8 +93,8 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
 
 
   def dictionaryDirectory = {
-    val dict1 = Dictionary(List(Definition.concrete(FeatureId(Name("a"), "b"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
-    val dict2 = Dictionary(List(Definition.concrete(FeatureId(Name("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
+    val dict1 = Dictionary(List(Definition.concrete(FeatureId(Namespace("a"), "b"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
+    val dict2 = Dictionary(List(Definition.concrete(FeatureId(Namespace("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
 
     TemporaryRepositories.withRepository(Posix) { ivory => for {
       _   <- Repositories.create(ivory, RepositoryConfig.testing)

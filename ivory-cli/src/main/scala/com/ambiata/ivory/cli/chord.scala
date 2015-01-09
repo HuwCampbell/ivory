@@ -28,7 +28,7 @@ object chord extends IvoryApp {
         "WARNING: Decreasing this number will degrade performance."
   })(c => f => c.copy(formats = f(c.formats)))
 
-  val cmd = IvoryCmd.withCluster[CliArguments](parser, CliArguments("", true, SquashConfig.default, ExtractOutput()), { repo => cluster => conf => c =>
+  val cmd = IvoryCmd.withCluster[CliArguments](parser, CliArguments("", true, SquashConfig.default, ExtractOutput()), { repo => cluster => conf => flags => c =>
     IvoryT.fromRIO { for {
       ent  <- IvoryLocation.fromUri(c.entities, conf)
       of   <- Extract.parse(conf, c.formats)
@@ -37,7 +37,7 @@ object chord extends IvoryApp {
       _    <- RIO.when(of.outputs.exists(_._1.format.isThrift), RIO.fail[Unit]("Thrift output for chord not currently supported"))
       r    <- RepositoryRead.fromRepository(repo)
       // TODO Should be using Ivory API here, but the generic return type is lost on the monomorphic function
-      x    <- Chord.createChordWithSquash(repo, ent, c.takeSnapshot, c.squash, cluster)
+      x    <- Chord.createChordWithSquash(repo, flags, ent, c.takeSnapshot, c.squash, cluster)
       (out, dict) = x
       _    <- Extraction.extract(of, out, dict, cluster).run(r)
     } yield List(s"Successfully extracted chord from '${repo.root.show}'") }

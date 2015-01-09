@@ -15,8 +15,8 @@ object Skew {
    *  @return the number of reducers
    *          a list of (namespace, feature id,
    */
-  def calculate(dictionary: Dictionary, namespaces: List[(Name, BytesQuantity)], optimal: BytesQuantity): (Int, List[(Name, String, FeatureReducerOffset)]) =
-    namespaces.foldLeft(0 -> List[(Name, String, FeatureReducerOffset)]()) { case ((allocated, acc), (namespace, size)) =>
+  def calculate(dictionary: Dictionary, namespaces: List[(Namespace, BytesQuantity)], optimal: BytesQuantity): (Int, List[(Namespace, String, FeatureReducerOffset)]) =
+    namespaces.foldLeft(0 -> List[(Namespace, String, FeatureReducerOffset)]()) { case ((allocated, acc), (namespace, size)) =>
       // Only consider the concrete features
       val features = dictionary.forNamespace(namespace).byConcrete.sources.keys.map(_.name).toList
       val potential = (size.toBytes.value / optimal.toBytes.value).toInt + 1

@@ -3,7 +3,6 @@ package com.ambiata.ivory.operation.extraction
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.lookup.FeatureIdLookup
-import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable.KeyState
 import com.ambiata.ivory.mr._
 
@@ -26,12 +25,12 @@ SnapshotReducerSpec
 
 """
 
-  def windowLookupToArray = prop((l: NonEmptyList[(FeatureId, Option[Date])], e: Encoding, m: Mode) => {
+  def windowLookupToArray = prop((l: NonEmptyList[(FeatureId, Option[Date])], e: Encoding, m: Mode, x: Date) => {
     val dictionary = Dictionary(l.list.map({ case (fid, date) =>
       Definition.concrete(fid, e, m, None, fid.toString, Nil)
     }))
     val index = dictionary.byFeatureIndex.map({ case (n, d) => d.featureId -> n })
-    val lookup = SnapshotJob.windowTable(dictionary, SnapshotWindows(l.list.map((SnapshotWindow.apply _).tupled)))._2
+    val lookup = SnapshotJob.windowTable(dictionary, Ranges(l.list.map({ case (f, date) => Range(f, date.toList, x) })))._2
     val a = SnapshotReducer.windowLookupToArray(lookup)
     seqToResult(l.list.map {
       case (fid, w) => a(index(fid)) ==== w.getOrElse(Date.maxValue).int

@@ -6,7 +6,6 @@ import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.FeatureIdLookup
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable.KeyState
 import com.ambiata.ivory.mr._
-import com.ambiata.ivory.storage.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.poacher.mr._
 
@@ -28,7 +27,7 @@ SnapshotMapperSpec
   def disjoint(a: List[Fact], b: List[Fact]): Boolean =
     b.forall(x => !a.exists(_.featureId == x.featureId))
 
-  def factset = prop((fs: List[Fact], dropped: List[Fact], priority: Priority, date: Date, version: FactsetVersion) => disjoint(fs, dropped) ==> {
+  def factset = prop((fs: List[Fact], dropped: List[Fact], priority: Priority, date: Date, version: FactsetFormat) => disjoint(fs, dropped) ==> {
     val serializer = ThriftSerialiser()
     val kout = Writables.bytesWritable(4096)
     val vout = Writables.bytesWritable(4096)
@@ -44,8 +43,8 @@ SnapshotMapperSpec
     (fs ++ dropped).foreach(f => {
       val partition = Partition(f.namespace, f.date)
       val converter = version match {
-        case FactsetVersionOne => VersionOneFactConverter(partition)
-        case FactsetVersionTwo => VersionTwoFactConverter(partition)
+        case FactsetFormat.V1 => VersionOneFactConverter(partition)
+        case FactsetFormat.V2 => VersionTwoFactConverter(partition)
       }
       val bytes = serializer.toBytes(f.toThrift)
       SnapshotFactsetMapper.map(tfact, date, converter, new BytesWritable(bytes), priority, kout, vout, emitter,

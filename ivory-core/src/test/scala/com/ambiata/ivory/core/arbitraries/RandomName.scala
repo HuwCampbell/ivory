@@ -12,6 +12,6 @@ object RandomName {
   implicit def RandomNameArbitrary: Arbitrary[RandomName] =
     Arbitrary(Gen.oneOf(
         arbitrary[BadName].map(_.name)
-      , arbitrary[Name].map(_.name)
+      , arbitrary[Namespace].map(_.name)
       ).map(RandomName.apply))
 }

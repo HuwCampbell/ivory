@@ -18,5 +18,11 @@ Laws
   Encode/Decode Json                           ${encodedecode[FactsetFormat]}
   Equal                                        ${equal.laws[FactsetFormat]}
 
+Combinators
+-----------
+
+  Symmetric to/from byte:
+     ${ prop((f: FactsetFormat) => FactsetFormat.fromByte(f.toByte) ==== f.some) }
+
 """
 }

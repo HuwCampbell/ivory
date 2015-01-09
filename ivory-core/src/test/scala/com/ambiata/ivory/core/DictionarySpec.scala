@@ -1,8 +1,14 @@
 package com.ambiata.ivory.core
 
+import arbitraries.Arbitraries._
 import org.specs2._
+import scalaz.scalacheck.ScalazProperties._
 
 class DictionarySpec extends Specification with ScalaCheck { def is = s2"""
+
+Laws
+----
+  Equal                                        ${equal.laws[Dictionary]}
 
 Dictionary Tests
 ----------------
@@ -34,8 +40,14 @@ Append:
 
 Exists:
   Checking the existence of virtual features                     $hasVirtual
+
+Windows:
+  Same number of window entries as concrete features             $windowCount
+  Windows match feature windows                                  $window
+  Window counts match                                            $windowAllCounts
+
 """
-  import arbitraries.Arbitraries._
+
 
   def byFeatureId = propNoShrink((dictionary: Dictionary) =>
     seqToResult(dictionary.definitions.map(d =>
@@ -99,6 +111,23 @@ Exists:
     d1.append(d2) must_== Dictionary(d1.definitions ++ d2.definitions))
 
   def hasVirtual = propNoShrink((d1: Dictionary) =>
-    d1.hasVirtual ==== d1.byConcrete.sources.values.exists(_.virtual.nonEmpty)
-  )
+    d1.hasVirtual ==== d1.byConcrete.sources.values.exists(_.virtual.nonEmpty))
+
+  def windowCount = prop((d: Dictionary) =>
+    d.windows.features.size ==== d.byConcrete.sources.size)
+
+  def window = prop((d: Dictionary) =>
+    d.windows.features.flatMap(_.windows).toSet ==== d.definitions.flatMap({
+      case Concrete(id, definition) =>
+        Nil
+      case Virtual(id, definition) =>
+        definition.window.toList
+    }).toSet)
+
+  def windowAllCounts = prop((d: Dictionary) =>
+    d.windows.features.map(v => v.id -> v.windows.size).toSet ====
+      d.byConcrete.sources.toList.map({
+        case (id, group) =>
+          id -> group.virtual.map(_._2.window.toList.size).sum
+      }).toSet)
 }

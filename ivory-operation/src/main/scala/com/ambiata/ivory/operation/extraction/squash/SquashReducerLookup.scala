@@ -2,7 +2,6 @@ package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, ReducerLookup}
-import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.poacher.mr.MrContext
 import org.apache.hadoop.conf.{Configuration, Configurable}
@@ -53,7 +52,7 @@ object SquashReducerLookup {
     // The actual date doesn't matter - we're just using it to calculate the rough size of the window
     val date = Date.maxValue
     val windowSizes = dictionary.sources.flatMap { case (fid, cg) =>
-      cg.virtual.flatMap(_._2.window).map(Window.startingDate(_)(date)).sorted.headOption
+      cg.virtual.flatMap(_._2.window).map(Window.startingDate(_, date)).sorted.headOption
         .map(d => Days.daysBetween(d.localDate, date.localDate).getDays).map(fid ->)
     }
     val totalDays = windowSizes.map(_._2).sum

@@ -11,9 +11,9 @@ Constructors
   This doesn't really test anything, but I am leaving it here so that it
   is more likely for someone to add specs if they add a combinator:
 
-    ${ prop((id: SnapshotId, date: Date, store: FeatureStore) => {
-         val s = Snapshot(id, date, store)
-         (s.id, s.date, s.store) ==== ((id, date, store)) }) }
+    ${ prop((id: SnapshotId, date: Date, store: FeatureStore, dictionary: Option[Identified[DictionaryId, Dictionary]], bytes: Bytes) => {
+         val s = Snapshot(id, date, store, dictionary, bytes)
+         (s.id, s.date, s.store, s.dictionary, s.bytes) ==== ((id, date, store, dictionary, bytes)) }) }
 
 """
 }

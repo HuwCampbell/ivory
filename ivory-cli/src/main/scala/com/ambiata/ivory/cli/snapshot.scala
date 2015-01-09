@@ -10,8 +10,6 @@ import com.ambiata.ivory.storage.control._
 import org.joda.time.LocalDate
 import java.util.{Calendar, UUID}
 
-import scalaz._, Scalaz._
-
 object snapshot extends IvoryApp {
 
   case class CliArguments(date: LocalDate, squash: SquashConfig, formats: ExtractOutput)
@@ -33,7 +31,7 @@ object snapshot extends IvoryApp {
   })(c => f => c.copy(formats = f(c.formats)))
 
   val cmd = IvoryCmd.withCluster[CliArguments](parser, CliArguments(LocalDate.now(), SquashConfig.default, ExtractOutput()), {
-    repo => cluster => configuration => c =>
+    repo => cluster => configuration => flags => c =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
                       |
@@ -47,17 +45,12 @@ object snapshot extends IvoryApp {
                       |""".stripMargin
       println(banner)
       IvoryT.fromRIO { for {
-        of   <- Extract.parse(configuration, c.formats)
-        res  <- IvoryRetire.takeSnapshot(repo, Date.fromLocalDate(c.date))
-        meta  = res.meta
-        r    <- RepositoryRead.fromRepository(repo)
-        x    <- SquashJob.squashFromSnapshotWith(repo, meta, c.squash, cluster)
+        of        <- Extract.parse(configuration, c.formats)
+        snapshot  <- IvoryRetire.takeSnapshot(repo, flags, Date.fromLocalDate(c.date))
+        x         <- SquashJob.squashFromSnapshotWith(repo, snapshot.toMetadata, c.squash, cluster)
         (output, dictionary) = x
-        _    <- Extraction.extract(of, output, dictionary, cluster).run(r)
-      } yield List(
-        banner,
-        s"Output path: ${meta.id}",
-        res.incremental.cata(incr => s"Incremental snapshot used: ${incr.id}", "No Incremental Snapshot was used."),
-        "Status -- SUCCESS") }
+        r         <- RepositoryRead.fromRepository(repo)
+        _         <- Extraction.extract(of, output, dictionary, cluster).run(r)
+      } yield List(banner, s"Snapshot complete: ${snapshot.id}") }
   })
 }

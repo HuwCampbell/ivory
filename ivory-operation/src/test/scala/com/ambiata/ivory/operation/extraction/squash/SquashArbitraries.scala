@@ -4,7 +4,6 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core.gen._
-import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWindows
 import org.scalacheck._
 import scalaz._, Scalaz._
 
@@ -25,7 +24,7 @@ object SquashArbitraries {
         windows.toMap.mapValues { window =>
           facts.sortBy(_.datetime.long)
             // Either filter by window, or get everything
-            .partition(ef => window.cata(w => !Window.isFactWithinWindow(Window.startingDate(w)(date), ef), true)) match {
+            .partition(ef => window.cata(w => !Window.isFactWithinWindow(Window.startingDate(w, date), ef), true)) match {
             case (a, b) => (a.lastOption, b)
           }
         }
@@ -107,5 +106,5 @@ object SquashArbitraries {
 
 
   def startingDate(vd: ConcreteGroupFeature, date: Date): Option[Date] =
-    vd.cg.virtual.flatMap(_._2.window.map(w => Window.startingDate(w)(date))).sorted.headOption
+    vd.cg.virtual.flatMap(_._2.window.map(w => Window.startingDate(w, date))).sorted.headOption
 }

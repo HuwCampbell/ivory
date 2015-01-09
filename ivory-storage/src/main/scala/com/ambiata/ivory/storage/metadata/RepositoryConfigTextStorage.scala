@@ -9,14 +9,6 @@ import scalaz._, Scalaz._
 
 /**
  * Simple key/value store for repository configuration, stored as JSON.
- *
- * Currently only `timezone` is supported.
- *
- * {{{
- *   {
- *     "timezone": "Australia/Sydney"
- *   }
- * }}}
  */
 object RepositoryConfigTextStorage {
 

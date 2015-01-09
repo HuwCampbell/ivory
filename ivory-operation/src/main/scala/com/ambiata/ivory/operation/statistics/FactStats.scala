@@ -25,7 +25,7 @@ object FactStats {
   type FactStatEncode = (KeyInfo, Either[NumericalStats, Histogram])
 
   def statisticsForFactSet(repo: HdfsRepository, input: FactsetId): ScoobiAction[Unit] = for {
-    dlist <- PartitionFactThriftStorageV2.loadScoobiWith(repo, input, None, None).flatMap(parseError)
+    dlist <- PartitionFactThriftStorage.loadScoobiWith(repo, input).flatMap(parseError)
     _     <- scoobiJob(dlist, repo.toIvoryLocation((Repository.factset(input) / "_stats")))
   } yield ()
 

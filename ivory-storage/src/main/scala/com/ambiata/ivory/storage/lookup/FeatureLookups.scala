@@ -43,7 +43,7 @@ object FeatureLookups {
     // The date doesn't matter - just used to calculate the largest window
     val date = Date.maxValue
     val windows = dictionary.byConcrete.sources.flatMap {
-      case (fid, wins) => wins.virtual.flatMap(_._2.window).sortBy(Window.startingDate(_)(date)).headOption.map(fid ->)
+      case (fid, wins) => wins.virtual.flatMap(_._2.window).sortBy(Window.startingDate(_, date)).headOption.map(fid ->)
     }.toMap
     dictionary.byFeatureIndex.map {
       case (i, d) => i -> d.fold((fid, _) => windows.get(fid), (_, _) => None)

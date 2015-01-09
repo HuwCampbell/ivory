@@ -31,8 +31,8 @@ class DumpFactsSpec extends Specification with ScalaCheck { def is = s2"""
     val facts = uniqueEntities(data.facts)
     T.withIvoryLocationDir(TT.Hdfs) { location =>
       RepositoryBuilder.using { repository => for {
-        _ <- RepositoryBuilder.createRepo(repository, data.dictionary.removeVirtualFeatures, List(data.facts))
-        _ <- Snapshots.takeSnapshot(repository, Date.maxValue)
+        _ <- RepositoryBuilder.createRepo(repository, data.dictionary, List(data.facts))
+        _ <- Snapshots.takeSnapshot(repository, IvoryFlags.default, Date.maxValue)
         _ <- DumpFacts.dump(repository, DumpFactsRequest(Nil, SnapshotId.initial :: Nil, Nil, Nil), location)
         r <- IvoryLocation.readLines(location)
       } yield r }
@@ -44,8 +44,8 @@ class DumpFactsSpec extends Specification with ScalaCheck { def is = s2"""
     val facts = uniqueEntities(data.facts)
     T.withIvoryLocationDir(TT.Hdfs) { location =>
       RepositoryBuilder.using { repository => for {
-        _ <- RepositoryBuilder.createRepo(repository, data.dictionary.removeVirtualFeatures, List(facts))
-        _ <- Snapshots.takeSnapshot(repository, Date.maxValue)
+        _ <- RepositoryBuilder.createRepo(repository, data.dictionary, List(facts))
+        _ <- Snapshots.takeSnapshot(repository, IvoryFlags.default, Date.maxValue)
         _ <- DumpFacts.dump(repository, DumpFactsRequest(FactsetId.initial :: Nil, SnapshotId.initial :: Nil, Nil, Nil), location)
         r <- IvoryLocation.readLines(location)
       } yield r}

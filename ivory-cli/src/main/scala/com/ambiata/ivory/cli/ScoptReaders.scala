@@ -29,4 +29,11 @@ object ScoptReaders {
         s
     })
 
+  implicit val StrategyFlagRead: scopt.Read[StrategyFlag] =
+    scopt.Read.reads(s => StrategyFlag.fromString(s) match {
+      case None =>
+        throw new IllegalArgumentException(s"'${s}' is not a valid strategy.")
+      case Some(s) =>
+        s
+    })
 }

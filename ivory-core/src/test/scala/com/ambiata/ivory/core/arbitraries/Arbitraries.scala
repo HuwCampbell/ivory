@@ -6,16 +6,22 @@ import com.ambiata.ivory.core.gen._
 import org.scalacheck._, Arbitrary._
 import org.joda.time.DateTimeZone
 
-import scalaz.{Name => _, Value => _, _}, Scalaz._
+import scalaz.{Value => _, _}, Scalaz._
 import scalaz.scalacheck.ScalaCheckBinding._
 
 
 trait Arbitraries {
+  implicit def BytesArbitrary: Arbitrary[Bytes] =
+    Arbitrary(GenRepository.bytes)
+
   implicit def CommitArbitrary: Arbitrary[Commit] =
     Arbitrary(GenRepository.commit)
 
   implicit def CommitIdArbitrary: Arbitrary[CommitId] =
     Arbitrary(GenIdentifier.commit)
+
+  implicit def CommitMetadataArbitrary: Arbitrary[CommitMetadata] =
+    Arbitrary(GenRepository.commitMetadata)
 
   implicit def ConcreteDefinitionArbitrary: Arbitrary[ConcreteDefinition] =
     Arbitrary(GenDictionary.concrete)
@@ -68,14 +74,26 @@ trait Arbitraries {
   implicit def FeatureStoreIdArbitrary: Arbitrary[FeatureStoreId] =
     Arbitrary(GenIdentifier.store)
 
+  implicit def FeatureWindowArbitrary: Arbitrary[FeatureWindow] =
+    Arbitrary(GenDictionary.featureWindow)
+
+  implicit def FeatureWindowsArbitrary: Arbitrary[FeatureWindows] =
+    Arbitrary(GenDictionary.featureWindows)
+
   implicit def FileFormatArbitrary: Arbitrary[FileFormat] =
     Arbitrary(GenFileFormat.format)
 
   implicit def FormArbitrary: Arbitrary[Form] =
     Arbitrary(GenFileFormat.form)
 
+  implicit def IdentifiedArbitrary[A: Arbitrary, B: Arbitrary]: Arbitrary[Identified[A, B]] =
+    Arbitrary(GenIdentifier.identified)
+
   implicit def IdentifierArbitrary: Arbitrary[Identifier] =
     Arbitrary(GenIdentifier.identifier)
+
+  implicit def IvoryFlagsArbitrary: Arbitrary[IvoryFlags] =
+    Arbitrary(GenFlags.flags)
 
   implicit def IvoryVersionArbitrary: Arbitrary[IvoryVersion] =
     Arbitrary(GenIdentifier.version)
@@ -89,8 +107,8 @@ trait Arbitraries {
   implicit def ModeArbitrary: Arbitrary[Mode] =
     Arbitrary(GenDictionary.mode)
 
-  implicit def NameArbitrary: Arbitrary[Name] =
-    Arbitrary(GenString.name)
+  implicit def NamespaceArbitrary: Arbitrary[Namespace] =
+    Arbitrary(GenString.namespace)
 
   implicit def OutputFormatArbitrary: Arbitrary[OutputFormat] =
     Arbitrary(GenFileFormat.output)
@@ -106,6 +124,12 @@ trait Arbitraries {
 
   implicit def PriorityArbitrary: Arbitrary[Priority] =
     Arbitrary(Gen.choose(Priority.Min.toShort, Priority.Max.toShort).map(Priority.unsafe))
+
+  implicit def RangeArbitrary[A: Arbitrary]: Arbitrary[Range[A]] =
+    Arbitrary(GenDictionary.range[A])
+
+  implicit def RangesArbitrary[A: Arbitrary: Equal]: Arbitrary[Ranges[A]] =
+    Arbitrary(GenDictionary.ranges[A])
 
   implicit def RepositoryConfigArbitrary: Arbitrary[RepositoryConfig] =
     Arbitrary(GenRepository.repositoryConfig)
@@ -124,6 +148,9 @@ trait Arbitraries {
 
   implicit def SnapshotIdArbitrary: Arbitrary[SnapshotId] =
     Arbitrary(GenIdentifier.snapshot)
+
+  implicit def StrategyFlagArbitrary: Arbitrary[StrategyFlag] =
+    Arbitrary(GenFlags.plan)
 
   implicit def StructEncodingArbitrary: Arbitrary[StructEncoding] =
     Arbitrary(GenDictionary.structEncoding)

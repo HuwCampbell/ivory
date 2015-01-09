@@ -2,18 +2,27 @@ package com.ambiata.ivory.storage.lookup
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, FactsetLookup, FactsetVersionLookup}
-import com.ambiata.ivory.storage.fact._
 
 object FactsetLookups {
-  def priorityTable(globs: List[Prioritized[FactsetGlob]]): FactsetLookup = {
-    val lookup = new FactsetLookup
-    globs.foreach(p => lookup.putToPriorities(p.value.factset.render, p.priority.toShort))
+  def priorityTable(datasets: Datasets): FactsetLookup = {
+    val lookup = new FactsetLookup(new java.util.HashMap[String, java.lang.Short])
+    datasets.sets.foreach(p => p.value match {
+      case FactsetDataset(factset) =>
+        lookup.putToPriorities(factset.id.render, p.priority.toShort)
+      case SnapshotDataset(_) =>
+        ()
+    })
     lookup
   }
 
-  def versionTable(globs: List[FactsetGlob]): FactsetVersionLookup = {
-    val lookup = new FactsetVersionLookup
-    globs.foreach(g => lookup.putToVersions(g.factset.render, g.version.toByte))
+  def versionTable(datasets: Datasets): FactsetVersionLookup = {
+    val lookup = new FactsetVersionLookup(new java.util.HashMap[String, java.lang.Byte])
+    datasets.sets.foreach(p => p.value match {
+      case FactsetDataset(factset) =>
+        lookup.putToVersions(factset.id.render, factset.format.toByte)
+      case SnapshotDataset(_) =>
+        ()
+    })
     lookup
   }
 }

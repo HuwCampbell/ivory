@@ -16,7 +16,7 @@ object update extends IvoryApp {
   }
 
   val cmd = IvoryCmd.withRepoBypassVersionCheck[CliArguments](parser, CliArguments(), {
-    repo => configuration => c =>
+    repo => configuration => flags => c =>
       Update.update.toIvoryT(repo).as(Nil)
   })
 }

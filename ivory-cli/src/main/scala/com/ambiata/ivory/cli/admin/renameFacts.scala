@@ -9,7 +9,7 @@ import com.ambiata.mundane.io.MemoryConversions._
 import com.ambiata.mundane.parse.ListParser.string
 import com.ambiata.mundane.parse.Delimited
 
-import scalaz.{Name => _, _}, Scalaz._
+import scalaz._, Scalaz._
 
 object renameFacts extends IvoryApp {
 
@@ -32,7 +32,7 @@ object renameFacts extends IvoryApp {
       "Max size (in bytes) of a reducer used to copy Factsets"
   }
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(List(), None, None), { repo => conf => c => IvoryT.fromRIO { for {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(List(), None, None), { repo => conf => flags => c => IvoryT.fromRIO { for {
     batch   <- c.batch.cata(parseBatchFile(_, conf), RIO.ok[RenameMapping](RenameMapping(Nil)))
     mapping <- RIO.fromDisjunction[RenameMapping](createMapping(c.mapping).leftMap(\&/.This.apply))
     r       <- RepositoryRead.fromRepository(repo)

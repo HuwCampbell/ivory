@@ -4,13 +4,19 @@ import com.ambiata.ivory.core._
 
 import org.scalacheck._, Arbitrary.arbitrary
 
-import scalaz.{Name => _, Value => _, _}, Scalaz._
+import scalaz.{Value => _, _}, Scalaz._
 import scalaz.scalacheck.ScalaCheckBinding._
 
 
 object GenRepository {
+  def size: Gen[Long] =
+    Gen.choose(0L, Int.MaxValue.toLong)
+
+  def bytes: Gen[Bytes] =
+    size.map(Bytes.apply)
+
   def sized[A: Arbitrary]: Gen[Sized[A]] = for {
-    s <- Gen.choose(0L, Long.MaxValue)
+    s <- bytes
     v <- arbitrary[A]
   } yield Sized(v, s)
 
@@ -31,16 +37,25 @@ object GenRepository {
   } yield FeatureStore.fromList(s, f).get
 
   def commit: Gen[Commit] = for {
+    id <- GenIdentifier.commit
+    d <- GenDictionary.identified
+    s <- store
+    c <- Gen.option(identifiedRepositoryConfig)
+  } yield Commit(id, d, s, c)
+
+  def commitMetadata: Gen[CommitMetadata] = for {
     d <- GenIdentifier.dictionary
     s <- GenIdentifier.store
     c <- Gen.option(GenIdentifier.repositoryConfigId)
-  } yield Commit(d, s, c)
+  } yield CommitMetadata(d, s, c)
 
   def factset: Gen[Factset] =
     GenIdentifier.factset.flatMap(factsetWith)
 
-  def factsetWith(factsetId: FactsetId): Gen[Factset] =
-    partitions.map(Factset(factsetId, _))
+  def factsetWith(factsetId: FactsetId): Gen[Factset] = for {
+    ps <- partitions
+    ss <- ps.traverse(p => bytes.map(s => Sized(p, s)))
+  } yield Factset(factsetId, FactsetFormat.V2, ss)
 
   def factsets: Gen[List[Factset]] = for {
     f <- GenIdentifier.factsets
@@ -49,12 +64,14 @@ object GenRepository {
 
   def snapshot: Gen[Snapshot] = for {
     i <- GenIdentifier.snapshot
-    d <- GenDate.date
+    x <- GenDate.date
     s <- store
-  } yield Snapshot(i, d, s)
+    d <- GenDictionary.identified
+    b <- bytes
+  } yield Snapshot(i, x, s, d.some, b)
 
   def partition: Gen[Partition] = for {
-    n <- GenString.name
+    n <- GenString.namespace
     d <- GenDate.date
   } yield Partition(n, d)
 
@@ -67,7 +84,7 @@ object GenRepository {
   /* Generate a list of Partitions with the size up to n namespaces x n dates */
   def partitionsOf(nNamespaces: Int, nDates: Int): Gen[List[Partition]] = for {
     // Make sure we generate distinct namespaces here, so that the dates below are actually distinct
-    namespaces <- Gen.listOfN(nNamespaces, GenString.name).map(_.distinct)
+    namespaces <- Gen.listOfN(nNamespaces, GenString.namespace).map(_.distinct)
     partitions <- namespaces.traverse(namespace => for {
       d <- Gen.listOfN(nDates * 2, GenDate.date)
     } yield d.distinct.map(Partition(namespace, _)))
@@ -75,4 +92,7 @@ object GenRepository {
 
   def repositoryConfig: Gen[RepositoryConfig] =
     GenDate.zone.map(RepositoryConfig(MetadataVersion.V1, _))
+
+  def identifiedRepositoryConfig: Gen[Identified[RepositoryConfigId, RepositoryConfig]] =
+    GenIdentifier.identified(Arbitrary(GenIdentifier.repositoryConfigId), Arbitrary(repositoryConfig))
 }

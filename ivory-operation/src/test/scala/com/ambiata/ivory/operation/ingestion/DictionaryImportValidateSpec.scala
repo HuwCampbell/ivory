@@ -6,7 +6,7 @@ import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import org.scalacheck._
 import org.specs2._
-import scalaz.{Name => _,_}, Scalaz._
+import scalaz._, Scalaz._
 
 class DictionaryImportValidateSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -26,7 +26,7 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
 
   import DictionaryImportValidate._
 
-  val fid = FeatureId(Name("a"), "b")
+  val fid = FeatureId(Namespace("a"), "b")
   val path = ValidationPath(fid)
 
   def encodingSame = prop((enc: Encoding) =>

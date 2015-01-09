@@ -3,24 +3,15 @@ package com.ambiata.ivory.storage.partition
 import com.ambiata.mundane.control._
 import com.ambiata.notion.core._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.manifest._
 import scalaz._, Scalaz._, \&/._
 
 object Partitions {
-  def getFromFactset(repository: Repository, factset: FactsetId): RIO[List[Sized[Partition]]] =
-    FactsetManifest.io(repository, factset).read.flatMap({
-      case None =>
-        scrapeFromFactset(repository, factset)
-      case Some(manifest) =>
-        manifest.partitions.pure[RIO]
-    })
-
   def scrapeFromFactset(repository: Repository, factset: FactsetId): RIO[List[Sized[Partition]]] =
     for {
       keys       <- repository.store.list(Repository.factset(factset)).map(_.map(_.dropRight(1).drop(2)).filter(_ != Key.Root).distinct)
       partitions <- keys.traverseU(key => for {
           p <- RIO.fromDisjunction[Partition](Partition.parseNamespaceDateKey(key).disjunction.leftMap(This.apply))
-          s <- IvoryLocation.size(repository.toIvoryLocation(key))
+          s <- IvoryLocation.size(repository.toIvoryLocation(Repository.factset(factset) / key))
         } yield Sized(p, s))
     } yield partitions.sorted
 

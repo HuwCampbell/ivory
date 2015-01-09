@@ -12,7 +12,7 @@ import org.apache.hadoop.mapreduce.InputSplit
 
 import scalaz._, Scalaz._
 
-case class FactsetInfo(version: FactsetVersion, factConverter: VersionedFactConverter, priority: Priority)
+case class FactsetInfo(version: FactsetFormat, factConverter: VersionedFactConverter, priority: Priority)
 
 object FactsetInfo {
   def getBaseInfo(inputSplit: InputSplit): (FactsetId, Partition) = {
@@ -30,10 +30,10 @@ object FactsetInfo {
 
     val versionLookup = new FactsetVersionLookup <| (fvl => thriftCache.pop(configuration, factsetVersionLookupKey, fvl))
     val rawVersion = versionLookup.versions.get(factsetId.render)
-    val factsetVersion = FactsetVersion.fromByte(rawVersion).getOrElse(Crash.error(Crash.DataIntegrity, s"Can not parse factset version '${rawVersion}'"))
+    val factsetVersion = FactsetFormat.fromByte(rawVersion).getOrElse(Crash.error(Crash.DataIntegrity, s"Can not parse factset version '${rawVersion}'"))
     val converter = factsetVersion match {
-      case FactsetVersionOne => VersionOneFactConverter(partition)
-      case FactsetVersionTwo => VersionTwoFactConverter(partition)
+      case FactsetFormat.V1 => VersionOneFactConverter(partition)
+      case FactsetFormat.V2 => VersionTwoFactConverter(partition)
     }
     val priorityLookup = new FactsetLookup <| (fl => thriftCache.pop(configuration, factsetLookupKey, fl))
     val priority = priorityLookup.priorities.get(factsetId.render)

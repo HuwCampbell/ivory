@@ -19,7 +19,7 @@ object recreate extends IvoryApp {
     }
   }
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(factsets = Nil), { repo => conf => c =>
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(factsets = Nil), { repo => conf => flags => c =>
     RecreateFactset.recreateFactsets(repo, c.factsets).map(re => List(re.successString))
   })
 }

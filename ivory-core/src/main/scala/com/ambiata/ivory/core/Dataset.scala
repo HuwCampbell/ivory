@@ -1,5 +1,7 @@
 package com.ambiata.ivory.core
 
+import scalaz._, Scalaz._
+
 sealed trait Dataset {
   def fold[X](
     factset: Factset => X
@@ -9,6 +11,12 @@ sealed trait Dataset {
     case SnapshotDataset(s) => snapshot(s)
   }
 
+  def toFactset: Option[Factset] =
+    fold(_.some, _ => none)
+
+  def toSnapshot: Option[Snapshot] =
+    fold(_ => none, _.some)
+
   def isFactset: Boolean =
     fold(_ => true, _ => false)
 
@@ -17,6 +25,9 @@ sealed trait Dataset {
 
   def isEmpty: Boolean =
     fold(_.partitions.isEmpty, _ => false)
+
+  def bytes: Bytes =
+    fold(_.bytes, _.bytes)
 }
 
 case class FactsetDataset(factset: Factset) extends Dataset
@@ -37,4 +48,7 @@ object Dataset {
 
   def to(features: FeatureStore, to: Date): List[Prioritized[Dataset]] =
     features.filterByDate(_ <= to).toDataset
+
+  implicit def DatasetEqual: Equal[Dataset] =
+    Equal.equalA
 }

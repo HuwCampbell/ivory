@@ -2,6 +2,7 @@ package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.ScalaCheckManagedProperties
+import com.ambiata.ivory.storage.manifest._
 import com.ambiata.mundane.io.TemporaryDirPath
 import com.ambiata.notion.core._
 import com.ambiata.mundane.control._
@@ -61,8 +62,8 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
   def writeFeatureStore(repo: Repository, fstore: FeatureStore): RIO[Unit] = for {
     _ <- writeLines(repo, Repository.featureStoreById(fstore.id), fstore.factsetIds.map(_.value.render))
     _ <- fstore.factsets.map(_.value).traverseU(factset => factset.partitions.traverseU(partition =>
-           writeLines(repo, Repository.factset(factset.id) / partition.key / "data", List(""))
-         )).map(_.flatten)
+           writeLines(repo, Repository.factset(factset.id) / partition.value.key / "data", List(""))) >>
+             FactsetManifest.io(repo, factset.id).write(FactsetManifest.create(factset.id, FactsetFormat.V2, factset.partitions)))
   } yield ()
 
   def writeLines(repository: Repository, key: Key, lines: List[String]): RIO[Unit] =

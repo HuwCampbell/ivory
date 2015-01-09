@@ -1,3 +1,15 @@
 package com.ambiata.ivory.core
 
-case class Commit(dictionaryId: DictionaryId, featureStoreId: FeatureStoreId, configId: Option[RepositoryConfigId])
+import scalaz._
+
+case class Commit(
+  id: CommitId
+, dictionary: Identified[DictionaryId, Dictionary]
+, store: FeatureStore
+, config: Option[Identified[RepositoryConfigId, RepositoryConfig]]
+)
+
+object Commit {
+  implicit def CommitEqual: Equal[Commit] =
+    Equal.equalA
+}

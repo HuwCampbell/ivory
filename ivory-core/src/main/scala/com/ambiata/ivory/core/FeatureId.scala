@@ -7,7 +7,7 @@ import com.ambiata.mundane.parse.ListParser._
 import scala.math.{Ordering => SOrdering}
 import scalaz._, Scalaz._
 
-case class FeatureId(namespace: Name, name: String) {
+case class FeatureId(namespace: Namespace, name: String) {
   override def toString =
     toString(":")
 
@@ -24,7 +24,7 @@ object FeatureId {
 
   def parse(featureId: String): String \/ FeatureId =
     (string tuple string).run(Delimited.parseRow(featureId, ':')).disjunction.flatMap {
-      case (ns, n) => Name.nameFromStringDisjunction(ns).map(FeatureId(_, n))
+      case (ns, n) => Namespace.nameFromStringDisjunction(ns).map(FeatureId(_, n))
     }
 
   implicit def FeatureIdCodecJson: CodecJson[FeatureId] = CodecJson.derived(

@@ -8,7 +8,7 @@ import org.joda.time.DateTimeZone
 import org.scalacheck._, Arbitrary._
 import org.specs2._
 
-import scalaz.{Name => _, Value => _, _}, Scalaz._
+import scalaz.{Value => _, _}, Scalaz._
 
 class EavtParsersSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -83,8 +83,8 @@ Eavt Parse Formats
       ).run(List(entity.value, feature.name, Value.toString(value, None).getOrElse("?"), date.hyphenated)).toOption must beNone})
 
   def structFail = {
-    val dict = Dictionary(List(Definition.concrete(FeatureId(Name("ns"), "a"), StructEncoding(Map()), Mode.State, None, "", Nil)))
-    EavtParsers.parser(dict, Name("ns"), DateTimeZone.getDefault, DateTimeZone.getDefault).run(List("e", "a", "v", "t")).toOption must beNone
+    val dict = Dictionary(List(Definition.concrete(FeatureId(Namespace("ns"), "a"), StructEncoding(Map()), Mode.State, None, "", Nil)))
+    EavtParsers.parser(dict, Namespace("ns"), DateTimeZone.getDefault, DateTimeZone.getDefault).run(List("e", "a", "v", "t")).toOption must beNone
   }
 
   def genBadDouble: Gen[DoubleValue] =

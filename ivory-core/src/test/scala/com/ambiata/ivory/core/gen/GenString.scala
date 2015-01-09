@@ -4,12 +4,10 @@ import com.ambiata.ivory.core._
 import org.scalacheck._
 
 object GenString {
-  def name: Gen[Name] =
-    Gen.frequency(
-      9 -> sensible.map(_.take(20)),
-      // Ideally this is 255 but we often append strings to names to guarantee uniqueness
-      1 -> sensible.map(_.take(200))
-    ).map(Name.reviewed)
+  def namespace: Gen[Namespace] = for {
+    colour <- Gen.oneOf(colours)
+    number <- Gen.choose(0, 9)
+  } yield Namespace.reviewed(s"${colour}${number}")
 
   def word: Gen[String] =
     Gen.identifier
@@ -37,4 +35,17 @@ object GenString {
   // FIX ARB this isn't good enough. Investigate context and improve.
   def badName: Gen[String] =
     Gen.oneOf("", "_name", "name1/name2", "name㭊")
+
+  def colours: List[String] = List(
+    "red"
+  , "green"
+  , "blue"
+  , "yellow"
+  , "pink"
+  , "purple"
+  , "orange"
+  , "black"
+  , "white"
+  , "gray"
+  )
 }
