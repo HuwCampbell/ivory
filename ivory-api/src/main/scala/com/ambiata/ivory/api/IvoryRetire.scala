@@ -23,8 +23,6 @@ object IvoryRetire {
    * They will be replaced by a safer, stable API that lets users interact with
    * ivory, without concern for the current implementation.
    */
-  val snapshotFromHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotFromHdfs _
-
   val createRepository = com.ambiata.ivory.storage.repository.Repositories.create _
 
   /**

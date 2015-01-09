@@ -27,10 +27,10 @@ class FactImporterSpec extends Specification with FileMatchers with FixtureExamp
 
  The Eavt text import can import text or Thrift facts
 
-  MR job runs and creates expected text data   $text
-  MR job runs and creates expected thrift data $thrift
-  When there are errors parsing text, they must be saved as a Thrift record containing the full record + the error message $withErrors
-  When there are errors parsing thrift, they must be saved as a Thrift record containing the full record + the error message $thriftWithErrors
+  MR job runs and creates expected text data   $text ${tag("mr")}
+  MR job runs and creates expected thrift data $thrift ${tag("mr")}
+  When there are errors parsing text, they must be saved as a Thrift record containing the full record + the error message $withErrors ${tag("mr")}
+  When there are errors parsing thrift, they must be saved as a Thrift record containing the full record + the error message $thriftWithErrors ${tag("mr")}
 
 """
 
