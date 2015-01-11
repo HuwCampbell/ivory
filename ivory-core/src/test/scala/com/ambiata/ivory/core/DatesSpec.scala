@@ -108,8 +108,17 @@ Generic Time Format Parsing
     Parse.decodeEither[Date](Date.unsafeYmdToInt(y.y, m.m, d.d).asJson.nospaces) must_== "Date: []".left)
 
   def edge = {
+    val minV = Date.minValue
+    val minVm = DateTimeUtil.minusDays(minV, 1)
+    val maxV = Date.maxValue
+    val maxVp = DateTimeUtil.minusDays(maxV, -1)
+
     (Dates.date("2000-02-29") must beSome(Date(2000, 2, 29))) and
-    (Dates.date("2001-02-29") must beNone)
+    (Dates.date("2001-02-29") must beNone) and
+    (Date.isValid(minV.year, minV.month, minV.day) must_== true) and
+    (Date.isValid(minVm.year, minVm.month, minVm.day) must_== false) and
+    (Date.isValid(maxV.year, maxV.month, maxV.day) must_== true) and
+    (Date.isValid(maxVp.year, maxVp.month, maxVp.day) must_== false)
   }
 
   def zonesymmetric = prop((dz: DateTimeWithZone, ivory: DateTimeZone) => {

@@ -76,13 +76,29 @@ object Date {
   def unsafe(year: Short, month: Byte, day: Byte): Date =
     new Date(unsafeYmdToInt(year, month, day))
 
+  /* 
+   * The Gregorian calendar, which ivory time implements was first
+   * introduced in 1582 and adopted across the western world over
+   * the next few hundred years (although Russia and Greek were late
+   * to the party in the 1900s). It corrects from the Julian Calendar
+   * which preceeded it by putting additional constraints on leap
+   * days; which were every 4 years in the Julian, but excepted years
+   * divisible by 100 but not divisible by 400 in Gregorian. This
+   * makes the calendar year 365.2425 days long.
+   *
+   * Ivory uses a mathematical trick to make date manipulations
+   * efficient, internally shifting the start of the year to the
+   * first of march, such that leap years are added at the end of
+   * the preceeding year. The "epoch date" is thus set at 1600/03/01.
+   */
+
   def isValid(year: Short, month: Byte, day: Byte): Boolean = {
     def divisibleBy(n: Int, divisor: Int) =
       ((n / divisor) * divisor) == n
     def leapYear =
       divisibleBy(year, 4) && (!divisibleBy(year, 100) || divisibleBy(year, 400))
 
-    year >= 1000 &&
+    (year >= 1601 || (year == 1600 && month >= 3)) &&
       year <= 3000 &&
       month >= 1 &&
       month <= 12 &&
