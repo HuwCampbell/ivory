@@ -13,7 +13,9 @@ object GenString {
     Gen.identifier
 
   def words: Gen[List[String]] =
-    Gen.listOf(word)
+    // FIX: This isn't really ideal, but be _very_ careful when changing the max size as this can result in
+    // _significantly_ slower property generation (see DatasetsSpec)
+    GenPlus.listOfSized(0, 5, word)
 
   def sentence: Gen[String] =
     words.map(_.mkString(" "))
