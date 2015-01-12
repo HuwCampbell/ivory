@@ -1,6 +1,7 @@
 package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.ClusterTemporary._
 import com.ambiata.ivory.operation.extraction.Snapshots
 import com.ambiata.ivory.operation.extraction.squash.SquashArbitraries._
 import com.ambiata.ivory.mr.FactFormats._
@@ -25,7 +26,7 @@ class SquashSpec extends Specification with ScalaCheck { def is = s2"""
 
     val expectedFacts: List[Fact] = sf.facts.list.flatMap(_.expectedFactsWithCount)
 
-    TemporaryLocations.withCluster { cluster =>
+    withCluster { cluster =>
       RepositoryBuilder.using { repo => for {
         _   <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
         s   <- Snapshots.takeSnapshot(repo, IvoryFlags.default, sf.date)

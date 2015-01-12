@@ -67,7 +67,7 @@ class FactImporterSpec extends Specification with FileMatchers with FixtureExamp
     RepositoryBuilder.using { repo =>
       RIO.ok[Result]({
         val setup = new Setup(repo)
-        Metadata.dictionaryToIvory(repo, setup.dictionary).run.unsafePerformIO()
+        Metadata.dictionaryToIvory(repo, setup.dictionary).unsafePerformIO
         AsResult(f(setup))
       })
     } must beOkLike(r => r.isSuccess aka r.message must beTrue)
@@ -106,7 +106,7 @@ class Setup(val repository: HdfsRepository) extends MustThrownMatchers {
   def saveFactsAsThrift(facts: List[Fact]): RIO[Unit] = {
     import com.ambiata.ivory.operation.ingestion.thrift._
     val serializer = ThriftSerialiser()
-    TemporaryIvoryConfiguration.withConf(conf =>
+    IvoryConfigurationTemporary.withConf(conf =>
       SequenceUtil.writeHdfsBytes((namespaced </> "input" </> "ns1" </> FileName(java.util.UUID.randomUUID)).location, conf.configuration, None) {
         writer => RIO.safe(facts.map(Conversion.fact2thrift).map(fact => serializer.toBytes(fact)).foreach(writer))
       }.run(conf.configuration)

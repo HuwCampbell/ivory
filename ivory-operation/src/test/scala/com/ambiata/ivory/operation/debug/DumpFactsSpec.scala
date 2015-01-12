@@ -2,8 +2,9 @@ package com.ambiata.ivory.operation.debug
 
 import org.specs2._
 import com.ambiata.mundane.testing.RIOMatcher._
-import com.ambiata.notion.core.{TemporaryType => TT}
-import com.ambiata.ivory.core.{TemporaryLocations => T, _}
+import com.ambiata.notion.core.{TemporaryType => T}
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.IvoryLocationTemporary._
 import com.ambiata.ivory.core.arbitraries._
 
 import com.ambiata.ivory.operation.extraction.Snapshots
@@ -17,7 +18,7 @@ class DumpFactsSpec extends Specification with ScalaCheck { def is = s2"""
 
 """
   def factsets = propNoShrink((data: FactsWithDictionary) => {
-    T.withIvoryLocationDir(TT.Hdfs) { location =>
+    withIvoryLocationDir(T.Hdfs) { location =>
       RepositoryBuilder.using { repository => for {
         _ <- RepositoryBuilder.createRepo(repository, data.dictionary, List(data.facts))
         _ <- DumpFacts.dump(repository, DumpFactsRequest(FactsetId.initial :: Nil, Nil, Nil, Nil), location)
@@ -29,7 +30,7 @@ class DumpFactsSpec extends Specification with ScalaCheck { def is = s2"""
 
   def snapshots = prop((data: FactsWithDictionary) => {
     val facts = uniqueEntities(data.facts)
-    T.withIvoryLocationDir(TT.Hdfs) { location =>
+    withIvoryLocationDir(T.Hdfs) { location =>
       RepositoryBuilder.using { repository => for {
         _ <- RepositoryBuilder.createRepo(repository, data.dictionary, List(data.facts))
         _ <- Snapshots.takeSnapshot(repository, IvoryFlags.default, Date.maxValue)
@@ -42,7 +43,7 @@ class DumpFactsSpec extends Specification with ScalaCheck { def is = s2"""
 
   def both = propNoShrink((data: FactsWithDictionary) => {
     val facts = uniqueEntities(data.facts)
-    T.withIvoryLocationDir(TT.Hdfs) { location =>
+    withIvoryLocationDir(T.Hdfs) { location =>
       RepositoryBuilder.using { repository => for {
         _ <- RepositoryBuilder.createRepo(repository, data.dictionary, List(facts))
         _ <- Snapshots.takeSnapshot(repository, IvoryFlags.default, Date.maxValue)

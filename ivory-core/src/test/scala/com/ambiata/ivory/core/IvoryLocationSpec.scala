@@ -4,13 +4,13 @@ import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._
 import org.specs2._
-import TemporaryLocations._
+import IvoryLocationTemporary._
 import org.specs2.execute.AsResult
 import org.specs2.matcher.{MustMatchers, ThrownExpectations}
 import org.specs2.specification.FixtureExample
 import com.ambiata.mundane.testing.RIOMatcher._
 import scalaz._, Scalaz._
-import TemporaryIvoryConfiguration._
+import IvoryConfigurationTemporary._
 
 class IvoryLocationSpec extends Specification with ForeachTemporaryType with ThrownExpectations { def is = s2"""
 

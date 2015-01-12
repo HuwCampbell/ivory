@@ -2,8 +2,9 @@ package com.ambiata.ivory.storage.sync
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.core.TemporaryLocations._
-import com.ambiata.ivory.core.TemporaryRepositories._
+import com.ambiata.ivory.core.RepositoryTemporary._
+import com.ambiata.ivory.core.ClusterTemporary._
+import com.ambiata.ivory.core.IvoryLocationTemporary._
 import com.ambiata.ivory.storage.arbitraries.Arbitraries._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.RIOMatcher._
@@ -34,7 +35,7 @@ Sync operations to cluster
       withIvoryLocationFile(locationType)(location => {
         val dataset = InputDataset(location.location)
         for {
-          _      <- saveLocationFile(location, data)
+          _      <- IvoryLocation.writeUtf8(location, data)
           shadow <- SyncIngest.inputDataset(dataset, cluster)
           p      = new Path(shadow.location.path)
           dir    <- Hdfs.isDirectory(p).run(cluster.hdfsConfiguration)
@@ -50,7 +51,7 @@ Sync operations to cluster
       withIvoryLocationDir(locationType)(dir => {
         val dataset = InputDataset(dir.location)
         for {
-          _      <- saveLocationFile(dir </> FilePath.unsafe("foo"), data)
+          _      <- IvoryLocation.writeUtf8(dir </> FilePath.unsafe("foo"), data)
           shadow <- SyncIngest.inputDataset(dataset, cluster)
           p      = new Path(shadow.location.path + "/foo")
           pe     <- Hdfs.exists(new Path(shadow.location.path)).run(cluster.hdfsConfiguration)

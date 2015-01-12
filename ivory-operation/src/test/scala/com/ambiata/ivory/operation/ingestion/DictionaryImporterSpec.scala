@@ -1,6 +1,8 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.IvoryLocationTemporary._
+import com.ambiata.ivory.core.RepositoryTemporary._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.operation.ingestion.DictionaryImporter._
 import com.ambiata.ivory.storage.arbitraries.Arbitraries._
@@ -8,6 +10,7 @@ import com.ambiata.ivory.storage.metadata.Metadata._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
+import com.ambiata.mundane.io.Arbitraries._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType.Posix
 import com.ambiata.mundane.testing.RIOMatcher._
@@ -33,41 +36,34 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
 
   val opts = ImportOpts(Override, force = false)
 
-  def local = {
+  def local = prop((local: LocalTemporary) => for {
+    dir  <- local.directoryThatExists
+    conf <- IvoryConfigurationTemporary.random.conf
+    dict = Dictionary(List(Definition.concrete(FeatureId(Namespace("demo"), "postcode"), StringEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))))
+    repo = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf)
+    path = dir <|> "dictionary.psv"
+    _    <- Streams.write(new java.io.FileOutputStream(path.toFile), DictionaryTextStorageV2.delimitedString(dict))
+    _    <- DictionaryImporter.importFromPath(repo, IvoryLocation.fromFilePath(path), opts.copy(ty = Override))
+    out  <- latestDictionaryFromIvory(repo)
+  } yield out ==== dict)
 
-    val dict = Dictionary(List(Definition.concrete(FeatureId(Namespace("demo"), "postcode"), StringEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))))
-    TemporaryIvoryConfiguration.withConf(conf =>
-      TemporaryDirPath.withDirPath { dir =>
-        val repository = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf)
-        val dictionaryPath = dir <|> "dictionary.psv"
-
-        for {
-          _    <- Streams.write(new java.io.FileOutputStream(dictionaryPath.toFile), DictionaryTextStorageV2.delimitedString(dict))
-          _    <- DictionaryImporter.importFromPath(repository, IvoryLocation.fromFilePath(dictionaryPath), opts.copy(ty = Override))
-          out  <- latestDictionaryFromIvory(repository)
-        } yield out
-    }) must beOkValue(dict)
-  }
-
-  def updated = {
-    val dict1 = Dictionary(List(Definition.concrete(FeatureId(Namespace("a"), "b"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
-    val dict2 = Dictionary(List(Definition.concrete(FeatureId(Namespace("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
-    TemporaryIvoryConfiguration.withConf(conf =>
-      TemporaryDirPath.withDirPath { dir =>
-        val repository = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf)
-        for {
-          _    <- fromDictionary(repository, dict1, opts.copy(ty = Override))
-          _    <- fromDictionary(repository, dict2, opts.copy(ty = Update))
-          out  <- latestDictionaryFromIvory(repository)
-        } yield out
-    }).map(_.byFeatureId) must beOkValue(dict1.append(dict2).byFeatureId)
-  }
+  def updated = prop((local: LocalTemporary) => for {
+    dir   <- local.directory
+    conf  <- IvoryConfigurationTemporary.random.conf
+    dict1 = Dictionary(List(Definition.concrete(FeatureId(Namespace("a"), "b"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
+    dict2 = Dictionary(List(Definition.concrete(FeatureId(Namespace("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
+    repo  = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf)
+    _     <- fromDictionary(repo, dict1, opts.copy(ty = Override))
+    _     <- fromDictionary(repo, dict2, opts.copy(ty = Update))
+    out   <- latestDictionaryFromIvory(repo)
+    z     = out.byFeatureId
+  } yield z ==== dict1.append(dict2).byFeatureId)
 
   def invalidUpgrade(force: Boolean) = {
     val fid = FeatureId(Namespace("a"), "b")
     val dict1 = Dictionary(List(Definition.concrete(fid, StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
     val dict2 = Dictionary(List(Definition.concrete(fid, BooleanEncoding, Mode.State, Some(CategoricalType), "", Nil)))
-    TemporaryDirPath.withDirPath { dir =>
+    LocalTemporary.random.directory >>= { dir =>
       val repo = LocalRepository.create(dir)
       fromDictionary(repo, dict1, opts.copy(ty = Override))
         .flatMap(_ => fromDictionary(repo, dict2, opts.copy(ty = Override, force = force)))
@@ -81,9 +77,9 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
     invalidUpgrade(true) must beOkLike(r => r._1.isFailure && r._2.isDefined)
 
   def differentStoreDict = prop((ivoryType: TemporaryType, dictType: TemporaryType, dict: Dictionary) => {
-    TemporaryRepositories.withRepository(ivoryType) { ivory => for {
+    withRepository(ivoryType) { ivory => for {
       _   <- Repositories.create(ivory, RepositoryConfig.testing)
-      _   <- TemporaryLocations.withIvoryLocationFile(dictType) { location =>
+      _   <- withIvoryLocationFile(dictType) { location =>
                IvoryLocation.writeUtf8(location, DictionaryTextStorageV2.delimitedString(dict)) >>
                importFromPath(ivory, location, opts.copy(ty = Override))
              }
@@ -96,9 +92,9 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
     val dict1 = Dictionary(List(Definition.concrete(FeatureId(Namespace("a"), "b"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
     val dict2 = Dictionary(List(Definition.concrete(FeatureId(Namespace("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
 
-    TemporaryRepositories.withRepository(Posix) { ivory => for {
+    withRepository(Posix) { ivory => for {
       _   <- Repositories.create(ivory, RepositoryConfig.testing)
-      _   <- TemporaryLocations.withIvoryLocationDir(Posix) { location =>
+      _   <- withIvoryLocationDir(Posix) { location =>
                IvoryLocation.writeUtf8(location </> "dict1.psv", DictionaryTextStorageV2.delimitedString(dict1)) >>
                IvoryLocation.writeUtf8(location </> "dict2.psv", DictionaryTextStorageV2.delimitedString(dict2)) >>
                importFromPath(ivory, location, opts.copy(ty = Override))

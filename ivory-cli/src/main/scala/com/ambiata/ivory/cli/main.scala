@@ -1,7 +1,7 @@
 package com.ambiata.ivory.cli
 
+import com.ambiata.mundane.control._
 import scalaz._, Scalaz._
-import scalaz.effect._
 
 object main {
 
@@ -28,15 +28,20 @@ object main {
 
   def main(args: Array[String]): Unit = {
     handleVersionAndExit(args)
-    val program = for {
+    val program: Option[RIO[Option[Unit]]] = for {
       (progName, argsRest) <- args.headOption.map(_ -> args.tail)
       command <- commands.find(_.cmd.parser.programName == progName)
     } yield command.cmd.run(argsRest)
     // End of the universe
-    program.sequence.flatMap(_.flatten.fold(usage())(_ => IO.ioUnit)).unsafePerformIO
+    program.sequence.flatMap(o => o.flatten.fold(usage())(_ => RIO.unit)).unsafePerformIO match {
+      case Ok(_) =>
+        ()
+      case Error(e) =>
+        sys.error(Result.asString(e))
+    }
   }
 
-  def usage(): IO[Unit] = IO {
+  def usage(): RIO[Unit] = RIO.safe {
     val cmdNames = commands.map(_.cmd.parser.programName).mkString("|")
     println(s"Ivory ${BuildInfo.version}")
     println(s"Usage: {$cmdNames}")

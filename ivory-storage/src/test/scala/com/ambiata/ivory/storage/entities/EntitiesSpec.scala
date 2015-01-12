@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.entities
 
 import java.util.HashMap
 
-import com.ambiata.ivory.core.TemporaryLocations._
+import com.ambiata.ivory.core.IvoryLocationTemporary._
 import com.ambiata.ivory.core.{Date, Fact}
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._

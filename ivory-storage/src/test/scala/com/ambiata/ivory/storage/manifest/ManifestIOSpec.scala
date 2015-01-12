@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.manifest
 
-import com.ambiata.ivory.core._, TemporaryLocations._
+import com.ambiata.ivory.core.IvoryLocationTemporary._
 import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core._
 import com.ambiata.ivory.storage.arbitraries.Arbitraries._

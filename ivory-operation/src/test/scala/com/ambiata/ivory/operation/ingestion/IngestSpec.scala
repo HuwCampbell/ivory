@@ -3,8 +3,9 @@ package com.ambiata.ivory.operation.ingestion
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.core.TemporaryLocations._
-import com.ambiata.ivory.core.TemporaryRepositories._
+import com.ambiata.ivory.core.ClusterTemporary._
+import com.ambiata.ivory.core.IvoryLocationTemporary._
+import com.ambiata.ivory.core.RepositoryTemporary._
 import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.ivory.operation.ingestion.thrift.Conversion
 import com.ambiata.ivory.mr.FactFormats._

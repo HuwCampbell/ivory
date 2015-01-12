@@ -5,6 +5,7 @@ import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.core.IvoryConfigurationTemporary._
 import com.ambiata.ivory.operation.ingestion.thrift.{ThriftFactDense, ThriftFactSparse}
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
@@ -97,20 +98,18 @@ class GroupByEntityOutputSpec extends Specification with SampleFacts with Thrown
     "2|ns2|fid3|boolean|categorical|desc|NA"
   )
 
-  def createDense[A](facts: List[List[Fact]], dictionary: Dictionary, format: GroupByEntityFormat)(f: (HdfsRepository, IvoryLocation) => RIO[A])(repo: HdfsRepository): RIO[A] =
-    TemporaryDirPath.withDirPath { dir =>
-      for {
-        // Filter out tombstones to simplify the assertions - we're not interested in the snapshot logic here
-        _      <- RepositoryBuilder.createRepo(repo, dictionary, facts.map(_.filter(!_.isTombstone)))
-        dense  <- TemporaryIvoryConfiguration.withConf(conf => IvoryLocation.fromUri((dir </> "dense").path, conf))
-        s      <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.maxValue)
-        input  = repo.toIvoryLocation(Repository.snapshot(s.id))
-        inputS = ShadowOutputDataset(HdfsLocation(input.show))
-        denseS = ShadowOutputDataset(HdfsLocation(dense.show))
-        _      <- GroupByEntityOutput.createWithDictionary(repo, inputS, denseS, dictionary, format)
-        out    <- f(repo, dense)
-      } yield out
-    }
+  def createDense[A](facts: List[List[Fact]], dictionary: Dictionary, format: GroupByEntityFormat)(f: (HdfsRepository, IvoryLocation) => RIO[A])(repo: HdfsRepository): RIO[A] = for {
+    // Filter out tombstones to simplify the assertions - we're not interested in the snapshot logic here
+    dir    <- LocalTemporary.random.directory
+    _      <- RepositoryBuilder.createRepo(repo, dictionary, facts.map(_.filter(!_.isTombstone)))
+    dense  <- withConf(conf => IvoryLocation.fromUri((dir </> "dense").path, conf))
+    s      <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.maxValue)
+    input  = repo.toIvoryLocation(Repository.snapshot(s.id))
+    inputS = ShadowOutputDataset(HdfsLocation(input.show))
+    denseS = ShadowOutputDataset(HdfsLocation(dense.show))
+    _      <- GroupByEntityOutput.createWithDictionary(repo, inputS, denseS, dictionary, format)
+    out    <- f(repo, dense)
+  } yield out
 
   def createDenseText(facts: List[List[Fact]], dictionary: Dictionary)(repo: HdfsRepository): RIO[(String, List[String])] =
     createDense(facts, dictionary, GroupByEntityFormat.DenseText(Delimiter.Psv, "NA", TextEscaping.Delimited))((_, dense) => for {

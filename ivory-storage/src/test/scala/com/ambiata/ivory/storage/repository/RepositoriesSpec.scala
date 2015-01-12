@@ -2,6 +2,7 @@ package com.ambiata.ivory.storage.repository
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
+import com.ambiata.ivory.core.RepositoryTemporary._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.storage.metadata.Metadata
 import com.ambiata.mundane.control.RIO
@@ -37,7 +38,7 @@ Create repository should always create all folders
     exists(TemporaryType.Posix)
 
   def exists(repository: TemporaryType) = {
-    TemporaryRepositories.withRepository(repository) { repo =>
+    withRepository(repository) { repo =>
       createRepository(repo) >> checkRepository(repo)
     } must beOkLike(_ must contain(true).forall)
   }

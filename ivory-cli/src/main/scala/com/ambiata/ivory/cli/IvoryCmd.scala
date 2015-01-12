@@ -21,7 +21,7 @@ import scalaz._, Scalaz._
  * Parse command line arguments and run a program with the IvoryRunner
  */
 case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryRunner[A]) {
-  def run(args: Array[String]): IO[Option[Unit]] = {
+  def run(args: Array[String]): RIO[Option[Unit]] = {
     val repositoryConfiguration = createIvoryConfiguration(args)
     parseAndRun(repositoryConfiguration.arguments, runner.run(repositoryConfiguration))
   }
@@ -59,12 +59,12 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
     before ++ after.drop(2)
   }
 
-  private def parseAndRun(args: Seq[String], result: A => IvoryT[RIO, List[String]]): IO[Option[Unit]] = {
-    parser.parse(args, initial)
-      .traverseU(a => (for {
+  private def parseAndRun(args: Seq[String], result: A => IvoryT[RIO, List[String]]): RIO[Option[Unit]] = {
+    parser.parse(args, initial).traverseU(a => for {
         r <- IvoryRead.createIO
         x <- result(a).run.run(r)
-      } yield x).run.map(_.fold(_.foreach(println), e => { println(s"Failed! - ${Result.asString(e)}"); sys.exit(1) })))
+      } yield x).liftExceptions.onError(e => {
+        println(s"Failed! - ${Result.asString(e)}"); sys.exit(1) }).flatMap(l => l.traverse(_.traverse(RIO.putStrLn(_)).void))
   }
 }
 

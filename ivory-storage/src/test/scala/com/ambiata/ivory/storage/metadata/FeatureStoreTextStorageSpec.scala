@@ -1,59 +1,61 @@
 package com.ambiata.ivory.storage.metadata
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage.ScalaCheckManagedProperties
+import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.manifest._
-import com.ambiata.mundane.io.TemporaryDirPath
 import com.ambiata.notion.core._
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.io._
+import com.ambiata.mundane.io.Arbitraries._
+import com.ambiata.mundane.testing.RIOMatcher._
+import com.ambiata.notion.core._
 
 import org.specs2._
 import scalaz._, Scalaz._
 import org.scalacheck._, Arbitrary._
-import com.ambiata.ivory.core.arbitraries._
-import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.mundane.testing.RIOMatcher._
 
-class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with ScalaCheckManagedProperties { def is = s2"""
+class FeatureStoreTextStorageSpec extends Specification with ScalaCheck { def is = s2"""
 
   Parse a list of strings into a FeatureStore          $stringsFeatureStore
   Read a FeatureStore from a Repository                $readFeatureStore
   Write a FeatureStore to a Repository                 $writeFeatureStore
-  Can list all FeatureStore Ids in a Repository        $listFeatureStorIds
-  Can get latest FeatureStoreId from a Repository      $latestFeatureStoreIs
+  Can list all FeatureStore Ids in a Repository        $listFeatureStoreIds
+  Can get latest FeatureStoreId from a Repository      $latestFeatureStoreIds
                                                        """
   import FeatureStoreTextStorage._
 
   def stringsFeatureStore = prop { fstore: FeatureStore =>
-    fromLines(toList(fstore.factsetIds).map(toLine)) must_== fstore.factsetIds.right
+    fromLines(toList(fstore.factsetIds).map(toLine)) ==== fstore.factsetIds.right
   }
 
-  def readFeatureStore = managed { temp: TemporaryDirPath => fstore: FeatureStore =>
-    val expected = fstore.copy(factsets = fstore.factsets.map(_.map(fs => fs.copy(partitions = fs.partitions.sorted))))
-    val repo = LocalRepository.create(temp.dir)
+  def readFeatureStore = prop((tmp: LocalTemporary, fstore: FeatureStore) => for {
+    d <- tmp.directory
+    r = LocalRepository.create(d)
+    _ <- writeFeatureStore(r, fstore)
+    z <- fromId(r, fstore.id)
+  } yield z ==== fstore.copy(factsets = fstore.factsets.map(_.map(fs => fs.copy(partitions = fs.partitions.sorted)))))
 
-    writeFeatureStore(repo, fstore) >>
-    fromId(repo, fstore.id) must beOkValue(expected)
-  }
+  def writeFeatureStore = prop((tmp: LocalTemporary, fstore: FeatureStore) => for {
+    d <- tmp.directory
+    r = LocalRepository.create(d)
+    _ <- toId(r, fstore)
+    z <- r.store.utf8.read(Repository.featureStoreById(fstore.id))
+  } yield z ==== delimitedString(fstore.factsetIds))
 
-  def writeFeatureStore = managed { temp: TemporaryDirPath => fstore: FeatureStore =>
-    val repo = LocalRepository.create(temp.dir)
-    toId(repo, fstore) >>
-      repo.store.utf8.read(Repository.featureStoreById(fstore.id)) must
-      beOkLike(_ must_== delimitedString(fstore.factsetIds))
-  }
+  def listFeatureStoreIds = prop((tmp: LocalTemporary, ids: FeatureStoreIds) => for {
+    d <- tmp.directory
+    r = LocalRepository.create(d)
+    _ <- writeFeatureStoreIds(r, ids.ids)
+    z <- Metadata.listFeatureStoreIds(r)
+  } yield z.sorted ==== ids.ids.sorted)
 
-  def listFeatureStorIds = managed { temp: TemporaryDirPath => ids: FeatureStoreIds =>
-    val repo = LocalRepository.create(temp.dir)
-    writeFeatureStoreIds(repo, ids.ids) >>
-    Metadata.listFeatureStoreIds(repo).map(_.toSet) must beOkValue(ids.ids.toSet)
-  }
-
-  def latestFeatureStoreIs = managed { temp: TemporaryDirPath => ids: FeatureStoreIds =>
-    val repo = LocalRepository.create(temp.dir)
-    writeFeatureStoreIds(repo, ids.ids) >>
-    Metadata.latestFeatureStoreId(repo) must beOkValue(ids.ids.sortBy(_.id).lastOption)
-  }
+  def latestFeatureStoreIds = prop((tmp: LocalTemporary, ids: FeatureStoreIds) => for {
+    d <- tmp.directory
+    r = LocalRepository.create(d)
+    _ <- writeFeatureStoreIds(r, ids.ids)
+    z <- Metadata.latestFeatureStoreId(r)
+  } yield z ==== ids.ids.sortBy(_.id).lastOption)
 
   def writeFeatureStoreIds(repo: Repository, ids: List[FeatureStoreId]): RIO[Unit] =
     ids.traverse(id => writeLines(repo, Repository.featureStores / id.asKeyName, List(""))).void
@@ -68,4 +70,5 @@ class FeatureStoreTextStorageSpec extends Specification with ScalaCheck with Sca
 
   def writeLines(repository: Repository, key: Key, lines: List[String]): RIO[Unit] =
     repository.store.linesUtf8.write(key, lines)
+
 }
