@@ -76,9 +76,8 @@ object GenDictionary {
     GenIdentifier.identified(Arbitrary(GenIdentifier.dictionary), Arbitrary(GenDictionary.dictionary))
 
   def dictionary: Gen[Dictionary] = for {
-    n <- Gen.sized(s => Gen.choose(3, math.min(s, 20)))
-    i <- Gen.listOfN(n, GenIdentifier.feature).map(_.distinct)
-    c <- Gen.listOfN(i.length, concrete).map(cds => i.zip(cds))
+    i <- GenPlus.listOfSized(3, 20, GenIdentifier.feature).map(_.distinct)
+    c <- Gen.listOfN(i.size, concrete).map(cds => i.zip(cds))
     // For every concrete definition there is a chance we may have a virtual feature
     v <- c.traverse(x => Gen.frequency(
       70 -> Gen.const(None)
@@ -174,7 +173,7 @@ object GenDictionary {
               case (name, StructEncodedValue(enc, _)) => filterExpression(enc).map(name ->)
             }).map(_.toList)
             // For 'and' we can only see each key once
-            cn     <- op.fold(Gen.const(1), Gen.choose(0, maxChildren))
+            cn     <- op.fold(Gen.const(1), Gen.choose(0, math.max(0, maxChildren)))
             keys    = op.fold(sev.map(_._1), Nil)
             subvs   = left -- keys
             chlds  <- Gen.listOfN(Math.min(subvs.size, cn), sub(maxChildren - 1, subvs))

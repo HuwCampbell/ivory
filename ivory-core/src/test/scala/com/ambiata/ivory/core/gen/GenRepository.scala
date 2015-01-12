@@ -21,8 +21,7 @@ object GenRepository {
   } yield Sized(v, s)
 
   def datasets: Gen[Datasets] = for {
-    n <- Gen.sized(z => Gen.choose(1, math.min(z, 20)))
-    d <- Gen.listOfN(n, dataset)
+    d <- GenPlus.listOfSized(1, 20, dataset)
   } yield Datasets(Prioritized.fromList(d).get)
 
   def dataset: Gen[Dataset] =
