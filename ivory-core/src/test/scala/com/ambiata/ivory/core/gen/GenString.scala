@@ -38,7 +38,7 @@ object GenString {
   def badName: Gen[String] =
     Gen.oneOf("", "_name", "name1/name2", "name㭊")
 
-  def colours: List[String] = List(
+  val colours: List[String] = List(
     "red"
   , "green"
   , "blue"
