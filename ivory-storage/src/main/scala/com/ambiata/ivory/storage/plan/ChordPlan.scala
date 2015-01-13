@@ -12,7 +12,7 @@ case class ChordPlan(entities: Entities, commit: Commit, snapshot: Option[Snapsh
  */
 object ChordPlan {
   /**
-   * Determine the plan datasets for the given chord entites, and repository
+   * Determine the plan datasets for the given chord entities, and repository
    * state using an in memory strategy to determine validity using specified
    * snapshots and select best using a weighting function.
    */
@@ -27,8 +27,8 @@ object ChordPlan {
   }
 
   /**
-   * Determine the plan datasets for the given chord entites, and repository
-   * state using a pessismistic strategy to determine validity using all
+   * Determine the plan datasets for the given chord entities, and repository
+   * state using a pessimistic strategy to determine validity using all
    * snapshots and select best using a weighting function.
    */
   def pessimistic[F[_]: Monad](
@@ -41,10 +41,10 @@ object ChordPlan {
       ChordPlan(entities, commit, p.snapshot, build(entities, commit, p)))
 
   /**
-   * Determine the plan datasets for the given chord entites, and repository
+   * Determine the plan datasets for the given chord entities, and repository
    * state using a conservative strategy to determine validity using all
    * snapshots and select best using a weighting function. This is the
-   * same as pessimisitic this uses requires memory at the cost of more io.
+   * same as pessimistic this uses requires memory at the cost of more io.
    */
   def conservative[F[_]: Monad](
     entities: Entities

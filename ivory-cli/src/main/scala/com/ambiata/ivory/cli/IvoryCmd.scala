@@ -104,7 +104,7 @@ object IvoryCmd {
     parser.opt[String]('r', "repository") action { (x, c) => repoArg = Some(x); c} text
       "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"
     parser.opt[StrategyFlag]("plan-strategy") action { (x, c) => strategy = Some(x); c} optional() text
-      "Run with the specified plan strategy, one of: pessimsitic - minimal IO, best answer, higher memory; " +
+      "Run with the specified plan strategy, one of: pessimistic - minimal IO, best answer, higher memory; " +
       "conservative - higher IO, best answer, lower memory; optimistic - higher IO, good answer, quicker."
     new IvoryCmd[A](parser, initial, IvoryRunner(config => c =>
       for {
