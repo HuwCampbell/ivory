@@ -16,6 +16,9 @@ $V3 ingest -i "sparse:delimited:psv=${INPUT}/facts"
 # Create a snapshot with .metadata.json
 $V3 snapshot
 
+# Create a bad/empty factset
+$V3 ingest -i "sparse:delimited:psv=${INPUT}/facts-bad"
+
 ### LATEST ###
 
 if $IVORY cat-dictionary; then echo "Do not pass go - upgrade was not required"; exit 1; fi
@@ -25,3 +28,4 @@ $IVORY update
 # Just make sure we have all the relevant manifests that were previously missing
 cat ${REPOSITORY}/snapshots/00000000/.manifest.json
 cat ${REPOSITORY}/snapshots/00000001/.manifest.json
+cat ${REPOSITORY}/factsets/00000001/.manifest.json

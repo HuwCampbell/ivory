@@ -19,13 +19,16 @@ object UpdateV0 {
     _ <- updateSnapshots
   } yield ()
 
-  def updateFactsets: RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
-    factsets <- Metadata.findFactsets(repository)
+  def updateFactsets: RepositoryTIO[Unit] = RepositoryT.fromRIO(repository =>
+    Metadata.findFactsets(repository).flatMap(updateFactsetsIds(repository, _))
+  )
+
+  def updateFactsetsIds(repository: Repository, factsets: List[FactsetId]): RIO[Unit] = for {
     _ <- factsets.traverseU(f => for {
-      partitions <- Partitions.scrapeFromFactset(repository, f).map(p => (!p.isEmpty).option(p))
-      _    <- partitions.traverseU(ps => FactsetManifest.io(repository, f).write(FactsetManifest.create(f, FactsetFormat.V2, ps)))
+      partitions <- Partitions.scrapeFromFactset(repository, f)
+      _    <- FactsetManifest.io(repository, f).write(FactsetManifest.create(f, FactsetFormat.V2, partitions))
     } yield ())
-  } yield ())
+  } yield()
 
   def updateSnapshots: RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
     snapshots <- repository.store.listHeads(Repository.snapshots).map(_.filterHidden)
