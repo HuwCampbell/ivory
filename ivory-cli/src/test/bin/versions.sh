@@ -21,3 +21,6 @@ export IVORY_V3="1.0.0-cdh5-20141217212706-02d69f4 2.11"
 
 # Last version before v2 metadata where size was added to factset metadata.
 export IVORY_V4="1.0.0-cdh5-20141229233818-6d996f7 2.11"
+
+# Last version before v3 metadata where old snapshots manifests were actually written out.
+export IVORY_V5="1.0.0-cdh5-20150112052717-f20b962 2.11"

@@ -17,5 +17,5 @@ object RepositoryConfig {
 
   /** For testing only! */
   def testing: RepositoryConfig =
-    RepositoryConfig(MetadataVersion.V2, DateTimeZone.forID("Australia/Sydney"))
+    RepositoryConfig(MetadataVersion.latestVersion, DateTimeZone.forID("Australia/Sydney"))
 }

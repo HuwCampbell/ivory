@@ -8,7 +8,7 @@ case class VersionManifest(format: MetadataVersion, ivory: IvoryVersion)
 
 object VersionManifest {
   def current: VersionManifest =
-    VersionManifest(MetadataVersion.V2, IvoryVersion.get)
+    VersionManifest(MetadataVersion.latestVersion, IvoryVersion.get)
 
   implicit def VersionManifestEqual: Equal[VersionManifest] =
     Equal.equalA

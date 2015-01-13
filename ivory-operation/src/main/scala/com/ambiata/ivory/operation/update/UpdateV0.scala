@@ -29,9 +29,13 @@ object UpdateV0 {
 
   def updateSnapshots: RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
     snapshots <- repository.store.listHeads(Repository.snapshots).map(_.filterHidden)
-    sm <- snapshots.traverseU(s =>
-      SnapshotMetadataV1.read(repository, s)
-        .flatMap(_.cata(_.some.pure[RIO], SnapshotMetadataV0.read(repository, s))))
+    sm <- snapshots.traverseU { k =>
+      SnapshotId.parse(k.name).cata(s =>
+        SnapshotMetadataV1.read(repository, s)
+          .flatMap(_.cata(_.some.pure[RIO], SnapshotMetadataV0.read(repository, s)))
+          .flatMap(_.cata(_.some.pure[RIO], RIO.putStrLn(s"WARNING: Snapshot skipped ${k.name}") >> RIO.ok(none[SnapshotManifest])))
+      , RIO.putStrLn(s"WARNING: Invalid snapshot path ${k.name}") >> RIO.ok(none[SnapshotManifest]))
+      }
     _ <- sm.flatten.traverseU(s => SnapshotManifest.io(repository, s.snapshot).write(s))
   } yield ())
 
@@ -43,7 +47,8 @@ object UpdateV0 {
 
     val key = KeyName.unsafe(".snapmeta")
 
-    def read(repository: Repository, path: Key): RIO[Option[SnapshotManifest]] = {
+    def read(repository: Repository, snapshotId: SnapshotId): RIO[Option[SnapshotManifest]] = {
+      val path = Repository.snapshot(snapshotId) / key
       for {
         exists <- repository.store.exists(path)
         sm     <- if (exists) for {
@@ -73,10 +78,11 @@ object UpdateV0 {
 
     val key = Key(KeyName.unsafe(".metadata.json"))
 
-    def read(repository: Repository, s: Key): RIO[Option[SnapshotManifest]] = for {
-      exists <- repository.store.exists(s / SnapshotMetadataV1.key)
+    def read(repository: Repository, snapshotId: SnapshotId): RIO[Option[SnapshotManifest]] = for {
+      path   <- RIO.ok(Repository.snapshot(snapshotId) / key)
+      exists <- repository.store.exists(path)
       sm <- if (exists) for {
-        json <- repository.store.utf8.read(s / SnapshotMetadataV1.key)
+        json <- repository.store.utf8.read(path)
         md   <- RIO.fromDisjunctionString[SnapshotMetadataV1](json.decodeEither[SnapshotMetadataV1])
       } yield SnapshotManifest.create(md.commitId, md.snapshotId, SnapshotFormat.V1, md.date).some
       else none.pure[RIO]

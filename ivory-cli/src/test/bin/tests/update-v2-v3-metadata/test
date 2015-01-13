@@ -1,0 +1,27 @@
+#!/bin/sh -eux
+
+DIR=$(dirname $0)
+. "${DIR}/../../setup.sh"
+DICT_NAME="dict_regression"
+
+V2="ivory_run $IVORY_V2"
+$V2 create-repository -p "${REPOSITORY}"
+$V2 import-dictionary -r "${REPOSITORY}" -p "${INPUT}/dictionary.psv"
+$V2 ingest -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts"
+# Create a snapshot with .snapmeta
+$V2 extract-snapshot -r "${REPOSITORY}"
+
+V3="ivory_run $IVORY_V3"
+$V3 ingest -i "sparse:delimited:psv=${INPUT}/facts"
+# Create a snapshot with .metadata.json
+$V3 snapshot
+
+### LATEST ###
+
+if $IVORY cat-dictionary; then echo "Do not pass go - upgrade was not required"; exit 1; fi
+
+$IVORY update
+
+# Just make sure we have all the relevant manifests that were previously missing
+cat ${REPOSITORY}/snapshots/00000000/.manifest.json
+cat ${REPOSITORY}/snapshots/00000001/.manifest.json
