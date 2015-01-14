@@ -9,7 +9,10 @@ object ReductionArbitraries {
   case class DatesOfCount(dates: List[(Short, Date)]) {
 
     lazy val offsets: DateOffsets =
-      DateOffsets.compact(dates.head._2, dates.last._2)
+      if (dates.isEmpty)
+        DateOffsets.compact(Date.minValue, Date.minValue)
+      else
+        DateOffsets.compact(dates.head._2, dates.last._2)
 
     lazy val allDates: List[Date] =
       dates.flatMap { case (n, d) => List.fill(Math.abs(n))(d)}.sorted

@@ -107,8 +107,8 @@ ID00000002|halibut|gradient|0.0
 ID00000002|halibut|sum|0.0
 ID00000002|halibut|quantile_in_weeks|0.0
 ID00000002|halibut|quantile_in_days|0.0
-ID00000002|halibut|minimum_in_weeks|2147483647
-ID00000002|halibut|minimum_in_days|2147483647
+ID00000002|halibut|minimum_in_weeks|0
+ID00000002|halibut|minimum_in_days|0
 ID00000002|halibut|maximum_in_weeks|0
 ID00000002|halibut|maximum_in_days|0
 ID00000002|halibut|mean_in_weeks|0.0
@@ -121,7 +121,7 @@ ID00000003|halibut|gradient|0.0
 ID00000003|halibut|sum|0.96710170183768
 ID00000003|halibut|quantile_in_weeks|0.0
 ID00000003|halibut|quantile_in_days|0.0
-ID00000003|halibut|minimum_in_weeks|2147483647
+ID00000003|halibut|minimum_in_weeks|0
 ID00000003|halibut|minimum_in_days|1
 ID00000003|halibut|maximum_in_weeks|0
 ID00000003|halibut|maximum_in_days|1
@@ -172,8 +172,8 @@ ID00000002|halibut_state|gradient|0.0
 ID00000002|halibut_state|sum|0.39572357230358
 ID00000002|halibut_state|quantile_in_weeks|0.0
 ID00000002|halibut_state|quantile_in_days|0.0
-ID00000002|halibut_state|minimum_in_weeks|2147483647
-ID00000002|halibut_state|minimum_in_days|2147483647
+ID00000002|halibut_state|minimum_in_weeks|0
+ID00000002|halibut_state|minimum_in_days|0
 ID00000002|halibut_state|maximum_in_weeks|0
 ID00000002|halibut_state|maximum_in_days|0
 ID00000002|halibut_state|mean_in_weeks|0.0
@@ -188,7 +188,7 @@ ID00000003|halibut_state|gradient|0.0
 ID00000003|halibut_state|sum|0.96710170183768
 ID00000003|halibut_state|quantile_in_weeks|0.0
 ID00000003|halibut_state|quantile_in_days|0.0
-ID00000003|halibut_state|minimum_in_weeks|2147483647
+ID00000003|halibut_state|minimum_in_weeks|0
 ID00000003|halibut_state|minimum_in_days|1
 ID00000003|halibut_state|maximum_in_weeks|0
 ID00000003|halibut_state|maximum_in_days|1
