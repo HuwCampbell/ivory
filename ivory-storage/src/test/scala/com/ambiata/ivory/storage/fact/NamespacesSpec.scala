@@ -25,6 +25,8 @@ class NamespacesSpec extends Specification with ScalaCheck { def is = s2"""
  The Namespaces object helps with finding the sizes of namespaces inside a given directory
    `namespaceSizes` returns the size of each namespace for a given factset                  $e1
 
+   if the path is a directory                                                               $dirOnly
+
    if singleNamespace is specified then the input path is interpreted
    as the directory for namespace being named <singleNamespace>                             $e2
 
@@ -49,6 +51,15 @@ class NamespacesSpec extends Specification with ScalaCheck { def is = s2"""
     p <- prepare(hdfs, data.value)
     r <- namespaceSizes(p.path).run(p.conf).map(_.toMap)
   } yield r ==== Map(Namespace("ns1") -> data.value.getBytes("UTF-8").size.bytes, Namespace("ns2") -> data.value.getBytes("UTF-8").size.bytes))
+
+  def dirOnly = prop((hdfs: HdfsTemporary, data: S) => (for {
+    c <- IvoryConfigurationTemporary.random.conf
+    _ <- (for {
+      p <- hdfs.path.map(new Path(_, "child"))
+      _ <- Hdfs.write(p, data.value)
+      x <- namespaceSizes(p)
+    } yield ()).run(c.configuration)
+  } yield ()) must beFail)
 
   def e2 = prop((hdfs: HdfsTemporary, data: S) => for {
     p <- prepare(hdfs, data.value)
