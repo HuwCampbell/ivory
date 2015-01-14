@@ -213,11 +213,11 @@ class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {
     try deserializer.fromBytesViewUnsafe(thrift, value.getBytes, 0, value.getLength)
     catch {
       case e: TException =>
-        Crash.error(Crash.DataIntegrity, "Thrift could not be deserialised: " + e.getMessage)
+        Crash.error(Crash.DataIntegrity, s"Thrift could not be deserialised: '${e.getMessage}' in namepsace ${namespace.name}")
     }
     Conversion.thrift2fact(namespace.name, thrift, ingestZone, ivoryZone).fold(
       // Invalid Thrift data is not the same as badly formatted fact values - fail hard
-      e => Crash.error(Crash.DataIntegrity, "Invalid Thrift data: " + e),
+      e => Crash.error(Crash.DataIntegrity, s"Invalid Thrift data: '$e' for namespace ${namespace.name} with entity ${thrift.entity}"),
       Value.validateFact(_, dict)
     ).leftMap(ParseError(_, ThriftError(ThriftErrorDataVersionV1, ByteVector.view(value.getBytes).take(value.getLength))))
   }
