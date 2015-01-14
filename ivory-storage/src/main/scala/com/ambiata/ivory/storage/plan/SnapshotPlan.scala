@@ -27,7 +27,7 @@ object SnapshotPlan {
 
   /**
    * Determine the plan datasets for the given snapshot 'at' date, and repository
-   * state using a pessismistic strategy to determine validity using all
+   * state using a pessimistic strategy to determine validity using all
    * snapshots and select best using a weighting function.
    */
   def pessimistic[F[_]: Monad](
@@ -43,7 +43,7 @@ object SnapshotPlan {
    * Determine the plan datasets for the given snapshot 'at' date, and repository
    * state using a conservative strategy to determine validity using all
    * snapshots and select best using a weighting function. This is the same as the
-   * pessimisitc strategy except that it gains a smaller memory footprint by
+   * pessimist strategy except that it gains a smaller memory footprint by
    * performing additional IO.
    */
   def conservative[F[_]: Monad](
@@ -134,7 +134,7 @@ object SnapshotPlan {
    * We need to check that any feature ids that exists at the time of the old snapshot,
    * are fully contained by the snapshot windows for the given commit/at combination,
    * i.e. for each feature in the commit, the snapshot must contain all data from at or
-   * before the earlist required date for that feature (taking into account the potential
+   * before the earliest required date for that feature (taking into account the potential
    * windows for virtual features etc...)
    *
    * We simplify and do this at a namespace granularity only, because that is all we can select the

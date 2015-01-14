@@ -104,7 +104,7 @@ object IvoryCmd {
     parser.opt[String]('r', "repository") action { (x, c) => repoArg = Some(x); c} text
       "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"
     parser.opt[StrategyFlag]("plan-strategy") action { (x, c) => strategy = Some(x); c} optional() text
-      "Run with the specified plan strategy, one of: pessimsitic - minimal IO, best answer, higher memory; " +
+      "Run with the specified plan strategy, one of: pessimistic - minimal IO, best answer, higher memory; " +
       "conservative - higher IO, best answer, lower memory; optimistic - higher IO, good answer, quicker."
     new IvoryCmd[A](parser, initial, IvoryRunner(config => c =>
       for {
@@ -144,14 +144,14 @@ object IvoryCmd {
                                 |does not know about, or understand the version of the specified
                                 |repository [${x}]. Perhaps someone has run `ivory update` on the
                                 |repository.""".stripMargin)
-      case MetadataVersion.V0 | MetadataVersion.V1 =>
+      case MetadataVersion.V0 | MetadataVersion.V1 | MetadataVersion.V2 =>
         RIO.failIO[Unit](s"""The version of the ivory repository you are trying to access has
                                 |meta-data in a form which is too old to be read, you need to run
                                 |run `ivory update` in order for this version of ivory to proceed.
                                 |
                                 |WARNING: If you run `ivory update` older ivory installs will no
                                 |longer be able to access the repository.""".stripMargin)
-      case MetadataVersion.V2 =>
+      case MetadataVersion.V3 =>
         RIO.unit
     } }
   } yield ()

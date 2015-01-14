@@ -18,11 +18,14 @@ object Update {
       case MetadataVersion.Unknown(e) =>
         RepositoryT.fromRIO(_ => RIO.failIO[Unit](s"Unknown version: $e"))
       case MetadataVersion.V0 =>
-        UpdateV0.update >> incrementVersion(config, MetadataVersion.V2)
+        // Skip to V3 here - both V2 and V3 are included
+        UpdateV0.update >> incrementVersion(config, MetadataVersion.V3)
       case MetadataVersion.V1 =>
-        UpdateV1.update >> incrementVersion(config, MetadataVersion.V2)
+        UpdateV1.update >> UpdateV2.update >> incrementVersion(config, MetadataVersion.V3)
       case MetadataVersion.V2 =>
-        RepositoryT.fromRIO(_ => RIO.putStrLn("Repository is already at latest version [v2]"))
+        UpdateV2.update >> incrementVersion(config, MetadataVersion.V3)
+      case MetadataVersion.V3 =>
+        RepositoryT.fromRIO(_ => RIO.putStrLn("Repository is already at latest version [v3]"))
     }
   } yield ()
 
