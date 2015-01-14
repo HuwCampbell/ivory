@@ -89,8 +89,8 @@ Compress a Partition as intervals:
       case (min, max) =>
         min.namespace == p.namespace &&
           max.namespace == p.namespace &&
-          min.date >= p.date &&
-          max.date <= p.date
+          min.date <= p.date &&
+          max.date >= p.date
     })) })
 
 
