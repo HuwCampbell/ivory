@@ -25,7 +25,7 @@ object Conversion {
       case tsv if tsv.isSetI => \/-(ct.ThriftFactValue.i(tsv.getI))
       case tsv if tsv.isSetL => \/-(ct.ThriftFactValue.l(tsv.getL))
       case tsv if tsv.isSetB => \/-(ct.ThriftFactValue.b(tsv.getB))
-      case tsv if tsv.isSetDate => Dates.date(tsv.getDate).toRightDisjunction("Thrift date (as a value) was invalid").map(v => ct.ThriftFactValue.date(v.int))
+      case tsv if tsv.isSetDate => Dates.date(tsv.getDate).toRightDisjunction(s"Thrift date (as a value) was invalid: ${tsv.getDate}").map(v => ct.ThriftFactValue.date(v.int))
       case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
     }
     def convertPrim(v: ThriftFactPrimitiveValue): \/[String, ct.ThriftFactPrimitiveValue] = v match {
@@ -34,7 +34,7 @@ object Conversion {
       case tsv if tsv.isSetI => \/-(ct.ThriftFactPrimitiveValue.i(tsv.getI))
       case tsv if tsv.isSetL => \/-(ct.ThriftFactPrimitiveValue.l(tsv.getL))
       case tsv if tsv.isSetB => \/-(ct.ThriftFactPrimitiveValue.b(tsv.getB))
-      case tsv if tsv.isSetDate => Dates.date(tsv.getDate).toRightDisjunction("Thrift date (as a value) was invalid").map(v => ct.ThriftFactPrimitiveValue.date(v.int))
+      case tsv if tsv.isSetDate => Dates.date(tsv.getDate).toRightDisjunction(s"Thrift date (as a value) was invalid: ${tsv.getDate}").map(v => ct.ThriftFactPrimitiveValue.date(v.int))
       case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
     }
     def traverseMap(m: MMap[String, ThriftFactPrimitiveValue]): \/[String, Map[String, ct.ThriftFactPrimitiveValue]] = {
