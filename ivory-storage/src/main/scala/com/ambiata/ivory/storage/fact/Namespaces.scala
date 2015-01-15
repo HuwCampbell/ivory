@@ -12,10 +12,13 @@ object Namespaces {
   /**
    * @return the list of namespaces for a given factset and their corresponding sizes
    */
-  def namespaceSizes(factsetPath: Path): Hdfs[List[(Namespace, BytesQuantity)]] =
-    Hdfs.childrenSizes(factsetPath)
+  def namespaceSizes(factsetPath: Path): Hdfs[List[(Namespace, BytesQuantity)]] = for {
+    dir <- Hdfs.isDirectory(factsetPath)
+    _   <- Hdfs.unless(dir)(Hdfs.fail(s"Invalid file $factsetPath for namespaces - must be a directory"))
+    ns  <- Hdfs.childrenSizes(factsetPath)
       .flatMap(_.traverseU { case (n, q) => Hdfs.ok(List(n)).filterHidden.map(_.map(_ -> q))}).map(_.flatten)
       .map(_.map { case (n, q) => (Namespace.fromPathNamespace(n), q) })
+  } yield ns
 
   def namespaceSizesSingle(factsetPath: Path, namespace: Namespace): Hdfs[(Namespace, BytesQuantity)] =
     Hdfs.totalSize(factsetPath).map(namespace ->)

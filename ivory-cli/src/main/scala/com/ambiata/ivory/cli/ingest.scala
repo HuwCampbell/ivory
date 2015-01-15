@@ -42,6 +42,10 @@ object ingest extends IvoryApp {
             case (f, ns, i) => IvoryLocation.parseUri(i, configuration).map(il => (f, ns, il))
           })
         ))
+        _ <- IvoryT.fromRIO(inputs.traverseU {
+          case (_, ns, i) => ns.cata(_ => RIO.unit,
+            IvoryLocation.isDirectory(i).flatMap(RIO.unless(_, RIO.fail(s"Invalid file ${i.show} for ingesting namespaces - must be a directory"))))
+        })
         factset <- Ingest.ingestFacts(repo, cluster, inputs, c.timezone, c.optimal)
       } yield List(s"""Successfully imported '${c.inputs.mkString(", ")}' as $factset into '${repo}'"""))
 
