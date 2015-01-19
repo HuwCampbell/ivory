@@ -23,7 +23,7 @@ These are the formats that can be specified for both `snapshot`/`chord`.
 Format                    | Type   | Example                                           | Description
 ------------------------- | ------ | ------------------------------------------------- | ------------
 `dense:[ESCAPING:]DELIM`  | text   | `entity|feature1|NA|feature3`                     | All features/values for a single fact are represented in a single line, in which the order is defined in an accompanying `.dictionary`.
-`sparse:[ESCAPING:]DELIM` | text   | `entity|ns:attribute|value|YYYY-MM-DD'T'HH:MM:SS` | Each fact is represented by a separate entry
+`sparse:[ESCAPING:]DELIM` | text   | `entity|ns|attribute|value|YYYY-MM-DD'T'HH:MM:SS` | Each fact is represented by a separate entry
 `dense:thrift`            | thrift |                                                   | Similar in concept to `dense` text, all values for a single entity are contained in a `List` of values in the same order as the included dictionary.
 `sparse:thrift`           | thrift |                                                   | Similar in concept to `sparse` text, all values for a single entity are contains in a `Map`, where missing values are not included.
 
