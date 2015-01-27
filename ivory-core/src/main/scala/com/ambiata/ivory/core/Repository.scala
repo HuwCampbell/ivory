@@ -120,7 +120,7 @@ object Repository {
   def namespace(set: FactsetId, namespace: Namespace): Key = factset(set)  / namespace.asKeyName
   def snapshot(id: SnapshotId): Key                   = snapshots     / id.asKeyName
   def version(set: FactsetId): Key                    = factset(set)  / ".version"
-  def tmp(task: KeyName, context: KeyName): Key       = root          / task / context
+  def tmp(task: KeyName, context: KeyName): Key       = root          / "tmp" / task / context
 
   def parseUri(uri: String, repositoryConfiguration: IvoryConfiguration): String \/ Repository =
     IvoryLocation.parseUri(uri, repositoryConfiguration).map(fromIvoryLocation(_, repositoryConfiguration))
