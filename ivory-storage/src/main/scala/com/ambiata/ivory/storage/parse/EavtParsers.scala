@@ -16,6 +16,13 @@ object EavtParsers {
       case other                   => other
     }
 
+  /** WARNING: This isn't symmetrical yet - we don't handle lists/structs on ingest (yet) */
+  def toEavt(fact: Fact, tombstone: String): List[String] =
+    List(fact.entity, fact.feature, Value.toStringWithStruct(fact.value, tombstone), fact.datetime.localIso8601)
+
+  def toEavtDelimited(fact: Fact, tombstone: String, delim: Char): String =
+    toEavt(fact, tombstone).mkString(delim.toString)
+
   def parser(dictionary: Dictionary, namespace: Namespace, ivoryTimezone: DateTimeZone, ingestTimezone: DateTimeZone): ListParser[Fact] =
     fact(dictionary, namespace, ivoryTimezone, ingestTimezone)
 

@@ -11,6 +11,7 @@ import com.ambiata.ivory.operation.ingestion.thrift.Conversion
 import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.storage.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.metadata.DictionaryThriftStorage
+import com.ambiata.ivory.storage.parse.EavtParsers
 import com.ambiata.ivory.storage.repository.{HdfsGlobs, Repositories}
 import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.control._
@@ -113,8 +114,8 @@ class IngestSpec extends Specification with ScalaCheck { def is = sequential ^ s
   }.set(minTestsOk = 3, maxDiscardRatio = 10)
 
   def toEavt(fact: Fact) =
-   List(fact.entity, fact.featureId.name, Value.toString(fact.value, None).get, fact.datetime.localIso8601).mkString("|")
+    EavtParsers.toEavtDelimited(fact, "NA", '|')
 
   def toEavtEscaped(fact: Fact) =
-    TextEscaping.mkString('|', List(fact.entity, fact.featureId.name, Value.toStringWithStruct(fact.value, "NA"), fact.datetime.localIso8601))
+    TextEscaping.mkString('|', EavtParsers.toEavt(fact, "NA"))
 }
