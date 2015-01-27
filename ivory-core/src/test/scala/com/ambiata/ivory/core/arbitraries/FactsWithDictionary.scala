@@ -20,8 +20,6 @@ object FactsWithDictionary {
   implicit def FactsWithDictionaryArbitrary: Arbitrary[FactsWithDictionary] =
     Arbitrary(for {
       cg <- arbitrary[ConcreteGroupFeature]
-      n <- Gen.choose(2, 10)
-      dt <- arbitrary[DateTime]
-      facts <- Gen.listOfN(n, GenFact.factWith(GenEntity.entity, cg.fid, cg.cg.definition, dt))
+      facts <- GenPlus.listOfSized(2, 10, GenFact.factWith(GenEntity.entity, cg.fid, cg.cg.definition, arbitrary[DateTime]))
     } yield FactsWithDictionary(cg, facts))
 }

@@ -19,9 +19,9 @@ object PrintFacts {
     isPartitionPath  <- paths.traverseU(isPartition(config)).map(_.contains(true))
     _                <-
       if (isPartitionPath)
-        Print.printPathsWith(paths, config, new ThriftFact, printThriftFact(delim, tombstone, version))
+        Print.printPathsWith(paths, config, new ThriftFact)(printThriftFact(delim, tombstone, version))
       else
-        Print.printPathsWith(paths, config, createMutableFact, printFact(delim, tombstone))
+        Print.printPathsWith(paths, config, createMutableFact)((_, f) => printFact(delim, tombstone)(f))
   } yield ()
 
   def printThriftFact(delim: Char, tombstone: String, version: FactsetFormat)(path: Path, tf: ThriftFact): IO[Unit] =
@@ -30,18 +30,18 @@ object PrintFacts {
         case TextError(line) => ": " + line
         case _: ThriftError  => ""
       }))
-      case \/-(f) => printFact(delim, tombstone)(path, f)
+      case \/-(f) => printFact(delim, tombstone)(f)
     }
 
-  def renderFact(delim: Char, tombstone: String, path: Path, f: Fact): String =
+  def renderFact(delim: Char, tombstone: String, f: Fact): String =
     Seq(f.entity,
         f.namespace.name,
         f.feature,
         TextEscaping.escape(delim, Value.toStringWithStruct(f.value, tombstone)),
         f.date.hyphenated+delim+f.time.hhmmss).mkString(delim.toString)
 
-  def printFact(delim: Char, tombstone: String)(path: Path, f: Fact): IO[Unit] =
-    IO.putStrLn(renderFact(delim, tombstone, path, f))
+  def printFact(delim: Char, tombstone: String)(f: Fact): IO[Unit] =
+    IO.putStrLn(renderFact(delim, tombstone, f))
 
   /** @return true if the path is a partition */
    def isPartition(config: Configuration)(path: Path): RIO[Boolean] = {

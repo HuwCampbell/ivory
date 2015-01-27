@@ -27,10 +27,9 @@ Eavt Parse Formats
 
 """
 
-  def splitLineEAV = prop { (c: Char, c2: Char, e: String, a: String, v: String, t: String) => {
-    val l = List(e, a, v, t).map(_.replace(c.toString, "")).filter(!_.isEmpty)
-    if (l.isEmpty || l.size != 4) true ==== true
-    else EavtParsers.splitLine(c, l.mkString(c.toString)) ==== List(l(0), l(1), l(2), l(3).trim)
+  def splitLineEAV = prop { (f: Fact, v: PrimitiveValue, t: String, c: Delimiter) => {
+    val l = EavtParsers.toEavt(f.withValue(v), t)
+    EavtParsers.splitLine(c.character, l.mkString(c.character.toString)) ==== l
   }}
 
   def splitLineOther = prop { (c: Char, l2: List[String]) =>

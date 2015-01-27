@@ -10,8 +10,8 @@ import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.ivory.operation.ingestion.thrift.Conversion
 import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.storage.arbitraries.Arbitraries._
-import com.ambiata.ivory.storage.legacy.SampleFacts
 import com.ambiata.ivory.storage.metadata.DictionaryThriftStorage
+import com.ambiata.ivory.storage.parse.EavtParsers
 import com.ambiata.ivory.storage.repository.{HdfsGlobs, Repositories}
 import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.control._
@@ -25,7 +25,7 @@ import org.specs2.{ScalaCheck, Specification}
 import scalaz.{Value=>_,_}, Scalaz._
 import MemoryConversions._
 
-class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is = sequential ^ section("mr") ^ section("aws") ^ s2"""
+class IngestSpec extends Specification with ScalaCheck { def is = section("mr") ^ section("aws") ^ s2"""
 
  Facts can be ingested from
    a directory named namespace/year/month/day containing fact files                       $partitionIngest
@@ -36,14 +36,14 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
 
 """
 
-  def partitionIngest = prop((tt: TemporaryType) => {
+  def partitionIngest = prop((facts: PrimitiveSparseEntities, tt: TemporaryType) => {
     withRepository(Hdfs) { repository: Repository =>
       withCluster { cluster: Cluster =>
         withIvoryLocationDir(tt) { location =>
           Repositories.create(repository, RepositoryConfig.testing) >>
-          DictionaryThriftStorage(repository).store(dictionary) >>
-          IvoryLocation.writeUtf8Lines(location </> "ns1" </> "2012" </> "10" </> "1" </> "part-r-00000", sampleFacts.flatten.map(toEavt)) >>
-          IvoryLocation.writeUtf8Lines(location </> "ns1" </> "2012" </> "10" </> "1" </> "part-r-00001", sampleFacts.flatten.map(toEavt)) >>
+          DictionaryThriftStorage(repository).store(facts.dictionary) >>
+          IvoryLocation.writeUtf8Lines(location </> FileName.unsafe(facts.fact.featureId.namespace.name) </> "part-r-00000", List(facts.fact).map(toEavt)) >>
+          IvoryLocation.writeUtf8Lines(location </> FileName.unsafe(facts.fact.featureId.namespace.name) </> "part-r-00001", List(facts.fact).map(toEavt)) >>
           Ingest.ingestFacts(repository, cluster, List(
             (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited), None, location)
           ), None, 100.mb).run.run(IvoryRead.create)
@@ -52,16 +52,16 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
     } must beOk
   }).set(minTestsOk = 5)
 
-  def namespaceIngest = prop((tt: TemporaryType) => {
+  def namespaceIngest = prop((facts: PrimitiveSparseEntities, tt: TemporaryType) => {
     withRepository(Hdfs) { repository: Repository =>
       withCluster { cluster: Cluster =>
         withIvoryLocationDir(tt) { location =>
           Repositories.create(repository, RepositoryConfig.testing) >>
-          DictionaryThriftStorage(repository).store(dictionary) >>
-          IvoryLocation.writeUtf8Lines(location </> "part-r-00000", sampleFacts.flatten.map(toEavt)) >>
-          IvoryLocation.writeUtf8Lines(location </> "part-r-00001", sampleFacts.flatten.map(toEavt)) >>
+          DictionaryThriftStorage(repository).store(facts.dictionary) >>
+          IvoryLocation.writeUtf8Lines(location </> "part-r-00000", List(facts.fact).map(toEavt)) >>
+          IvoryLocation.writeUtf8Lines(location </> "part-r-00001", List(facts.fact).map(toEavt)) >>
           Ingest.ingestFacts(repository, cluster, List(
-            (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited), Some(Namespace("ns1")), location)
+            (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited), Some(facts.fact.namespace), location)
           ), None, 100.mb).run.run(IvoryRead.create)
         }
       }
@@ -114,16 +114,8 @@ class IngestSpec extends Specification with SampleFacts with ScalaCheck { def is
   }.set(minTestsOk = 3, maxDiscardRatio = 10)
 
   def toEavt(fact: Fact) =
-   List(fact.entity, fact.featureId.name, Value.toString(fact.value, None).get, toString(fact.datetime)).mkString("|")
+    EavtParsers.toEavtDelimited(fact, "NA", '|')
 
   def toEavtEscaped(fact: Fact) =
-    TextEscaping.mkString('|', List(fact.entity, fact.featureId.name, Value.toStringWithStruct(fact.value, "NA"), fact.datetime.localIso8601))
-
-  def toString(datetime: DateTime) =
-    "2012-09-01T00:00:00"
-
-  val dictionary =
-    sampleDictionary append {
-      Dictionary(List(Definition.concrete(FeatureId(Namespace("ns1"), "fid3"), BooleanEncoding, Mode.State, Some(CategoricalType), "desc", Nil)))
-    }
+    TextEscaping.mkString('|', EavtParsers.toEavt(fact, "NA"))
 }

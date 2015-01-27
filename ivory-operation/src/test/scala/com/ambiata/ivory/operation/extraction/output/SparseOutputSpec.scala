@@ -5,15 +5,13 @@ import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
-import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.operation.extraction.Snapshots
 import com.ambiata.notion.core._
 
-import org.specs2.matcher.ThrownExpectations
 import org.specs2._
 
-class SparseOutputSpec extends Specification with SampleFacts with ThrownExpectations with ScalaCheck { def is = s2"""
+class SparseOutputSpec extends Specification with ScalaCheck { def is = s2"""
 
  A Sequence file containing feature values can be
    extracted as EAV                                      $eav       ${tag("mr")}
@@ -23,12 +21,13 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
 
 """
 
-  def eav =
-    RepositoryBuilder.using(extractSparse(sampleFacts, sampleDictionary, TextEscaping.Delimited)) must beOkValue(
-      List("eid1|ns1|fid1|abc"
-         , "eid2|ns1|fid2|11"
-         , "eid3|ns2|fid3|true").sorted.mkString("\n") -> expectedDictionary
+  def eav = prop { (facts: FactsWithDictionary) =>
+    // Remove duplicates - we're not interested in testing snapshot logic here
+    val factsUnique = facts.facts.groupBy(_.entity).values.flatMap(_.headOption).toList
+    RepositoryBuilder.using(extractSparse(List(factsUnique), facts.dictionary, TextEscaping.Delimited)).map(_._1) must beOkLike(
+      (text: String) => text.split("\n").toList.size ==== factsUnique.length
     )
+  }.set(minTestsOk = 3)
 
   def escaped = prop { (facts: FactsWithDictionary) =>
     RepositoryBuilder.using(extractSparse(List(facts.facts), facts.dictionary, TextEscaping.Escaped)).map(_._1) must beOkLike(
@@ -45,12 +44,6 @@ class SparseOutputSpec extends Specification with SampleFacts with ThrownExpecta
         }))
     }
   }.set(minTestsOk = 1)
-
-  def expectedDictionary = List(
-    "0|ns1|fid1|string|categorical|desc|NA",
-    "1|ns1|fid2|int|numerical|desc|NA",
-    "2|ns2|fid3|boolean|categorical|desc|NA"
-  )
 
   def extractSparse(facts: List[List[Fact]], dictionary: Dictionary, escaping: TextEscaping)(repo: HdfsRepository): RIO[(String, List[String])] = for {
     dir             <- LocalTemporary.random.directory

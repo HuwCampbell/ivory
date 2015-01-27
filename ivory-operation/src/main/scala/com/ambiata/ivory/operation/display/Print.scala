@@ -13,22 +13,22 @@ import scalaz._, Scalaz._, effect._, effect.Effect._
  */
 object Print {
 
-  def printPathsWith[A](paths: List[Path], configuration: Configuration, thrift: A, printA: (Path, A) => IO[Unit])(implicit ev: A <:< ThriftLike): RIO[Unit] =
+  def printPathsWith[A](paths: List[Path], configuration: Configuration, thrift: A)(printA: (Path, A) => IO[Unit])(implicit ev: A <:< ThriftLike): RIO[Unit] =
     paths.traverseU(path => for {
       files       <- {
         val (basePath, glob) = Hdfs.pathAndGlob(path)
         Hdfs.globFiles(basePath, glob).filterHidden.run(configuration)
       }
-      _ <- files.traverse(file => printWith(file, configuration, thrift, printA))
+      _ <- files.traverse(file => printWith(file, configuration, thrift)(printA(file, _)))
     } yield ()).void
 
-  def printWith[A](path: Path, configuration: Configuration, thrift: A, printA: (Path, A) => IO[Unit])(implicit ev: A <:< ThriftLike): RIO[Unit] =
+  def printWith[A](path: Path, configuration: Configuration, thrift: A)(printA: A => IO[Unit])(implicit ev: A <:< ThriftLike): RIO[Unit] =
     RIO.using(RIO.io(new SequenceFile.Reader(configuration, SequenceFile.Reader.file(path)))) { reader => RIO.io {
       val bytes = new BytesWritable()
       val serialiser = ThriftSerialiser()
       while (reader.next(NullWritable.get, bytes)) {
         serialiser.fromBytesViewUnsafe(thrift, bytes.getBytes, 0, bytes.getLength)
-        printA(path, thrift).unsafePerformIO
+        printA(thrift).unsafePerformIO
       }
     }}
 }

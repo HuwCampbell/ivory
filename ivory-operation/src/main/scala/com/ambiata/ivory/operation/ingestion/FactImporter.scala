@@ -24,22 +24,20 @@ object FactImporter {
   , inputs: List[(FileFormat, Option[Namespace], IvoryLocation)]
   , timezone: Option[DateTimeZone]
   ): IvoryTIO[Unit] = {
-    val errorKey = Repository.errors / factsetId.asKeyName
 
     IvoryT.read[RIO] >>= (read => IvoryT.fromRIO { for {
       hr            <- repository.asHdfsRepository
       dictionary    <- Metadata.latestDictionaryFromIvory(repository)
-      errorPath     =  hr.toIvoryLocation(errorKey).toHdfsPath
       config        <- Metadata.configuration.toIvoryT(repository).run(read)
       paths         <- inputs.traverseU { case (f, ns, input) =>
         SyncIngest.inputDataset(InputDataset(input.location), cluster).map(sid => (f, ns, new Path(sid.location.path)))
       }
-      _             <- runJob(hr, optimal, dictionary, factsetId, paths, errorPath, timezone, config)
+      _             <- runJob(hr, optimal, dictionary, factsetId, paths, timezone, config)
     } yield () })
   }
 
   def runJob(hr: HdfsRepository, optimal: BytesQuantity, dictionary: Dictionary, factsetId: FactsetId,
-             inputs: List[(FileFormat, Option[Namespace], Path)], errorPath: Path, timezone: Option[DateTimeZone],
+             inputs: List[(FileFormat, Option[Namespace], Path)], timezone: Option[DateTimeZone],
              config: RepositoryConfig): RIO[Unit] = for {
     paths      <- inputs.traverseU((prepareInput _).tupled).run(hr.configuration)
     partitions  = Namespaces.sum(paths.map(_._5).flatten)
@@ -53,7 +51,7 @@ object FactImporter {
         timezone,
         paths.map { x => (x._1, x._2, x._3, x._4) },
         hr.toIvoryLocation(Repository.factset(factsetId)).toHdfsPath,
-        errorPath,
+        hr.toIvoryLocation(Repository.errors / factsetId.asKeyName).toHdfsPath,
         hr.codec
       )
   } yield ()
