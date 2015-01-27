@@ -25,7 +25,7 @@ import org.specs2.{ScalaCheck, Specification}
 import scalaz.{Value=>_,_}, Scalaz._
 import MemoryConversions._
 
-class IngestSpec extends Specification with ScalaCheck { def is = sequential ^ section("mr") ^ section("aws") ^ s2"""
+class IngestSpec extends Specification with ScalaCheck { def is = section("mr") ^ section("aws") ^ s2"""
 
  Facts can be ingested from
    a directory named namespace/year/month/day containing fact files                       $partitionIngest
