@@ -12,12 +12,12 @@ import scalaz._, Scalaz._, effect.IO
 
 object Extraction {
 
-  def extract(formats: OutputFormats, input: ShadowOutputDataset, dictionary: Dictionary, cluster: Cluster): RepositoryTIO[Unit] = RepositoryT.fromRIO(repository => for {
-    t <- Repository.tmpDir("extraction")
-    i = repository.toIvoryLocation(t)
-    h <- i.asHdfsIvoryLocation
-    s = ShadowOutputDataset(h.location)
-    _ <- formats.outputs.traverseU({ case (format, output) => for {
+  def extract(formats: OutputFormats, input: ShadowOutputDataset, dictionary: Dictionary, cluster: Cluster): RepositoryTIO[Unit] = RepositoryT.fromRIO(repository =>
+    formats.outputs.traverseU { case (format, output) => for {
+      t <- Repository.tmpDir("extraction")
+      i = repository.toIvoryLocation(t)
+      h <- i.asHdfsIvoryLocation
+      s = ShadowOutputDataset(h.location)
       _ <- RIO.io(println(s"Storing extracted data '$input' to '${output.location}'"))
       _ <- format match {
         case OutputFormat(Form.Sparse, FileFormat.Thrift) =>
@@ -31,8 +31,8 @@ object Extraction {
       }
       _ <- metadata(input, s, cluster.io)
       _ <- SyncExtract.outputDataset(s, cluster, output)
-    } yield () })
-  } yield ())
+    } yield () }.void
+  )
 
   def metadata(input: ShadowOutputDataset, output: ShadowOutputDataset, lio: LocationIO): RIO[Unit] =
     List(".profile", ".manifest.json").traverseU(n => for {
