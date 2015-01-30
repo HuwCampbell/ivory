@@ -45,6 +45,7 @@ object Expression {
       case QuantileInWeeks(k, q)        => List("quantile_in_weeks", k, q)
       case ProportionByTime(s, e)       => List("proportion_by_time", s, e)
       case SumBy(key, field)            => List("sum_by", key, field)
+      case LatestBy(key)                => List("latest_by", key)
       case CountBySecondary(key, field) => List("count_by", key, field)
       case BasicExpression(sexp)        => asSubString(sexp)
       case StructExpression(name, sexp) => asSubString(sexp) ++ List(name)
@@ -70,6 +71,7 @@ object Expression {
       case "minimum_in_weeks" :: Nil        => MinimumInWeeks
       case "count_days" :: Nil              => CountDays
       case "sum_by" :: key :: sumBy :: Nil  => SumBy(key, sumBy)
+      case "latest_by" :: key :: Nil        => LatestBy(key)
       case "count_by" :: key :: fld :: Nil  => CountBySecondary(key, fld)
       // Subexpressions
       case "latest" :: tail                 => parseSub(Latest, tail)
@@ -162,7 +164,17 @@ object Expression {
         } yield ()
         case _                           => "sum_by requires struct encoding".left
       }
-      case CountBySecondary(key, field)             => encoding match {
+      case LatestBy(key)                 => encoding match {
+        case StructEncoding(values) => for {
+           k <- values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
+           _ <- k match {
+             case StringEncoding => ok
+             case _ => "latest_by key is required to be a string".left
+           }
+        } yield ()
+        case _                           => "latest_by requires struct encoding".left
+      }
+       case CountBySecondary(key, field)             => encoding match {
         case StructEncoding(values) => for {
           k <- values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
           f <- values.get(field).map(_.encoding).toRightDisjunction(s"Struct field not found '$field'")
@@ -227,6 +239,7 @@ object Expression {
     expression match {
       // A short term hack for supporting feature gen based on known functions
       case Count                        => LongEncoding
+      case LatestBy(_)                  => StructEncoding(Map())
       case Interval(sexp)               => getExpressionEncoding(sexp, LongEncoding)
       case Inverse(sexp)                => DoubleEncoding
       case DaysSinceLatest              => IntEncoding
@@ -265,6 +278,7 @@ case object MaximumInWeeks extends Expression
 case object MinimumInDays extends Expression
 case object MinimumInWeeks extends Expression
 case object CountDays extends Expression
+case class LatestBy(key: String) extends Expression
 case class QuantileInDays(k: Int, q: Int) extends Expression
 case class QuantileInWeeks(k: Int, q: Int) extends Expression
 case class ProportionByTime(start: Time, end: Time) extends Expression
