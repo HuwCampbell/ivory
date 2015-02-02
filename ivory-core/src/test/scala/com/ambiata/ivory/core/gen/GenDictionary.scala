@@ -100,12 +100,19 @@ object GenDictionary {
     )
     Gen.oneOf(fallback, cd.encoding match {
       case StructEncoding(values) =>
-        val subexpGen = Gen.oneOf(values.toList).flatMap {
-          case (name, sve) => Gen.oneOf(subExpression(sve.encoding).map(se => StructExpression(name, se)),
-            if (Encoding.isNumeric(sve.encoding))
-              numericSubs.map(se => Inverse(StructExpression(name, se)))
-            else Gen.const(NumFlips).map(se => Inverse(StructExpression(name, se)))
+        def subexpsWithInverses(name: String, sve: PrimitiveEncoding, cd: ConcreteDefinition) =
+          subExpression(sve).flatMap(se =>
+            Gen.oneOf(
+              StructExpression(name, se),
+              if (Encoding.isNumeric(Expression.expressionEncoding(StructExpression(name, se), cd.encoding)))
+                Inverse(StructExpression(name, se))
+              else
+                Inverse(StructExpression(name, NumFlips))
+            )
           )
+        val subexpGen = Gen.oneOf(values.toList).flatMap {
+          case (name, StructEncodedValue(StringEncoding, false)) => Gen.frequency(5 -> subexpsWithInverses(name, StringEncoding, cd), 1 -> Gen.const(LatestBy(name)))
+          case (name, sve) => subexpsWithInverses(name, sve.encoding, cd)
         }
         // SumBy and CountBySecondary are a little more complicated
         (for {

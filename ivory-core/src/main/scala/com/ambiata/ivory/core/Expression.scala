@@ -166,15 +166,15 @@ object Expression {
       }
       case LatestBy(key)                 => encoding match {
         case StructEncoding(values) => for {
-           k <- values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
+           k <- values.get(key).toRightDisjunction(s"Struct field not found '$key'")
            _ <- k match {
-             case StringEncoding => ok
-             case _ => "latest_by key is required to be a string".left
+             case StructEncodedValue(StringEncoding, false) => ok
+             case _ => "latest_by key is required to be a non-optional string".left
            }
         } yield ()
         case _                           => "latest_by requires struct encoding".left
       }
-       case CountBySecondary(key, field)             => encoding match {
+      case CountBySecondary(key, field)             => encoding match {
         case StructEncoding(values) => for {
           k <- values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
           f <- values.get(field).map(_.encoding).toRightDisjunction(s"Struct field not found '$field'")

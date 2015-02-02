@@ -8,19 +8,20 @@ class LatestByReducerSpec extends Specification with ScalaCheck { def is = s2"""
   LatestBy reducer works with arbitrary facts               $latestBy
 """
 
-  def latestBy = prop((fact: Fact, keyname: String, keyVals: List[String], others: List[(String, PrimitiveValue)]) => {
+  def latestBy = prop((fact: Fact, keyname: String, keyVals: List[(String, List[(String, PrimitiveValue)])]) => {
     val r = new LatestByReducer(keyname)
-    keyVals.foreach(keyVal => {
-      val asPrim: (String, PrimitiveValue) = keyname -> StringValue(keyVal)
-      val newFact = fact.withValue(StructValue((others ++ List(asPrim)).toMap))
+    keyVals.foreach { case (v, ms) => {
+      val asPrim: Map[String, PrimitiveValue] = Map(keyname -> StringValue(v))
+      val newFact = fact.withValue(StructValue(ms.toMap ++ asPrim))
       r.update(newFact)
-    })
-     
-    Value.fromThrift(r.save) ==== ListValue(keyVals.distinct.map(keyVal => {
-      val asPrim: (String, PrimitiveValue) = keyname -> StringValue(keyVal)
-      StructValue((others ++ List(asPrim)).toMap)
-    }))
+    }}
 
-    r.clear()
+    Value.fromThrift(r.save) match {
+      case ListValue(ls) => ls.toSet ==== keyVals.groupBy(_._1).map(_._2.last).map { case (v, ms) => {
+          val asPrim: Map[String, PrimitiveValue] = Map(keyname -> StringValue(v))
+          StructValue(ms.toMap ++ asPrim)
+        }}.toSet
+      case _ => ko
+    }
   })
 }

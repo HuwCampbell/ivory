@@ -6,7 +6,7 @@ import scala.collection.JavaConverters._
 
 case class LatestByReducer(key: String) extends Reduction {
 
-  var keyValue: KeyValue[String, ThriftFactValue] = new KeyValue[String, ThriftFactValue]
+  var keyValue = new KeyValue[String, ThriftFactValue]
   
   def clear(): Unit = {
     keyValue = new KeyValue[String, ThriftFactValue]
@@ -15,7 +15,7 @@ case class LatestByReducer(key: String) extends Reduction {
   def update(fv: Fact): Unit = {
     if (!fv.isTombstone) {
       val factKey = fv.toThrift.getValue.getStructSparse.getV.get(key)
-      if (factKey != null && factKey.getS != null) {
+      if (factKey != null && factKey.isSetS) {
         val value = fv.toThrift.getValue
         keyValue.put(factKey.getS, value)
       }
