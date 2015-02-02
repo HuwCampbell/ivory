@@ -19,7 +19,7 @@ object IvoryInputs {
   , snapshot: Class[_ <: CombinableMapper[_, _, _, _]]
   ): Unit = {
     val summary = datasets.summary
-    println(s"""Configuring mapreduce job, with ${summary.partitions} parititons, ${summary.snapshot.map(s => s"and snapshot $s.render, ").getOrElse("")} totalling ${summary.bytes}""")
+    println(s"""Configuring mapreduce job, with ${summary.partitions} partitions, ${summary.snapshot.map(s => s"and snapshot ${s.render}, ").getOrElse("")} totalling ${summary.bytes}""")
     val factsets = InputSpecification(classOf[SequenceFileInputFormat[_, _]], factset, datasets.sets.flatMap(p => p.value match {
       case FactsetDataset(factset) =>
         Partitions.globs(repository, factset.id, factset.partitions.map(_.value)).map(f => new Path(f))
