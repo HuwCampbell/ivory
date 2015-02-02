@@ -99,7 +99,9 @@ class IngestSpec extends Specification with ScalaCheck { def is = section("mr") 
           c   = cluster.hdfsConfiguration
           _   <- DictionaryThriftStorage(repository).store(facts.dictionary)
           _   <- SequenceUtil.writeBytes((loc </> "part-r-00000").location, c, cluster.s3Client, None) {
-            write => RIO.safe((facts.facts ++ badFacts).foreach(fact => write(serialiser.toBytes(Conversion.fact2thrift(fact)))))
+            write =>
+              RIO.safe((facts.facts ++ badFacts).foreach(fact => write(serialiser.toBytes(Conversion.fact2thrift(fact))))) >>
+              RIO.safe(write(serialiser.toBytes(Conversion.fact2thrift(fact).setDatetime("bad-date"))))
           }
           fid <- Ingest.ingestFacts(repository, cluster, List(
             (FileFormat.Thrift, Some(ns), loc)
@@ -110,7 +112,7 @@ class IngestSpec extends Specification with ScalaCheck { def is = section("mr") 
         )
         }
       }
-    } must beOkValue(facts.facts.map(_.toThrift).toSet -> badFacts.size)
+    } must beOkValue(facts.facts.map(_.toThrift).toSet -> (badFacts.size + 1))
   }.set(minTestsOk = 3, maxDiscardRatio = 10)
 
   def toEavt(fact: Fact) =

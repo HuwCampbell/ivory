@@ -10,7 +10,7 @@ import com.ambiata.ivory.storage.task.{FactsetWritable, FactsetJob}
 import com.ambiata.mundane.control._
 import com.ambiata.poacher.mr._
 
-import scalaz.{Name =>_, Reducer => _, Value => _, _}
+import scalaz.{Name =>_, Reducer => _, Value => _, _}, Scalaz._
 
 import org.apache.hadoop.fs.{Path, FileSystem}
 import org.apache.hadoop.conf._
@@ -215,9 +215,11 @@ class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {
       case e: TException =>
         Crash.error(Crash.DataIntegrity, s"Thrift could not be deserialised: '${e.getMessage}' in namepsace ${namespace.name}")
     }
+    if (thrift.value == null) {
+      Crash.error(Crash.DataIntegrity, s"Invalid Thrift data: for namespace ${namespace.name} with entity ${thrift.entity}")
+    }
     Conversion.thrift2fact(namespace.name, thrift, ingestZone, ivoryZone).fold(
-      // Invalid Thrift data is not the same as badly formatted fact values - fail hard
-      e => Crash.error(Crash.DataIntegrity, s"Invalid Thrift data: '$e' for namespace ${namespace.name} with entity ${thrift.entity}"),
+      e => e.failure,
       Value.validateFact(_, dict)
     ).leftMap(ParseError(_, ThriftError(ThriftErrorDataVersionV1, ByteVector.view(value.getBytes).take(value.getLength))))
   }
