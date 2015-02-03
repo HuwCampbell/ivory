@@ -48,6 +48,7 @@ object Reduction {
     case Interval(_)                  => None
     case Inverse(x)                   => fromExpression(x, encoding, dates).map(new InverseReducer(_))
     case DaysSinceLatest              => Some(new DaysSinceLatestReducer(dates.dates))
+    case LatestBy(k)                  => Some(new LatestByReducer(k))
     case MeanInDays                   => Some(new DateReduction(dates.dates, new MeanInDaysReducer, ReductionValueDouble))
     case MeanInWeeks                  => Some(new DateReduction(dates.dates, new MeanInWeeksReducer, ReductionValueDouble))
     case MinimumInDays                => Some(new DateReduction(dates.dates, new MinimumInDaysReducer, ReductionValueInt))
