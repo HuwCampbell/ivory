@@ -59,8 +59,8 @@ object Snapshots {
     _        <- DictionaryTextStorageV2.toKeyStore(repository, Repository.snapshot(id) / ".dictionary", commit.dictionary.value)
     _        <- SnapshotManifest.io(repository, id).write(SnapshotManifest.createLatest(commit.id, id, date))
     _        <- SnapshotStats.save(repository, id, stats)
-    bytes    <- SnapshotStorage.size(repository, id)
-  } yield Snapshot(id, date, commit.store, commit.dictionary.some, bytes)
+    bytes    <- SnapshotStorage.sizeNamespaces(repository, id)
+  } yield Snapshot(id, date, commit.store, commit.dictionary.some, bytes.right, SnapshotFormat.V2)
 
   def planner(repository: Repository, flags: IvoryFlags, commit: Commit, ids: List[SnapshotId], date: Date): RIO[SnapshotPlan] = {
     val source = SnapshotStorage.source(repository)

@@ -7,7 +7,7 @@ import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import org.specs2._
 import org.scalacheck._, Arbitrary._
 
-import scalaz._, Scalaz._
+import scalaz._, Scalaz._, scalacheck.ScalazArbitrary._
 
 object SnapshotPlanSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -133,14 +133,14 @@ Invariants 1 - Things that always hold true for SnapshotPlan
         countSnapshots(plan.datasets) ==== 1 })
 
     def exactDataset =
-      prop((scenario: RepositoryScenario, id: SnapshotId, bytes: Bytes) => {
-        val snapshot = Snapshot(id, scenario.at, scenario.commit.store, scenario.commit.dictionary.some, bytes)
+      prop((scenario: RepositoryScenario, id: SnapshotId, bytes: Bytes \/ List[Sized[Namespace]], format: SnapshotFormat) => {
+        val snapshot = Snapshot(id, scenario.at, scenario.commit.store, scenario.commit.dictionary.some, bytes, format)
         val plan = SnapshotPlan.inmemory(scenario.at, scenario.commit, List(snapshot))
         plan.datasets ==== Datasets(List(Prioritized(Priority.Max, SnapshotDataset(snapshot)))) })
 
     def exact =
-      prop((scenario: RepositoryScenario, id: SnapshotId, bytes: Bytes) => {
-        val snapshot = Snapshot(id, scenario.at, scenario.commit.store, scenario.commit.dictionary.some, bytes)
+      prop((scenario: RepositoryScenario, id: SnapshotId, bytes: Bytes \/ List[Sized[Namespace]], format: SnapshotFormat) => {
+        val snapshot = Snapshot(id, scenario.at, scenario.commit.store, scenario.commit.dictionary.some, bytes, format)
         val plan = SnapshotPlan.inmemory(scenario.at, scenario.commit, List(snapshot))
         plan.exact.exists(_ === snapshot) })
 

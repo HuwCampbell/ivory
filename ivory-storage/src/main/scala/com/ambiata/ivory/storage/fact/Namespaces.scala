@@ -1,10 +1,12 @@
 package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._
+import com.ambiata.poacher.mr.MrContext
 import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.mundane.io.BytesQuantity
 import com.ambiata.mundane.io.MemoryConversions._
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.mapreduce.InputSplit
 import scalaz.{Name =>_,_}, Scalaz._
 
 
@@ -34,4 +36,11 @@ object Namespaces {
     sizes.foldLeft(Map[Namespace, BytesQuantity]()) {
       case (k, v) => k + (v._1 -> implicitly[Numeric[BytesQuantity]].mkNumericOps(k.getOrElse(v._1, 0.mb)).+(v._2))
    }
+
+  def fromSnapshotPath(path: Path): Namespace = {
+    Namespace.nameFromStringDisjunction(path.getParent.getName) match {
+      case scalaz.\/-(n) => n
+      case scalaz.-\/(e) => Crash.error(Crash.DataIntegrity, s"Can not parse snapshot namespace from path '${path}' - ${e}")
+    }
+  }
 }

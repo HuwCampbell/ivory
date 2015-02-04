@@ -24,19 +24,19 @@ class SparseOutputSpec extends Specification with ScalaCheck { def is = s2"""
   def eav = prop { (facts: FactsWithDictionary) =>
     // Remove duplicates - we're not interested in testing snapshot logic here
     val factsUnique = facts.facts.groupBy(_.entity).values.flatMap(_.headOption).toList
-    RepositoryBuilder.using(extractSparse(List(factsUnique), facts.dictionary, TextEscaping.Delimited)).map(_._1) must beOkLike(
+    RepositoryBuilder.using(extractSparse(factsUnique, facts.dictionary, TextEscaping.Delimited)).map(_._1) must beOkLike(
       (text: String) => text.split("\n").toList.size ==== factsUnique.length
     )
   }.set(minTestsOk = 3)
 
   def escaped = prop { (facts: FactsWithDictionary) =>
-    RepositoryBuilder.using(extractSparse(List(facts.facts), facts.dictionary, TextEscaping.Escaped)).map(_._1) must beOkLike(
+    RepositoryBuilder.using(extractSparse(facts.facts, facts.dictionary, TextEscaping.Escaped)).map(_._1) must beOkLike(
       (text: String) => seqToResult(text.split("\n").map(TextEscaping.split('|', _).length ==== 4))
     )
   }.set(minTestsOk = 1)
 
   def matchDict = prop { (facts: FactsWithDictionary) =>
-    RepositoryBuilder.using(extractSparse(List(facts.facts), facts.dictionary, TextEscaping.Delimited)) must beOkLike {
+    RepositoryBuilder.using(extractSparse(facts.facts, facts.dictionary, TextEscaping.Delimited)) must beOkLike {
       case (out, dict) =>
         val namespaces = dict.map(_.split("\\|", -1) match { case l => l(1) -> l(2)})
         seqToResult(out.lines.toList.map(_.split("\\|", -1) match {
@@ -45,13 +45,13 @@ class SparseOutputSpec extends Specification with ScalaCheck { def is = s2"""
     }
   }.set(minTestsOk = 1)
 
-  def extractSparse(facts: List[List[Fact]], dictionary: Dictionary, escaping: TextEscaping)(repo: HdfsRepository): RIO[(String, List[String])] = for {
+  def extractSparse(facts: List[Fact], dictionary: Dictionary, escaping: TextEscaping)(repo: HdfsRepository): RIO[(String, List[String])] = for {
     dir             <- LocalTemporary.random.directory
     conf            <- IvoryConfigurationTemporary.random.conf
-    _               <- RepositoryBuilder.createRepo(repo, dictionary, facts)
+    _               <- RepositoryBuilder.createDictionary(repo, dictionary)
     eav             = dir </> DirPath.unsafe("eav")
-    s               <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.maxValue)
-    input           = ShadowOutputDataset.fromIvoryLocation(repo.toIvoryLocation(Repository.snapshot(s.id)))
+    squash          <- RepositoryBuilder.createSquash(repo, facts)
+    input           <- squash.asHdfsIvoryLocation.map(ShadowOutputDataset.fromIvoryLocation)
     _               <- SparseOutput.extractWithDictionary(repo, input, ShadowOutputDataset(HdfsLocation(eav.path)), dictionary, Delimiter.Psv, "NA", escaping)
     dictLocation    <- IvoryLocation.fromUri((dir </> "eav" </> ".dictionary").path, conf)
     dictionaryLines <- IvoryLocation.readLines(dictLocation)

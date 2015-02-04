@@ -43,7 +43,10 @@ object RenameJob {
       job.setOutputValueClass(classOf[BytesWritable])
 
       /* input */
-      IvoryInputs.configure(ctx, job, repository, plan.datasets, classOf[RenameMapper], classOf[RenameMapper])
+      IvoryInputs.configure(ctx, job, repository, plan.datasets, {
+        case FactsetFormat.V1 => classOf[RenameV1Mapper]
+        case FactsetFormat.V2 => classOf[RenameV2Mapper]
+      }, _ => Crash.error(Crash.Invariant, "Rename should not be run on a snapshot!"))
 
       /* output */
       LazyOutputFormat.setOutputFormatClass(job, classOf[SequenceFileOutputFormat[_, _]])

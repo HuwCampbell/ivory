@@ -62,6 +62,16 @@ object RepositoryBuilder {
     SequenceUtil.writeBytes(out, config, Clients.s3, None)(
       writer => RIO.safe(facts.foreach(f => writer(ThriftSerialiser().toBytes(f.toThrift)))))
 
+  def createSquash(repo: HdfsRepository, allFacts: List[Fact]): RIO[IvoryLocation] = {
+    val serialiser = ThriftSerialiser()
+    val facts: List[Fact] = allFacts.filter(!_.isTombstone).groupBy(f =>  (f.entity, f.featureId)).toList.map(_._2.maxBy(_.date.int))
+    for {
+      out <- Repository.tmpDir("squash").map(repo.toIvoryLocation)
+      _   <- SequenceUtil.writeBytes(out.location, repo.configuration, Clients.s3, None)(
+      writer => RIO.safe(facts.foreach(f => writer(serialiser.toBytes(f.toNamespacedThrift)))))
+    } yield out
+  }
+
   def factsFromIvoryFactset(repo: HdfsRepository, factset: FactsetId): ScoobiAction[DList[ParseError \/ Fact]] =
     PartitionFactThriftStorage.loadScoobiWith(repo, factset)
 

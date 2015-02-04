@@ -19,7 +19,7 @@ object Rename {
   def rename(mapping: RenameMapping, reducerSize: BytesQuantity): RepositoryTIO[(FactsetId, Option[FeatureStoreId], RenameStats)] = for {
     commit       <- fromRIO(repository => CommitStorage.head(repository))
     plan         =  RenamePlan.inmemory(commit, mapping.oldFeatures)
-    lookups      <- prepareLookups(commit, mapping, plan.datasets.factsets, reducerSize)
+    lookups      <- prepareLookups(commit, mapping, plan.datasets.factsets.map(_.id), reducerSize)
     renameResult <- renameWithFactsets(mapping, plan, lookups)
     (fsid, stats) = renameResult
     sid          <- Factsets.updateFeatureStore(fsid)

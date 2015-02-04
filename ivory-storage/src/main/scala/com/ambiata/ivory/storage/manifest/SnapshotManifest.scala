@@ -11,7 +11,7 @@ object SnapshotManifest {
     SnapshotManifest(VersionManifest.current, commit.right, snapshot, format, date)
 
   def createLatest(commit: CommitId, snapshot: SnapshotId, date: Date): SnapshotManifest =
-    create(commit, snapshot, SnapshotFormat.V1, date)
+    create(commit, snapshot, SnapshotFormat.V2, date)
 
   def createDeprecated(storeOrCommit: FeatureStoreId \/ CommitId, snapshot: SnapshotId, format: SnapshotFormat, date: Date): SnapshotManifest =
     SnapshotManifest(VersionManifest.current, storeOrCommit, snapshot, format, date)

@@ -32,8 +32,11 @@ case class Datasets(sets: List[Prioritized[Dataset]]) {
         DatasetsSummary(0, p.value.bytes, snapshot.id.some)
     })
 
-  def factsets: List[FactsetId] =
-    sets.flatMap(p => p.value.toFactset.map(_.id).toList)
+  def factsets: List[Factset] =
+    sets.flatMap(p => p.value.toFactset.toList)
+
+  def snapshots: List[Snapshot] =
+    sets.flatMap(p => p.value.toSnapshot.toList)
 }
 
 object Datasets {

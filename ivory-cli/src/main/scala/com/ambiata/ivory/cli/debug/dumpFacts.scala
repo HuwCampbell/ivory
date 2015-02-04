@@ -1,14 +1,17 @@
 package com.ambiata.ivory.cli.debug
 
+import com.ambiata.ivory.api.Ivory
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.operation.debug._
 import com.ambiata.ivory.cli._, ScoptReaders._
 import com.ambiata.ivory.storage.control._
+import com.ambiata.mundane.control.RIO
 import org.apache.hadoop.fs.Path
-import scalaz.effect.IO
+
+import scalaz._, Scalaz._, effect.IO
 
 object dumpFacts extends IvoryApp {
-  case class CliArguments(entities: List[String], attributes: List[String], factsets: List[FactsetId], snapshots: List[SnapshotId], output: String)
+  case class CliArguments(entities: List[String], attributes: List[String], factsets: List[FactsetId], snapshots: List[SnapshotId], output: Option[String])
 
   val parser = new scopt.OptionParser[CliArguments]("debug-dump-facts") {
     head("""
@@ -29,13 +32,15 @@ object dumpFacts extends IvoryApp {
     opt[FactsetId]('f', "factset") unbounded() optional() action {
       (x, c) => c.copy(factsets = x :: c.factsets)
     }
-    opt[String]('o', "output") required() action {
-      (x, c) => c.copy(output = x)
+    opt[String]('o', "output") optional() action {
+      (x, c) => c.copy(output = Some(x))
     }
   }
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(Nil, Nil, Nil, Nil, "not-set"), { repository => conf => flags => c => IvoryT.fromRIO { for {
-    output <- IvoryLocation.fromUri(c.output, conf)
-    _      <- DumpFacts.dump(repository, DumpFactsRequest(c.factsets, c.snapshots, c.entities, c.attributes), output)
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(Nil, Nil, Nil, Nil, None), { repository => conf => flags => c => IvoryT.fromRIO { for {
+    output <- c.output.traverse(o => IvoryLocation.fromUri(o, conf))
+    request = DumpFactsRequest(c.factsets, c.snapshots, c.entities, c.attributes)
+    ret    <- output.cata(out => Ivory.dumpFactsToFile(repository, request, out), Ivory.dumpFactsToStdout(repository, request))
+    _      <- RIO.fromDisjunctionString(ret)
   } yield Nil } })
 }

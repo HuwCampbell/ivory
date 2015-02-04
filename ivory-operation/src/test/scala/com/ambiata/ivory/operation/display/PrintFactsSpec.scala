@@ -1,34 +1,39 @@
 package com.ambiata.ivory.operation.display
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core.arbitraries.FactsWithDictionary
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
+import com.ambiata.ivory.storage.fact.Factsets
+import com.ambiata.ivory.operation.extraction.Snapshots
 import com.ambiata.mundane.testing.RIOMatcher._
 import org.specs2._
 
+import scalaz._, Scalaz._
+
 class PrintFactsSpec extends Specification with ScalaCheck { def is = s2"""
 
- A sequence file containing facts can be read and printed on the console $print
- Can render a fact                                                       $renderFact
+ Can print a factset to the console                                $factset
+ Can print a snapshot to the console                               $snapshot
 
 """
 
-  def print = prop { facts: FactsWithDictionary => (for {
-    repo <- RepositoryBuilder.repository
-    _    <- RepositoryBuilder.createDictionary(repo, facts.dictionary)
-    fs   <- RepositoryBuilder.createFactset(repo, facts.facts)
-    _    <- PrintFacts.print(
-      List(repo.toIvoryLocation(Repository.factset(fs)).toHdfsPath),
-      repo.configuration,
-      '|',
-      "NA",
-      FactsetFormat.V2
-    )} yield ()) must beOk
+  def factset = prop { facts: FactsWithDictionary =>
+    (for {
+      repo <- RepositoryBuilder.repository
+      _    <- RepositoryBuilder.createDictionary(repo, facts.dictionary)
+      fid  <- RepositoryBuilder.createFactset(repo, facts.facts)
+      fs   <- Factsets.factset(repo, fid)
+      ret  <- PrintFacts.printFactset(repo, fs, Nil, Nil)
+    } yield ret) must beOkValue(().right)
   }.set(minTestsOk = 3)
 
-  def renderFact = prop { (d: Char, t: String, f: Fact) =>
-    val s = TextEscaping.split(d, PrintFacts.renderFact(d, t, f))
-    (s(0), s.length) ==== ((f.entity, 6))
-  }.set(minTestsOk = 10)
+  def snapshot = prop { facts: FactsWithDictionary =>
+    (for {
+      repo <- RepositoryBuilder.repository
+      _    <- RepositoryBuilder.createDictionary(repo, facts.dictionary)
+      fid  <- RepositoryBuilder.createFactset(repo, facts.facts)
+      snap <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.maxValue)
+      ret  <- PrintFacts.printSnapshot(repo, snap, Nil, Nil)
+    } yield ret) must beOkValue(().right)
+  }.set(minTestsOk = 3)
 }

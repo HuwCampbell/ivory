@@ -2,7 +2,7 @@ package com.ambiata.ivory.operation.rename
 
 import java.lang.{Iterable => JIterable}
 
-import com.ambiata.ivory.core.Priority
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.operation.extraction._
@@ -15,9 +15,9 @@ import org.apache.hadoop.io._
 import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs
 
-class RenameMapper extends CombinableMapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
+abstract class RenameMapper[K <: Writable] extends CombinableMapper[K, BytesWritable, BytesWritable, BytesWritable] with MrFactFormat[K, BytesWritable] {
 
-  type MapperContext = Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context
+  type MapperContext = Mapper[K, BytesWritable, BytesWritable, BytesWritable]#Context
 
   /* Value state management, create once per mapper */
   var priority = Priority(0)
@@ -28,40 +28,41 @@ class RenameMapper extends CombinableMapper[NullWritable, BytesWritable, BytesWr
   /* The output value, only create once per mapper. */
   val vout = Writables.bytesWritable(4096)
 
-  /* FactsetId created from input split path, only created once per mapper */
-  val tfact = new ThriftFact
+  /* Empty Fact, created once per mapper and mutated for each record */
+  val fact = createMutableFact
 
   val serializer = new ThriftSerialiser
 
   val mapping = new FeatureIdMapping
 
-  var converter: VersionedFactConverter = null
+  var converter: MrFactConverter[K, BytesWritable] = null
+
+  var partition: Partition = null
 
   var counter: Counter = null
 
-  override def setupSplit(context: MapperContext, split: InputSplit): Unit = {
+  final override def setupSplit(context: MapperContext, split: InputSplit): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
-    val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, SnapshotJob.Keys.FactsetLookup,
-      SnapshotJob.Keys.FactsetVersionLookup, context.getConfiguration, split)
-    converter = factsetInfo.factConverter
+    val factsetInfo: FactsetInfo = FactsetInfo.fromMr(ctx.thriftCache, SnapshotJob.Keys.FactsetLookup, context.getConfiguration, split)
     priority = factsetInfo.priority
+    partition = factsetInfo.partition
     ctx.thriftCache.pop(context.getConfiguration, RenameJob.Keys.Mapping, mapping)
     counter = context.getCounter("ivory", RenameJob.Keys.MapCounter)
+    converter = factConverter(MrContext.getSplitPath(split))
   }
 
-  override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
-    serializer.fromBytesViewUnsafe(tfact, value.getBytes, 0, value.getLength)
-    val f = converter.convert(tfact)
-    val to = mapping.getMapping.get(f.featureId.toString)
+  override def map(key: K, value: BytesWritable, context: MapperContext): Unit = {
+    converter.convert(fact, key, value)
+    val to = mapping.getMapping.get(fact.featureId.toString)
     if (to != null) {
       /***************************************************************
        * This is the actual business logic, just in case you missed it
        ***************************************************************/
-      f.toThrift.setAttribute(to.newName)
+      fact.toThrift.setAttribute(to.newName)
 
-      RenameWritable.KeyState.set(f, priority, kout, to.getFeatureId)
+      RenameWritable.KeyState.set(fact, priority, kout, to.getFeatureId)
 
-      val bytes = serializer.toBytes(f.toThrift)
+      val bytes = serializer.toBytes(fact.toThrift)
       vout.set(bytes, 0, bytes.length)
 
       context.write(kout, vout)
@@ -69,6 +70,9 @@ class RenameMapper extends CombinableMapper[NullWritable, BytesWritable, BytesWr
     }
   }
 }
+
+class RenameV1Mapper extends RenameMapper[NullWritable] with MrFactsetFactFormatV1
+class RenameV2Mapper extends RenameMapper[NullWritable] with MrFactsetFactFormatV2
 
 class RenameReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable] {
 

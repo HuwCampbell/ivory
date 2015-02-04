@@ -25,7 +25,7 @@ $IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts-v2"
 ### SNAPSHOT ###
 
 $IVORY snapshot -o "dense:psv=${TARGET}/snap-dense" -o "sparse:psv=${TARGET}/snap-sparse"
-$IVORY cat-facts "${REPOSITORY}/snapshots/00000001" | sort > "${TARGET}/snapshot.psv"
+$IVORY debug-dump-facts -r "${REPOSITORY}" -s 00000001 | sort > "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
 diff_test_mr "${DIR}/expected/snap-dense.psv" "${TARGET}/snap-dense"
 diff_test_mr "${DIR}/expected/snap-sparse.psv" "${TARGET}/snap-sparse"

@@ -45,14 +45,11 @@ object ReducerLookups {
    * NamespaceLookup assigns an int for each namespace
    * FeatureIdLookup assigns an int for each feature id
    */
-  def index(dictionary: Dictionary): (NamespaceLookup, FeatureIdLookup) =
-    indexDefinitions(dictionary.definitions)
-
-  def indexDefinitions(definitions: List[Definition]): (NamespaceLookup, FeatureIdLookup) = {
+  def index(dictionary: Dictionary): (NamespaceLookup, FeatureIdLookup) = {
     val namespaces = new NamespaceLookup
     val features = new FeatureIdLookup
 
-    definitions.zipWithIndex.foreach { case (d, idx) =>
+    dictionary.byFeatureIndex.foreach { case (idx, d) =>
       namespaces.putToNamespaces(idx, d.featureId.namespace.name)
       features.putToIds(d.featureId.toString, idx)
     }

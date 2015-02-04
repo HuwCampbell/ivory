@@ -6,6 +6,9 @@ import com.ambiata.ivory.mr._
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.storage.entities._
 import com.ambiata.poacher.mr._
+
+import org.apache.hadoop.io.BytesWritable
+
 import org.scalacheck._, Arbitrary.arbitrary
 
 case class ChordMapperSpecContext(facts: List[Fact], skipped: List[Fact], dropped: List[Fact]) {
@@ -15,7 +18,7 @@ case class ChordMapperSpecContext(facts: List[Fact], skipped: List[Fact], droppe
   val skip = MemoryCounter()
   val drop = MemoryCounter()
   val lookup = new FeatureIdLookup(new java.util.HashMap[String, Integer])
-  val emitter = TestEmitter()
+  val emitter = TestEmitter[BytesWritable, BytesWritable, (BytesWritable, BytesWritable)]((k, v) => (k, v))
   val entities = Entities(new java.util.HashMap)
   facts.zipWithIndex.foreach({ case (f, i) =>
     lookup.putToIds(f.featureId.toString, i)

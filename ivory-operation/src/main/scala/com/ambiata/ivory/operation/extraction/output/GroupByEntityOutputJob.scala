@@ -88,12 +88,12 @@ object GroupByEntityOutputJob {
 
     // cache / config initializtion
 
-    val (_, lookup) = ReducerLookups.indexDefinitions(dictionary.sortedByFeatureId)
+    val (_, lookup) = ReducerLookups.index(dictionary)
     ctx.thriftCache.push(job, Keys.FeatureIds, lookup)
 
     // run job
     if (!job.waitForCompletion(true))
-      sys.error("ivory dense failed.")
+      Crash.error(Crash.RIO, "ivory dense failed.")
   }
 
   _ <-  Committer.commit(ctx, {

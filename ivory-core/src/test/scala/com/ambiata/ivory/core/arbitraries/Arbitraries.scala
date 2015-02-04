@@ -138,7 +138,7 @@ trait Arbitraries {
     Arbitrary(GenIdentifier.repositoryConfigId)
 
   implicit def SizedArbitrary[A: Arbitrary]: Arbitrary[Sized[A]] =
-    Arbitrary(GenRepository.sized)
+    Arbitrary(GenRepository.sized(arbitrary[A]))
 
   implicit def SnapshotArbitrary: Arbitrary[Snapshot] =
     Arbitrary(GenRepository.snapshot)

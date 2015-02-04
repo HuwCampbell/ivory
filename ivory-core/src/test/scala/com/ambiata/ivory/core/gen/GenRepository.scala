@@ -15,9 +15,15 @@ object GenRepository {
   def bytes: Gen[Bytes] =
     size.map(Bytes.apply)
 
-  def sized[A: Arbitrary]: Gen[Sized[A]] = for {
+  def namespaceBytes: Gen[List[Sized[Namespace]]] =
+    GenPlus.listOfSized(1, 5, sized(GenString.namespace))
+
+  def snapshotBytes: Gen[Bytes \/ List[Sized[Namespace]]] =
+    Gen.frequency(1 -> bytes.map(_.left), 9 -> namespaceBytes.map(_.right))
+
+  def sized[A](g: Gen[A]): Gen[Sized[A]] = for {
     s <- bytes
-    v <- arbitrary[A]
+    v <- g
   } yield Sized(v, s)
 
   def datasets: Gen[Datasets] = for {
@@ -66,8 +72,9 @@ object GenRepository {
     x <- GenDate.date
     s <- store
     d <- GenDictionary.identified
-    b <- bytes
-  } yield Snapshot(i, x, s, d.some, b)
+    f <- GenVersion.snapshot
+    b <- snapshotBytes
+  } yield Snapshot(i, x, s, d.some, b, f)
 
   def partition: Gen[Partition] = for {
     n <- GenString.namespace

@@ -18,5 +18,12 @@ Laws
   Encode/Decode Json                           ${encodedecode[SnapshotFormat]}
   Equal                                        ${equal.laws[SnapshotFormat]}
 
+Combinators
+-----------
+
+  Symmetric to/from byte:
+     ${ prop((f: SnapshotFormat) => SnapshotFormat.fromByte(f.toByte) ==== f.some) }
+
+
 """
 }

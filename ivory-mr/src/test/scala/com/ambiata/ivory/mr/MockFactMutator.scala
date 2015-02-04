@@ -1,40 +1,46 @@
 package com.ambiata.ivory.mr
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.poacher.mr._
-import org.apache.hadoop.io.{Text, BytesWritable, NullWritable}
+import org.apache.hadoop.io.{Text, BytesWritable, NullWritable, IntWritable}
+import org.apache.hadoop.fs.Path
 import java.util.{Iterator => JIterator}
 import scala.collection.JavaConverters._
 
 object MockFactMutator {
 
   /** For testing MR code that deals with a stream of fact bytes */
-  def run(facts: List[Fact])(f: (JIterator[BytesWritable], FactByteMutator, Emitter[NullWritable, BytesWritable], BytesWritable) => Unit): List[Fact] =
-    runKeep(facts)(f)._1
+  def run(facts: List[Fact])(f: (JIterator[BytesWritable], Emitter[NullWritable, BytesWritable], BytesWritable) => Unit): List[Fact] =
+    runFatFactKeep(facts)(f)._1
 
-  def runKeep[A](facts: List[Fact])(f: (JIterator[BytesWritable], FactByteMutator, Emitter[NullWritable, BytesWritable], BytesWritable) => A): (List[Fact], A) = {
-    val outFacts = new collection.mutable.ListBuffer[Fact]
+  def runFatFactKeep[A](facts: List[Fact])(f: (JIterator[BytesWritable], Emitter[NullWritable, BytesWritable], BytesWritable) => A): (List[Fact], A) = {
     val serialiser = ThriftSerialiser()
-    val emitter = new Emitter[NullWritable, BytesWritable] {
-      def emit(key: NullWritable, value: BytesWritable): Unit = {
-        outFacts += serialiser.fromBytesViewUnsafe(createMutableFact, value.getBytes, 0, value.getLength)
-        ()
-      }
-    }
-    val result = iterateFactsAsBytes(facts)(iter => f(iter, new FactByteMutator, emitter, Writables.bytesWritable(4096)))
-    (outFacts.toList, result)
+    val emitter = TestEmitter[NullWritable, BytesWritable, Fact]((key, value) => {
+      serialiser.fromBytesViewUnsafe(createMutableFact, value.getBytes, 0, value.getLength)
+    })
+    val result = iterateFactsAsBytes(facts)(iter => f(iter, emitter, Writables.bytesWritable(4096)))
+    (emitter.emitted.toList, result)
+  }
+
+  def runThriftFactKeep[A](namespace: Namespace, facts: List[Fact])(f: (JIterator[BytesWritable], Emitter[IntWritable, BytesWritable], IntWritable, BytesWritable) => A): (List[Fact], A) = {
+    val serialiser = ThriftSerialiser()
+    val emitter = TestEmitter[IntWritable, BytesWritable, Fact]((key, value) => {
+      val date = Date.unsafeFromInt(key.get)
+      val tfact = new ThriftFact
+      serialiser.fromBytesViewUnsafe(tfact, value.getBytes, 0, value.getLength)
+      FatThriftFact(namespace.name, date, tfact)
+    })
+    val result = iterateFactsAsBytes(facts)(iter => f(iter, emitter, new IntWritable(0), Writables.bytesWritable(4096)))
+    (emitter.emitted.toList, result)
   }
 
   def runText(facts: List[Fact])(f: (JIterator[BytesWritable], Emitter[NullWritable, Text], Text) => Unit): List[String] = {
-    val lines = new collection.mutable.ListBuffer[String]
-    val emitter = new Emitter[NullWritable, Text] {
-      def emit(key: NullWritable, value: Text): Unit = {
-        lines += value.toString
-        ()
-      }
-    }
+    val emitter = TestEmitter[NullWritable, Text, String]((key, value) => {
+      value.toString
+    })
     iterateFactsAsBytes(facts)(iter => f(iter, emitter, new Text))
-    lines.toList
+    emitter.emitted.toList
   }
 
   def iterateFactsAsBytes[A](facts: List[Fact])(f: JIterator[BytesWritable] => A): A = {
