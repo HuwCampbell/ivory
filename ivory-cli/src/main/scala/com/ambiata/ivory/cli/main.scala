@@ -9,7 +9,6 @@ object main {
     admin.renameFacts,
     catDictionary,
     catErrors,
-    catFacts,
     chord,
     config,
     convertDictionary,
