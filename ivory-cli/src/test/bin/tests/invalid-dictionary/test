@@ -12,7 +12,7 @@ $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 $IVORY import-dictionary -p "${INPUT}/dictionary-bad.psv" -u | grep "Encoding changed"
 # Need to remove the first line which comes out as a warning for the optional codec
 # + any extra blank line
-$IVORY cat-dictionary | tail -n +2 | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
+$IVORY cat-dictionary | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
 # Nothing should have changed
 diff_test "${INPUT}/dictionary.psv" "${TARGET}/dictionary.psv"
 
@@ -21,5 +21,5 @@ IMPORT_OUT=`$IVORY import-dictionary -p "${INPUT}/dictionary-bad.psv" -u --force
 echo $IMPORT_OUT | grep "Encoding changed"
 # Need to remove the first line which comes out as a warning for the optional codec
 # + any extra blank line
-$IVORY cat-dictionary | tail -n +2 | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
+$IVORY cat-dictionary | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
 diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
