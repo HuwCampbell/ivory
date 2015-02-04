@@ -4,7 +4,7 @@ import org.scalacheck._
 
 object GenVersion {
   def snapshot: Gen[SnapshotFormat] =
-    Gen.const(SnapshotFormat.V1)
+    Gen.oneOf(SnapshotFormat.V1, SnapshotFormat.V2)
 
   def factset: Gen[FactsetFormat] =
     Gen.oneOf(FactsetFormat.V1, FactsetFormat.V2)
