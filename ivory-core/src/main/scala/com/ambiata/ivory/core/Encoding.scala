@@ -1,7 +1,5 @@
 package com.ambiata.ivory.core
 
-import scala.math.{Ordering => SOrdering}
-
 sealed trait Encoding
 
 sealed trait PrimitiveEncoding extends SubEncoding
