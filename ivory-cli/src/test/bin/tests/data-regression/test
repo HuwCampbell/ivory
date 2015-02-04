@@ -13,7 +13,7 @@ $V0 ingest-bulk -r "${REPOSITORY}" -z "Australia/Sydney" -i "${INPUT}/facts" -d 
 
 $V0 extract-snapshot -r "${REPOSITORY}"
 $V0 cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
-diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
+diff_test "${DIR}/expected/snapshot-00000000.psv" "${TARGET}/snapshot.psv"
 
 # Ingest the facts again so that a new incremental snapshot will be taken,
 # however the actual snapshot should turn out to be the same.
@@ -41,14 +41,14 @@ $IVORY update
 
 ### CONFIG ####
 
-$IVORY config | grep -v "Codec has been disabled" | grep -v "^$" > "${TARGET}/config"
+$IVORY config | grep -v "^$" > "${TARGET}/config"
 diff_test "${DIR}/expected/metadata/config" "${TARGET}/config"
 
 ### DICTIONARY ###
 
 # Need to remove the first line which comes out as a warning for the optional codec
 # + any extra blank line
-$IVORY cat-dictionary | tail -n +2 | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
+$IVORY cat-dictionary | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
 diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
 
 ### INGEST ###
@@ -58,12 +58,12 @@ $IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts"
 ### SNAPSHOT ###
 
 $IVORY snapshot -o "dense:psv=${TARGET}/snap-dense" -o "sparse:psv=${TARGET}/snap-sparse"
-$IVORY cat-facts "${REPOSITORY}/snapshots/00000001" | sort > "${TARGET}/snapshot.psv"
-diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
+$IVORY debug-dump-facts -r "${REPOSITORY}" -s 00000001 | sort > "${TARGET}/snapshot.psv"
+diff_test "${DIR}/expected/snapshot-00000001.psv" "${TARGET}/snapshot.psv"
 diff_test_mr "${DIR}/expected/snap-dense.psv" "${TARGET}/snap-dense"
 diff_test_mr "${DIR}/expected/snap-sparse.psv" "${TARGET}/snap-sparse"
 COUNT_FACTS_OUT=$($IVORY count-facts "${REPOSITORY}/snapshots/00000001")
-[ $(wc -l ${DIR}/expected/snapshot.psv | awk '{print $1}') = $COUNT_FACTS_OUT ]
+[ $(wc -l ${DIR}/expected/snapshot-00000000.psv | awk '{print $1}') = $COUNT_FACTS_OUT ]
 
 ### CHORD ###
 

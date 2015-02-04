@@ -11,5 +11,5 @@ $IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts2"
 $IVORY rename -m "halibut:preheat=halibut2:warmup" -m "halibut:cooldown=halibut2:exercise" -b "${INPUT}/mapping.psv"
 
 ### check factsets ###
-$IVORY cat-facts "${REPOSITORY}/factsets/00000002/*/*/*/*/*" | sort > "${TARGET}/facts.psv"
+$IVORY debug-dump-facts -r "${REPOSITORY}" -f 00000002 | sort > "${TARGET}/facts.psv"
 diff_test "${DIR}/expected/facts.psv" "${TARGET}/facts.psv"

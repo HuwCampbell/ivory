@@ -17,7 +17,7 @@ $IVORY ingest -i "sparse:delimited:psv=${TARGET}/input"
 
 snapshot() {
   $IVORY snapshot -d ${1}
-  $IVORY cat-facts "${REPOSITORY}/snapshots/0000000${2}" | sort > "${TARGET}/snapshot${2}.psv"
+  $IVORY debug-dump-facts -r "${REPOSITORY}" -s "0000000${2}" | sort > "${TARGET}/snapshot${2}.psv"
 
   # Just make sure it exists - it has a timestamp which makes it very hard to diff test
   cat "${REPOSITORY}/snapshots/0000000${2}/.stats"

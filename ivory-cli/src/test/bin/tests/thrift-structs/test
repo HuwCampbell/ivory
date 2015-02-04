@@ -11,7 +11,7 @@ $V2 ingest -r "${REPOSITORY}" -i "${INPUT}/facts" -z "Australia/Sydney" -f "thri
 ### SNAPSHOT ###
 $IVORY update
 $IVORY snapshot -o "dense:thrift=${TARGET}/dense.thrift" -o "sparse:thrift=${TARGET}/sparse.thrift"
-$IVORY cat-facts "${REPOSITORY}/snapshots/00000000" | sort > "${TARGET}/snapshot.psv"
+$IVORY debug-dump-facts -r "${REPOSITORY}" -s 00000000 | sort > "${TARGET}/snapshot.psv"
 diff_test "${DIR}/expected/snapshot.psv" "${TARGET}/snapshot.psv"
 
 diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dense.thrift/.dictionary"

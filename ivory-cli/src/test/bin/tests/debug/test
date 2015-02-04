@@ -9,8 +9,11 @@ $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 ### Ingest a factset directory with several namespaces
 $IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts-1"
 $IVORY ingest -i "sparse:delimited:psv|HALIBUT=${INPUT}/facts-2"
-$IVORY cat-facts "${REPOSITORY}/factsets/00000000/*/*/*/*/*" > "${TARGET}/cat-facts-1.psv"
-$IVORY cat-facts "${REPOSITORY}/factsets/00000001/*/*/*/*/*" > "${TARGET}/cat-facts-2.psv"
+$IVORY debug-dump-facts -r "${REPOSITORY}" -f 00000000 | sort > "${TARGET}/cat-facts-1.psv"
+$IVORY debug-dump-facts -r "${REPOSITORY}" -f 00000001 | sort > "${TARGET}/cat-facts-2.psv"
+
+diff_test "${DIR}/expected/dump-facts-1.psv" "${TARGET}/cat-facts-1.psv"
+diff_test "${DIR}/expected/dump-facts-2.psv" "${TARGET}/cat-facts-2.psv"
 
 OUT="/tmp/ivory-test-out-$(random)"
 $IVORY debug-dump-facts -f 00000000 -o "${OUT}/dump-facts-1.psv"
@@ -19,10 +22,11 @@ $IVORY debug-dump-facts -f 00000001 -o "${OUT}/dump-facts-2.psv"
 $IVORY debug-dump-facts -f 00000000 -f 00000001 -e ID00000000 -a HALIBUT:swiss_cheese -o "${OUT}/dump-fact-query.psv"
 
 cat ${OUT}/dump-fact-query.psv/part-* | sort > "${TARGET}/dump-fact-query.psv.sorted"
-
-test $(cat ${OUT}/dump-facts-1.psv/part-* | wc -l | awk '{ print $1}') -eq $(wc -l "${TARGET}/cat-facts-1.psv" | awk '{ print $1}')
-test $(cat ${OUT}/dump-facts-2.psv/part-* | wc -l | awk '{ print $1}') -eq $(wc -l "${TARGET}/cat-facts-2.psv" | awk '{ print $1}')
+cat ${OUT}/dump-facts-1.psv/part-* | sort > "${TARGET}/dump-facts-1.psv.sorted"
+cat ${OUT}/dump-facts-2.psv/part-* | sort > "${TARGET}/dump-facts-2.psv.sorted"
 
 diff_test "${DIR}/expected/dump-fact-query.psv" "${TARGET}/dump-fact-query.psv.sorted"
+diff_test "${DIR}/expected/dump-facts-1.psv" "${TARGET}/dump-facts-1.psv.sorted"
+diff_test "${DIR}/expected/dump-facts-2.psv" "${TARGET}/dump-facts-2.psv.sorted"
 
 rm -rf "${OUT}"

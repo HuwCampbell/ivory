@@ -8,12 +8,12 @@ $IVORY import-dictionary -p "${INPUT}/dictionary.psv"
 $IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts"
 
 ### check factset before recreation ###
-$IVORY cat-facts "${REPOSITORY}/factsets/00000000/halibut/2014/*/*/*" | sort > "${TARGET}/facts.psv"
-diff_test "${DIR}/expected/halibut-facts.psv" "${TARGET}/facts.psv"
+$IVORY debug-dump-facts -r "${REPOSITORY}" -f 00000000 | sort > "${TARGET}/facts.psv"
+diff_test "${DIR}/expected/facts.psv" "${TARGET}/facts.psv"
 
 ### recreate the factset
-$IVORY health-recreate -r "${REPOSITORY}" -f "00000000"
+$IVORY health-recreate -r "${REPOSITORY}" -f 00000000
 
 ### check factset after recreation ###
-$IVORY cat-facts "${REPOSITORY}/factsets/00000000/halibut/2014/*/*/*" | sort > "${TARGET}/facts.psv"
-diff_test "${DIR}/expected/halibut-facts.psv" "${TARGET}/facts.psv"
+$IVORY debug-dump-facts -r "${REPOSITORY}" -f 00000000 | sort > "${TARGET}/facts.psv"
+diff_test "${DIR}/expected/facts.psv" "${TARGET}/facts.psv"
