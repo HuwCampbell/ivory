@@ -99,7 +99,7 @@ Skew Tests
   , Namespace("flavours"    ) -> 184072795.bytes
   )
 
-  def fake = ConcreteDefinition(DoubleEncoding, Mode.State, Some(ContinuousType), "desc", Nil)
+  def fake = ConcreteDefinition(DoubleEncoding.toEncoding, Mode.State, Some(ContinuousType), "desc", Nil)
   def optimalSize = 256.mb
 
   /** create a dictionary */

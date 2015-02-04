@@ -69,8 +69,8 @@ Rename
       StringFact("eid1", fid, Date.fromLocalDate(new LocalDate(2012, 9, d)), Time.unsafe(t), v)
     val mapping = RenameMapping(List(id -> tid))
     val dictionary = Dictionary(List(
-      Definition.concrete(id, StringEncoding, Mode.State, None, "", Nil),
-      Definition.concrete(tid, StringEncoding, Mode.State, None, "", Nil)
+      Definition.concrete(id, StringEncoding.toEncoding, Mode.State, None, "", Nil),
+      Definition.concrete(tid, StringEncoding.toEncoding, Mode.State, None, "", Nil)
     ))
     // This tests that identical entities handle priorities correct
     renameWithFacts(mapping, dictionary, List(

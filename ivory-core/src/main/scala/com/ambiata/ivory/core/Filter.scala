@@ -110,26 +110,8 @@ object FilterTextV0 {
       }
     }
     new SimpleExpParser(filter.render).parse.flatMap { fel =>
-      encoding match {
-        case StructEncoding(values) =>
-          def struct(l: FExpNode): String \/ FilterStructOp =
-            for {
-              op          <- FilterOpTextV0.parse(l.op)
-              (exps, ops)  = l.v.grouped(2).toList.map {
-                case List(FExpS(field), value) =>
-                  values.get(field)
-                    .toRightDisjunction(s"Invalid filter: struct field $field not found")
-                    .flatMap(se => parseExp(se.encoding, value).map(field ->)).right
-                case tail => tail.left
-              }.separate
-              fields      <- ops.sequenceU
-              (rest, nodes) = splitNodes(exps.flatten)
-              _           <- if (rest.isEmpty) ().right else ("Invalid left-over struct fields: " + rest.mkString(",")).left
-              children    <- nodes.traverseU(struct)
-            } yield FilterStructOp(op, fields, children)
-
-          struct(fel).map(FilterStruct)
-        case pe: PrimitiveEncoding =>
+      encoding.fold(
+        pe => {
           def values(l: FExpNode): String \/ FilterValuesOp =
             for {
               op <- FilterOpTextV0.parse(l.op)
@@ -140,9 +122,26 @@ object FilterTextV0 {
               children <- nodes.traverseU(values)
             } yield FilterValuesOp(op, fields, children)
           values(fel).map(FilterValues)
-        case ListEncoding(_) =>
+        }, s => {
+          def struct(l: FExpNode): String \/ FilterStructOp =
+            for {
+              op          <- FilterOpTextV0.parse(l.op)
+              (exps, ops)  = l.v.grouped(2).toList.map {
+                case List(FExpS(field), value) =>
+                  s.values.get(field)
+                    .toRightDisjunction(s"Invalid filter: struct field $field not found")
+                    .flatMap(se => parseExp(se.encoding, value).map(field ->)).right
+                case tail => tail.left
+              }.separate
+              fields      <- ops.sequenceU
+              (rest, nodes) = splitNodes(exps.flatten)
+              _           <- if (rest.isEmpty) ().right else ("Invalid left-over struct fields: " + rest.mkString(",")).left
+              children    <- nodes.traverseU(struct)
+            } yield FilterStructOp(op, fields, children)
+          struct(fel).map(FilterStruct)
+        }, _ =>
           "Filtering lists is not yet supported".left
-      }
+      )
     }
   }
 

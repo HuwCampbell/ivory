@@ -30,15 +30,15 @@ class ExpressionSpec extends Specification with ScalaCheck { def is = s2"""
   )
 
   def validationFail = seqToResult(List(
-    BasicExpression(Sum)               -> StringEncoding,
-    BasicExpression(CountUnique)       -> IntEncoding,
-    Interval(NumFlips)                 -> LongEncoding,
-    StructExpression("a", CountUnique) -> StructEncoding(Map("b" -> mandatory(StringEncoding))),
-    StructExpression("a", Mean)        -> StructEncoding(Map("a" -> mandatory(StringEncoding))),
-    SumBy("k", "v")                    -> StringEncoding,
-    SumBy("k", "v")                    -> StructEncoding(Map("k" -> mandatory(IntEncoding), "v" -> mandatory(IntEncoding))),
-    SumBy("k", "v")                    -> StructEncoding(Map("k" -> mandatory(StringEncoding), "v" -> mandatory(BooleanEncoding))),
-    CountBySecondary("k", "v")         -> StringEncoding,
-    CountBySecondary("k", "v")         -> StructEncoding(Map("k" -> mandatory(StringEncoding)))
+    BasicExpression(Sum)               -> StringEncoding.toEncoding,
+    BasicExpression(CountUnique)       -> IntEncoding.toEncoding,
+    Interval(NumFlips)                 -> LongEncoding.toEncoding,
+    StructExpression("a", CountUnique) -> StructEncoding(Map("b" -> mandatory(StringEncoding))).toEncoding,
+    StructExpression("a", Mean)        -> StructEncoding(Map("a" -> mandatory(StringEncoding))).toEncoding,
+    SumBy("k", "v")                    -> StringEncoding.toEncoding,
+    SumBy("k", "v")                    -> StructEncoding(Map("k" -> mandatory(IntEncoding), "v" -> mandatory(IntEncoding))).toEncoding,
+    SumBy("k", "v")                    -> StructEncoding(Map("k" -> mandatory(StringEncoding), "v" -> mandatory(BooleanEncoding))).toEncoding,
+    CountBySecondary("k", "v")         -> StringEncoding.toEncoding,
+    CountBySecondary("k", "v")         -> StructEncoding(Map("k" -> mandatory(StringEncoding))).toEncoding
   ).map((Expression.validate _).tupled).map(_.toEither must beLeft))
 }

@@ -36,8 +36,10 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
   // A small subset of  encoded values are valid for different optional/empty Structs/Lists
   private def isCompatible(e1: EncodingAndValue, e2: Encoding): Boolean =
     (e1, e2) match {
-      case (EncodingAndValue(_, StructValue(m)), StructEncoding(v)) => m.isEmpty && v.forall(_._2.optional)
-      case (EncodingAndValue(_, ListValue(l)), ListEncoding(e))     => l.forall(v => isCompatible(EncodingAndValue(e, v), e))
+      case (EncodingAndValue(_, StructValue(m)), EncodingStruct(StructEncoding(v))) =>
+        m.isEmpty && v.forall(_._2.optional)
+      case (EncodingAndValue(_, ListValue(l)), EncodingList(ListEncoding(e))) =>
+        l.forall(v => isCompatible(EncodingAndValue(e.toEncoding, v), e.toEncoding))
       case _ => false
     }
 

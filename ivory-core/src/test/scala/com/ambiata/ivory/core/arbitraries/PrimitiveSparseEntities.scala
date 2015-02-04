@@ -17,6 +17,6 @@ case class PrimitiveSparseEntities(meta: ConcreteDefinition, fact: Fact, zone: D
 
 object PrimitiveSparseEntities {
   implicit def PrimitiveSparseEntitiesArbitrary: Arbitrary[PrimitiveSparseEntities] =
-    Arbitrary(GenFact.factWithZone(GenEntity.entity, GenDictionary.concreteWith(arbitrary[PrimitiveEncoding]))
+    Arbitrary(GenFact.factWithZone(GenEntity.entity, GenDictionary.concreteWith(arbitrary[PrimitiveEncoding].map(_.toEncoding)))
       .map((PrimitiveSparseEntities.apply _).tupled))
 }

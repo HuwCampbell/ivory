@@ -15,23 +15,25 @@ object GenValue {
       , 2 -> (GenDate.date map DateValue.apply)
       )
 
-  def valueOf(encoding: Encoding, tombstones: List[String]): Gen[Value] = encoding match {
-    case p: PrimitiveEncoding => valueOfPrimOrTomb(p, tombstones)
-    case sub: SubEncoding => valueOfSub(sub)
-    case ListEncoding(sub) => Gen.listOf(valueOfSub(sub)).map(ListValue)
-  }
+  def valueOf(encoding: Encoding, tombstones: List[String]): Gen[Value] = encoding.fold(
+    p => valueOfPrimOrTomb(p, tombstones),
+    s => valueOfStruct(s),
+    l => Gen.listOf(valueOfSub(l.encoding)).map(ListValue)
+  )
 
   def valueOfSub(encoding: SubEncoding): Gen[SubValue] = encoding match {
-    case p: PrimitiveEncoding => valueOfPrim(p)
-    case StructEncoding(s) =>
-      Gen.sequence[Seq, Option[(String, PrimitiveValue)]](s.map { case (k, v) =>
-        for {
-          p <- valueOfPrim(v.encoding).map(k ->)
-          // _Sometimes_ generate a value for optional fields :)
-          b <- if (v.optional) arbitrary[Boolean] else Gen.const(true)
-        } yield if (b) Some(p) else None
-      }).map(_.flatten.toMap).map(StructValue)
+    case SubPrim(p) => valueOfPrim(p)
+    case SubStruct(s) => valueOfStruct(s)
   }
+
+  def valueOfStruct(encoding: StructEncoding): Gen[StructValue] =
+    Gen.sequence[Seq, Option[(String, PrimitiveValue)]](encoding.values.map { case (k, v) =>
+      for {
+        p <- valueOfPrim(v.encoding).map(k ->)
+        // _Sometimes_ generate a value for optional fields :)
+        b <- if (v.optional) arbitrary[Boolean] else Gen.const(true)
+      } yield if (b) Some(p) else None
+    }).map(_.flatten.toMap).map(StructValue)
 
   def valueOfPrimOrTomb(encoding: PrimitiveEncoding, tombstones: List[String]): Gen[Value] =
     valueOfPrim(encoding).flatMap(v =>
