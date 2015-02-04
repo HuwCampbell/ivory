@@ -23,7 +23,7 @@ class SparseOutputSpec extends Specification with ScalaCheck { def is = s2"""
 
   def eav = prop { (facts: FactsWithDictionary) =>
     // Remove duplicates - we're not interested in testing snapshot logic here
-    val factsUnique = facts.facts.groupBy(_.entity).values.flatMap(_.headOption).toList
+    val factsUnique = facts.facts.groupBy(_.entity).values.flatMap(_.find(!_.isTombstone)).toList
     RepositoryBuilder.using(extractSparse(factsUnique, facts.dictionary, TextEscaping.Delimited)).map(_._1) must beOkLike(
       (text: String) => text.split("\n").toList.size ==== factsUnique.length
     )
