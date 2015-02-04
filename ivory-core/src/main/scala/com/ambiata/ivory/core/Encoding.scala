@@ -1,8 +1,21 @@
 package com.ambiata.ivory.core
 
-sealed trait Encoding
+sealed trait Encoding {
 
-sealed trait PrimitiveEncoding extends SubEncoding
+  def fold[A](p: PrimitiveEncoding => A, s: StructEncoding => A, l: ListEncoding => A): A = this match {
+    case EncodingList(e) => l(e)
+    case EncodingSub(SubStruct(e)) => s(e)
+    case EncodingSub(SubPrim(e)) => p(e)
+  }
+}
+case class EncodingSub(e: SubEncoding) extends Encoding
+case class EncodingList(encoding: ListEncoding) extends Encoding
+
+sealed trait PrimitiveEncoding {
+
+  def toEncoding: Encoding =
+    SubPrim(this).toEncoding
+}
 case object BooleanEncoding   extends PrimitiveEncoding
 case object IntEncoding       extends PrimitiveEncoding
 case object LongEncoding      extends PrimitiveEncoding
@@ -10,10 +23,24 @@ case object DoubleEncoding    extends PrimitiveEncoding
 case object StringEncoding    extends PrimitiveEncoding
 case object DateEncoding      extends PrimitiveEncoding
 
-sealed trait SubEncoding extends Encoding
+sealed trait SubEncoding {
 
-case class StructEncoding(values: Map[String, StructEncodedValue]) extends SubEncoding
-case class ListEncoding(encoding: SubEncoding) extends Encoding
+  def toEncoding: Encoding =
+    EncodingSub(this)
+}
+case class SubPrim(e: PrimitiveEncoding) extends SubEncoding
+case class SubStruct(e: StructEncoding) extends SubEncoding
+
+case class StructEncoding(values: Map[String, StructEncodedValue]) {
+
+  def toEncoding: Encoding =
+    SubStruct(this).toEncoding
+}
+case class ListEncoding(encoding: SubEncoding) {
+
+  def toEncoding: Encoding =
+    EncodingList(this)
+}
 
 // NOTE: For now we don't support nested structs
 case class StructEncodedValue(encoding: PrimitiveEncoding, optional: Boolean = false) {
@@ -33,13 +60,13 @@ object StructEncodedValue {
 object Encoding {
 
   def render(enc: Encoding): String = enc match {
-    case ListEncoding(e) => "[" + renderSub(e) + "]"
-    case e: SubEncoding  => renderSub(e)
+    case EncodingList(ListEncoding(e)) => "[" + renderSub(e) + "]"
+    case EncodingSub(e) => renderSub(e)
   }
 
   private def renderSub(enc: SubEncoding): String = enc match {
-    case e: PrimitiveEncoding => renderPrimitive(e)
-    case StructEncoding(m)    => "(" + m.map {
+    case SubPrim(e) => renderPrimitive(e)
+    case SubStruct(m)    => "(" + m.values.map {
       case (n, v) => n + ":" + renderPrimitive(v.encoding) + (if (v.optional) "*" else "")
     }.mkString(",") + ")"
   }
@@ -54,21 +81,18 @@ object Encoding {
   }
 
   def isPrimitive(enc: Encoding): Boolean =
-    enc match {
-      case _: PrimitiveEncoding => true
-      case _: StructEncoding    => false
-      case _: ListEncoding      => false
-    }
+    enc.fold(_ => true, _ => false, _ => false)
 
   def isNumeric(enc: Encoding): Boolean =
+    enc.fold(isNumericPrim, _ => false, _ => false)
+
+  def isNumericPrim(enc: PrimitiveEncoding): Boolean =
     enc match {
-      case IntEncoding       => true
-      case LongEncoding      => true
-      case DoubleEncoding    => true
-      case BooleanEncoding   => false
-      case DateEncoding      => false
-      case StructEncoding(_) => false
-      case ListEncoding(_)   => false
-      case StringEncoding    => false
+      case StringEncoding          => false
+      case IntEncoding             => true
+      case LongEncoding            => true
+      case DoubleEncoding          => true
+      case BooleanEncoding         => false
+      case DateEncoding            => false
     }
 }

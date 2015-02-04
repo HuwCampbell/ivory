@@ -234,8 +234,7 @@ object Value {
   def validateEncoding(value: Value, encoding: Encoding): Validation[String, Unit] = {
     def fail: Validation[String, Unit] =
       s"Not a valid ${Encoding.render(encoding)}!".failure
-    (value, encoding) match {
-      case (TombstoneValue,  _)                 => Success(())
+    def validateEncodingPrim(v: PrimitiveValue, e: PrimitiveEncoding): Validation[String, Unit] = (v, e) match {
       case (BooleanValue(_), BooleanEncoding)   => Success(())
       case (BooleanValue(_), _)                 => fail
       case (IntValue(_),     IntEncoding)       => Success(())
@@ -248,19 +247,27 @@ object Value {
       case (StringValue(_),  _)                 => fail
       case (DateValue(_),    DateEncoding)      => Success(())
       case (DateValue(_),    _)                 => fail
-      case (StructValue(v),  e: StructEncoding) => validateStruct(v, e)
+    }
+    def validateEncodingSub(v: SubValue, e: SubEncoding): Validation[String, Unit] = (v, e) match {
+      case (vp: PrimitiveValue, SubPrim(ep))    => validateEncodingPrim(vp, ep)
+      case (vp: PrimitiveValue, _)              => fail
+      case (StructValue(vs),  SubStruct(es))    => validateStruct(vs, es)
       case (StructValue(_),  _)                 => fail
-      case (ListValue(v),    e: ListEncoding)   => v.foldMap(validateEncoding(_, e.encoding))
+    }
+    def validateStruct(values: Map[String, PrimitiveValue], encoding: StructEncoding): Validation[String, Unit] =
+      Maps.outerJoin(encoding.values, values).toStream.foldMap {
+        case (n, \&/.This(enc))        => if (!enc.optional) s"Missing struct $n".failure else ().success
+        case (n, \&/.That(_))          => s"Undeclared struct value $n".failure
+        case (n, \&/.Both(enc, v))     => validateEncodingPrim(v, enc.encoding).leftMap(_ + s" for $n")
+      }
+    (value, encoding) match {
+      case (TombstoneValue,  _)                 => Success(())
+      case (vs: SubValue, EncodingSub(es))      => validateEncodingSub(vs, es)
+      case (vs: SubValue, _)                    => fail
+      case (ListValue(v), EncodingList(l))      => v.foldMap(validateEncodingSub(_, l.encoding))
       case (ListValue(_),    _)                 => fail
     }
   }
-
-  def validateStruct(values: Map[String, PrimitiveValue], encoding: StructEncoding): Validation[String, Unit] =
-    Maps.outerJoin(encoding.values, values).toStream.foldMap {
-      case (n, \&/.This(enc))        => if (!enc.optional) s"Missing struct $n".failure else ().success
-      case (n, \&/.That(value))      => s"Undeclared struct value $n".failure
-      case (n, \&/.Both(enc, value)) => validateEncoding(value, enc.encoding).leftMap(_ + s" for $n")
-    }
 
   def toThrift(value: Value): ThriftFactValue = {
     def primValue(p: PrimitiveValue): ThriftFactPrimitiveValue = p match {

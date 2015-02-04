@@ -115,7 +115,7 @@ object Expression {
       case Latest           => ok
       case LatestN(i)       => if (i > 0) ok else "Only positive values supported for latestN".left
       case (Sum | Min | Max | Mean | Gradient | StandardDeviation) =>
-        if (Encoding.isNumeric(subenc)) ok else"Non-numeric encoding not supported".left
+        if (Encoding.isNumericPrim(subenc)) ok else"Non-numeric encoding not supported".left
       case DaysSince => subenc match {
         case DateEncoding   => ok
         case _              => "Non-date encoding not supported".left
@@ -152,59 +152,63 @@ object Expression {
       }
       case Inverse(other)                =>
         if (Encoding.isNumeric(expressionEncoding(other, encoding))) ok else "Non numeric encoding for inverse".left
-      case SumBy(key, field)             => encoding match {
-        case StructEncoding(values) => for {
-           k <- values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
-           f <- values.get(field).map(_.encoding).toRightDisjunction(s"Struct field not found '$field'")
+      case SumBy(key, field)             => encoding.fold(
+        _ => "sum_by requires struct encoding".left,
+        s => for {
+           k <- s.values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
+           f <- s.values.get(field).map(_.encoding).toRightDisjunction(s"Struct field not found '$field'")
            _ <- (k, f) match {
              case (StringEncoding, fieldEncoding) =>
-               if (Encoding.isNumeric(fieldEncoding)) ok else "sum_by field is required to be numerical".left
+               if (Encoding.isNumericPrim(fieldEncoding)) ok else "sum_by field is required to be numerical".left
              case _ => "sum_by key is required to be a string".left
            }
-        } yield ()
-        case _                           => "sum_by requires struct encoding".left
-      }
-      case LatestBy(key)                 => encoding match {
-        case StructEncoding(values) => for {
-           k <- values.get(key).toRightDisjunction(s"Struct field not found '$key'")
+        } yield (),
+        _ => "sum_by requires struct encoding".left
+      )
+      case LatestBy(key)                 => encoding.fold(
+        _ => "latest_by requires struct encoding".left,
+        s => for {
+           k <- s.values.get(key).toRightDisjunction(s"Struct field not found '$key'")
            _ <- k match {
              case StructEncodedValue(StringEncoding, false) => ok
              case _ => "latest_by key is required to be a non-optional string".left
            }
-        } yield ()
-        case _                           => "latest_by requires struct encoding".left
-      }
-      case CountBySecondary(key, field)             => encoding match {
-        case StructEncoding(values) => for {
-          k <- values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
-          f <- values.get(field).map(_.encoding).toRightDisjunction(s"Struct field not found '$field'")
+        } yield (),
+        _ => "latest_by requires struct encoding".left
+      )
+      case CountBySecondary(key, field)             => encoding.fold(
+        _ => "count_by requires struct encoding".left,
+        s => for {
+          k <- s.values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
+          f <- s.values.get(field).map(_.encoding).toRightDisjunction(s"Struct field not found '$field'")
           _ <- (k, f) match {
             case (StringEncoding, StringEncoding) => ok
             case _                                => "count_by fields are required to be strings".left
           }
-        } yield ()
-        case _                           => "count_by requires struct encoding".left
-      }
-      case BasicExpression(sexp)         => encoding match {
-        case pe: PrimitiveEncoding       => validateSub(sexp, pe)
-        case se: StructEncoding          => sexp match {
+        } yield (),
+        _ => "count_by requires struct encoding".left
+      )
+      case BasicExpression(sexp)         => encoding.fold(
+        pe => validateSub(sexp, pe),
+        se => sexp match {
           // These two operations work on structs
           case Latest     => ok
           case LatestN(i) => if (i > 0) ok else "Only positive values supported for latestN".left
           case _          => "Struct encoding not supported for the given expression".left
-        }
-        case se: ListEncoding          => sexp match {
+        },
+        se => sexp match {
           // Latest works on everything
           case Latest     => ok
           case _          => "List encoding not supported for the given expression".left
         }
-      }
-      case StructExpression(field, sexp) => encoding match {
-        case StructEncoding(values) =>
-          values.get(field).toRightDisjunction(s"Struct field not found '$field'")
-            .flatMap(sev => validateSub(sexp, sev.encoding))
-        case _                      => "Expression with a field not supported".left
-      }
+      )
+      case StructExpression(field, sexp) => encoding.fold(
+        _ => "Expression with a field not supported".left,
+        s =>
+          s.values.get(field).toRightDisjunction(s"Struct field not found '$field'")
+            .flatMap(sev => validateSub(sexp, sev.encoding)),
+        _ => "Expression with a field not supported".left
+      )
     }).leftMap(_ + " " + asString(exp))
   }
 
@@ -218,51 +222,52 @@ object Expression {
     def getExpressionEncoding(exp: SubExpression, enc: Encoding): Encoding = exp match {
       case Latest              => enc
       case LatestN(_)          => enc match {
-                                    case sub: SubEncoding  => ListEncoding(sub)
-                                    // Nesting is forbidden, this is just to make the match exhaustive
-                                    case _  : ListEncoding => enc
-                                  }
+        case EncodingSub(sub) => EncodingList(ListEncoding(sub))
+        // Nesting is forbidden, this is just to make the match exhaustive
+        case EncodingList(_) => enc
+      }
       case Sum                 => enc
-      case CountUnique         => LongEncoding
+      case CountUnique         => LongEncoding.toEncoding
       case Min                 => enc
       case Max                 => enc
-      case Mean                => DoubleEncoding
-      case Gradient            => DoubleEncoding
-      case StandardDeviation   => DoubleEncoding
-      case NumFlips            => LongEncoding
-      case DaysSince           => IntEncoding
-      case CountBy             => StructEncoding(Map())
-      case DaysSinceEarliestBy => StructEncoding(Map())
-      case DaysSinceLatestBy   => StructEncoding(Map())
-      case Proportion(_)       => DoubleEncoding
+      case Mean                => DoubleEncoding.toEncoding
+      case Gradient            => DoubleEncoding.toEncoding
+      case StandardDeviation   => DoubleEncoding.toEncoding
+      case NumFlips            => LongEncoding.toEncoding
+      case DaysSince           => IntEncoding.toEncoding
+      case CountBy             => StructEncoding(Map()).toEncoding
+      case DaysSinceEarliestBy => StructEncoding(Map()).toEncoding
+      case DaysSinceLatestBy   => StructEncoding(Map()).toEncoding
+      case Proportion(_)       => DoubleEncoding.toEncoding
     }
     expression match {
       // A short term hack for supporting feature gen based on known functions
-      case Count                        => LongEncoding
-      case LatestBy(_)                  => StructEncoding(Map())
-      case Interval(sexp)               => getExpressionEncoding(sexp, LongEncoding)
-      case Inverse(sexp)                => DoubleEncoding
-      case DaysSinceLatest              => IntEncoding
-      case DaysSinceEarliest            => IntEncoding
-      case MeanInDays                   => DoubleEncoding
-      case MeanInWeeks                  => DoubleEncoding
-      case MaximumInDays                => IntEncoding
-      case MaximumInWeeks               => IntEncoding
-      case MinimumInDays                => IntEncoding
-      case MinimumInWeeks               => IntEncoding
-      case CountDays                    => IntEncoding
-      case QuantileInDays(k, q)         => DoubleEncoding
-      case QuantileInWeeks(k, q)        => DoubleEncoding
-      case ProportionByTime(s, e)       => DoubleEncoding
-      case SumBy(_, _)                  => StructEncoding(Map())
-      case CountBySecondary(_, _)       => StructEncoding(Map())
+      case Count                        => LongEncoding.toEncoding
+      case LatestBy(_)                  => StructEncoding(Map()).toEncoding
+      case Interval(sexp)               => getExpressionEncoding(sexp, LongEncoding.toEncoding)
+      case Inverse(sexp)                => DoubleEncoding.toEncoding
+      case DaysSinceLatest              => IntEncoding.toEncoding
+      case DaysSinceEarliest            => IntEncoding.toEncoding
+      case MeanInDays                   => DoubleEncoding.toEncoding
+      case MeanInWeeks                  => DoubleEncoding.toEncoding
+      case MaximumInDays                => IntEncoding.toEncoding
+      case MaximumInWeeks               => IntEncoding.toEncoding
+      case MinimumInDays                => IntEncoding.toEncoding
+      case MinimumInWeeks               => IntEncoding.toEncoding
+      case CountDays                    => IntEncoding.toEncoding
+      case QuantileInDays(k, q)         => DoubleEncoding.toEncoding
+      case QuantileInWeeks(k, q)        => DoubleEncoding.toEncoding
+      case ProportionByTime(s, e)       => DoubleEncoding.toEncoding
+      case SumBy(_, _)                  => StructEncoding(Map()).toEncoding
+      case CountBySecondary(_, _)       => StructEncoding(Map()).toEncoding
       case BasicExpression(sexp)        => getExpressionEncoding(sexp, source)
-      case StructExpression(name, sexp) => source match {
-        case StructEncoding(values) => values.get(name).map {
-          sve => getExpressionEncoding(sexp, sve.encoding)
-        }.getOrElse(source)
-        case _                          => source
-      }
+      case StructExpression(name, sexp) => source.fold(
+        _ => source,
+        _.values.get(name).map {
+          sve => getExpressionEncoding(sexp, sve.encoding.toEncoding)
+        }.getOrElse(source),
+        _ => source
+      )
     }
   }
 }

@@ -55,7 +55,7 @@ class SnapshotsSpec extends Specification with ScalaCheck { def is = s2"""
 
   def sets = propNoShrink((concrete: FeatureId, virtual: FeatureId, window: Window, date: Date, time: Time, entity: Int) => {
     val dictionary = Dictionary(List(
-      Definition.concrete(concrete, IntEncoding, Mode.Set, None, concrete.toString, Nil)
+      Definition.concrete(concrete, IntEncoding.toEncoding, Mode.Set, None, concrete.toString, Nil)
     , Definition.virtual(virtual, concrete, Query(Count, None), Some(window))
     ))
 

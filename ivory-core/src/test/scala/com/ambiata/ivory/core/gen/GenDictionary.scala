@@ -15,10 +15,10 @@ object GenDictionary {
     Gen.oneOf(NumericalType, ContinuousType, CategoricalType, BinaryType)
 
   def encoding: Gen[Encoding] =
-    Gen.oneOf(subEncoding, listEncoding)
+    Gen.oneOf(subEncoding.map(EncodingSub), listEncoding.map(EncodingList))
 
   def subEncoding: Gen[SubEncoding] =
-    Gen.oneOf(primitiveEncoding, structEncoding)
+    Gen.oneOf(primitiveEncoding.map(SubPrim), structEncoding.map(SubStruct))
 
   def listEncoding: Gen[ListEncoding] =
     subEncoding.map(ListEncoding)
@@ -98,8 +98,14 @@ object GenDictionary {
         e <- Gen.oneOf(QuantileInDays(k, q), QuantileInWeeks(k, q))
       } yield e)
     )
-    Gen.oneOf(fallback, cd.encoding match {
-      case StructEncoding(values) =>
+    Gen.oneOf(fallback, cd.encoding.fold(
+      p => Gen.oneOf(subExpression(p).map(BasicExpression),
+        p match {
+          case IntEncoding | LongEncoding | DoubleEncoding => numericSubs.map(x => Inverse(BasicExpression(x)))
+          case _ => Gen.const(NumFlips).map( x=> Inverse(BasicExpression(x)))
+        }),
+      s => {
+        val values = s.values
         def subexpsWithInverses(name: String, sve: PrimitiveEncoding, cd: ConcreteDefinition) =
           subExpression(sve).flatMap(se =>
             Gen.oneOf(
@@ -120,13 +126,9 @@ object GenDictionary {
           ie <- values.find(v => v._1 != se && List(StringEncoding).contains(v._2.encoding)).map(ie => CountBySecondary(se, ie._1)) orElse
             values.find(v => List(IntEncoding, LongEncoding, DoubleEncoding).contains(v._2.encoding)).map(ie => SumBy(se, ie._1))
         } yield ie).cata(v => Gen.frequency(5 -> Gen.const(v), 5 -> subexpGen), subexpGen)
-      case p: PrimitiveEncoding   => Gen.oneOf(subExpression(p).map(BasicExpression),
-                  p match {
-                    case IntEncoding | LongEncoding | DoubleEncoding => numericSubs.map(x => Inverse(BasicExpression(x)))
-                    case _ => Gen.const(NumFlips).map( x=> Inverse(BasicExpression(x)))
-                  })
-      case l: ListEncoding        => fallback
-    })
+      },
+      _ => fallback
+    ))
   }
 
   def subExpression(pe: PrimitiveEncoding): Gen[SubExpression] = {
@@ -167,8 +169,20 @@ object GenDictionary {
         FilterEquals(x), FilterLessThan(x), FilterLessThanOrEqual(x), FilterGreaterThan(x), FilterGreaterThanOrEqual(x)
       ) else Gen.oneOf(FilterEquals(x), FilterNotEquals(x))}
 
-    cd.encoding match {
-      case se: StructEncoding =>
+    cd.encoding.fold(
+      pe => {
+        def sub(maxChildren: Int): Gen[FilterValuesOp] =
+          for {
+            op     <- Gen.oneOf(FilterOpAnd, FilterOpOr)
+            // Make sure we have at least one value
+            // For non-struct values it's impossible to equal more than one value
+            n      <- Gen.choose(1, op.fold(1, 3))
+            fields <- Gen.listOfN(n, filterExpression(pe))
+            cn     <- op.fold(Gen.const(0), Gen.choose(0, maxChildren))
+            chlds  <- Gen.listOfN(cn, sub(maxChildren - 1))
+          } yield FilterValuesOp(op, fields, chlds)
+        sub(2).map(FilterValues).map(some)
+      }, se => {
         def sub(maxChildren: Int, left: Map[String, StructEncodedValue]): Gen[FilterStructOp] =
           for {
           // Be careful in this section - ScalaCheck will discard values if asking for move than is contained
@@ -186,21 +200,10 @@ object GenDictionary {
             chlds  <- Gen.listOfN(Math.min(subvs.size, cn), sub(maxChildren - 1, subvs))
           } yield FilterStructOp(op, fields, chlds)
         sub(2, se.values).map(FilterStruct).map(some)
-      case pe: PrimitiveEncoding =>
-        def sub(maxChildren: Int): Gen[FilterValuesOp] =
-          for {
-            op     <- Gen.oneOf(FilterOpAnd, FilterOpOr)
-            // Make sure we have at least one value
-            // For non-struct values it's impossible to equal more than one value
-            n      <- Gen.choose(1, op.fold(1, 3))
-            fields <- Gen.listOfN(n, filterExpression(pe))
-            cn     <- op.fold(Gen.const(0), Gen.choose(0, maxChildren))
-            chlds  <- Gen.listOfN(cn, sub(maxChildren - 1))
-          } yield FilterValuesOp(op, fields, chlds)
-        sub(2).map(FilterValues).map(some)
+      },
       // We don't support list encoding at the moment
-      case _: ListEncoding => Gen.const(none)
-    }
+      _ => Gen.const(none)
+    )
   }
 
   /** Require an index for this definition to guarantee uniqueness of feature ids across the dictionary */

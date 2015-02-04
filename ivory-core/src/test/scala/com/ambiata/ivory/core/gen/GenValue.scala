@@ -16,15 +16,15 @@ object GenValue {
       )
 
   def valueOf(encoding: Encoding, tombstones: List[String]): Gen[Value] = encoding match {
-    case p: PrimitiveEncoding => valueOfPrimOrTomb(p, tombstones)
-    case sub: SubEncoding => valueOfSub(sub)
-    case ListEncoding(sub) => Gen.listOf(valueOfSub(sub)).map(ListValue)
+    case EncodingSub(SubPrim(p)) => valueOfPrimOrTomb(p, tombstones)
+    case EncodingSub(sub) => valueOfSub(sub)
+    case EncodingList(ListEncoding(sub)) => Gen.listOf(valueOfSub(sub)).map(ListValue)
   }
 
   def valueOfSub(encoding: SubEncoding): Gen[SubValue] = encoding match {
-    case p: PrimitiveEncoding => valueOfPrim(p)
-    case StructEncoding(s) =>
-      Gen.sequence[Seq, Option[(String, PrimitiveValue)]](s.map { case (k, v) =>
+    case SubPrim(p) => valueOfPrim(p)
+    case SubStruct(s) =>
+      Gen.sequence[Seq, Option[(String, PrimitiveValue)]](s.values.map { case (k, v) =>
         for {
           p <- valueOfPrim(v.encoding).map(k ->)
           // _Sometimes_ generate a value for optional fields :)

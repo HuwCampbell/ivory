@@ -21,7 +21,7 @@ object DictionaryOutput {
           val (source, mode) = dictionary.byFeatureId.get(vd.source).flatMap {
             case Concrete(_, cd) => Some(cd.encoding -> cd.mode)
             case Virtual(_, _)   => None
-          }.getOrElse(StringEncoding -> Mode.State)
+          }.getOrElse(StringEncoding.toEncoding -> Mode.State)
           ConcreteDefinition(Expression.expressionEncoding(vd.query.expression, source), mode, None, "", missing.toList)
       }), delim.toString)
     })
