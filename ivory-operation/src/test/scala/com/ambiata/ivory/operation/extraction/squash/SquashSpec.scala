@@ -31,7 +31,7 @@ class SquashSpec extends Specification with ScalaCheck { def is = s2"""
         _   <- RepositoryBuilder.createRepo(repo, sf.dict, List(sf.allFacts))
         s   <- Snapshots.takeSnapshot(repo, IvoryFlags.default, sf.date)
         out = OutputDataset.fromIvoryLocation(repo.toIvoryLocation(Key(KeyName.unsafe("out"))))
-        key <- SquashJob.squashFromSnapshotWith(repo, s.toMetadata, SquashConfig.testing, cluster)
+        key <- SquashJob.squashFromSnapshotWith(repo, s, SquashConfig.testing, cluster)
         f   <- RIO.safe[List[Fact]](postProcess(valueFromSequenceFile[Fact](key._1.hdfsPath.toString).run(repo.scoobiConfiguration).toList))
       } yield f }
     } must beOkValue(postProcess(expectedFacts))

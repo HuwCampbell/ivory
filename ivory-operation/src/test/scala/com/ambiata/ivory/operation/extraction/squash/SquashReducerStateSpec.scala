@@ -4,6 +4,8 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.chord.ChordArbitraries.ChordFacts
 import com.ambiata.ivory.operation.extraction.squash.SquashArbitraries._
+
+import com.ambiata.poacher.mr.ThriftSerialiser
 import org.specs2.{ScalaCheck, Specification}
 
 class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2"""
@@ -26,14 +28,15 @@ class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2
   })
 
   def squash(sf: SquashFacts): List[Fact] = {
+    val serialiser = ThriftSerialiser()
     val frs = ReducerPool.createTesting(
       SquashJob.concreteGroupToReductions(sf.dict.fid, sf.dict.withExpression(Count).cg, latest = true),
       sf.dict.cg.definition.mode.isSet
     )
 
-    MockFactMutator.run(sf.factsSorted) { (bytes, mutator, emitter, out) =>
+    MockFactMutator.run(sf.factsSorted) { (bytes, emitter, out) =>
       val state = new SquashReducerStateSnapshot(sf.date)
-      state.reduceAll(createMutableFact, createMutableFact, frs, mutator, bytes, emitter, out)
+      state.reduceAll(createMutableFact, createMutableFact, frs, bytes, emitter, out, serialiser)
     }
   }
 
@@ -48,6 +51,7 @@ class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2
   })
 
   def chord(cf: ChordFacts): List[Fact] = {
+    val serialiser = ThriftSerialiser()
     val pool = ReducerPool.createTesting(
       SquashJob.concreteGroupToReductions(cf.factAndMeta.fact.featureId,
         ConcreteGroup(cf.factAndMeta.meta, List(cf.fid -> VirtualDefinition(cf.factAndMeta.fact.featureId,
@@ -56,13 +60,14 @@ class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2
     )
 
     val facts = cf.facts.sortBy(fact => (fact.entity, fact.datetime.long))
-    MockFactMutator.run(facts) { (bytes, mutator, emitter, out) =>
+    MockFactMutator.run(facts) { (bytes, emitter, out) =>
       val state = new SquashReducerStateChord(cf.chord)
-      state.reduceAll(createMutableFact, createMutableFact, pool, mutator, bytes, emitter, out)
+      state.reduceAll(createMutableFact, createMutableFact, pool, bytes, emitter, out, serialiser)
     }
   }
 
   def dump = prop((sf: SquashFacts) => {
+    val serialiser = ThriftSerialiser()
     val lines = MockFactMutator.runText(sf.factsSorted) { (bytes, emitter, out) =>
       val frs = ReducerPool.create(
         SquashJob.concreteGroupToReductions(sf.dict.fid, sf.dict.withExpression(Count).cg, latest = true), false,
@@ -72,7 +77,7 @@ class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2
         })
       )
       val state = new SquashReducerStateDump(sf.date)
-      state.reduceAll(createMutableFact, createMutableFact, frs, new FactByteMutator, bytes, emitter, out)
+      state.reduceAll(createMutableFact, createMutableFact, frs, bytes, emitter, out, serialiser)
     }
     lines.map(_.split("\\|")(0)).toSet ==== sf.expected.keySet
   })

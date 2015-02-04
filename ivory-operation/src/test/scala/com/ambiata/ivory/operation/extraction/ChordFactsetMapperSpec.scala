@@ -2,7 +2,6 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.io._
@@ -22,16 +21,15 @@ class ChordFactsetMapperSpec extends Specification with ScalaCheck { def is = s2
 
   def totals = prop((context: ChordMapperSpecContext, priority: Priority) => {
     context.all.foreach(map(_, context, priority))
-    context.ok.counter ==== context.facts.size
-     context.skip.counter ==== context.skipped.size and
-     context.drop.counter ==== context.dropped.size
+    (context.ok.counter, context.skip.counter, context.drop.counter) ==== (
+    (context.facts.size, context.skipped.size, context.dropped.size))
   })
-
 
   def map(f: Fact, context: ChordMapperSpecContext, priority: Priority): Unit = {
     ChordFactsetMapper.map(
-      new ThriftFact
-      , VersionTwoFactConverter(f.partition)
+      createMutableFact
+      , PartitionFactConverter(f.partition)
+      , NullWritable.get
       , new BytesWritable(context.serializer.toBytes(f.toThrift))
       , priority
       , Writables.bytesWritable(4096)

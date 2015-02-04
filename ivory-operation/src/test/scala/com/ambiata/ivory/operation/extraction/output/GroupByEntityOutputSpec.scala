@@ -29,7 +29,7 @@ class GroupByEntityOutputSpec extends Specification with ThrownExpectations with
 """
 
   def matchDict = prop {(facts: FactsWithDictionary) =>
-    RepositoryBuilder.using(createDenseText(List(facts.facts), facts.dictionary)) must beOkLike {
+    RepositoryBuilder.using(createDenseText(facts.facts, facts.dictionary)) must beOkLike {
       case (out, dict) => seqToResult(out.lines.toList.map(_.split("\\|", -1).size - 1 ==== dict.size))
     }
   }.set(minTestsOk = 5)
@@ -37,13 +37,13 @@ class GroupByEntityOutputSpec extends Specification with ThrownExpectations with
   def uniqueFacts = prop { (fwd: FactsWithDictionary) =>
     // We don't care about the snapshot logic here
     val facts = fwd.facts.groupBy(_.entity).values.flatMap(_.find(!_.isTombstone)).toList
-    RepositoryBuilder.using(createDense(List(facts), fwd.dictionary, GroupByEntityFormat.DenseText(Delimiter.Psv, "NA", TextEscaping.Delimited)) {
+    RepositoryBuilder.using(createDense(facts, fwd.dictionary, GroupByEntityFormat.DenseText(Delimiter.Psv, "NA", TextEscaping.Delimited)) {
       (_, file) => IvoryLocation.readLines(file).map(_.length)
     }) must beOkValue(facts.length)
   }.set(minTestsOk = 5, maxDiscardRatio = 10)
 
   def textEscaped = prop { (facts: FactsWithDictionaryMulti) =>
-    RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.DenseText(Delimiter.Psv, "NA", TextEscaping.Escaped)) {
+    RepositoryBuilder.using(createDense(facts.facts, facts.dictionary, GroupByEntityFormat.DenseText(Delimiter.Psv, "NA", TextEscaping.Escaped)) {
       (_, file) => IvoryLocation.readLines(file)
     }) must beOkLike {
       lines => seqToResult(lines.map(TextEscaping.split('|', _).length ==== facts.dictionary.size + 1))
@@ -51,7 +51,7 @@ class GroupByEntityOutputSpec extends Specification with ThrownExpectations with
   }.set(minTestsOk = 5, maxDiscardRatio = 10)
 
   def thriftList = prop { (facts: FactsWithDictionaryMulti) =>
-    RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.DenseThrift) {
+    RepositoryBuilder.using(createDense(facts.facts, facts.dictionary, GroupByEntityFormat.DenseThrift) {
       (repo, file) => RIO.io(valueFromSequenceFile[ThriftFactDense](file.show).run(repo.scoobiConfiguration).toList)
     }) must beOkLike {
       denseFacts =>
@@ -62,7 +62,7 @@ class GroupByEntityOutputSpec extends Specification with ThrownExpectations with
   }.set(minTestsOk = 5, maxDiscardRatio = 10)
 
   def thriftMap = prop { (facts: FactsWithDictionaryMulti) =>
-    RepositoryBuilder.using(createDense(List(facts.facts), facts.dictionary, GroupByEntityFormat.SparseThrift) {
+    RepositoryBuilder.using(createDense(facts.facts, facts.dictionary, GroupByEntityFormat.SparseThrift) {
       (repo, file) => RIO.io(valueFromSequenceFile[ThriftFactSparse](file.show).run(repo.scoobiConfiguration).toList)
     }) must beOkLike {
       denseFacts =>
@@ -72,20 +72,19 @@ class GroupByEntityOutputSpec extends Specification with ThrownExpectations with
     }
   }.set(minTestsOk = 5, maxDiscardRatio = 10)
 
-  def createDense[A](facts: List[List[Fact]], dictionary: Dictionary, format: GroupByEntityFormat)(f: (HdfsRepository, IvoryLocation) => RIO[A])(repo: HdfsRepository): RIO[A] = for {
+  def createDense[A](facts: List[Fact], dictionary: Dictionary, format: GroupByEntityFormat)(f: (HdfsRepository, IvoryLocation) => RIO[A])(repo: HdfsRepository): RIO[A] = for {
     // Filter out tombstones to simplify the assertions - we're not interested in the snapshot logic here
-    dir    <- LocalTemporary.random.directory
-    _      <- RepositoryBuilder.createRepo(repo, dictionary, facts.map(_.filter(!_.isTombstone)))
-    dense  <- withConf(conf => IvoryLocation.fromUri((dir </> "dense").path, conf))
-    s      <- Snapshots.takeSnapshot(repo, IvoryFlags.default, Date.maxValue)
-    input  = repo.toIvoryLocation(Repository.snapshot(s.id))
-    inputS = ShadowOutputDataset(HdfsLocation(input.show))
-    denseS = ShadowOutputDataset(HdfsLocation(dense.show))
-    _      <- GroupByEntityOutput.createWithDictionary(repo, inputS, denseS, dictionary, format)
-    out    <- f(repo, dense)
+    dir     <- LocalTemporary.random.directory
+    _       <- RepositoryBuilder.createDictionary(repo, dictionary)
+    dense   <- withConf(conf => IvoryLocation.fromUri((dir </> "dense").path, conf))
+    s       <- RepositoryBuilder.createSquash(repo, facts)
+    inputS  <- s.asHdfsIvoryLocation.map(ShadowOutputDataset.fromIvoryLocation)
+    denseS  = ShadowOutputDataset(HdfsLocation(dense.show))
+    _       <- GroupByEntityOutput.createWithDictionary(repo, inputS, denseS, dictionary, format)
+    out     <- f(repo, dense)
   } yield out
 
-  def createDenseText(facts: List[List[Fact]], dictionary: Dictionary)(repo: HdfsRepository): RIO[(String, List[String])] =
+  def createDenseText(facts: List[Fact], dictionary: Dictionary)(repo: HdfsRepository): RIO[(String, List[String])] =
     createDense(facts, dictionary, GroupByEntityFormat.DenseText(Delimiter.Psv, "NA", TextEscaping.Delimited))((_, dense) => for {
         dictionaryLines  <- IvoryLocation.readLines(dense </> ".dictionary")
         denseLines       <- IvoryLocation.readLines(dense)

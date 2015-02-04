@@ -9,7 +9,7 @@ import com.ambiata.ivory.mr._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.poacher.mr._
 
-import org.apache.hadoop.io.BytesWritable
+import org.apache.hadoop.io.{BytesWritable, IntWritable, NullWritable}
 import org.specs2._
 import org.specs2.matcher.ThrownExpectations
 
@@ -31,8 +31,8 @@ SnapshotMapperSpec
     val serializer = ThriftSerialiser()
     val kout = Writables.bytesWritable(4096)
     val vout = Writables.bytesWritable(4096)
-    val tfact = new ThriftFact
-    val emitter = TestEmitter()
+    val fact: MutableFact = createMutableFact
+    val emitter = newEmitter
     val okCounter = MemoryCounter()
     val skipCounter = MemoryCounter()
     val dropCounter = MemoryCounter()
@@ -43,11 +43,11 @@ SnapshotMapperSpec
     (fs ++ dropped).foreach(f => {
       val partition = Partition(f.namespace, f.date)
       val converter = version match {
-        case FactsetFormat.V1 => VersionOneFactConverter(partition)
-        case FactsetFormat.V2 => VersionTwoFactConverter(partition)
+        case FactsetFormat.V1 => PartitionFactConverter(partition)
+        case FactsetFormat.V2 => PartitionFactConverter(partition)
       }
       val bytes = serializer.toBytes(f.toThrift)
-      SnapshotFactsetMapper.map(tfact, date, converter, new BytesWritable(bytes), priority, kout, vout, emitter,
+      SnapshotFactsetMapper.map(fact, date, converter, NullWritable.get, new BytesWritable(bytes), priority, kout, vout, emitter,
         okCounter, skipCounter, dropCounter, serializer, lookup)
     })
 
@@ -56,33 +56,40 @@ SnapshotMapperSpec
     assertMapperOutput(emitter, okCounter, skipCounter, dropCounter, expected, fs.length - expected.length, dropped.length, priority, serializer)
   })
 
-  def incremental = prop((fs: List[Fact], dropped: List[Fact]) => disjoint(fs, dropped) ==> {
+  def incremental = prop((fs: List[Fact], dropped: List[Fact], format: SnapshotFormat) => disjoint(fs, dropped) ==> {
     val serializer = ThriftSerialiser()
     val kout = Writables.bytesWritable(4096)
     val vout = Writables.bytesWritable(4096)
-    val empty = new NamespacedThriftFact with NamespacedThriftFactDerived
-    val emitter = TestEmitter()
+    val empty: MutableFact = createMutableFact
+    val emitter = newEmitter
     val okCounter = MemoryCounter()
     val dropCounter = MemoryCounter()
     val lookup = new FeatureIdLookup(new java.util.HashMap[String, Integer])
     fs.foreach(f => lookup.putToIds(f.featureId.toString, f.featureId.hashCode))
 
     // Run mapper
-    (fs ++ dropped).foreach(f => {
-      val bytes = serializer.toBytes(f.toNamespacedThrift)
-      SnapshotIncrementalMapper.map(empty, new BytesWritable(bytes), Priority.Max, kout, vout,
-                                    emitter, okCounter, dropCounter, serializer, lookup)
+    (fs ++ dropped).foreach(f => format match {
+      case SnapshotFormat.V1 =>
+        SnapshotIncrementalMapper.map(empty, NullWritable.get, new BytesWritable(serializer.toBytes(f.toNamespacedThrift)),
+                                      Priority.Max, kout, vout, emitter, okCounter, dropCounter, serializer, lookup, MutableFactConverter())
+      case SnapshotFormat.V2 =>
+        SnapshotIncrementalMapper.map(empty, new IntWritable(f.date.int), new BytesWritable(serializer.toBytes(f.toThrift)),
+                                      Priority.Max, kout, vout, emitter, okCounter, dropCounter, serializer, lookup, NamespaceDateFactConverter(f.namespace))
     })
 
     assertMapperOutput(emitter, okCounter, MemoryCounter(), dropCounter, fs, 0, dropped.length, Priority.Max, serializer)
   })
 
-  def assertMapperOutput(emitter: TestEmitter, okCounter: MemoryCounter, skipCounter: MemoryCounter, dropCounter: MemoryCounter, expectedFacts: List[Fact], expectedSkip: Int, expectedDropped: Int, priority: Priority, serializer: ThriftSerialiser): matcher.MatchResult[Any] = {
-    emitter.emittedKeys.toList ==== expectedFacts.map(keyBytes(priority)) and
-    emitter.emittedVals.toList.map(bytes => deserializeValue(bytes, serializer)) ==== expectedFacts and
-    okCounter.counter ==== expectedFacts.length and
-    skipCounter.counter ==== expectedSkip and
-    dropCounter.counter ==== expectedDropped
+  def assertMapperOutput(emitter: TestEmitter[BytesWritable, BytesWritable, (String, Fact)], okCounter: MemoryCounter, skipCounter: MemoryCounter, dropCounter: MemoryCounter, expectedFacts: List[Fact], expectedSkip: Int, expectedDropped: Int, priority: Priority, serializer: ThriftSerialiser): matcher.MatchResult[Any] = {
+    (emitter.emitted.toList, okCounter.counter, skipCounter.counter, dropCounter.counter) ==== (
+    (expectedFacts.map(f => (keyBytes(priority)(f), f)), expectedFacts.length, expectedSkip, expectedDropped))
+  }
+
+  def newEmitter: TestEmitter[BytesWritable, BytesWritable, (String, Fact)] = {
+    val serializer = ThriftSerialiser()
+    TestEmitter((key, value) => {
+      (new String(key.copyBytes), deserializeValue(value.copyBytes, serializer))
+    })
   }
 
   def deserializeValue(bytes: Array[Byte], serializer: ThriftSerialiser): Fact =

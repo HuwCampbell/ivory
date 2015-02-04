@@ -6,6 +6,7 @@ import com.ambiata.ivory.lookup.FeatureReduction
 import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.reduction.Reduction
 import com.ambiata.ivory.storage.entities._
+import com.ambiata.poacher.mr.ThriftSerialiser
 import java.util.{Iterator => JIterator}
 import org.apache.hadoop.io.{BytesWritable, NullWritable, Text}
 
@@ -15,13 +16,13 @@ object EntityIterator {
    * Encapsulates the logic of iterating over a set of ordered facts, processing each one and then 'emitting' when
    * a new entity is encountered or the end is reached.
    */
-  def iterate[A](fact: MutableFact, mutator: FactByteMutator, iter: JIterator[BytesWritable])
+  def iterate[A](fact: MutableFact, iter: JIterator[BytesWritable], serialiser: ThriftSerialiser)
                 (initial: A, callback: EntityCallback[A]): Unit = {
     val state = new SquashReducerEntityState(null, Namespace("empty"))
 
     var value: A = initial
     while (iter.hasNext) {
-      mutator.from(iter.next, fact)
+      ThriftByteMutator.from(iter.next, fact, serialiser)
       val newEntity = state.isNewEntity(fact)
       if (newEntity) {
         if (state.notFirstEntity) {
@@ -46,26 +47,26 @@ object EntityIterator {
 }
 
 trait SquashReducerState[A] {
-  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, mutator: FactByteMutator,
-                iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, A], out: A): Unit
+  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, iter: JIterator[BytesWritable],
+                emitter: Emitter[NullWritable, A], out: A, serialiser: ThriftSerialiser): Unit
 }
 
 class SquashReducerStateSnapshot(date: Date) extends SquashReducerState[BytesWritable] {
 
-  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, mutator: FactByteMutator,
-                iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable): Unit = {
+  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, iter: JIterator[BytesWritable],
+                emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, serialiser: ThriftSerialiser): Unit = {
     // Fact is null by default, and we want to re-use the same one
     emitFact.setFact(new ThriftFact)
 
     // This is easy for snapshot - we only need to create a single pool for a single date
     val reducers = reducerPool.compile(Array(date))(0)
-    EntityIterator.iterate(fact, mutator, iter)((), new EntityIterator.EntityCallback[Unit] {
+    EntityIterator.iterate(fact, iter, serialiser)((), new EntityIterator.EntityCallback[Unit] {
       def initialise(state: SquashReducerEntityState): Unit =
         SquashReducerState.clear(reducers)
       def update(state: SquashReducerEntityState, fact: MutableFact, value: Unit): Unit =
         SquashReducerState.update(fact, reducers)
       def emit(state: SquashReducerEntityState, value: Unit): Unit =
-        SquashReducerState.emit(emitFact, mutator, reducers, emitter, out, state.namespace, state.entity, date)
+        SquashReducerState.emit(emitFact, reducers, emitter, out, state.namespace, state.entity, date, serialiser)
     })
   }
 }
@@ -77,15 +78,15 @@ class SquashReducerStateChord(chord: Entities) extends SquashReducerState[BytesW
 
   class SquashChordReducerEntityState(var dates: Array[Int], var reducers: Int => List[(FeatureReduction, Reduction)])
 
-  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, mutator: FactByteMutator,
-                iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable): Unit = {
+  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, iter: JIterator[BytesWritable],
+                emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, serialiser: ThriftSerialiser): Unit = {
     val buffer = new StringBuilder
     // Fact is null by default, and we want to re-use the same one
     emitFact.setFact(new ThriftFact)
 
     // Just to save that extra allocation per-entity, otherwise we would just create it per entity
     val entityState = new SquashChordReducerEntityState(Array(), _ => Nil)
-    EntityIterator.iterate(fact, mutator, iter)(entityState, new EntityIterator.EntityCallback[SquashChordReducerEntityState] {
+    EntityIterator.iterate(fact, iter, serialiser)(entityState, new EntityIterator.EntityCallback[SquashChordReducerEntityState] {
 
       def initialise(state: SquashReducerEntityState): SquashChordReducerEntityState = {
         val dates = chord.entities.get(state.entity)
@@ -124,7 +125,7 @@ class SquashReducerStateChord(chord: Entities) extends SquashReducerState[BytesW
         while (i >= 0) {
           val date = Date.unsafeFromInt(value.dates(i))
           val entity = newEntityId(state.entity, date, buffer)
-          SquashReducerState.emit(emitFact, mutator, value.reducers(i), emitter, out, state.namespace, entity, date)
+          SquashReducerState.emit(emitFact, value.reducers(i), emitter, out, state.namespace, entity, date, serialiser)
           i -= 1
         }
       }
@@ -144,12 +145,12 @@ class SquashReducerStateChord(chord: Entities) extends SquashReducerState[BytesW
 
 class SquashReducerStateDump(date: Date) extends SquashReducerState[Text] {
 
-  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, mutator: FactByteMutator,
-                iter: JIterator[BytesWritable], emitter: Emitter[NullWritable, Text], out: Text): Unit = {
+  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, iter: JIterator[BytesWritable],
+                emitter: Emitter[NullWritable, Text], out: Text, serialiser: ThriftSerialiser): Unit = {
 
     val reducers = reducerPool.compile(Array(date))(0)
 
-    EntityIterator.iterate(fact, mutator, iter)((), new EntityIterator.EntityCallback[Unit] {
+    EntityIterator.iterate(fact, iter, serialiser)((), new EntityIterator.EntityCallback[Unit] {
       def initialise(state: SquashReducerEntityState): Unit =
         SquashReducerState.clear(reducers)
       def update(state: SquashReducerEntityState, fact: MutableFact, value: Unit): Unit =
@@ -178,9 +179,8 @@ object SquashReducerState {
   }
 
   // Write out the final reduced values
-  def emit(emitFact: MutableFact, mutator: FactByteMutator, reducers: Iterable[(FeatureReduction, Reduction)],
-           emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, namespace: Namespace, entity: String,
-           date: Date): Unit = {
+  def emit(emitFact: MutableFact, reducers: Iterable[(FeatureReduction, Reduction)], emitter: Emitter[NullWritable, BytesWritable],
+           out: BytesWritable, namespace: Namespace, entity: String, date: Date, serialiser: ThriftSerialiser): Unit = {
     // Use emitFact here to avoid clobbering values in fact
     val nsfact = emitFact.toNamespacedThrift
     val tfact = nsfact.getFact
@@ -197,7 +197,7 @@ object SquashReducerState {
           tfact.setAttribute(fr.getSource)
           nsfact.setNspace(fr.getNs)
           tfact.setValue(value)
-          mutator.mutate(nsfact, out)
+          ThriftByteMutator.mutate(nsfact, out, serialiser)
           emitter.emit(kout, out)
         }
     }

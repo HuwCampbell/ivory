@@ -6,6 +6,7 @@ import com.ambiata.ivory.lookup.FeatureIdLookup
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable.KeyState
 import com.ambiata.ivory.mr._
 
+import com.ambiata.poacher.mr.ThriftSerialiser
 import org.apache.hadoop.io.BytesWritable
 import org.specs2._
 import org.specs2.matcher.ThrownExpectations
@@ -39,22 +40,25 @@ SnapshotReducerSpec
 
   def window = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
     val facts = SnapshotFacts(dts, fact, date)
-    MockFactMutator.runKeep(facts.facts) { (bytes, mutator, emitter, out) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, mutator, emitter, out, date, isSet = false)
+    val serialiser = ThriftSerialiser()
+    MockFactMutator.runThriftFactKeep(fact.namespace, facts.facts) { (bytes, emitter, kout, vout) =>
+      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, isSet = false, serialiser)
     } ==== (facts.expected -> facts.expected.size)
   }).set(maxSize = 10)
 
   def windowPriority = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
     val facts = SnapshotFacts(dts, fact, date)
-    MockFactMutator.runKeep(facts.factsDupe) { (bytes, mutator, emitter, out) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, mutator, emitter, out, date, isSet = false)
+    val serialiser = ThriftSerialiser()
+    MockFactMutator.runThriftFactKeep(fact.namespace, facts.factsDupe) { (bytes, emitter, kout, vout) =>
+      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, isSet = false, serialiser)
     } ==== (facts.expected -> facts.expected.size)
   }).set(maxSize = 10)
 
   def windowIsSet = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
     val facts = SnapshotFacts(dts, fact, date)
-    MockFactMutator.runKeep(facts.factsDupe) { (bytes, mutator, emitter, out) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, mutator, emitter, out, date, isSet = true)
+    val serialiser = ThriftSerialiser()
+    MockFactMutator.runThriftFactKeep(fact.namespace, facts.factsDupe) { (bytes, emitter, kout, vout) =>
+      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, isSet = true, serialiser)
     } ==== (facts.expectedSet -> facts.expectedSet.size)
   }).set(maxSize = 10)
 

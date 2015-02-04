@@ -7,6 +7,8 @@ import com.ambiata.ivory.mr.MockFactMutator
 import com.ambiata.ivory.operation.extraction.ChordReducer._
 import com.ambiata.ivory.operation.extraction.chord.ChordArbitraries._
 import com.ambiata.ivory.storage.lookup.FeatureLookups
+
+import com.ambiata.poacher.mr.ThriftSerialiser
 import org.specs2._
 import org.specs2.execute.Result
 
@@ -29,9 +31,10 @@ class ChordJobSpec extends Specification with ScalaCheck { def is = s2"""
     reduce(cf.factsWithPriority, cf.expectedWindowSet, cf.ce.dateArray, cf.windowDateArray.orNull, isSet = true))
 
   def reduce(facts: List[Fact], expected: List[Fact], dateArray: Array[Int], windowStarts: Array[Int], isSet: Boolean): Result = {
-    MockFactMutator.run(facts) { (bytes, mutator, emitter, out) =>
-      ChordReducer.reduce(createMutableFact, bytes, mutator, new ChordWindowEmitter(emitter), out, dateArray, windowStarts,
-        new StringBuilder, isSet)
+    val serialiser = ThriftSerialiser()
+    MockFactMutator.run(facts) { (bytes, emitter, out) =>
+      ChordReducer.reduce(createMutableFact, bytes, new ChordWindowEmitter(emitter), out, dateArray, windowStarts,
+        new StringBuilder, isSet, serialiser)
     } ==== expected
   }
 

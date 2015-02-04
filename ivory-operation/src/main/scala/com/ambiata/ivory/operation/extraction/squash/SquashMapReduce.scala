@@ -3,59 +3,70 @@ package com.ambiata.ivory.operation.extraction.squash
 import java.lang.{Iterable => JIterable}
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.thrift.NamespacedThriftFact
+import com.ambiata.ivory.core.thrift.{ThriftFact, NamespacedThriftFact}
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.reduction.Reduction
-import com.ambiata.ivory.operation.extraction.{ChordJob, SnapshotJob}
+import com.ambiata.ivory.operation.extraction.{ChordJob, SnapshotJob, SnapshotMapper}
 import com.ambiata.ivory.storage.lookup.FeatureLookups
 import com.ambiata.ivory.storage.entities._
+import com.ambiata.ivory.storage.fact._
 import com.ambiata.poacher.mr._
-import org.apache.hadoop.io.{BytesWritable, NullWritable, Text, Writable}
+import org.apache.hadoop.io.{BytesWritable, NullWritable, IntWritable, Text, Writable}
 import org.apache.hadoop.mapreduce.{Mapper, Reducer}
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs
 
 import scala.collection.JavaConverters._
 
-class SquashMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
-  import com.ambiata.ivory.operation.extraction.SnapshotMapper._
+abstract class SquashMapper[K <: Writable] extends Mapper[K, BytesWritable, BytesWritable, BytesWritable] with MrFactFormat[K, BytesWritable] {
+  import SnapshotMapper._
 
   val serializer = ThriftSerialiser()
-  val fact = new NamespacedThriftFact with NamespacedThriftFactDerived
+  val fact: MutableFact = createMutableFact
   val kout = Writables.bytesWritable(4096)
   val vout = Writables.bytesWritable(4096)
   val lookup = new FeatureIdLookup
 
-  val emitter: MrEmitter[NullWritable, BytesWritable, BytesWritable, BytesWritable] = MrEmitter()
+  var emitter: MrContextEmitter[BytesWritable, BytesWritable] = null
 
-  override def setup(context: MapperContext): Unit = {
+  var converter: MrFactConverter[K, BytesWritable] = null
+
+  override def setup(context: MapperContext[K]): Unit = {
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIdLookup, lookup)
+    emitter = MrContextEmitter(context)
+    converter = factConverter(MrContext.getSplitPath(context.getInputSplit))
   }
 
-  override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
-    serializer.fromBytesViewUnsafe(fact, value.getBytes, 0, value.getLength)
-    emitter.context = context
+  override def map(key: K, value: BytesWritable, context: MapperContext[K]): Unit = {
+    converter.convert(fact, key, value)
+
+    val bytes = serializer.toBytes(fact)
+    vout.set(bytes, 0, bytes.length)
+    write(fact, vout)
+  }
+
+  def write(fact: Fact, value: BytesWritable): Unit = {
     val featureIdString = fact.featureId.toString
     val featureId = lookup.getIds.get(featureIdString)
     if (featureId != null) {
-      write(value, featureId.toInt, featureIdString)
+      SquashWritable.KeyState.set(fact, kout, featureId)
+      emitter.emit(kout, value)
     }
-  }
-
-  def write(value: BytesWritable, featureId: Int, featureIdString: String): Unit = {
-    SquashWritable.KeyState.set(fact, kout, featureId)
-    vout.set(value.getBytes, 0, value.getLength)
-    emitter.emit(kout, vout)
   }
 }
 
-class SquashMapperFilter extends SquashMapper {
-  import com.ambiata.ivory.operation.extraction.SnapshotMapper._
+class SquashV1Mapper extends SquashMapper[NullWritable] with MrSnapshotFactFormatV1
+class SquashV2Mapper extends SquashMapper[IntWritable] with MrSnapshotFactFormatV2
+
+/** TODO Fix to be compatible with V1 format also */
+class SquashMapperFilter extends SquashV2Mapper {
+  import SnapshotMapper._
 
   var entities: Set[String] = null
   var features: Set[String] = null
 
-  override def setup(context: MapperContext): Unit = {
+  override def setup(context: MapperContext[IntWritable]): Unit = {
     super.setup(context)
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
     val filter = new EntityFilterLookup
@@ -64,9 +75,10 @@ class SquashMapperFilter extends SquashMapper {
     features = filter.features.asScala.toSet
   }
 
-  override def write(value: BytesWritable, featureId: Int, featureIdString: String): Unit = {
+  override def write(fact: Fact, value: BytesWritable): Unit = {
+    val featureIdString = fact.featureId.toString
     if ((features.isEmpty || features.contains(featureIdString)) && entities.contains(fact.entity)) {
-      super.write(value, featureId, featureIdString)
+      super.write(fact, value)
     }
   }
 }
@@ -75,16 +87,17 @@ trait SquashReducer[A <: Writable] extends Reducer[BytesWritable, BytesWritable,
 
   type ReducerContext = Reducer[BytesWritable, BytesWritable, NullWritable, A]#Context
 
-  val emitter = MrEmitter[BytesWritable, BytesWritable, NullWritable, A]()
+  var emitter: MrOutputEmitter[NullWritable, A] = null
   val vout: A
 
-  val factEmitter = new FactByteMutator
+  val serialiser = ThriftSerialiser()
   val lookup = new FeatureReductionLookup()
   var isSetLookup: Array[Boolean] = null
   val fact = createMutableFact
-  val emitFact = createMutableFact
+  val emitFact: MutableFact = createMutableFact
   var state: SquashReducerState[A] = null
   var tracer: SquashProfiler = null
+  var out: MultipleOutputs[NullWritable, A] = null
 
   def createState(context: ReducerContext): SquashReducerState[A]
 
@@ -102,17 +115,24 @@ trait SquashReducer[A <: Writable] extends Reducer[BytesWritable, BytesWritable,
     val isSetLookupThrift = new FlagLookup
     ctx.thriftCache.pop(context.getConfiguration, SquashJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
     isSetLookup = FeatureLookups.isSetLookupToArray(isSetLookupThrift)
+
+    out = new MultipleOutputs(context)
+    emitter = MrOutputEmitter(outputName, out, SquashJob.Keys.outputPath)
   }
 
+  def outputName: String
+
+  override def cleanup(context: ReducerContext): Unit =
+    out.close()
+
   override def reduce(key: BytesWritable, iterable: JIterable[BytesWritable], context: ReducerContext): Unit = {
-    emitter.context = context
 
     val featureId = SquashWritable.GroupingByFeatureId.getFeatureId(key)
     val isSet = isSetLookup(featureId)
     // Compiling an expression is (eventually) going to get more expensive, and so we only want to do it on demand
     // For this reason we sort by featureId and compile once here, and process all the entities
     val pool = ReducerPool.create(lookup.getReductions.get(featureId).asScala.toList, isSet, trace)
-    state.reduceAll(fact, emitFact, pool, factEmitter, iterable.iterator, emitter, vout)
+    state.reduceAll(fact, emitFact, pool, iterable.iterator, emitter, vout, serialiser)
   }
 
   def trace(fr: FeatureReduction, r: Reduction): Reduction =
@@ -128,6 +148,8 @@ class SquashReducerSnapshot extends SquashReducer[BytesWritable] {
     val date = Date.fromInt(strDate.toInt).getOrElse(Crash.error(Crash.DataIntegrity, s"Invalid snapshot date '$strDate'"))
     new SquashReducerStateSnapshot(date)
   }
+
+  override def outputName: String = SquashJob.Keys.Out
 }
 
 class SquashReducerChord extends SquashReducer[BytesWritable] {
@@ -140,6 +162,8 @@ class SquashReducerChord extends SquashReducer[BytesWritable] {
     ctx.thriftCache.pop(context.getConfiguration, ChordJob.Keys.ChordEntitiesLookup, entities)
     new SquashReducerStateChord(Entities.fromChordEntities(entities))
   }
+
+  override def outputName: String = SquashJob.Keys.Out
 }
 
 class SquashReducerDump extends SquashReducer[Text] {
@@ -158,4 +182,6 @@ class SquashReducerDump extends SquashReducer[Text] {
         vout.set(line)
         emitter.emit(SquashReducerState.kout, vout)
     })
+
+  override def outputName: String = SquashDumpJob.Keys.Out
 }

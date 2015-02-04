@@ -7,11 +7,10 @@ import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.notion.core._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.operation.extraction.chord.ChordArbitraries._
 import com.ambiata.ivory.operation.extraction.squash.SquashConfig
+import com.ambiata.ivory.storage.legacy.SnapshotLoader
 import com.ambiata.ivory.storage.repository._
-import com.nicta.scoobi.Scoobi._
 import org.specs2._
 import scalaz.effect.IO
 
@@ -51,7 +50,6 @@ ChordSpec
     d <- local.directory
     r <- RepositoryBuilder.using { repo =>
       val entities = facts.ces.flatMap(ce => ce.dates.map(ce.entity + "|" + _._1.hyphenated))
-      implicit val sc = repo.scoobiConfiguration
       for {
         _                <- RepositoryBuilder.createRepo(repo, dictionary, facts.allFacts)
         entitiesLocation =  IvoryLocation.fromDirPath(d </> "entities")
@@ -59,7 +57,7 @@ ChordSpec
         out              <- Repository.tmpDir("chord-spec").map(repo.toIvoryLocation)
         output           = OutputDataset(out.location)
         outPath          <- Chord.createChordWithSquash(repo, IvoryFlags.default, entitiesLocation, facts.takeSnapshot, SquashConfig.testing, c)
-        facts            <- RIO.safe[List[Fact]](valueFromSequenceFile[Fact](outPath._1.hdfsPath.toString).run.toList)
+        facts            <- RIO.safe[List[Fact]](SnapshotLoader.readV1(outPath._1.hdfsPath, repo.scoobiConfiguration))
       } yield facts
     }
   } yield r

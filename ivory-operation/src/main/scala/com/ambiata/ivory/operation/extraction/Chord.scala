@@ -29,14 +29,14 @@ object Chord {
     out      <- createChordRaw(repository, flags, entities, commit, takeSnapshot)
     (o, dict) = out
     hr       <- repository.asHdfsRepository
-    job      <- SquashJob.initChordJob(hr.configuration, entities)
+    job      <- SquashJob.initChordJob(hr.configuration, entities, o)
     // We always need to squash because the entities need to be rewritten, which is _only_ handled by squash
     // This can technically be optimized to do the entity rewriting in the reducer - see the Git history for an example
-    r        <- SquashJob.squash(repository, dict, o, config, job, cluster)
+    r        <- SquashJob.squash(repository, dict, config, job, cluster)
     _        <- ChordExtractManifest.io(cluster.toIvoryLocation(r.location)).write(ChordExtractManifest.create(commit.id))
   } yield r -> dict
 
-  def createChordRaw(repository: Repository, flags: IvoryFlags, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[(ShadowOutputDataset, Dictionary)] = for {
+  def createChordRaw(repository: Repository, flags: IvoryFlags, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[(ChordOutput, Dictionary)] = for {
     plan     <- planning(repository, flags, entities, commit, takeSnapshot)
     output   <- Repository.tmpLocation(repository, "chord").flatMap(_.asHdfsIvoryLocation)
     _        <- RIO.putStrLn(s"Total input size: ${plan.datasets.bytes}")
@@ -45,7 +45,7 @@ object Chord {
     /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
     hr       <- repository.asHdfsRepository
     _        <- ChordJob.run(hr, plan, reducers, output.toHdfsPath)
-  } yield (ShadowOutputDataset.fromIvoryLocation(output), commit.dictionary.value)
+  } yield (ChordOutput(ShadowOutputDataset.fromIvoryLocation(output)), commit.dictionary.value)
 
   def planning(repository: Repository, flags: IvoryFlags, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[ChordPlan] =
     SnapshotStorage.ids(repository).flatMap(ids => takeSnapshot match {
