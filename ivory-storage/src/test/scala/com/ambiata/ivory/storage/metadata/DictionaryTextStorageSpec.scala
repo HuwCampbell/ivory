@@ -4,8 +4,9 @@ import org.specs2._
 import scalaz._, Scalaz._
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 
-class DictionaryTextStorageSpec extends Specification { def is = s2"""
+class DictionaryTextStorageSpec extends Specification with ScalaCheck { def is = s2"""
 
   Parsing a dictionary entry can:
     extract to completion when all fields are valid $e1
@@ -21,7 +22,8 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
 
   def e1 = {
     val entry = "demo|postcode|string|categorical|Postcode|☠"
-    DictionaryTextStorage.parseDictionaryEntry(entry) ==== (FeatureId(Namespace("demo"), "postcode"), ConcreteDefinition(StringEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))).success
+    DictionaryTextStorage.parseDictionaryEntry(entry) ==== (FeatureId(Namespace("demo"), "postcode"),
+      ConcreteDefinition(StringEncoding.toEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))).success
   }
 
   def e2 = {
@@ -38,9 +40,9 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
     val resource = FilePath.unsafe(getClass.getClassLoader.getResource("good_dictionary.txt").getFile)
     val location = IvoryLocation.fromFilePath(resource)
     DictionaryTextStorage.fromSingleFile(location).unsafePerformIO.toDisjunction must_== Dictionary(List(
-     Definition.concrete(FeatureId(Namespace("demo"), "gender"), StringEncoding, Mode.State, Some(CategoricalType), "Gender", List("☠")),
-     Definition.concrete(FeatureId(Namespace("widgets"), "count.1W"), IntEncoding, Mode.State, Some(NumericalType), "Count in the last week", List("☠")),
-     Definition.concrete(FeatureId(Namespace("demo"), "postcode"), StringEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))
+     Definition.concrete(FeatureId(Namespace("demo"), "gender"), StringEncoding.toEncoding, Mode.State, Some(CategoricalType), "Gender", List("☠")),
+     Definition.concrete(FeatureId(Namespace("widgets"), "count.1W"), IntEncoding.toEncoding, Mode.State, Some(NumericalType), "Count in the last week", List("☠")),
+     Definition.concrete(FeatureId(Namespace("demo"), "postcode"), StringEncoding.toEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))
    )).right
   }
 
@@ -49,10 +51,9 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
     DictionaryTextStorage.fromSingleFile(location).unsafePerformIO.toEither must beLeft
   }
 
-  def parseEncoding =
-    seqToResult(List(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding).map {
-      enc => DictionaryTextStorage.parseEncoding(Encoding.render(enc)) ==== enc.success
-    })
+  def parseEncoding = prop { enc: PrimitiveEncoding =>
+    DictionaryTextStorage.parseEncoding(Encoding.renderPrimitive(enc)) ==== enc.success
+  }
 
   def parseType =
     seqToResult(List(NumericalType, ContinuousType, CategoricalType, BinaryType).map {

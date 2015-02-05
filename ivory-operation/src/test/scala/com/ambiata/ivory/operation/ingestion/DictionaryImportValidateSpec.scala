@@ -34,18 +34,18 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
   )
 
   def primitiveEncodingChange = prop((e1: PrimitiveEncoding, e2: PrimitiveEncoding) => e1 != e2 ==> {
-    validate(dict(e1), dict(e2)) ==== EncodingChanged(e1, e2, path).failureNel
+    validate(dict(e1.toEncoding), dict(e2.toEncoding)) ==== EncodingChanged(e1.toEncoding, e2.toEncoding, path).failureNel
   })
 
   def newStruct = prop((enc: StructEncoding) =>
-    validate(Dictionary.empty, dict(enc)) ==== OK
+    validate(Dictionary.empty, dict(enc.toEncoding)) ==== OK
   )
 
   def structChanges = prop((enc: PrimitiveEncoding) =>
     seqToResult(structChecks(enc, "x" :: path).map {
       case ((v1, v2), f) => validate(
-        dict(StructEncoding(v1.map("x" ->).toMap)),
-        dict(StructEncoding(v2.map("x" ->).toMap))
+        dict(StructEncoding(v1.map("x" ->).toMap).toEncoding),
+        dict(StructEncoding(v2.map("x" ->).toMap).toEncoding)
       ) ==== f.cata(_.failureNel, OK)
     })
   )
@@ -69,7 +69,7 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
     val filter = FilterTextV0.asString(FilterStruct(FilterStructOp(FilterOpAnd, List("missing" -> FilterEquals(StringValue(""))), Nil)))
     // The actual validation of different bad filters is handled in FilterSpec
     val dict = vdict1.copy(
-      cd = ConcreteDefinition(StructEncoding(Map()), Mode.State, None, "", Nil),
+      cd = ConcreteDefinition(StructEncoding(Map()).toEncoding, Mode.State, None, "", Nil),
       vd = vdict1.vd.copy(query = vdict1.vd.query.copy(expression = Count, filter = Some(filter)))
     ).dictionary
     validateSelf(dict).toEither.left.map(_.head) must beLeft ((f: DictionaryValidateFailure) => f must beLike {
@@ -90,14 +90,15 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
 
   // At some point it might be worth investigating Prism's from Monocle to share this code with the actual logic
   private def structChecks(enc: PrimitiveEncoding, path: ValidationPath):
-      List[((Option[StructEncodedValue], Option[StructEncodedValue]), Option[DictionaryValidateFailure])] = List(
-    None                                   -> Some(StructEncodedValue(enc).opt)     -> None,
-    None                                   -> Some(StructEncodedValue(enc))         -> Some(NotOptionalStructField(path)),
-    Some(StructEncodedValue(enc).opt)      -> Some(StructEncodedValue(enc))         -> Some(NotOptionalStructField(path)),
-    Some(StructEncodedValue(enc))          -> Some(StructEncodedValue(enc))         -> None,
-    Some(StructEncodedValue(enc))          -> Some(StructEncodedValue(enc).opt)     -> None,
-    Some(StructEncodedValue(enc))          -> None                                  -> Some(MissingStructField(path)),
-    Some(StructEncodedValue(LongEncoding)) -> Some(StructEncodedValue(IntEncoding)) -> Some(EncodingChanged(LongEncoding, IntEncoding, path))
+      List[((Option[StructEncodedValue[PrimitiveEncoding]], Option[StructEncodedValue[PrimitiveEncoding]]), Option[DictionaryValidateFailure])] = List(
+    None                                        -> Some(StructEncodedValue.mandatory(enc).opt) -> None,
+    None                                        -> Some(StructEncodedValue.mandatory(enc))     -> Some(NotOptionalStructField(path)),
+    Some(StructEncodedValue.mandatory(enc).opt) -> Some(StructEncodedValue.mandatory(enc))     -> Some(NotOptionalStructField(path)),
+    Some(StructEncodedValue.mandatory(enc))     -> Some(StructEncodedValue.mandatory(enc))     -> None,
+    Some(StructEncodedValue.mandatory(enc))     -> Some(StructEncodedValue.mandatory(enc).opt) -> None,
+    Some(StructEncodedValue.mandatory(enc))     -> None                                        -> Some(MissingStructField(path)),
+    Some(StructEncodedValue.mandatory(LongEncoding)) -> Some(StructEncodedValue.mandatory(IntEncoding))
+      -> Some(EncodingChanged(LongEncoding.toEncoding, IntEncoding.toEncoding, path))
   )
 
   private def dict(enc: Encoding): Dictionary =

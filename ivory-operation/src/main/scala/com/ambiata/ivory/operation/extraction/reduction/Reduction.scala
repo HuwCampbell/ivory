@@ -60,30 +60,32 @@ object Reduction {
     case QuantileInWeeks(k, q)        => Some(new DateReduction(dates.dates, new QuantileInWeeksReducer(dates.dates, k, q), ReductionValueDouble))
     case ProportionByTime(s, e)       => Some(new ProportionByTimeReducer(s, e))
     case DaysSinceEarliest            => Some(new DaysSinceEarliestReducer(dates.dates))
-    case SumBy(k, f)                  => encoding match {
-      case StructEncoding(values) => values.get(f).map(_.encoding).flatMap {
+    case SumBy(k, f)                  => encoding.fold(
+      _ => None,
+      _.values.get(f).map(_.encoding).flatMap {
         case IntEncoding    => Some(new ReductionFold2StructWrapper(k, f, new SumByReducer[Int], ReductionValueString, ReductionValueInt, ReductionValueStruct[String, Int](ReductionValueInt)))
         case LongEncoding   => Some(new ReductionFold2StructWrapper(k, f, new SumByReducer[Long], ReductionValueString, ReductionValueLong, ReductionValueStruct[String, Long](ReductionValueLong)))
         case DoubleEncoding => Some(new ReductionFold2StructWrapper(k, f, new SumByReducer[Double], ReductionValueString, ReductionValueDouble, ReductionValueStruct[String, Double](ReductionValueDouble)))
         case _              => None
-      }
-      case _ => None
-    }
-    case CountBySecondary(k, f)       => encoding match {
-      case StructEncoding(values) => (values.get(k).map(_.encoding) tuple values.get(f).map(_.encoding)).flatMap {
+      },
+      _ => None
+    )
+    case CountBySecondary(k, f)       => encoding.fold(
+      _ => None,
+      s => s.values.get(k).map(_.encoding).tuple(s.values.get(f).map(_.encoding)).flatMap {
         case (StringEncoding, StringEncoding) =>
           Some(new ReductionFold2StructWrapper(k, f, new CountBySecondaryReducer[String, String], ReductionValueString,
             ReductionValueString, ReductionValueStruct[String, collection.mutable.Set[String]](ReductionValueSetSize()))
           )
         case _              => None
-      }
-      case _ => None
-    }
+      },
+      _ => None
+    )
 
     case BasicExpression(Latest)      => Some(new LatestReducer)
     case BasicExpression(LatestN(n))  => Some(new LatestNReducer(n))
-    case BasicExpression(sexp)        => encoding match {
-      case pe: PrimitiveEncoding      => fromSubExpression(sexp, pe, dates, new EncodedReduction {
+    case BasicExpression(sexp)        => encoding.fold(
+      pe => fromSubExpression(sexp, pe, dates, new EncodedReduction {
         def s[A, B](f: ReductionFoldWithDate[A, String, B], to: ReductionValueTo[B]): Reduction =
           new ReductionFoldWrapper(f, ReductionValueString, to)
         def b[A, B](f: ReductionFoldWithDate[A, Boolean, B], to: ReductionValueTo[B]): Reduction =
@@ -96,11 +98,13 @@ object Reduction {
           new ReductionFoldWrapper(f, ReductionValueDouble, to)
         def date[A, B](f: ReductionFoldWithDate[A, Int, B], to: ReductionValueTo[B]): Reduction =
           new ReductionFoldWrapper(f, ReductionValueDate, to)
-      })
-      case _                          => None
-    }
-    case StructExpression(name, sexp) => encoding match {
-      case StructEncoding(values) => values.get(name).flatMap(sev => fromSubExpression(sexp, sev.encoding, dates, new EncodedReduction {
+      }),
+      _ => None,
+      _ => None
+    )
+    case StructExpression(name, sexp) => encoding.fold(
+      _ => None,
+      _.values.get(name).flatMap(sev => fromSubExpression(sexp, sev.encoding, dates, new EncodedReduction {
         def s[A, B](f: ReductionFoldWithDate[A, String, B], to: ReductionValueTo[B]): Reduction =
           new ReductionFoldStructWrapper(name, f, ReductionValueString, to)
         def b[A, B](f: ReductionFoldWithDate[A, Boolean, B], to: ReductionValueTo[B]): Reduction =
@@ -113,9 +117,9 @@ object Reduction {
           new ReductionFoldStructWrapper(name, f, ReductionValueDouble, to)
         def date[A, B](f: ReductionFoldWithDate[A, Int, B], to: ReductionValueTo[B]): Reduction =
           new ReductionFoldStructWrapper(name, f, ReductionValueDate, to)
-      }))
-      case _  => None
-    }
+      })),
+      _ => None
+    )
   }
 
   def fromSubExpression(exp: SubExpression, encoding: PrimitiveEncoding, dates: DateOffsetsLazy, f: EncodedReduction): Option[Reduction] = exp match {

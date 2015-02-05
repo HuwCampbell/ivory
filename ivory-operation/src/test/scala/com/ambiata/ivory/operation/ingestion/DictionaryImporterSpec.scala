@@ -39,7 +39,7 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
   def local = prop((local: LocalTemporary) => for {
     dir  <- local.directoryThatExists
     conf <- IvoryConfigurationTemporary.random.conf
-    dict = Dictionary(List(Definition.concrete(FeatureId(Namespace("demo"), "postcode"), StringEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))))
+    dict = Dictionary(List(Definition.concrete(FeatureId(Namespace("demo"), "postcode"), StringEncoding.toEncoding, Mode.State, Some(CategoricalType), "Postcode", List("☠"))))
     repo = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf)
     path = dir <|> "dictionary.psv"
     _    <- Streams.write(new java.io.FileOutputStream(path.toFile), DictionaryTextStorageV2.delimitedString(dict))
@@ -50,8 +50,8 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
   def updated = prop((local: LocalTemporary) => for {
     dir   <- local.directory
     conf  <- IvoryConfigurationTemporary.random.conf
-    dict1 = Dictionary(List(Definition.concrete(FeatureId(Namespace("a"), "b"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
-    dict2 = Dictionary(List(Definition.concrete(FeatureId(Namespace("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
+    dict1 = Dictionary(List(Definition.concrete(FeatureId(Namespace("a"), "b"), StringEncoding.toEncoding, Mode.State, Some(CategoricalType), "", Nil)))
+    dict2 = Dictionary(List(Definition.concrete(FeatureId(Namespace("c"), "d"), StringEncoding.toEncoding, Mode.State, Some(CategoricalType), "", Nil)))
     repo  = Repository.fromIvoryLocation(LocalIvoryLocation.create(dir), conf)
     _     <- fromDictionary(repo, dict1, opts.copy(ty = Override))
     _     <- fromDictionary(repo, dict2, opts.copy(ty = Update))
@@ -61,8 +61,8 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
 
   def invalidUpgrade(force: Boolean) = {
     val fid = FeatureId(Namespace("a"), "b")
-    val dict1 = Dictionary(List(Definition.concrete(fid, StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
-    val dict2 = Dictionary(List(Definition.concrete(fid, BooleanEncoding, Mode.State, Some(CategoricalType), "", Nil)))
+    val dict1 = Dictionary(List(Definition.concrete(fid, StringEncoding.toEncoding, Mode.State, Some(CategoricalType), "", Nil)))
+    val dict2 = Dictionary(List(Definition.concrete(fid, BooleanEncoding.toEncoding, Mode.State, Some(CategoricalType), "", Nil)))
     LocalTemporary.random.directory >>= { dir =>
       val repo = LocalRepository.create(dir)
       fromDictionary(repo, dict1, opts.copy(ty = Override))
@@ -89,8 +89,8 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations with 
 
 
   def dictionaryDirectory = {
-    val dict1 = Dictionary(List(Definition.concrete(FeatureId(Namespace("a"), "b"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
-    val dict2 = Dictionary(List(Definition.concrete(FeatureId(Namespace("c"), "d"), StringEncoding, Mode.State, Some(CategoricalType), "", Nil)))
+    val dict1 = Dictionary(List(Definition.concrete(FeatureId(Namespace("a"), "b"), StringEncoding.toEncoding, Mode.State, Some(CategoricalType), "", Nil)))
+    val dict2 = Dictionary(List(Definition.concrete(FeatureId(Namespace("c"), "d"), StringEncoding.toEncoding, Mode.State, Some(CategoricalType), "", Nil)))
 
     withRepository(Posix) { ivory => for {
       _   <- Repositories.create(ivory, RepositoryConfig.testing)

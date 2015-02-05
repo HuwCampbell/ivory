@@ -24,19 +24,19 @@ class FilterSpec extends Specification with ScalaCheck { def is = s2"""
 
   def invalidEncodedValue = {
     val values = FilterValues(FilterValuesOp(FilterOpAnd, List(FilterEquals(IntValue(1))), Nil))
-    FilterTextV0.encode(FilterTextV0.asString(values), BooleanEncoding).toEither must beLeft
+    FilterTextV0.encode(FilterTextV0.asString(values), BooleanEncoding.toEncoding).toEither must beLeft
   }
 
   def invalidStructName = {
     val struct = FilterStruct(FilterStructOp(FilterOpAnd, List("a" -> FilterEquals(StringValue("b"))), Nil))
-    FilterTextV0.encode(FilterTextV0.asString(struct), StructEncoding(Map())).toEither must beLeft
+    FilterTextV0.encode(FilterTextV0.asString(struct), StructEncoding(Map()).toEncoding).toEither must beLeft
   }
 
   def missingStructValue =
-    FilterTextV0.encode(Filter("and,a"), StructEncoding(Map())).toEither must beLeft
+    FilterTextV0.encode(Filter("and,a"), StructEncoding(Map()).toEncoding).toEither must beLeft
 
   def invalidOperation =
-    FilterTextV0.encode(Filter("and,(*,x)"), StringEncoding).toEither must beLeft
+    FilterTextV0.encode(Filter("and,(*,x)"), StringEncoding.toEncoding).toEither must beLeft
 }
 
 object FilterTester {

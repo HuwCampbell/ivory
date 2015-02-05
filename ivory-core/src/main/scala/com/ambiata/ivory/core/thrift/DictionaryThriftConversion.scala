@@ -39,26 +39,26 @@ object DictionaryThriftConversion {
   }
 
   private val encoding = new {
-    val to: Encoding => (ThriftDictionaryEncoding, Option[ThriftDictionaryFeatureValue]) = {
-      case enc: PrimitiveEncoding => primitiveEncoding.to(enc) -> None
-      case ListEncoding(enc)      =>
-        STRUCT -> Some(ThriftDictionaryFeatureValue.listValue(enc match {
-          case penc: PrimitiveEncoding => ThriftDictionaryList.encoding(primitiveEncoding.to(penc))
-          case senc: StructEncoding    => ThriftDictionaryList.structEncoding(struct.to(senc))
+    val to: Encoding => (ThriftDictionaryEncoding, Option[ThriftDictionaryFeatureValue]) = _.fold(
+      enc => primitiveEncoding.to(enc) -> None,
+      enc =>
+        STRUCT -> Some(ThriftDictionaryFeatureValue.structValue(struct.to(enc))),
+      enc =>
+        STRUCT -> Some(ThriftDictionaryFeatureValue.listValue(enc.encoding match {
+          case SubPrim(penc) => ThriftDictionaryList.encoding(primitiveEncoding.to(penc))
+          case SubStruct(senc) => ThriftDictionaryList.structEncoding(struct.to(senc))
         }))
-      case enc: StructEncoding    =>
-        STRUCT -> Some(ThriftDictionaryFeatureValue.structValue(struct.to(enc)))
-    }
+    )
     val from: ThriftDictionaryFeatureMeta => Encoding = meta => meta.getEncoding match {
       case STRUCT if Option(meta.getValue).exists(_.isSetListValue) =>
-        ListEncoding(meta.getValue.getListValue match {
-          case enc if enc.isSetEncoding       => primitiveEncoding.from(enc.getEncoding)
-          case enc if enc.isSetStructEncoding => struct.from(enc.getStructEncoding)
-        })
+        EncodingList(ListEncoding(meta.getValue.getListValue match {
+          case enc if enc.isSetEncoding       => SubPrim(primitiveEncoding.from(enc.getEncoding))
+          case enc if enc.isSetStructEncoding => SubStruct(struct.from(enc.getStructEncoding))
+        }))
       case STRUCT if Option(meta.getValue).exists(_.isSetStructValue)
-                  => struct.from(meta.getValue.getStructValue)
-      case STRUCT => StructEncoding(Map()) // Should _never_ happen
-      case enc    => primitiveEncoding.from(enc)
+                  => struct.from(meta.getValue.getStructValue).toEncoding
+      case STRUCT => StructEncoding(Map()).toEncoding // Should _never_ happen
+      case enc    => primitiveEncoding.from(enc).toEncoding
     }
   }
 

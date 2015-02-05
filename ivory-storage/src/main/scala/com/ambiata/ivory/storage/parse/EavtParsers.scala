@@ -45,10 +45,11 @@ object EavtParsers {
       case Virtual(_, _)   => s"Cannot import virtual feature $fid".failure
     }.getOrElse(s"Could not find dictionary entry for '${fid}'".failure)
 
-  def valueFromString(meta: ConcreteDefinition, raw: String): Validation[String, Value] = meta.encoding match {
-    case _ if meta.tombstoneValue.contains(raw)  => TombstoneValue.success[String]
-    case p: PrimitiveEncoding                    => Value.parsePrimitive(p, raw)
-    case s: StructEncoding                       => "Struct encoding not supported".failure
-    case _: ListEncoding                         => "List encoding not supported".failure
-  }
+  def valueFromString(meta: ConcreteDefinition, raw: String): Validation[String, Value] =
+    if (meta.tombstoneValue.contains(raw)) TombstoneValue.success[String]
+    else  meta.encoding.fold(
+      p => Value.parsePrimitive(p, raw),
+      _ => "Struct encoding not supported".failure,
+      _ => "List encoding not supported".failure
+  )
 }

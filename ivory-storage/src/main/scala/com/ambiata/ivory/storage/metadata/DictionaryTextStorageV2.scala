@@ -42,9 +42,9 @@ object DictionaryTextStorageV2 extends TextStorage[(FeatureId, Definition), Dict
   }).flatten.map { case (k, v) => k + "=" + v}.mkString(DELIM)
 
   def parseEncoding(encv: String): ValidationNel[String, Encoding] =
-    DictionaryTextStorage.parseEncoding(encv).toValidationNel |||
-      DictionaryTextStorageV2(encv, DELIM).parseList |||
-      DictionaryTextStorageV2(encv, DELIM).parseStruct
+    DictionaryTextStorage.parseEncoding(encv).map(_.toEncoding).toValidationNel |||
+      DictionaryTextStorageV2(encv, DELIM).parseList.map(_.toEncoding) |||
+      DictionaryTextStorageV2(encv, DELIM).parseStruct.map(_.toEncoding)
 }
 
 case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extends Parser {
@@ -72,8 +72,9 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
     }.map(s => StructEncoding(s.toMap))
   )
 
-  private def parseList: ValidationNel[String, Encoding] = list.run().fold(formatError(_).failureNel, s =>
-    (DictionaryTextStorage.parseEncoding(s).toValidationNel ||| DictionaryTextStorageV2(s, DELIMITER).parseStruct).map(ListEncoding)
+  private def parseList: ValidationNel[String, ListEncoding] = list.run().fold(formatError(_).failureNel, s =>
+    (DictionaryTextStorage.parseEncoding(s).map(SubPrim).toValidationNel |||
+      DictionaryTextStorageV2(s, DELIMITER).parseStruct.map(SubStruct)).map(ListEncoding)
   )
 
   private def metaFromMap(featureId: FeatureId, m: Map[String, String]): ValidationNel[String, Definition] = {
