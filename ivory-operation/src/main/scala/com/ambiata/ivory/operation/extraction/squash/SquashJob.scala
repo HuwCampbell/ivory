@@ -52,11 +52,12 @@ object SquashJob {
    */
   def squash(repository: Repository, dictionary: Dictionary, conf: SquashConfig,
              job: (Job, MrContext, Int), cluster: Cluster): RIO[ShadowOutputDataset] = for {
-    key    <- Repository.tmpDir("squash")
-    hr     <- repository.asHdfsRepository
-    shadow = ShadowOutputDataset.fromIvoryLocation(hr.toIvoryLocation(key))
-    prof   <- run(job._1, job._2, job._3, dictionary, shadow.hdfsPath, cluster.codec, conf, latest = true)
-    _      <- IvoryLocation.writeUtf8Lines(hr.toIvoryLocation(key) </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof))
+    key      <- Repository.tmpDir("squash")
+    hr       <- repository.asHdfsRepository
+    mappings <- FeatureIdMappingsStorage.fromDictionaryAndSave(repository, key, dictionary)
+    shadow   = ShadowOutputDataset.fromIvoryLocation(hr.toIvoryLocation(key))
+    prof     <- run(job._1, job._2, job._3, dictionary, shadow.hdfsPath, cluster.codec, conf, latest = true)
+    _        <- IvoryLocation.writeUtf8Lines(hr.toIvoryLocation(key) </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof))
   } yield shadow
 
   def initSnapshotJob(repo: Repository, conf: Configuration, date: Date, format: SnapshotFormat, snapshot: Snapshot): RIO[(Job, MrContext, Int)] = for {

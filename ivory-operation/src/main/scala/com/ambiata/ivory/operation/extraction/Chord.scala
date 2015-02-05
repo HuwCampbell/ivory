@@ -38,7 +38,9 @@ object Chord {
 
   def createChordRaw(repository: Repository, flags: IvoryFlags, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[(ChordOutput, Dictionary)] = for {
     plan     <- planning(repository, flags, entities, commit, takeSnapshot)
-    output   <- Repository.tmpLocation(repository, "chord").flatMap(_.asHdfsIvoryLocation)
+    outKey   <- Repository.tmpDir("chord")
+    mappings <- FeatureIdMappingsStorage.fromDictionaryAndSave(repository, outKey, commit.dictionary.value)
+    output   <- repository.toIvoryLocation(outKey).asHdfsIvoryLocation
     _        <- RIO.putStrLn(s"Total input size: ${plan.datasets.bytes}")
     reducers =  (plan.datasets.bytes.toLong / 2.gb.toBytes.value + 1).toInt // one reducer per 2GB of input
     _        <- RIO.putStrLn(s"Number of reducers: $reducers")
