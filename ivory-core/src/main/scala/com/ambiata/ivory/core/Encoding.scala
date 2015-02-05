@@ -31,7 +31,7 @@ sealed trait SubEncoding {
 case class SubPrim(e: PrimitiveEncoding) extends SubEncoding
 case class SubStruct(e: StructEncoding) extends SubEncoding
 
-case class StructEncoding(values: Map[String, StructEncodedValue]) {
+case class StructEncoding(values: Map[String, StructEncodedValue[PrimitiveEncoding]]) {
 
   def toEncoding: Encoding =
     SubStruct(this).toEncoding
@@ -43,17 +43,20 @@ case class ListEncoding(encoding: SubEncoding) {
 }
 
 // NOTE: For now we don't support nested structs
-case class StructEncodedValue(encoding: PrimitiveEncoding, optional: Boolean = false) {
-  def opt: StructEncodedValue =
+case class StructEncodedValue[A](encoding: A, optional: Boolean = false) {
+  def opt: StructEncodedValue[A] =
     if (optional) this else copy(optional = true)
+
+  def map[B](f: A => B): StructEncodedValue[B] =
+    StructEncodedValue(f(encoding), optional)
 }
 
 object StructEncodedValue {
 
-  def optional(encoding: PrimitiveEncoding): StructEncodedValue =
+  def optional(encoding: PrimitiveEncoding): StructEncodedValue[PrimitiveEncoding] =
     StructEncodedValue(encoding, optional = true)
 
-  def mandatory(encoding: PrimitiveEncoding): StructEncodedValue =
+  def mandatory(encoding: PrimitiveEncoding): StructEncodedValue[PrimitiveEncoding] =
     StructEncodedValue(encoding, optional = false)
 }
 

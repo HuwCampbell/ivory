@@ -90,14 +90,15 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
 
   // At some point it might be worth investigating Prism's from Monocle to share this code with the actual logic
   private def structChecks(enc: PrimitiveEncoding, path: ValidationPath):
-      List[((Option[StructEncodedValue], Option[StructEncodedValue]), Option[DictionaryValidateFailure])] = List(
+      List[((Option[StructEncodedValue[PrimitiveEncoding]], Option[StructEncodedValue[PrimitiveEncoding]]), Option[DictionaryValidateFailure])] = List(
     None                                   -> Some(StructEncodedValue(enc).opt)     -> None,
     None                                   -> Some(StructEncodedValue(enc))         -> Some(NotOptionalStructField(path)),
     Some(StructEncodedValue(enc).opt)      -> Some(StructEncodedValue(enc))         -> Some(NotOptionalStructField(path)),
     Some(StructEncodedValue(enc))          -> Some(StructEncodedValue(enc))         -> None,
     Some(StructEncodedValue(enc))          -> Some(StructEncodedValue(enc).opt)     -> None,
     Some(StructEncodedValue(enc))          -> None                                  -> Some(MissingStructField(path)),
-    Some(StructEncodedValue(LongEncoding)) -> Some(StructEncodedValue(IntEncoding)) -> Some(EncodingChanged(LongEncoding.toEncoding, IntEncoding.toEncoding, path))
+    Some(StructEncodedValue(LongEncoding: PrimitiveEncoding)) -> Some(StructEncodedValue(IntEncoding: PrimitiveEncoding))
+      -> Some(EncodingChanged(LongEncoding.toEncoding, IntEncoding.toEncoding, path))
   )
 
   private def dict(enc: Encoding): Dictionary =
