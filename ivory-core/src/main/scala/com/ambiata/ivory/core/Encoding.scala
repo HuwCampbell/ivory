@@ -54,7 +54,7 @@ case class ListEncoding(encoding: SubEncoding) {
 }
 
 // NOTE: For now we don't support nested structs
-case class StructEncodedValue[A](encoding: A, optional: Boolean = false) {
+case class StructEncodedValue[A](encoding: A, optional: Boolean) {
   def opt: StructEncodedValue[A] =
     if (optional) this else copy(optional = true)
 

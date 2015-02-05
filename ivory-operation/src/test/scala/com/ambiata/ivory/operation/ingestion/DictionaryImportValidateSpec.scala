@@ -91,13 +91,13 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
   // At some point it might be worth investigating Prism's from Monocle to share this code with the actual logic
   private def structChecks(enc: PrimitiveEncoding, path: ValidationPath):
       List[((Option[StructEncodedValue[PrimitiveEncoding]], Option[StructEncodedValue[PrimitiveEncoding]]), Option[DictionaryValidateFailure])] = List(
-    None                                   -> Some(StructEncodedValue(enc).opt)     -> None,
-    None                                   -> Some(StructEncodedValue(enc))         -> Some(NotOptionalStructField(path)),
-    Some(StructEncodedValue(enc).opt)      -> Some(StructEncodedValue(enc))         -> Some(NotOptionalStructField(path)),
-    Some(StructEncodedValue(enc))          -> Some(StructEncodedValue(enc))         -> None,
-    Some(StructEncodedValue(enc))          -> Some(StructEncodedValue(enc).opt)     -> None,
-    Some(StructEncodedValue(enc))          -> None                                  -> Some(MissingStructField(path)),
-    Some(StructEncodedValue(LongEncoding: PrimitiveEncoding)) -> Some(StructEncodedValue(IntEncoding: PrimitiveEncoding))
+    None                                        -> Some(StructEncodedValue.mandatory(enc).opt) -> None,
+    None                                        -> Some(StructEncodedValue.mandatory(enc))     -> Some(NotOptionalStructField(path)),
+    Some(StructEncodedValue.mandatory(enc).opt) -> Some(StructEncodedValue.mandatory(enc))     -> Some(NotOptionalStructField(path)),
+    Some(StructEncodedValue.mandatory(enc))     -> Some(StructEncodedValue.mandatory(enc))     -> None,
+    Some(StructEncodedValue.mandatory(enc))     -> Some(StructEncodedValue.mandatory(enc).opt) -> None,
+    Some(StructEncodedValue.mandatory(enc))     -> None                                        -> Some(MissingStructField(path)),
+    Some(StructEncodedValue.mandatory(LongEncoding)) -> Some(StructEncodedValue.mandatory(IntEncoding))
       -> Some(EncodingChanged(LongEncoding.toEncoding, IntEncoding.toEncoding, path))
   )
 
