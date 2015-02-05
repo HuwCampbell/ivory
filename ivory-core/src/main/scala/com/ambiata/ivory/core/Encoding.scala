@@ -7,6 +7,16 @@ sealed trait Encoding {
     case EncodingStruct(e) => s(e)
     case EncodingList(e) => l(e)
   }
+
+  def foldRec[A](p: PrimitiveEncoding => A, s: Map[String, StructEncodedValue[A]] => A, l: A => A): A =
+    fold(
+      p,
+      e => s(e.values.mapValues(_.map(p))),
+      el => l(el.encoding.fold(
+        p,
+        e => s(e.values.mapValues(_.map(p)))
+      ))
+    )
 }
 case class EncodingPrim(encoding: PrimitiveEncoding) extends Encoding
 case class EncodingStruct(encoding: StructEncoding) extends Encoding
@@ -68,17 +78,17 @@ object StructEncodedValue {
 
 object Encoding {
 
-  def render(enc: Encoding): String = enc match {
-    case EncodingList(ListEncoding(e)) => "[" + renderSub(e) + "]"
-    case EncodingSub(e) => renderSub(e)
-  }
-
-  private def renderSub(enc: SubEncoding): String = enc match {
-    case SubPrim(e) => renderPrimitive(e)
-    case SubStruct(m)    => "(" + m.values.map {
-      case (n, v) => n + ":" + renderPrimitive(v.encoding) + (if (v.optional) "*" else "")
-    }.mkString(",") + ")"
-  }
+  def render(enc: Encoding): String = enc.foldRec[String](
+    renderPrimitive,
+    m =>
+      "(" +
+        m.map {
+          case (n, v) => n + ":" + v.encoding + (if (v.optional) "*" else "")
+        }.mkString(",") +
+      ")",
+    e =>
+      "[" + e + "]"
+  )
 
   def renderPrimitive(enc: PrimitiveEncoding): String = enc match {
     case BooleanEncoding => "boolean"
