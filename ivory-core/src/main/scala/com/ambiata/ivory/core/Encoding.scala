@@ -100,11 +100,11 @@ object Encoding {
 
   def isNumericPrim(enc: PrimitiveEncoding): Boolean =
     enc match {
-      case StringEncoding          => false
-      case IntEncoding             => true
-      case LongEncoding            => true
-      case DoubleEncoding          => true
-      case BooleanEncoding         => false
-      case DateEncoding            => false
+      case StringEncoding    => false
+      case IntEncoding       => true
+      case LongEncoding      => true
+      case DoubleEncoding    => true
+      case BooleanEncoding   => false
+      case DateEncoding      => false
     }
 }
