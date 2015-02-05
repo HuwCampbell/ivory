@@ -1,5 +1,23 @@
 package com.ambiata.ivory.core
 
+/**
+ * Represents the type of encodings possible for a given feature.
+ *
+ * The hierarchy looks like:
+ *
+ * ```
+ * Encoding
+ * --------
+ *  - EncodingList
+ *    * ListEncoding(SubEncoding)
+ *  - EncodingSub
+ *    * SubEncoding
+ *      - SubStruct
+ *        * StructEncoding(PrimitiveEncoding)
+ *      - SubPrimitive
+ *        * PrimitiveEncoding
+ * ```
+ */
 sealed trait Encoding {
 
   def fold[A](p: PrimitiveEncoding => A, s: StructEncoding => A, l: ListEncoding => A): A = this match {
