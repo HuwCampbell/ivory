@@ -24,13 +24,13 @@ struct FactsetVersionLookup {
     1: map<string, byte> versions;
 }
 
-struct FeatureMappingValue {
+struct RenameFeatureMappingValue {
     1: i32 featureId;
     2: string newName;
 }
 
-struct FeatureIdMapping {
-    1: map<string, FeatureMappingValue> mapping;
+struct RenameFeatureIdMapping {
+    1: map<string, RenameFeatureMappingValue> mapping;
 }
 
 struct SnapshotWindowLookup {
