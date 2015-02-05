@@ -62,3 +62,7 @@ struct ChordEntities {
     1: map<string, list<i32>> entities;
 }
 */
+
+struct ThriftFeatureIdMappings {
+    1: list<string> features;
+}
