@@ -6,6 +6,33 @@ package com.ambiata.ivory.core
  * The hierarchy looks like:
  *
  * ```
+ * 
+ *                  TopLevelEncoding
+ *                        o
+ *                        |
+ *              --------------------
+ *              |         |        |
+ *              o         o        o
+ *  StructTopLevelEncoding(SE) PrimitiveTopLevelEncoding(PE)        
+ *               ListTopLevelEncoding(LE)
+ * 
+ * 
+ *                  NestedEncoding
+ *                        o
+ *                        |
+ *              --------------------
+ *              |                  |
+ *              o                  o
+ *  NestedStructEncoding(SE) NestedPrimitiveEncoding(PE)
+ *
+ *                 PrimitiveEncoding (PE)
+ *                       /|\
+ *                {stirng,int,....}
+ * 
+ *             ListEncoding([NestedEncoding]) (LE)
+ * 
+ *         StructEncoding({name : NestedEncoding}) (SE)
+ * 
  * Encoding
  * --------
  *  - EncodingList
