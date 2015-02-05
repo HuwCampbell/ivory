@@ -183,7 +183,7 @@ object GenDictionary {
           } yield FilterValuesOp(op, fields, chlds)
         sub(2).map(FilterValues).map(some)
       }, se => {
-        def sub(maxChildren: Int, left: Map[String, StructEncodedValue]): Gen[FilterStructOp] =
+        def sub(maxChildren: Int, left: Map[String, StructEncodedValue[PrimitiveEncoding]]): Gen[FilterStructOp] =
           for {
           // Be careful in this section - ScalaCheck will discard values if asking for move than is contained
           // in a list, which can break some of the MR specs that have a low minTestsOk value (eg SquashSpec).
