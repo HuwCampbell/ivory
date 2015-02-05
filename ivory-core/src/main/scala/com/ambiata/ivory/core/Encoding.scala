@@ -8,7 +8,7 @@ sealed trait Encoding {
     case EncodingSub(SubPrim(e)) => p(e)
   }
 
-  def foldRec[A](p: PrimitiveEncoding => A)(s: Map[String, StructEncodedValue[A]] => A, l: A => A): A = {
+  def foldRec[A](p: PrimitiveEncoding => A, s: Map[String, StructEncodedValue[A]] => A, l: A => A): A = {
     def foldRecSub(se: SubEncoding): A = se match {
       case SubStruct(e) => s(e.values.mapValues(_.map(p)))
       case SubPrim(e) => p(e)
@@ -73,7 +73,8 @@ object StructEncodedValue {
 
 object Encoding {
 
-  def render(enc: Encoding): String = enc.foldRec(renderPrimitive)(
+  def render(enc: Encoding): String = enc.foldRec[String](
+    renderPrimitive,
     m =>
       "(" + m.map {
         case (n, v) => n + ":" + v.encoding + (if (v.optional) "*" else "")
