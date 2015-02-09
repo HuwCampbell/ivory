@@ -187,7 +187,7 @@ fred|gender|M|2014-02-11
 fred|age|37|2014-02-11
 mary|age|42|2013-11-24
 
-> ivory ingest --input sparse:delimited:psv|demographic=factset1.psv -z "Australia/Sydney"
+> ivory ingest --input "sparse:delimited:psv|demographic=factset1.psv" -z "Australia/Sydney"
 ```
 
 Note that the facts do not specify attribute namespaces. In this factset, because all facts
