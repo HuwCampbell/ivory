@@ -3,6 +3,7 @@ package com.ambiata.ivory.core
 import com.ambiata.mundane.io._
 import com.ambiata.notion.core._
 import com.ambiata.notion.core.TemporaryType._
+import com.ambiata.notion.core.Arbitraries._
 import org.specs2._
 import IvoryLocationTemporary._
 import org.specs2.execute.AsResult
@@ -12,7 +13,7 @@ import com.ambiata.mundane.testing.RIOMatcher._
 import scalaz._, Scalaz._
 import IvoryConfigurationTemporary._
 
-class IvoryLocationSpec extends Specification with ForeachTemporaryType with ThrownExpectations { def is = s2"""
+class IvoryLocationSpec extends Specification with ForeachTemporaryType with ThrownExpectations with ScalaCheck { def is = s2"""
 
 IvoryLocation
 -------------
@@ -28,6 +29,7 @@ IvoryLocation
    deleteAll      $deleteAll
    delete         $delete
    readWrite      $readWrite
+   readWriteBytes $readWriteBytes
    readLines      $readLines
    streamLines    $streamLines
    list           $list
@@ -99,6 +101,13 @@ IvoryLocation
         IvoryLocation.readUtf8(location)
     } must beOkValue(contents)
   }
+
+  def readWriteBytes = prop((bytes: Array[Byte], temporaryType: TemporaryType) =>
+    withIvoryLocationFile(temporaryType) { location =>
+      IvoryLocation.writeBytes(location, bytes) >>
+        IvoryLocation.readBytes(location)
+    } must beOkValue(bytes)
+  ).set(minTestsOk = 20)
 
   def readLines = { temporaryType: TemporaryType =>
     val lines = List("one", "two")
