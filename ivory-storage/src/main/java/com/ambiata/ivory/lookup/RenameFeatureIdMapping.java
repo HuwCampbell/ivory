@@ -32,18 +32,18 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMapping, FeatureIdMapping._Fields>, java.io.Serializable, Cloneable, Comparable<FeatureIdMapping> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("FeatureIdMapping");
+public class RenameFeatureIdMapping implements org.apache.thrift.TBase<RenameFeatureIdMapping, RenameFeatureIdMapping._Fields>, java.io.Serializable, Cloneable, Comparable<RenameFeatureIdMapping> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("RenameFeatureIdMapping");
 
   private static final org.apache.thrift.protocol.TField MAPPING_FIELD_DESC = new org.apache.thrift.protocol.TField("mapping", org.apache.thrift.protocol.TType.MAP, (short)1);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new FeatureIdMappingStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new FeatureIdMappingTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new RenameFeatureIdMappingStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new RenameFeatureIdMappingTupleSchemeFactory());
   }
 
-  public Map<String,FeatureMappingValue> mapping; // required
+  public Map<String,RenameFeatureMappingValue> mapping; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -110,16 +110,16 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
     tmpMap.put(_Fields.MAPPING, new org.apache.thrift.meta_data.FieldMetaData("mapping", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, FeatureMappingValue.class))));
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, RenameFeatureMappingValue.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(FeatureIdMapping.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(RenameFeatureIdMapping.class, metaDataMap);
   }
 
-  public FeatureIdMapping() {
+  public RenameFeatureIdMapping() {
   }
 
-  public FeatureIdMapping(
-    Map<String,FeatureMappingValue> mapping)
+  public RenameFeatureIdMapping(
+    Map<String,RenameFeatureMappingValue> mapping)
   {
     this();
     this.mapping = mapping;
@@ -128,17 +128,17 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public FeatureIdMapping(FeatureIdMapping other) {
+  public RenameFeatureIdMapping(RenameFeatureIdMapping other) {
     if (other.isSetMapping()) {
-      Map<String,FeatureMappingValue> __this__mapping = new HashMap<String,FeatureMappingValue>(other.mapping.size());
-      for (Map.Entry<String, FeatureMappingValue> other_element : other.mapping.entrySet()) {
+      Map<String,RenameFeatureMappingValue> __this__mapping = new HashMap<String,RenameFeatureMappingValue>(other.mapping.size());
+      for (Map.Entry<String, RenameFeatureMappingValue> other_element : other.mapping.entrySet()) {
 
         String other_element_key = other_element.getKey();
-        FeatureMappingValue other_element_value = other_element.getValue();
+        RenameFeatureMappingValue other_element_value = other_element.getValue();
 
         String __this__mapping_copy_key = other_element_key;
 
-        FeatureMappingValue __this__mapping_copy_value = new FeatureMappingValue(other_element_value);
+        RenameFeatureMappingValue __this__mapping_copy_value = new RenameFeatureMappingValue(other_element_value);
 
         __this__mapping.put(__this__mapping_copy_key, __this__mapping_copy_value);
       }
@@ -146,8 +146,8 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
     }
   }
 
-  public FeatureIdMapping deepCopy() {
-    return new FeatureIdMapping(this);
+  public RenameFeatureIdMapping deepCopy() {
+    return new RenameFeatureIdMapping(this);
   }
 
   @Override
@@ -159,18 +159,18 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
     return (this.mapping == null) ? 0 : this.mapping.size();
   }
 
-  public void putToMapping(String key, FeatureMappingValue val) {
+  public void putToMapping(String key, RenameFeatureMappingValue val) {
     if (this.mapping == null) {
-      this.mapping = new HashMap<String,FeatureMappingValue>();
+      this.mapping = new HashMap<String,RenameFeatureMappingValue>();
     }
     this.mapping.put(key, val);
   }
 
-  public Map<String,FeatureMappingValue> getMapping() {
+  public Map<String,RenameFeatureMappingValue> getMapping() {
     return this.mapping;
   }
 
-  public FeatureIdMapping setMapping(Map<String,FeatureMappingValue> mapping) {
+  public RenameFeatureIdMapping setMapping(Map<String,RenameFeatureMappingValue> mapping) {
     this.mapping = mapping;
     return this;
   }
@@ -196,7 +196,7 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
       if (value == null) {
         unsetMapping();
       } else {
-        setMapping((Map<String,FeatureMappingValue>)value);
+        setMapping((Map<String,RenameFeatureMappingValue>)value);
       }
       break;
 
@@ -229,12 +229,12 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof FeatureIdMapping)
-      return this.equals((FeatureIdMapping)that);
+    if (that instanceof RenameFeatureIdMapping)
+      return this.equals((RenameFeatureIdMapping)that);
     return false;
   }
 
-  public boolean equals(FeatureIdMapping that) {
+  public boolean equals(RenameFeatureIdMapping that) {
     if (that == null)
       return false;
 
@@ -256,7 +256,7 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
   }
 
   @Override
-  public int compareTo(FeatureIdMapping other) {
+  public int compareTo(RenameFeatureIdMapping other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
@@ -290,7 +290,7 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("FeatureIdMapping(");
+    StringBuilder sb = new StringBuilder("RenameFeatureIdMapping(");
     boolean first = true;
 
     sb.append("mapping:");
@@ -325,15 +325,15 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
     }
   }
 
-  private static class FeatureIdMappingStandardSchemeFactory implements SchemeFactory {
-    public FeatureIdMappingStandardScheme getScheme() {
-      return new FeatureIdMappingStandardScheme();
+  private static class RenameFeatureIdMappingStandardSchemeFactory implements SchemeFactory {
+    public RenameFeatureIdMappingStandardScheme getScheme() {
+      return new RenameFeatureIdMappingStandardScheme();
     }
   }
 
-  private static class FeatureIdMappingStandardScheme extends StandardScheme<FeatureIdMapping> {
+  private static class RenameFeatureIdMappingStandardScheme extends StandardScheme<RenameFeatureIdMapping> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, FeatureIdMapping struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, RenameFeatureIdMapping struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -347,13 +347,13 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
                 org.apache.thrift.protocol.TMap _map60 = iprot.readMapBegin();
-                struct.mapping = new HashMap<String,FeatureMappingValue>(2*_map60.size);
+                struct.mapping = new HashMap<String,RenameFeatureMappingValue>(2*_map60.size);
                 for (int _i61 = 0; _i61 < _map60.size; ++_i61)
                 {
                   String _key62;
-                  FeatureMappingValue _val63;
+                  RenameFeatureMappingValue _val63;
                   _key62 = iprot.readString();
-                  _val63 = new FeatureMappingValue();
+                  _val63 = new RenameFeatureMappingValue();
                   _val63.read(iprot);
                   struct.mapping.put(_key62, _val63);
                 }
@@ -375,7 +375,7 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, FeatureIdMapping struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, RenameFeatureIdMapping struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -383,7 +383,7 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
         oprot.writeFieldBegin(MAPPING_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, struct.mapping.size()));
-          for (Map.Entry<String, FeatureMappingValue> _iter64 : struct.mapping.entrySet())
+          for (Map.Entry<String, RenameFeatureMappingValue> _iter64 : struct.mapping.entrySet())
           {
             oprot.writeString(_iter64.getKey());
             _iter64.getValue().write(oprot);
@@ -398,16 +398,16 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
 
   }
 
-  private static class FeatureIdMappingTupleSchemeFactory implements SchemeFactory {
-    public FeatureIdMappingTupleScheme getScheme() {
-      return new FeatureIdMappingTupleScheme();
+  private static class RenameFeatureIdMappingTupleSchemeFactory implements SchemeFactory {
+    public RenameFeatureIdMappingTupleScheme getScheme() {
+      return new RenameFeatureIdMappingTupleScheme();
     }
   }
 
-  private static class FeatureIdMappingTupleScheme extends TupleScheme<FeatureIdMapping> {
+  private static class RenameFeatureIdMappingTupleScheme extends TupleScheme<RenameFeatureIdMapping> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, FeatureIdMapping struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, RenameFeatureIdMapping struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
       if (struct.isSetMapping()) {
@@ -417,7 +417,7 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
       if (struct.isSetMapping()) {
         {
           oprot.writeI32(struct.mapping.size());
-          for (Map.Entry<String, FeatureMappingValue> _iter65 : struct.mapping.entrySet())
+          for (Map.Entry<String, RenameFeatureMappingValue> _iter65 : struct.mapping.entrySet())
           {
             oprot.writeString(_iter65.getKey());
             _iter65.getValue().write(oprot);
@@ -427,19 +427,19 @@ public class FeatureIdMapping implements org.apache.thrift.TBase<FeatureIdMappin
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, FeatureIdMapping struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, RenameFeatureIdMapping struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
           org.apache.thrift.protocol.TMap _map66 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.mapping = new HashMap<String,FeatureMappingValue>(2*_map66.size);
+          struct.mapping = new HashMap<String,RenameFeatureMappingValue>(2*_map66.size);
           for (int _i67 = 0; _i67 < _map66.size; ++_i67)
           {
             String _key68;
-            FeatureMappingValue _val69;
+            RenameFeatureMappingValue _val69;
             _key68 = iprot.readString();
-            _val69 = new FeatureMappingValue();
+            _val69 = new RenameFeatureMappingValue();
             _val69.read(iprot);
             struct.mapping.put(_key68, _val69);
           }

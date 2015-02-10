@@ -43,12 +43,14 @@ object Snapshots {
     } yield snapshot
 
     // 1. allocate id
-    // 2. run job
-    // 3. save dictionary
-    // 4. save manifest
-    // 5. save stats
+    // 2. save feature id mappings
+    // 3. run job
+    // 4. save dictionary
+    // 5. save manifest
+    // 6. save stats
   def createSnapshot(repository: Repository, date: Date, commit: Commit, plan: SnapshotPlan): RIO[Snapshot] = for {
     id       <- SnapshotStorage.allocateId(repository)
+    mappings <- FeatureIdMappingsStorage.fromDictionaryAndSave(repository, Repository.snapshot(id), commit.dictionary.value)
     _        <- RIO.putStrLn(s"Total input size: ${plan.datasets.bytes}")
     reducers =  (plan.datasets.bytes.toLong / 2.gb.toBytes.value + 1).toInt // one reducer per 2GB of input
     _        <- RIO.putStrLn(s"Number of reducers: $reducers")

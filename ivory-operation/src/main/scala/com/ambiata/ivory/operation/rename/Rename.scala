@@ -20,7 +20,7 @@ object Rename {
     commit       <- fromRIO(repository => CommitStorage.head(repository))
     plan         =  RenamePlan.inmemory(commit, mapping.oldFeatures)
     lookups      <- prepareLookups(commit, mapping, plan.datasets.factsets.map(_.id), reducerSize)
-    renameResult <- renameWithFactsets(mapping, plan, lookups)
+    renameResult <- renameWithFactsets(mapping, plan, lookups, commit.dictionary.value)
     (fsid, stats) = renameResult
     sid          <- Factsets.updateFeatureStore(fsid)
   } yield (fsid, sid, stats)
@@ -35,12 +35,17 @@ object Rename {
     lookup      = ReducerLookups.createLookups(subdict, partitions, reducerSize)
   } yield lookup
 
-  def renameWithFactsets(mapping: RenameMapping, plan: RenamePlan, reducerLookups: ReducerLookups): RepositoryTIO[(FactsetId, RenameStats)] = for {
-    factset    <- RepositoryT.fromRIO(repository => Factsets.allocateFactsetId(repository))
+  def renameWithFactsets(mapping: RenameMapping, plan: RenamePlan, reducerLookups: ReducerLookups, dictionary: Dictionary): RepositoryTIO[(FactsetId, RenameStats)] = for {
+    factset    <- allocateFactset(dictionary)
     hdfs       <- getHdfs
     output      = hdfs.toIvoryLocation(Repository.factset(factset)).toHdfsPath
     stats      <- fromRIO(_ => RenameJob.run(hdfs, mapping, plan, output, reducerLookups))
   } yield factset -> stats
+
+  def allocateFactset(dictionary: Dictionary): RepositoryTIO[FactsetId] = fromRIO(repository => for {
+    fid      <- Factsets.allocateFactsetId(repository)
+    mappings <- FeatureIdMappingsStorage.fromDictionaryAndSave(repository, Repository.factset(fid), dictionary)
+  } yield fid)
 
   def getHdfs: RepositoryTIO[HdfsRepository] =
     fromRIO {

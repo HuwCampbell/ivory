@@ -16,8 +16,8 @@ object RenameMapping {
 
   import scala.collection.JavaConverters._
 
-  def toThrift(mapping: RenameMapping, lookup: FeatureIdLookup): FeatureIdMapping =
-    new FeatureIdMapping(mapping.mapping.map {
-      case (from, to) => from.toString -> new FeatureMappingValue(lookup.ids.get(to.toString), to.name)
+  def toThrift(mapping: RenameMapping, lookup: FeatureIdLookup): RenameFeatureIdMapping =
+    new RenameFeatureIdMapping(mapping.mapping.map {
+      case (from, to) => from.toString -> new RenameFeatureMappingValue(lookup.ids.get(to.toString), to.name)
     }.toMap.asJava)
 }

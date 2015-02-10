@@ -3,6 +3,7 @@ package com.ambiata.ivory.operation.rename
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.storage.control._
+import com.ambiata.ivory.storage.metadata.FeatureIdMappingsStorage
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.MemoryConversions._
@@ -26,6 +27,8 @@ Rename
   rename of a one feature                            $renameOneFeature     ${tag("mr")}
   rename of a factset respect priority and time      $renamePriority       ${tag("mr")}
   rename of a factset respect entity                 $renameEntity         ${tag("mr")}
+
+  new factset must contain feature id mappings       $mappings
 """
 
   def validateOk = prop((dict: Dictionary, meta: ConcreteDefinition, fid1: FeatureId, fid2: FeatureId) => !dict.byFeatureId.contains(fid1) ==> {
@@ -88,12 +91,19 @@ Rename
       .map(r => r._1 -> r._2.toSet) must beOkValue(RenameStats(facts.size) -> facts.map(_.withFeatureId(tid)))
   }).set(minTestsOk = 1, minSize = 1, maxSize = 5)
 
-  def renameWithFacts(mapping: RenameMapping, dictionary: Dictionary, input: List[Seq[Fact]]): RIO[(RenameStats, Seq[Fact])] =
-      RepositoryBuilder.using { repo => RepositoryRead.fromRepository(repo).flatMap(r => (for {
-          _      <- RepositoryT.fromRIO(_ => RepositoryBuilder.createRepo(repo, dictionary, input.map(_.toList)))
-          result <- Rename.rename(mapping, 10.mb)
-          sc = repo.scoobiConfiguration
-          facts  <- RepositoryT.fromRIO(_ => RepositoryBuilder.factsFromIvoryFactset(repo, result._1).run(sc).map(_.run(sc)))
+  def renameWithFacts(mapping: RenameMapping, dictionary: Dictionary, input: List[Seq[Fact]]): RIO[(RenameStats, Seq[Fact])] = for {
+    repo   <- RepositoryBuilder.repository
+    r      <- RepositoryRead.fromRepository(repo)
+    _      <- RepositoryBuilder.createRepo(repo, dictionary, input.map(_.toList))
+    result <- Rename.rename(mapping, 10.mb).run(r)
+    sc     = repo.scoobiConfiguration
+    facts  <- RepositoryBuilder.factsFromIvoryFactset(repo, result._1).run(sc).map(_.run(sc))
+  } yield (result._3, facts.flatMap(_.toOption))
 
-        } yield (result._3, facts.flatMap(_.toOption))).run(r)) }
+  def mappings = prop((dictionary: Dictionary) => (for {
+    repo     <- RepositoryBuilder.repository
+    read     <- RepositoryRead.fromRepository(repo)
+    factset  <- Rename.allocateFactset(dictionary).run(read)
+    mappings <- FeatureIdMappingsStorage.fromKeyStore(repo, Repository.factset(factset) / FeatureIdMappingsStorage.keyname)
+  } yield mappings.featureIds) must beOkValue(FeatureIdMappings.fromDictionary(dictionary).featureIds))
 }

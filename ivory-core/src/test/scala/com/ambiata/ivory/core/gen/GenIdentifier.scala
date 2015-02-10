@@ -13,6 +13,9 @@ object GenIdentifier {
     name <- GenString.sensible
   } yield FeatureId(ns, name)
 
+  def featureMappings: Gen[FeatureIdMappings] =
+    GenPlus.listOfSized(1, 100, feature).map(_.distinct).map(FeatureIdMappings.apply)
+
   // In many cases bad/strange things happen when using the same FeatureId for different Definitions
   def featureUnique(other: Set[FeatureId]): Gen[FeatureId] =
     feature.retryUntil(!other.contains(_))

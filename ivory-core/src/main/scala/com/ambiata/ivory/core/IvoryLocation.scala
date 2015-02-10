@@ -137,6 +137,15 @@ object IvoryLocation {
       }.run(conf)
   }
 
+  def readBytes(location: IvoryLocation): RIO[Array[Byte]] = location match {
+    case l @ LocalIvoryLocation(LocalLocation(path)) =>
+      Files.readBytes(l.filePath)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) =>
+      S3Address(bucket, key).getBytes.execute(s3Client)
+    case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) =>
+      Hdfs.readWith(new Path(path), is => Streams.readBytes(is)).run(conf)
+  }
+
   def readUnsafe(location: IvoryLocation)(f: java.io.InputStream => RIO[Unit]): RIO[Unit] = {
     import scalaz.effect.Effect._
     location match {
@@ -192,6 +201,12 @@ object IvoryLocation {
     case l @ LocalIvoryLocation(LocalLocation(path))            => Files.write(l.filePath, string)
     case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).put(string).execute(s3Client).void
     case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.writeWith(new Path(path), out => Streams.write(out, string)).run(conf)
+  }
+
+  def writeBytes(location: IvoryLocation, bytes: Array[Byte]): RIO[Unit] = location match {
+    case l @ LocalIvoryLocation(LocalLocation(path))            => Files.writeBytes(l.filePath, bytes)
+    case s @ S3IvoryLocation(S3Location(bucket, key), s3Client) => S3Address(bucket, key).putBytes(bytes).execute(s3Client).void
+    case h @ HdfsIvoryLocation(HdfsLocation(path), conf, sc, _) => Hdfs.writeWith(new Path(path), out => Streams.writeBytes(out, bytes)).run(conf)
   }
 
   def size(location: IvoryLocation): RIO[Bytes] = (location match {

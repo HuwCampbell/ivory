@@ -3,6 +3,7 @@ package com.ambiata.ivory.operation.extraction
 import com.ambiata.mundane.testing.RIOMatcher._
 import com.ambiata.ivory.core._, arbitraries._, Arbitraries._
 
+import com.ambiata.ivory.storage.metadata.FeatureIdMappingsStorage
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository.RepositoryBuilder
 import org.joda.time.LocalDate
@@ -14,6 +15,7 @@ class SnapshotsSpec extends Specification with ScalaCheck { def is = s2"""
   A snapshot of the features can be extracted as a sequence file $snapshot         ${tag("mr")}
   A snapshot of the features can be extracted over a window      $windowing        ${tag("mr")}
   A snapshot of the set features can be extracted over a window  $sets             ${tag("mr")}
+  A snapshot contains a mapping of FeatureIds                    $featureMapping   ${tag("mr")}
 
 """
 
@@ -84,4 +86,13 @@ class SnapshotsSpec extends Specification with ScalaCheck { def is = s2"""
       } yield f
     }.map(_.toSet) must beOkValue((outer.sortBy(f => f.datetime.long).lastOption.toList ++ facts).toSet)
   }).set(minTestsOk = 3)
+
+  def featureMapping = prop((facts: FactsWithDictionary) =>
+    (for {
+      repo <- RepositoryBuilder.repository
+      _    <- RepositoryBuilder.createRepo(repo, facts.dictionary, List(facts.facts))
+      s    <- Snapshots.takeSnapshot(repo, IvoryFlags.default, facts.facts.map(_.date).max)
+      m    <- FeatureIdMappingsStorage.fromKeyStore(repo, Repository.snapshot(s.id) / FeatureIdMappingsStorage.keyname)
+    } yield m.featureIds) must beOkValue(FeatureIdMappings.fromDictionary(facts.dictionary).featureIds)
+  ).set(minTestsOk = 3)
 }

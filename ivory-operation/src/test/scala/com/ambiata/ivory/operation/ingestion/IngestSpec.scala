@@ -10,7 +10,7 @@ import com.ambiata.ivory.core.thrift.ThriftFact
 import com.ambiata.ivory.operation.ingestion.thrift.Conversion
 import com.ambiata.ivory.mr.FactFormats._
 import com.ambiata.ivory.storage.arbitraries.Arbitraries._
-import com.ambiata.ivory.storage.metadata.DictionaryThriftStorage
+import com.ambiata.ivory.storage.metadata.{DictionaryThriftStorage, FeatureIdMappingsStorage}
 import com.ambiata.ivory.storage.parse.EavtParsers
 import com.ambiata.ivory.storage.repository.{HdfsGlobs, Repositories}
 import com.ambiata.ivory.storage.control._
@@ -34,6 +34,7 @@ class IngestSpec extends Specification with ScalaCheck { def is = section("mr") 
    from escaped delimited text                                                            $escapedText
    from thrift format                                                                     $thrift
 
+ FeatureId Mappings are stored when facts ingested                                        $featureIdMappings
 """
 
   def partitionIngest = prop((facts: PrimitiveSparseEntities, tt: TemporaryType) => {
@@ -114,6 +115,22 @@ class IngestSpec extends Specification with ScalaCheck { def is = section("mr") 
       }
     } must beOkValue(facts.facts.map(_.toThrift).toSet -> (badFacts.size + 1))
   }.set(minTestsOk = 3, maxDiscardRatio = 10)
+
+  def featureIdMappings = prop((facts: PrimitiveSparseEntities, tlocation: IvoryLocationTemporary, rtemp: RepositoryTemporary) => {
+    val expected: List[FeatureId] = FeatureIdMappings.fromDictionary(facts.dictionary).featureIds
+    (for {
+      repository <- rtemp.hdfs
+      cluster    <- ClusterTemporary().cluster
+      location   <- tlocation.file
+      _          <- Repositories.create(repository, RepositoryConfig.testing)
+      _          <- DictionaryThriftStorage(repository).store(facts.dictionary)
+      _          <- IvoryLocation.writeUtf8Lines(location </> "part-r-00000", List(facts.fact).map(toEavt))
+      fid        <- Ingest.ingestFacts(repository, cluster, List(
+                      (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited), Some(facts.fact.namespace), location)
+                    ), None, 100.mb).run.run(IvoryRead.create)
+      ms         <- FeatureIdMappingsStorage.fromKeyStore(repository, Repository.factset(fid) / FeatureIdMappingsStorage.keyname).map(_.featureIds)
+    } yield ms) must beOkValue(expected)
+  }).set(minTestsOk = 5)
 
   def toEavt(fact: Fact) =
     EavtParsers.toEavtDelimited(fact, "NA", '|')

@@ -33,7 +33,7 @@ abstract class RenameMapper[K <: Writable] extends CombinableMapper[K, BytesWrit
 
   val serializer = new ThriftSerialiser
 
-  val mapping = new FeatureIdMapping
+  val mapping = new RenameFeatureIdMapping
 
   var converter: MrFactConverter[K, BytesWritable] = null
 
