@@ -36,6 +36,12 @@ be summed.
 ### `count_unique`
 Return the number of unique fact values in `facts`.
 
+### `days_since`
+Return the number of days between a date _value_ and the `ref`.
+If the value is _after_ the `ref` then the result will be negative.
+eg. For a value of `2014-02-03` and a `ref` of `2014-02-10` the result
+will be `7`.
+
 ### `days_since_latest`, `weeks_since_latest`, ...
 Return the number of days (or weeks, etc) between the most recent fact in
 `facts` and `ref`.
