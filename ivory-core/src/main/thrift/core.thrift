@@ -40,17 +40,32 @@ union ThriftFactValue {
     9: i32 date;
 }
 
-struct ThriftFact {
+struct ThriftFactV1 {
     1: string entity;
     2: string attribute;
     3: ThriftFactValue value;
     4: optional i32 seconds;
 }
 
-struct NamespacedThriftFact {
-    1: ThriftFact fact;
+struct NamespacedThriftFactV1 {
+    1: ThriftFactV1 fact;
     2: string nspace;
     3: i32 yyyyMMdd; // this is a packed int, with a the first 16 bits representing the year, the next 8 the month and the final 8 the day
+}
+
+struct ThriftFactV2 {
+    1: string entity;
+    2: i32 attribute;
+    3: ThriftFactValue value;
+    4: optional i32 seconds;
+}
+
+struct NamespacedThriftFactV2 {
+    1: string entity;
+    2: string nspace;
+    3: i32 attribute;
+    4: ThriftFactValue value;
+    5: i64 dt; // this is a packed long, with the first 16 bits representing the year, the next 8 the month, the next 8 the day, and the final 32 the seconds since start of day
 }
 
 struct ThriftV1ErrorData {

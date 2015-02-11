@@ -15,11 +15,8 @@ case class FeatureIdMappings(private val lookup: Array[FeatureId]) {
   def featureIds: List[FeatureId] =
     lookup.toList
 
-  def byFeatureIdIndex: Map[FeatureIdIndex, FeatureId] =
-    lookup.zipWithIndex.map({ case (fid, idx) => (FeatureIdIndex(idx), fid) }).toMap
-
-  def byFeatureId: Map[FeatureId, FeatureIdIndex] =
-    byFeatureIdIndex.toList.map(_.swap).toMap
+  val byFeatureId: Map[FeatureId, FeatureIdIndex] =
+    lookup.zipWithIndex.map({ case (fid, idx) => (fid, FeatureIdIndex(idx)) }).toMap
 }
 
 object FeatureIdMappings {

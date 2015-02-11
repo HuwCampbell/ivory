@@ -8,7 +8,6 @@ class FeatureIdMappingsSpec extends Specification with ScalaCheck { def is = s2"
   Can get all FeatureIds                                         $getAll
   Can unsafely get all FeatureIds                                $getUnsafe
   By feature id contains matching entries                        $byFeatureId
-  By feature id index contains matching entries                  $byFeatureIdIndex
   Can create a mapping from a dictionary                         $fromDictionary
 
 """
@@ -32,12 +31,6 @@ class FeatureIdMappingsSpec extends Specification with ScalaCheck { def is = s2"
     seqToResult(ids.zipWithIndex.map({ case (featureId, i) =>
       byFeatureId.get(featureId) must beSome(FeatureIdIndex(i))
     }))
-  })
-
-  def byFeatureIdIndex = prop((ids: List[FeatureId]) => {
-    val byFeatureIdIndex: Map[FeatureIdIndex, FeatureId] = FeatureIdMappings(ids).byFeatureIdIndex
-    seqToResult((0 until ids.size).toList.map(i =>
-      byFeatureIdIndex.get(FeatureIdIndex(i)) must beSome))
   })
 
   def fromDictionary = prop((dictionary: Dictionary) =>

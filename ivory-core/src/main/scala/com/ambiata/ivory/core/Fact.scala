@@ -6,26 +6,25 @@ import scalaz._, Scalaz._
 
 trait Fact {
   def entity: String
-  def namespace: Namespace
+  def namespace(targetMappings: FeatureIdMappings): Namespace
   /** fast access method for the Fact Namespace which does not validate the namespace string */
-  def namespaceUnsafe: Namespace
-  def feature: String
-  def featureId: FeatureId
+  def namespaceUnsafe(targetMappings: FeatureIdMappings): Namespace
+  def feature(targetMappings: FeatureIdMappings): String
+  def featureId(targetMappings: FeatureIdMappings): FeatureId
+  def featureIdIndex(targetMappings: FeatureIdMappings): FeatureIdIndex
   def date: Date
   def time: Time
   def datetime: DateTime
   def value: Value
-  def toThrift: ThriftFact
+
+  def toThriftV1(targetMappings: FeatureIdMappings): ThriftFactV1
+  def toThriftV2(targetMappings: FeatureIdMappings): ThriftFactV2
+
+  def toNamespacedThriftV1(targetMappings: FeatureIdMappings): NamespacedFactV1
+  def toNamespacedThriftV2(targetMappings: FeatureIdMappings): NamespacedFactV2
 
   def partition: Partition =
     Partition(namespace, date)
-
-  def toNamespacedThrift: NamespacedFact
-
-  def coordinateString(delim: Char): String = {
-    val fields = List(s"$entity", s"$featureId", s"${date.int}-${time}")
-    fields.mkString(delim.toString)
-  }
 
   def isTombstone: Boolean = value match {
     case TombstoneValue     => true
@@ -58,16 +57,22 @@ object Fact {
 
 trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
 
-    def namespace: Namespace =
+    def namespace(targetMappings: FeatureIdMappings): Namespace =
       // this name should be well-formed if the ThriftFact has been validated
       // if that's not the case an exception will be thrown here
       Namespace.reviewed(nspace)
 
-    def namespaceUnsafe: Namespace =
+    def namespaceUnsafe(targetMappings: FeatureIdMappings): Namespace =
       Namespace.unsafe(nspace)
 
-    def feature: String =
+    def feature(targetMappings: FeatureIdMappings): String =
       fact.attribute
+
+    def featureId(targetMappings: FeatureIdMappings): FeatureId =
+      FeatureId(namespace, fact.getAttribute)
+
+    def featureIdIndex(targetMappings: FeatureIdMappings): FeatureIdIndex =
+      targetMappings.byFeatureId.get(featureId).get
 
     def date: Date =
       Date.unsafeFromInt(yyyyMMdd)
@@ -81,22 +86,68 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
     def entity: String =
       fact.getEntity
 
-    def featureId: FeatureId =
-      FeatureId(namespace, fact.getAttribute)
-
     def seconds: Int =
       Option(fact.getSeconds).getOrElse(0)
 
     def value: Value =
       Value.fromThrift(fact.getValue)
 
-    def toThrift: ThriftFact = fact
+    def toThriftV1(targetMappings: FeatureIdMappings): ThriftFactV1 =
+      fact
 
-    def toNamespacedThrift = this
+    def toThriftV2(targetMappings: FeatureIdMappings): ThriftFactV2 = {
+      val tfact = new ThriftFactV2(entity, featureIdIndex.int, fact.getValue)
+      tfact.setSeconds(fact.getSeconds)
+    }
+
+    def toNamespacedThriftV1: NamespacedFactV1 = this
 
     // Overriding for performance to avoid extra an extra allocation
     override def isTombstone: Boolean =
       fact.getValue.isSetT
+}
+
+trait NamespacedThriftFactDerivedV2 extends Fact { self: NamespacedThriftFactV2  =>
+
+    def namespace: Namespace =
+      // this name should be well-formed if the ThriftFact has been validated
+      // if that's not the case an exception will be thrown here
+      Namespace.reviewed(nspace)
+
+    def namespaceUnsafe: Namespace =
+      Namespace.unsafe(nspace)
+
+    def feature: String =
+      attribute
+
+    def date: Date =
+      datetime.date
+
+    def time: Time =
+      datetime.time
+
+    def datetime: DateTime =
+      DateTime.unsafeFromLong(dt)
+
+    def featureId: FeatureId =
+      FeatureId(namespace, getAttribute)
+
+    def seconds: Int =
+      time.seconds
+
+    def value: Value =
+      Value.fromThrift(getValue)
+
+    def toThrift: ThriftFact = {
+      val tfact = new ThriftFact(entity, attribute, getValue)
+      if(seconds == 0) tfact.setSeconds(seconds) else tfact
+    }
+
+    def toNamespacedThrift: NamespacedFact = this
+
+    // Overriding for performance to avoid extra an extra allocation
+    override def isTombstone: Boolean =
+      getValue.isSetT
 }
 
 object FatThriftFact {
