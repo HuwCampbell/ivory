@@ -130,7 +130,7 @@ class GroupByEntityMapper extends Mapper[NullWritable, BytesWritable, BytesWrita
   val serializer = ThriftSerialiser()
 
   /** Empty Fact, created once per reducer and mutated per record */
-  val fact = createMutableFact
+  val fact = createNamespacedFact
 
   /** Output key container */
   val kout = new BytesWritable
@@ -173,7 +173,7 @@ trait DenseReducer[A] extends Reducer[BytesWritable, BytesWritable, NullWritable
   val serializer = ThriftSerialiser()
 
   /** Empty Fact, created once per reducer and mutated per record */
-  val fact = createMutableFact
+  val fact = createNamespacedFact
 
   /** Output key, only create once per reducer */
   val kout = NullWritable.get

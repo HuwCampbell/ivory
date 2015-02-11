@@ -36,7 +36,7 @@ class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2
 
     MockFactMutator.run(sf.factsSorted) { (bytes, emitter, out) =>
       val state = new SquashReducerStateSnapshot(sf.date)
-      state.reduceAll(createMutableFact, createMutableFact, frs, bytes, emitter, out, serialiser)
+      state.reduceAll(createNamespacedFact, createNamespacedFact, frs, bytes, emitter, out, serialiser)
     }
   }
 
@@ -62,7 +62,7 @@ class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2
     val facts = cf.facts.sortBy(fact => (fact.entity, fact.datetime.long))
     MockFactMutator.run(facts) { (bytes, emitter, out) =>
       val state = new SquashReducerStateChord(cf.chord)
-      state.reduceAll(createMutableFact, createMutableFact, pool, bytes, emitter, out, serialiser)
+      state.reduceAll(createNamespacedFact, createNamespacedFact, pool, bytes, emitter, out, serialiser)
     }
   }
 
@@ -77,7 +77,7 @@ class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2
         })
       )
       val state = new SquashReducerStateDump(sf.date)
-      state.reduceAll(createMutableFact, createMutableFact, frs, bytes, emitter, out, serialiser)
+      state.reduceAll(createNamespacedFact, createNamespacedFact, frs, bytes, emitter, out, serialiser)
     }
     lines.map(_.split("\\|")(0)).toSet ==== sf.expected.keySet
   })

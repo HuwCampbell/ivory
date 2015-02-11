@@ -31,7 +31,7 @@ SnapshotMapperSpec
     val serializer = ThriftSerialiser()
     val kout = Writables.bytesWritable(4096)
     val vout = Writables.bytesWritable(4096)
-    val fact: MutableFact = createMutableFact
+    val fact: NamespacedFact = createNamespacedFact
     val emitter = newEmitter
     val okCounter = MemoryCounter()
     val skipCounter = MemoryCounter()
@@ -60,7 +60,7 @@ SnapshotMapperSpec
     val serializer = ThriftSerialiser()
     val kout = Writables.bytesWritable(4096)
     val vout = Writables.bytesWritable(4096)
-    val empty: MutableFact = createMutableFact
+    val empty: NamespacedFact = createNamespacedFact
     val emitter = newEmitter
     val okCounter = MemoryCounter()
     val dropCounter = MemoryCounter()
@@ -71,7 +71,7 @@ SnapshotMapperSpec
     (fs ++ dropped).foreach(f => format match {
       case SnapshotFormat.V1 =>
         SnapshotIncrementalMapper.map(empty, NullWritable.get, new BytesWritable(serializer.toBytes(f.toNamespacedThrift)),
-                                      Priority.Max, kout, vout, emitter, okCounter, dropCounter, serializer, lookup, MutableFactConverter())
+                                      Priority.Max, kout, vout, emitter, okCounter, dropCounter, serializer, lookup, NamespacedFactConverter())
       case SnapshotFormat.V2 =>
         SnapshotIncrementalMapper.map(empty, new IntWritable(f.date.int), new BytesWritable(serializer.toBytes(f.toThrift)),
                                       Priority.Max, kout, vout, emitter, okCounter, dropCounter, serializer, lookup, NamespaceDateFactConverter(f.namespace))

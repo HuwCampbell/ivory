@@ -17,7 +17,7 @@ object MockFactMutator {
   def runFatFactKeep[A](facts: List[Fact])(f: (JIterator[BytesWritable], Emitter[NullWritable, BytesWritable], BytesWritable) => A): (List[Fact], A) = {
     val serialiser = ThriftSerialiser()
     val emitter = TestEmitter[NullWritable, BytesWritable, Fact]((key, value) => {
-      serialiser.fromBytesViewUnsafe(createMutableFact, value.getBytes, 0, value.getLength)
+      serialiser.fromBytesViewUnsafe(createNamespacedFact, value.getBytes, 0, value.getLength)
     })
     val result = iterateFactsAsBytes(facts)(iter => f(iter, emitter, Writables.bytesWritable(4096)))
     (emitter.emitted.toList, result)

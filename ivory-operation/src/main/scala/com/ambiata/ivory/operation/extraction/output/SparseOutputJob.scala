@@ -88,7 +88,7 @@ class SparseOutputMapper extends Mapper[NullWritable, BytesWritable, NullWritabl
   val serializer = ThriftSerialiser()
 
   /** Empty Fact, created once per reducer and mutated per record */
-  val fact = createMutableFact
+  val fact = createNamespacedFact
 
   /** Output key, only create once per reducer */
   val kout = NullWritable.get

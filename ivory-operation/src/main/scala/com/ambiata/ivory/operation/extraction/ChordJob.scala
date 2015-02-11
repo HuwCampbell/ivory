@@ -157,7 +157,7 @@ abstract class ChordFactsetMapper[K <: Writable] extends CombinableMapper[K, Byt
   var dropCounter: Counter = null
 
   /** Thrift object provided from sub class, created once per mapper */
-  val fact: MutableFact = createMutableFact
+  val fact: NamespacedFact = createNamespacedFact
 
   /** Class to convert a key/value into a Fact based of the version, created once per mapper */
   var converter: MrFactConverter[K, BytesWritable] = null
@@ -203,7 +203,7 @@ class ChordV2FactsetMapper extends ChordFactsetMapper[NullWritable] with MrFacts
 
 object ChordFactsetMapper {
 
-  def map[K <: Writable](fact: MutableFact, converter: MrFactConverter[K, BytesWritable], key: K, value: BytesWritable, priority: Priority,
+  def map[K <: Writable](fact: NamespacedFact, converter: MrFactConverter[K, BytesWritable], key: K, value: BytesWritable, priority: Priority,
           kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter,
           skipCounter: Counter, dropCounter: Counter, deserializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup, entities: Entities) {
     converter.convert(fact, key, value)
@@ -233,7 +233,7 @@ abstract class ChordIncrementalMapper[K <: Writable] extends CombinableMapper[K,
   val serializer = ThriftSerialiser()
 
   /** Empty Fact, created once per mapper and mutated for each record */
-  val fact = createMutableFact
+  val fact = createNamespacedFact
 
   /** Output key, created once per mapper and mutated for each record */
   val kout = Writables.bytesWritable(4096)
@@ -282,7 +282,7 @@ class ChordV2IncrementalMapper extends ChordIncrementalMapper[IntWritable] with 
 
 object ChordIncrementalMapper {
 
-  def map[K <: Writable](fact: MutableFact, key: K, value: BytesWritable, priority: Priority, kout: BytesWritable, vout: BytesWritable,
+  def map[K <: Writable](fact: NamespacedFact, key: K, value: BytesWritable, priority: Priority, kout: BytesWritable, vout: BytesWritable,
                          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, skipCounter: Counter, dropCounter: Counter,
                          serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup, entities: Entities, converter: MrFactConverter[K, BytesWritable]) {
     converter.convert(fact, key, value)
@@ -402,7 +402,7 @@ object ChordReducer {
     val kout = NullWritable.get()
 
     /** `windowStarts` will be the same length as `dates`, or `null` if no window is set for the current feature. */
-    def emit(fact: MutableFact, out: BytesWritable, dates: Array[Int], windowStarts: Array[Int],
+    def emit(fact: NamespacedFact, out: BytesWritable, dates: Array[Int], windowStarts: Array[Int],
              buffer: StringBuilder, previousDatetime: DateTime, date: Date, offset: Int): Int = {
       var i = offset
       // For window features _always_ emit the last fact before the window (for state-based features)
@@ -422,7 +422,7 @@ object ChordReducer {
     }
   }
 
-  def reduce(fact: MutableFact, iter: JIterator[BytesWritable], emitter: ChordWindowEmitter, out: BytesWritable,
+  def reduce(fact: NamespacedFact, iter: JIterator[BytesWritable], emitter: ChordWindowEmitter, out: BytesWritable,
              dates: Array[Int], windowStarts: Array[Int], buffer: StringBuilder, isSet: Boolean, serializer: ThriftSerialiser): Unit = {
 
     /**

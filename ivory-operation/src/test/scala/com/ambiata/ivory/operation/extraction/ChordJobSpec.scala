@@ -33,7 +33,7 @@ class ChordJobSpec extends Specification with ScalaCheck { def is = s2"""
   def reduce(facts: List[Fact], expected: List[Fact], dateArray: Array[Int], windowStarts: Array[Int], isSet: Boolean): Result = {
     val serialiser = ThriftSerialiser()
     MockFactMutator.run(facts) { (bytes, emitter, out) =>
-      ChordReducer.reduce(createMutableFact, bytes, new ChordWindowEmitter(emitter), out, dateArray, windowStarts,
+      ChordReducer.reduce(createNamespacedFact, bytes, new ChordWindowEmitter(emitter), out, dateArray, windowStarts,
         new StringBuilder, isSet, serialiser)
     } ==== expected
   }

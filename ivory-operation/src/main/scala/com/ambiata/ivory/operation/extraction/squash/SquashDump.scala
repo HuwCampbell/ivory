@@ -35,7 +35,7 @@ object SquashDump {
   def wrap(delim: Char, missing: String, fr: FeatureReduction, r: Reduction, emitter: String => Unit): Reduction =
     new Reduction {
       val buffer = new StringBuilder
-      val emitFact = createMutableFact
+      val emitFact = createNamespacedFact
       emitFact.setFact(new ThriftFact)
 
       override def clear(): Unit =

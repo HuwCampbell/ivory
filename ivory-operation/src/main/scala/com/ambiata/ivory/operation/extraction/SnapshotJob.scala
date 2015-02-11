@@ -167,7 +167,7 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
   var dropCounter: Counter = null
 
   /** Empty Fact, created once per mapper and mutated for each record */
-  val fact = createMutableFact
+  val fact = createNamespacedFact
 
   /** Class to convert a key/value into a Fact based of the version, created once per mapper */
   var converter: MrFactConverter[K, BytesWritable] = null
@@ -209,7 +209,7 @@ class SnapshotV2FactsetMapper extends SnapshotFactsetMapper[NullWritable] with M
 
 object SnapshotFactsetMapper {
 
-  def map[K <: Writable](fact: MutableFact, date: Date, converter: MrFactConverter[K, BytesWritable], key: K, value: BytesWritable,
+  def map[K <: Writable](fact: NamespacedFact, date: Date, converter: MrFactConverter[K, BytesWritable], key: K, value: BytesWritable,
                          priority: Priority, kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable],
                          okCounter: Counter, skipCounter: Counter, dropCounter: Counter, deserializer: ThriftSerialiser,
                          featureIdLookup: FeatureIdLookup) {
@@ -240,7 +240,7 @@ abstract class SnapshotIncrementalMapper[K <: Writable] extends CombinableMapper
   val serializer = ThriftSerialiser()
 
   /** Empty Fact, created once per mapper and mutated for each record */
-  val fact = createMutableFact
+  val fact = createNamespacedFact
 
   /** Output key, created once per mapper and mutated for each record */
   val kout = Writables.bytesWritable(4096)
@@ -281,7 +281,7 @@ class SnapshotV1IncrementalMapper extends SnapshotIncrementalMapper[NullWritable
 class SnapshotV2IncrementalMapper extends SnapshotIncrementalMapper[IntWritable] with MrSnapshotFactFormatV2
 
 object SnapshotIncrementalMapper {
-  def map[K <: Writable](fact: MutableFact, key: K, value: BytesWritable, priority: Priority, kout: BytesWritable,
+  def map[K <: Writable](fact: NamespacedFact, key: K, value: BytesWritable, priority: Priority, kout: BytesWritable,
                          vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter,
                          dropCounter: Counter, serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup,
                          converter: MrFactConverter[K, BytesWritable]) {
@@ -316,7 +316,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, IntWritable,
   val serialiser = ThriftSerialiser()
 
   /** Empty Fact, created once per reducer and mutated per record */
-  val fact: MutableFact = createMutableFact
+  val fact: NamespacedFact = createNamespacedFact
 
   /** Output key, created once per reducer and mutated per record */
   val kout = new IntWritable(0)
@@ -384,7 +384,7 @@ object SnapshotReducer {
 
   val sentinelDateTime = DateTime.unsafeFromLong(-1)
 
-  def reduce(fact: MutableFact, iter: JIterator[BytesWritable], emitter: Emitter[IntWritable, BytesWritable],
+  def reduce(fact: NamespacedFact, iter: JIterator[BytesWritable], emitter: Emitter[IntWritable, BytesWritable],
              kout: IntWritable, vout: BytesWritable, windowStart: Date, isSet: Boolean, serialiser: ThriftSerialiser): Int = {
 
     var datetime = sentinelDateTime

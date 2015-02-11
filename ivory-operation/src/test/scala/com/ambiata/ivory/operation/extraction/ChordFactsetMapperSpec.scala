@@ -27,7 +27,7 @@ class ChordFactsetMapperSpec extends Specification with ScalaCheck { def is = s2
 
   def map(f: Fact, context: ChordMapperSpecContext, priority: Priority): Unit = {
     ChordFactsetMapper.map(
-      createMutableFact
+      createNamespacedFact
       , PartitionFactConverter(f.partition)
       , NullWritable.get
       , new BytesWritable(context.serializer.toBytes(f.toThrift))

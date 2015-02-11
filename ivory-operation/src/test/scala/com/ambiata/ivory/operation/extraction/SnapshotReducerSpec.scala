@@ -42,7 +42,7 @@ SnapshotReducerSpec
     val facts = SnapshotFacts(dts, fact, date)
     val serialiser = ThriftSerialiser()
     MockFactMutator.runThriftFactKeep(fact.namespace, facts.facts) { (bytes, emitter, kout, vout) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, isSet = false, serialiser)
+      SnapshotReducer.reduce(createNamespacedFact, bytes, emitter, kout, vout, date, isSet = false, serialiser)
     } ==== (facts.expected -> facts.expected.size)
   }).set(maxSize = 10)
 
@@ -50,7 +50,7 @@ SnapshotReducerSpec
     val facts = SnapshotFacts(dts, fact, date)
     val serialiser = ThriftSerialiser()
     MockFactMutator.runThriftFactKeep(fact.namespace, facts.factsDupe) { (bytes, emitter, kout, vout) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, isSet = false, serialiser)
+      SnapshotReducer.reduce(createNamespacedFact, bytes, emitter, kout, vout, date, isSet = false, serialiser)
     } ==== (facts.expected -> facts.expected.size)
   }).set(maxSize = 10)
 
@@ -58,7 +58,7 @@ SnapshotReducerSpec
     val facts = SnapshotFacts(dts, fact, date)
     val serialiser = ThriftSerialiser()
     MockFactMutator.runThriftFactKeep(fact.namespace, facts.factsDupe) { (bytes, emitter, kout, vout) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, isSet = true, serialiser)
+      SnapshotReducer.reduce(createNamespacedFact, bytes, emitter, kout, vout, date, isSet = true, serialiser)
     } ==== (facts.expectedSet -> facts.expectedSet.size)
   }).set(maxSize = 10)
 

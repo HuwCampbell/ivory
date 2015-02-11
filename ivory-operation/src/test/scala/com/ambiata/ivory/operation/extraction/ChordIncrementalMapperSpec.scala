@@ -27,7 +27,7 @@ class ChordIncrementalMapperSpec extends Specification with ScalaCheck { def is 
 
   def map(f: Fact, context: ChordMapperSpecContext, priority: Priority): Unit = {
     ChordIncrementalMapper.map(
-      createMutableFact
+      createNamespacedFact
       , new IntWritable(f.date.int)
       , new BytesWritable(context.serializer.toBytes(f.toThrift))
       , priority

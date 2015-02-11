@@ -29,7 +29,7 @@ abstract class RenameMapper[K <: Writable] extends CombinableMapper[K, BytesWrit
   val vout = Writables.bytesWritable(4096)
 
   /* Empty Fact, created once per mapper and mutated for each record */
-  val fact = createMutableFact
+  val fact = createNamespacedFact
 
   val serializer = new ThriftSerialiser
 

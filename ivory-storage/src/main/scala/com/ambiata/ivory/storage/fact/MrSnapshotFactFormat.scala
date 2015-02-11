@@ -5,7 +5,7 @@ import org.apache.hadoop.io.{BytesWritable, IntWritable, NullWritable}
 
 trait MrSnapshotFactFormatV1 extends MrFactFormat[NullWritable, BytesWritable] {
   def factConverter(path: Path): MrFactConverter[NullWritable, BytesWritable] =
-    MutableFactConverter()
+    NamespacedFactConverter()
 }
 
 object MrSnapshotFactFormatV1 extends MrSnapshotFactFormatV1

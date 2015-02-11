@@ -15,7 +15,7 @@ import scalaz._, Scalaz._, effect._
 
 object PrintFacts {
 
-  def print[K <: Writable, V <: Writable](fact: MutableFact, converter: MrFactConverter[K, V], mapper: DumpFactsMapper)(key: K, value: V): IO[Unit] = {
+  def print[K <: Writable, V <: Writable](fact: NamespacedFact, converter: MrFactConverter[K, V], mapper: DumpFactsMapper)(key: K, value: V): IO[Unit] = {
     converter.convert(fact, key, value)
     IO.putStrLn(if(mapper.accept(fact)) mapper.render(fact) else "")
   }
@@ -30,7 +30,7 @@ object PrintFacts {
             case FactsetFormat.V1 => MrFactsetFactFormatV1.factConverter(path)
             case FactsetFormat.V2 => MrFactsetFactFormatV2.factConverter(path)
           }
-          Print.printWith(path, hr.configuration, NullWritable.get, Writables.bytesWritable(4096))(print(createMutableFact, converter, mapper) _)
+          Print.printWith(path, hr.configuration, NullWritable.get, Writables.bytesWritable(4096))(print(createNamespacedFact, converter, mapper) _)
         }).map(_.sequenceU.right)
       } yield ret
       case LocalRepository(_) => RIO.ok("DumpFacts does not support reading factsets from local repositories yet".left)
@@ -42,7 +42,7 @@ object PrintFacts {
     val mapper = DumpFactsMapper(entities.toSet, attributes.toSet, s"Snapshot[${snapshot.id.render}]")
 
     def printPath[K <: Writable](path: Path, conf: Configuration, key: K, converter: MrFactConverter[K, BytesWritable]): RIO[Unit] =
-      Print.printWith(path, conf, key, Writables.bytesWritable(4096))(print(createMutableFact, converter, mapper) _)
+      Print.printWith(path, conf, key, Writables.bytesWritable(4096))(print(createNamespacedFact, converter, mapper) _)
 
     repository match {
       case hr @ HdfsRepository(_) => for {

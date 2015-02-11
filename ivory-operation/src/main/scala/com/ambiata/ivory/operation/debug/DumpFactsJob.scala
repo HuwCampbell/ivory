@@ -84,7 +84,7 @@ abstract class DumpFactsFactsetMapper[K <: Writable] extends CombinableMapper[K,
   val buffer = new StringBuilder(4096)
   val kout = NullWritable.get
   val vout = new Text
-  var fact: MutableFact = createMutableFact
+  var fact: NamespacedFact = createNamespacedFact
   var mapper: DumpFactsMapper = null
   var converter: MrFactConverter[K, BytesWritable] = null
 
@@ -112,7 +112,7 @@ class DumpFactsV2FactsetMapper extends DumpFactsFactsetMapper[NullWritable] with
 
 abstract class DumpFactsSnapshotMapper[K <: Writable] extends CombinableMapper[K, BytesWritable, NullWritable, Text] with MrFactFormat[K, BytesWritable] {
   val serializer = ThriftSerialiser()
-  val fact: MutableFact = createMutableFact
+  val fact: NamespacedFact = createNamespacedFact
   val buffer = new StringBuilder(4096)
   val key = NullWritable.get
   val out = new Text

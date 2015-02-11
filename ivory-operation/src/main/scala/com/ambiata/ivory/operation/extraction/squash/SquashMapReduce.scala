@@ -22,7 +22,7 @@ abstract class SquashMapper[K <: Writable] extends Mapper[K, BytesWritable, Byte
   import SnapshotMapper._
 
   val serializer = ThriftSerialiser()
-  val fact: MutableFact = createMutableFact
+  val fact: NamespacedFact = createNamespacedFact
   val kout = Writables.bytesWritable(4096)
   val vout = Writables.bytesWritable(4096)
   val lookup = new FeatureIdLookup
@@ -93,8 +93,8 @@ trait SquashReducer[A <: Writable] extends Reducer[BytesWritable, BytesWritable,
   val serialiser = ThriftSerialiser()
   val lookup = new FeatureReductionLookup()
   var isSetLookup: Array[Boolean] = null
-  val fact = createMutableFact
-  val emitFact: MutableFact = createMutableFact
+  val fact = createNamespacedFact
+  val emitFact: NamespacedFact = createNamespacedFact
   var state: SquashReducerState[A] = null
   var tracer: SquashProfiler = null
   var out: MultipleOutputs[NullWritable, A] = null

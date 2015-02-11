@@ -16,7 +16,7 @@ object EntityIterator {
    * Encapsulates the logic of iterating over a set of ordered facts, processing each one and then 'emitting' when
    * a new entity is encountered or the end is reached.
    */
-  def iterate[A](fact: MutableFact, iter: JIterator[BytesWritable], serialiser: ThriftSerialiser)
+  def iterate[A](fact: NamespacedFact, iter: JIterator[BytesWritable], serialiser: ThriftSerialiser)
                 (initial: A, callback: EntityCallback[A]): Unit = {
     val state = new SquashReducerEntityState(null, Namespace("empty"))
 
@@ -41,19 +41,19 @@ object EntityIterator {
   trait EntityCallback[A] {
 
     def initialise(state: SquashReducerEntityState): A
-    def update(state: SquashReducerEntityState, fact: MutableFact, value: A): A
+    def update(state: SquashReducerEntityState, fact: NamespacedFact, value: A): A
     def emit(state: SquashReducerEntityState, value: A): Unit
   }
 }
 
 trait SquashReducerState[A] {
-  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, iter: JIterator[BytesWritable],
+  def reduceAll(fact: NamespacedFact, emitFact: NamespacedFact, reducerPool: ReducerPool, iter: JIterator[BytesWritable],
                 emitter: Emitter[NullWritable, A], out: A, serialiser: ThriftSerialiser): Unit
 }
 
 class SquashReducerStateSnapshot(date: Date) extends SquashReducerState[BytesWritable] {
 
-  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, iter: JIterator[BytesWritable],
+  def reduceAll(fact: NamespacedFact, emitFact: NamespacedFact, reducerPool: ReducerPool, iter: JIterator[BytesWritable],
                 emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, serialiser: ThriftSerialiser): Unit = {
     // Fact is null by default, and we want to re-use the same one
     emitFact.setFact(new ThriftFact)
@@ -63,7 +63,7 @@ class SquashReducerStateSnapshot(date: Date) extends SquashReducerState[BytesWri
     EntityIterator.iterate(fact, iter, serialiser)((), new EntityIterator.EntityCallback[Unit] {
       def initialise(state: SquashReducerEntityState): Unit =
         SquashReducerState.clear(reducers)
-      def update(state: SquashReducerEntityState, fact: MutableFact, value: Unit): Unit =
+      def update(state: SquashReducerEntityState, fact: NamespacedFact, value: Unit): Unit =
         SquashReducerState.update(fact, reducers)
       def emit(state: SquashReducerEntityState, value: Unit): Unit =
         SquashReducerState.emit(emitFact, reducers, emitter, out, state.namespace, state.entity, date, serialiser)
@@ -78,7 +78,7 @@ class SquashReducerStateChord(chord: Entities) extends SquashReducerState[BytesW
 
   class SquashChordReducerEntityState(var dates: Array[Int], var reducers: Int => List[(FeatureReduction, Reduction)])
 
-  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, iter: JIterator[BytesWritable],
+  def reduceAll(fact: NamespacedFact, emitFact: NamespacedFact, reducerPool: ReducerPool, iter: JIterator[BytesWritable],
                 emitter: Emitter[NullWritable, BytesWritable], out: BytesWritable, serialiser: ThriftSerialiser): Unit = {
     val buffer = new StringBuilder
     // Fact is null by default, and we want to re-use the same one
@@ -100,7 +100,7 @@ class SquashReducerStateChord(chord: Entities) extends SquashReducerState[BytesW
         entityState
       }
 
-      def skipOldChords(fact: MutableFact, value: SquashChordReducerEntityState): Int = {
+      def skipOldChords(fact: NamespacedFact, value: SquashChordReducerEntityState): Int = {
         var i = value.dates.length - 1
         while (i >= 0 && value.dates(i) < fact.date.underlying) {
           i -= 1
@@ -108,7 +108,7 @@ class SquashReducerStateChord(chord: Entities) extends SquashReducerState[BytesW
         i
       }
 
-      def update(state: SquashReducerEntityState, fact: MutableFact, value: SquashChordReducerEntityState): SquashChordReducerEntityState = {
+      def update(state: SquashReducerEntityState, fact: NamespacedFact, value: SquashChordReducerEntityState): SquashChordReducerEntityState = {
         var i = skipOldChords(fact, value)
         // The rest of the chords may have a window that includes this fact
         while (i >= 0) {
@@ -145,7 +145,7 @@ class SquashReducerStateChord(chord: Entities) extends SquashReducerState[BytesW
 
 class SquashReducerStateDump(date: Date) extends SquashReducerState[Text] {
 
-  def reduceAll(fact: MutableFact, emitFact: MutableFact, reducerPool: ReducerPool, iter: JIterator[BytesWritable],
+  def reduceAll(fact: NamespacedFact, emitFact: NamespacedFact, reducerPool: ReducerPool, iter: JIterator[BytesWritable],
                 emitter: Emitter[NullWritable, Text], out: Text, serialiser: ThriftSerialiser): Unit = {
 
     val reducers = reducerPool.compile(Array(date))(0)
@@ -153,7 +153,7 @@ class SquashReducerStateDump(date: Date) extends SquashReducerState[Text] {
     EntityIterator.iterate(fact, iter, serialiser)((), new EntityIterator.EntityCallback[Unit] {
       def initialise(state: SquashReducerEntityState): Unit =
         SquashReducerState.clear(reducers)
-      def update(state: SquashReducerEntityState, fact: MutableFact, value: Unit): Unit =
+      def update(state: SquashReducerEntityState, fact: NamespacedFact, value: Unit): Unit =
         SquashReducerState.update(fact, reducers)
       def emit(state: SquashReducerEntityState, value: Unit): Unit =
         reducers.foreach {
@@ -171,7 +171,7 @@ object SquashReducerState {
   def clear(reducers: Iterable[(FeatureReduction, Reduction)]): Unit =
     reducers.foreach(_._2.clear())
 
-  def update(fact: MutableFact, reducers: Iterable[(FeatureReduction, Reduction)]): Unit = {
+  def update(fact: NamespacedFact, reducers: Iterable[(FeatureReduction, Reduction)]): Unit = {
     reducers.foreach {
       case (_, reduction) =>
         reduction.update(fact)
@@ -179,7 +179,7 @@ object SquashReducerState {
   }
 
   // Write out the final reduced values
-  def emit(emitFact: MutableFact, reducers: Iterable[(FeatureReduction, Reduction)], emitter: Emitter[NullWritable, BytesWritable],
+  def emit(emitFact: NamespacedFact, reducers: Iterable[(FeatureReduction, Reduction)], emitter: Emitter[NullWritable, BytesWritable],
            out: BytesWritable, namespace: Namespace, entity: String, date: Date, serialiser: ThriftSerialiser): Unit = {
     // Use emitFact here to avoid clobbering values in fact
     val nsfact = emitFact.toNamespacedThrift

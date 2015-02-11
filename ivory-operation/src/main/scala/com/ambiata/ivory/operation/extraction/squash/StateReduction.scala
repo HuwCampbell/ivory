@@ -7,7 +7,7 @@ import com.ambiata.ivory.operation.extraction.reduction.Reduction
 class StateReduction(windowStart: Date, windowEnd: Date, reduction: Reduction) extends Reduction {
 
   val tombstone = ThriftFactValue.t(new ThriftTombstone)
-  val factPrev = createMutableFact
+  val factPrev = createNamespacedFact
   // This is null by default
   factPrev.setFact(new ThriftFact)
   // This is just to ensure we don't "skip" an extra tombstone

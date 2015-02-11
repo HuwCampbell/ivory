@@ -20,7 +20,7 @@ trait Fact {
   def partition: Partition =
     Partition(namespace, date)
 
-  def toNamespacedThrift: MutableFact
+  def toNamespacedThrift: NamespacedFact
 
   def coordinateString(delim: Char): String = {
     val fields = List(s"$entity", s"$featureId", s"${date.int}-${time}")
@@ -100,7 +100,7 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
 }
 
 object FatThriftFact {
-  def apply(ns: String, date: Date, tfact: ThriftFact): MutableFact =
+  def apply(ns: String, date: Date, tfact: ThriftFact): NamespacedFact =
     new NamespacedThriftFact(tfact, ns, date.int) with NamespacedThriftFactDerived
 
   def factWith(entity: String, namespace: String, feature: String, date: Date, time: Time, value: ThriftFactValue): Fact = {
