@@ -6,45 +6,47 @@ import scalaz._, Scalaz._
 
 trait Fact {
   def entity: String
-  def namespace(targetMappings: FeatureIdMappings): Namespace
+  def namespace(source: FeatureIdMappings): Namespace
   /** fast access method for the Fact Namespace which does not validate the namespace string */
-  def namespaceUnsafe(targetMappings: FeatureIdMappings): Namespace
-  def feature(targetMappings: FeatureIdMappings): String
-  def featureId(targetMappings: FeatureIdMappings): FeatureId
-  def featureIdIndex(targetMappings: FeatureIdMappings): FeatureIdIndex
+  def namespaceUnsafe(source: FeatureIdMappings): Namespace
+  def feature(source: FeatureIdMappings): String
+  def featureId(source: FeatureIdMappings): FeatureId
+  def featureIdIndex(source: FeatureIdMappings): FeatureIdIndex
   def date: Date
   def time: Time
-  def datetime: DateTime
   def value: Value
 
-  def toThriftV1(targetMappings: FeatureIdMappings): ThriftFactV1
-  def toThriftV2(targetMappings: FeatureIdMappings): ThriftFactV2
+  def toThriftV1(source: FeatureIdMappings, target: FeatureIdMappings): ThriftFactV1
+  def toThriftV2(source: FeatureIdMappings, target: FeatureIdMappings): ThriftFactV2
 
-  def toNamespacedThriftV1(targetMappings: FeatureIdMappings): NamespacedFactV1
-  def toNamespacedThriftV2(targetMappings: FeatureIdMappings): NamespacedFactV2
+  def toNamespacedThriftV1(source: FeatureIdMappings, target: FeatureIdMappings): NamespacedFactV1
+  def toNamespacedThriftV2(source: FeatureIdMappings, target: FeatureIdMappings): NamespacedFactV2
 
-  def partition: Partition =
-    Partition(namespace, date)
+  def datetime: DateTime =
+    date.addTime(time)
+
+  def partition(source: FeatureIdMappings): Partition =
+    Partition(namespace(source), date)
 
   def isTombstone: Boolean = value match {
     case TombstoneValue     => true
     case _                  => false
   }
 
-  def withEntity(newEntity: String): Fact =
-    Fact.newFactWithNamespace(newEntity, namespace, feature, date, time, value)
+  def withEntity(newEntity: String, source: FeatureIdMappings): Fact =
+    Fact.newFactWithNamespace(newEntity, namespace(source), feature(source), date, time, value)
 
   def withFeatureId(newFeatureId: FeatureId): Fact =
     Fact.newFactWithNamespace(entity, newFeatureId.namespace, newFeatureId.name, date, time, value)
 
-  def withDate(newDate: Date): Fact =
-    Fact.newFactWithNamespace(entity, namespace, feature, newDate, time, value)
+  def withDate(newDate: Date, source: FeatureIdMappings): Fact =
+    Fact.newFactWithNamespace(entity, namespace(source), feature(source), newDate, time, value)
 
-  def withTime(newTime: Time): Fact =
-    Fact.newFactWithNamespace(entity, namespace, feature, date, newTime, value)
+  def withTime(newTime: Time, source: FeatureIdMappings): Fact =
+    Fact.newFactWithNamespace(entity, namespace(source), feature(source), date, newTime, value)
 
-  def withValue(newValue: Value): Fact =
-    Fact.newFactWithNamespace(entity, namespace, feature, date, time, newValue)
+  def withValue(newValue: Value, source: FeatureIdMappings): Fact =
+    Fact.newFactWithNamespace(entity, namespace(source), feature(source), date, time, newValue)
 }
 
 object Fact {
@@ -52,157 +54,179 @@ object Fact {
     newFact(entity, namespace.name, feature, date, time, value)
 
   def newFact(entity: String, namespace: String, feature: String, date: Date, time: Time, value: Value): Fact =
-    FatThriftFact.factWith(entity, namespace, feature, date, time, Value.toThrift(value))
+    NamespacedThriftFactV1.factWith(entity, namespace, feature, date, time, Value.toThrift(value))
 }
 
-trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
+trait NamespacedThriftFactDerivedV1 extends Fact { self: NamespacedThriftFactV1  =>
 
-    def namespace(targetMappings: FeatureIdMappings): Namespace =
-      // this name should be well-formed if the ThriftFact has been validated
-      // if that's not the case an exception will be thrown here
-      Namespace.reviewed(nspace)
+  def entity: String =
+    fact.getEntity
 
-    def namespaceUnsafe(targetMappings: FeatureIdMappings): Namespace =
-      Namespace.unsafe(nspace)
+  def namespace(source: FeatureIdMappings): Namespace =
+    // this name should be well-formed if the ThriftFact has been validated
+    // if that's not the case an exception will be thrown here
+    Namespace.reviewed(nspace)
 
-    def feature(targetMappings: FeatureIdMappings): String =
-      fact.attribute
+  def namespaceUnsafe(source: FeatureIdMappings): Namespace =
+    Namespace.unsafe(nspace)
 
-    def featureId(targetMappings: FeatureIdMappings): FeatureId =
-      FeatureId(namespace, fact.getAttribute)
+  def feature(source: FeatureIdMappings): String =
+    fact.attribute
 
-    def featureIdIndex(targetMappings: FeatureIdMappings): FeatureIdIndex =
-      targetMappings.byFeatureId.get(featureId).get
+  def featureId(source: FeatureIdMappings): FeatureId =
+    FeatureId(namespace(source), fact.getAttribute)
 
-    def date: Date =
-      Date.unsafeFromInt(yyyyMMdd)
+  def featureIdIndex(source: FeatureIdMappings): FeatureIdIndex =
+    source.byFeatureId.get(featureId(source)).get
 
-    def time: Time =
-      Time.unsafe(seconds)
+  def date: Date =
+    Date.unsafeFromInt(yyyyMMdd)
 
-    def datetime: DateTime =
-      date.addTime(time)
+  def time: Time =
+    Time.unsafe(seconds)
 
-    def entity: String =
-      fact.getEntity
+  def seconds: Int =
+    fact.getSeconds
 
-    def seconds: Int =
-      Option(fact.getSeconds).getOrElse(0)
+  def value: Value =
+    Value.fromThrift(fact.getValue)
 
-    def value: Value =
-      Value.fromThrift(fact.getValue)
+  def toThriftV1(source: FeatureIdMappings, target: FeatureIdMappings): ThriftFactV1 =
+    fact
 
-    def toThriftV1(targetMappings: FeatureIdMappings): ThriftFactV1 =
-      fact
+  def toThriftV2(source: FeatureIdMappings, target: FeatureIdMappings): ThriftFactV2 = {
+    val tfact = new ThriftFactV2(entity, target.byFeatureId.get(featureId(source)).get.int, fact.getValue)
+    if(seconds != 0) tfact.setSeconds(seconds) else tfact
+  }
 
-    def toThriftV2(targetMappings: FeatureIdMappings): ThriftFactV2 = {
-      val tfact = new ThriftFactV2(entity, featureIdIndex.int, fact.getValue)
-      tfact.setSeconds(fact.getSeconds)
-    }
+  def toNamespacedThriftV1(source: FeatureIdMappings, target: FeatureIdMappings): NamespacedFactV1 =
+    this
 
-    def toNamespacedThriftV1: NamespacedFactV1 = this
+  def toNamespacedThriftV2(source: FeatureIdMappings, target: FeatureIdMappings): NamespacedFactV2 =
+    NamespacedThriftFactV2(entity, featureId(source), fact.getValue, date, time, target)
 
-    // Overriding for performance to avoid extra an extra allocation
-    override def isTombstone: Boolean =
-      fact.getValue.isSetT
+  // Overriding for performance to avoid extra an extra allocation
+  override def isTombstone: Boolean =
+    fact.getValue.isSetT
+}
+
+object NamespacedThriftFactV1 {
+  def apply(ns: String, date: Date, tfact: ThriftFactV1): NamespacedFact =
+    new NamespacedThriftFactV1(tfact, ns, date.int) with NamespacedThriftFactDerivedV1
+
+  def factWith(entity: String, namespace: String, feature: String, date: Date, time: Time, value: ThriftFactValue): Fact = {
+    val tfact = new ThriftFactV1(entity, feature, value)
+    apply(namespace, date, if (time.seconds != 0) tfact.setSeconds(time.seconds) else tfact)
+  }
 }
 
 trait NamespacedThriftFactDerivedV2 extends Fact { self: NamespacedThriftFactV2  =>
 
-    def namespace: Namespace =
-      // this name should be well-formed if the ThriftFact has been validated
-      // if that's not the case an exception will be thrown here
-      Namespace.reviewed(nspace)
+  def entity: String =
+    getEnty
 
-    def namespaceUnsafe: Namespace =
-      Namespace.unsafe(nspace)
+  def namespace(source: FeatureIdMappings): Namespace =
+    featureId(source).namespace
 
-    def feature: String =
-      attribute
+  def namespaceUnsafe(source: FeatureIdMappings): Namespace =
+    featureId(source).namespace
 
-    def date: Date =
-      datetime.date
+  def feature(source: FeatureIdMappings): String =
+    featureId(source).name
 
-    def time: Time =
-      datetime.time
+  def featureId(source: FeatureIdMappings): FeatureId =
+    source.getUnsafe(featureIdIndex(source))
 
-    def datetime: DateTime =
-      DateTime.unsafeFromLong(dt)
+  def featureIdIndex(source: FeatureIdMappings): FeatureIdIndex =
+    FeatureIdIndex(findex)
 
-    def featureId: FeatureId =
-      FeatureId(namespace, getAttribute)
+  def date: Date =
+    Date.unsafeFromInt(yyyyMMdd)
 
-    def seconds: Int =
-      time.seconds
+  def time: Time =
+    Time.unsafe(seconds)
 
-    def value: Value =
-      Value.fromThrift(getValue)
+  def seconds: Int =
+    getSecs
 
-    def toThrift: ThriftFact = {
-      val tfact = new ThriftFact(entity, attribute, getValue)
-      if(seconds == 0) tfact.setSeconds(seconds) else tfact
-    }
+  def value: Value =
+    Value.fromThrift(getTvalue)
 
-    def toNamespacedThrift: NamespacedFact = this
+  def toThriftV1(source: FeatureIdMappings, target: FeatureIdMappings): ThriftFactV1 = {
+    val tfact = new ThriftFactV1(entity, feature(source), getTvalue)
+    if(seconds != 0) tfact.setSeconds(seconds) else tfact
+  }
 
-    // Overriding for performance to avoid extra an extra allocation
-    override def isTombstone: Boolean =
-      getValue.isSetT
+  def toThriftV2(source: FeatureIdMappings, target: FeatureIdMappings): ThriftFactV2 = {
+    val tfact = new ThriftFactV2(entity, target.byFeatureId.get(featureId(source)).get.int, getTvalue)
+    if(seconds != 0) tfact.setSeconds(seconds) else tfact
+  }
+
+  def toNamespacedThriftV1(source: FeatureIdMappings, target: FeatureIdMappings): NamespacedFactV1 =
+    NamespacedThriftFactV1(namespace(source).name, date, toThriftV1(source, target))
+
+  def toNamespacedThriftV2(source: FeatureIdMappings, target: FeatureIdMappings): NamespacedFactV2 = {
+    this.findex = target.byFeatureId.get(featureId(source)).get.int
+    this
+  }
+
+  // Overriding for performance to avoid extra an extra allocation
+  override def isTombstone: Boolean =
+    getTvalue.isSetT
 }
 
-object FatThriftFact {
-  def apply(ns: String, date: Date, tfact: ThriftFact): NamespacedFact =
-    new NamespacedThriftFact(tfact, ns, date.int) with NamespacedThriftFactDerived
-
-  def factWith(entity: String, namespace: String, feature: String, date: Date, time: Time, value: ThriftFactValue): Fact = {
-    val tfact = new ThriftFact(entity, feature, value)
-    FatThriftFact(namespace, date, if (time.seconds != 0) tfact.setSeconds(time.seconds) else tfact)
+object NamespacedThriftFactV2 {
+  def apply(entity: String, featureId: FeatureId, value: ThriftFactValue, date: Date, time: Time, mappings: FeatureIdMappings): NamespacedFactV2 = {
+    val index: FeatureIdIndex = mappings.byFeatureId.get(featureId).get
+    val tfact = new NamespacedThriftFactV2(entity, index.int, value, date.int) with NamespacedThriftFactDerivedV2
+    if (time.seconds != 0) tfact.setSecs(time.seconds)
+    tfact
   }
 }
 
 object BooleanFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Boolean): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.b(value))
+    NamespacedThriftFactV1.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.b(value))
 
   val fromTuple = apply _ tupled
 }
 
 object IntFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Int): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.i(value))
+    NamespacedThriftFactV1.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.i(value))
 
   val fromTuple = apply _ tupled
 }
 
 object LongFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Long): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.l(value))
+    NamespacedThriftFactV1.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.l(value))
 
   val fromTuple = apply _ tupled
 }
 
 object DoubleFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Double): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.d(value))
+    NamespacedThriftFactV1.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.d(value))
 
   val fromTuple = apply _ tupled
 }
 
 object StringFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: String): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.s(value))
+    NamespacedThriftFactV1.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.s(value))
 
   val fromTuple = apply _ tupled
 }
 
 object DateFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Date): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.date(value.int))
+    NamespacedThriftFactV1.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.date(value.int))
 }
 
 object TombstoneFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time): Fact =
-    FatThriftFact.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.t(new ThriftTombstone()))
+    NamespacedThriftFactV1.factWith(entity, featureId.namespace.name, featureId.name, date, time, ThriftFactValue.t(new ThriftTombstone()))
 
   val fromTuple = apply _ tupled
 }
@@ -268,13 +292,14 @@ object Value {
     case StringEncoding                          => StringValue(raw).success[String]
   }
 
-  def validateFact(fact: Fact, dict: Dictionary): Validation[String, Fact] =
+  def validateFact(fact: Fact, dict: Dictionary, source: FeatureIdMappings): Validation[String, Fact] =
     validateEntity(fact) match {
       case Success(f) =>
-        dict.byFeatureId.get(f.featureId).map({
+        val featureId = f.featureId(source)
+        dict.byFeatureId.get(featureId).map({
           case Concrete(_, fm) => validateEncoding(f.value, fm.encoding).as(f).leftMap(_ + s" '${f.toString}'")
-          case _: Virtual      => s"Cannot have virtual facts for ${f.featureId}".failure
-        }).getOrElse(s"Dictionary entry '${f.featureId}' doesn't exist!".failure)
+          case _: Virtual      => s"Cannot have virtual facts for ${featureId}".failure
+        }).getOrElse(s"Dictionary entry '${featureId}' doesn't exist!".failure)
       case e @ Failure(_) =>
         e
     }
