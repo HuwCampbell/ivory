@@ -45,8 +45,10 @@ Would be represented as:
 Notes:
   * string values containing newlines will need to be escaped so that the output is a JSON
   record per line
-  * for feature values that are *dates*, the output will need to comply the data/time formatting
-  supported by BigQuery - https://cloud.google.com/bigquery/preparing-data-for-bigquery#datatypes
+  * for feature values that are *dates*, the output will need to comply the date-time formatting
+  supported by BigQuery - https://cloud.google.com/bigquery/preparing-data-for-bigquery#datatypes; for
+  date values, as opposed to date-time, we should consider what time to output (e.g. 00:00:00) as a
+  configuration option
   * feature names will not include their namespace, just name, as Ivory will ensure these are
   globally unique
   * `uid` above will most likely be called something else and that will be irrelevant
