@@ -47,7 +47,9 @@ Notes:
   record per line
   * for feature values that are *dates*, the output will need to comply the data/time formatting
   supported by BigQuery - https://cloud.google.com/bigquery/preparing-data-for-bigquery#datatypes
-  * feature names should include their namespace as well, e.g. `"namespace:name": "...`
+  * feature names will not include their namespace, just name, as Ivory will ensure these are
+  globally unique
+  * `uid` above will most likely be called something else and that will be irrelevant
 
 ### Gzip part files
 
