@@ -32,8 +32,8 @@ object depend {
                   Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")
 
   def notion(version: String) = {
-    val cdh4Version = "0.0.1-cdh4-20150107051031-2d1b1ef"
-    val cdh5Version = "0.0.1-cdh5-20150107051031-2d1b1ef"
+    val cdh4Version = "0.0.1-cdh4-20150213020848-fdac9c8"
+    val cdh5Version = "0.0.1-cdh5-20150213020857-fdac9c8"
     if (version.contains("cdh4"))
       Seq("com.ambiata" %% "notion-core"     % cdh4Version % "compile->compile;test->test") ++
       Seq("com.ambiata" %% "notion-distcopy" % cdh4Version) ++

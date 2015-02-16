@@ -66,3 +66,19 @@ struct ChordEntities {
 struct ThriftFeatureIdMappings {
     1: list<string> features;
 }
+
+struct ThriftNumericalStats {
+    1: i64 count;
+    2: double sum;
+    3: double sqsum;
+}
+
+struct ThriftHistogramEntry {
+    1: string value;
+    2: i64 count;
+}
+
+struct ThriftCategoricalStats {
+    1: i16 categories;
+    2: list<ThriftHistogramEntry> histogram;
+}

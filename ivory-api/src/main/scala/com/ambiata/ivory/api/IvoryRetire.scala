@@ -53,5 +53,5 @@ object IvoryRetire {
    * Bespoke debugging tools.
    */
   val countFacts = com.ambiata.ivory.operation.statistics.FactCount.flatFacts _
-  val statsFacts = com.ambiata.ivory.operation.statistics.FactStats.statisticsForFactSet _
+  val statsFacts = com.ambiata.ivory.operation.statistics.FactStats.factset _
 }
