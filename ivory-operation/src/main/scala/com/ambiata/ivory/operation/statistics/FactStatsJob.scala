@@ -143,7 +143,7 @@ object FactStatsMapper {
 
     def emitNumerical[A : Numeric](d: A): Unit = {
       FactStatsWritable.KeyState.set(featureId, fact.date, FactStatsWritable.Numerical, kout)
-      numericalStats.setCount(d.toLong)
+      numericalStats.setCount(1l)
       numericalStats.setSum(d.toDouble)
       numericalStats.setSqsum(d.toDouble * d.toDouble)
       ThriftByteMutator.mutate(numericalStats, vout, serialiser)
@@ -158,16 +158,18 @@ object FactStatsMapper {
       emitter.emit(kout, vout)
     }
 
+    emitCategorical(FactStatistics.valueToCategory(fact))
+
     fact.value match {
-      case IntValue(i)      => emitNumerical(i); emitCategorical(i.toString)
-      case LongValue(l)     => emitNumerical(l); emitCategorical(l.toString)
-      case DoubleValue(d)   => emitNumerical(d); emitCategorical(d.toString)
-      case TombstoneValue   => emitCategorical("☠")
-      case StringValue(s)   => emitCategorical(s)
-      case BooleanValue(b)  => emitCategorical(b.toString)
-      case DateValue(r)     => emitCategorical(r.hyphenated)
-      case ListValue(v)     => emitCategorical("List entries")
-      case StructValue(m)   => emitCategorical("Struct entries")
+      case IntValue(i)      => emitNumerical(i)
+      case LongValue(l)     => emitNumerical(l)
+      case DoubleValue(d)   => emitNumerical(d)
+      case TombstoneValue   =>
+      case StringValue(s)   =>
+      case BooleanValue(b)  =>
+      case DateValue(r)     =>
+      case ListValue(v)     =>
+      case StructValue(m)   =>
     }
   }
 }
@@ -287,7 +289,7 @@ class FactStatsReducer extends Reducer[BytesWritable, BytesWritable, NullWritabl
 
   val featureIdLookup = new FeatureIdLookup
 
-  var featureNames: Array[String] = null
+  var featureIds: Array[FeatureId] = null
 
   val numericalStats = new ThriftNumericalStats()
 
@@ -302,7 +304,9 @@ class FactStatsReducer extends Reducer[BytesWritable, BytesWritable, NullWritabl
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
     ctx.thriftCache.pop(context.getConfiguration, FactStatsJob.Keys.FeatureIdLookup, featureIdLookup)
 
-    featureNames = FeatureLookups.sparseMapToArray(featureIdLookup.getIds.asScala.toList.map({ case (fid, idx) => (idx.toInt, fid) }), "")
+    featureIds = FeatureLookups.sparseMapToArray(featureIdLookup.getIds.asScala.toList.map({ case (fid, idx) =>
+      (idx.toInt, FeatureId.parse(fid).fold(e => Crash.error(Crash.Serialization, s"Can not parse FeatureId - ${e}"), identity))
+    }), FeatureId(Namespace.unsafe(""), ""))
     out = new MultipleOutputs(context)
     emitter = MrOutputEmitter(FactStatsJob.Keys.Out, out, "stats/part")
   }
@@ -314,44 +318,40 @@ class FactStatsReducer extends Reducer[BytesWritable, BytesWritable, NullWritabl
     val feature: Int = FactStatsWritable.KeyState.getFeatureId(key)
     val date = Date.unsafeFromInt(FactStatsWritable.KeyState.getDate(key))
     val ty: FactStatsWritable.StatsType = FactStatsWritable.KeyState.getType(key)
-    FactStatsReducer.reduce(ty, featureNames(feature), date, iter.iterator, numericalStats, categoricalStats, emitter, vout, serialiser)
+    FactStatsReducer.reduce(ty, featureIds(feature), date, iter.iterator, numericalStats, categoricalStats, emitter, vout, serialiser)
     ()
   }
 }
 
 object FactStatsReducer {
   import argonaut._, Argonaut._
+  import FactStasticsCodecs._
 
-  type KeyInfo        = (String, Date)
-  type Histogram      = Map[String,Long]
-  type NumericalStats = (Long, Double, Double)
-  type FactStatEncode = (KeyInfo, Either[NumericalStats, Histogram])
-
-  def reduce(ty: FactStatsWritable.StatsType, feature: String, date: Date, iter: JIterator[BytesWritable], numericalStats: ThriftNumericalStats,
+  def reduce(ty: FactStatsWritable.StatsType, featureId: FeatureId, date: Date, iter: JIterator[BytesWritable], numericalStats: ThriftNumericalStats,
              categoricalStats: ThriftCategoricalStats, emitter: Emitter[NullWritable, Text], vout: Text, serialiser: ThriftSerialiser): Unit = {
 
-    val key: KeyInfo = (feature, date)
-    val encoded: Option[FactStatEncode] = ty match {
+    val stats: Option[FactStatisticsType] = ty match {
       case FactStatsWritable.Numerical =>
         FactStatsCombiner.combineNumerical(iter, numericalStats, serialiser)
-        numericalEncode(key, numericalStats)
+        numerical(featureId, date, numericalStats).map(NumericalFactStatisticsType.apply)
       case FactStatsWritable.Categorical =>
         FactStatsCombiner.combineCategorical(iter, categoricalStats, serialiser)
-        categoricalEncode(key, categoricalStats)
+        categorical(featureId, date, categoricalStats).map(CategoricalFactStatisticsType.apply)
     }
-    encoded.foreach(e => {
-      vout.set(e.asJson.nospaces)
+    stats.foreach(s => {
+      vout.set(s.asJson.nospaces)
       emitter.emit(NullWritable.get, vout)
     })
   }
 
-  def numericalEncode(key: KeyInfo, numericalStats: ThriftNumericalStats): Option[FactStatEncode] =
+  def numerical(featureId: FeatureId, date: Date, numericalStats: ThriftNumericalStats): Option[NumericalFactStatistics] =
     (numericalStats.count > 0).option({
       val mean: Double = numericalStats.getSum / numericalStats.getCount.toDouble
-      (key, Left((numericalStats.getCount, mean, Math.sqrt(numericalStats.getSqsum / numericalStats.getCount.toDouble - mean * mean))))
+      NumericalFactStatistics(featureId, date, numericalStats.getCount, mean,
+        Math.sqrt(numericalStats.getSqsum / numericalStats.getCount.toDouble - mean * mean))
     })
 
-  def categoricalEncode(key: KeyInfo, categoricalStats: ThriftCategoricalStats): Option[FactStatEncode] =
+  def categorical(featureId: FeatureId, date: Date, categoricalStats: ThriftCategoricalStats): Option[CategoricalFactStatistics] =
     (categoricalStats.getCategories < FactStatsCombiner.MaxCategories).option(
-      (key, Right(categoricalStats.getHistogram.asScala.map(e => (e.getValue, e.getCount)).toMap)))
+      CategoricalFactStatistics(featureId, date, categoricalStats.getHistogram.asScala.map(e => (e.getValue, e.getCount)).toMap))
 }

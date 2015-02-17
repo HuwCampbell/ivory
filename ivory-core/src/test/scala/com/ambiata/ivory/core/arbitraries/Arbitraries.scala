@@ -83,6 +83,9 @@ trait Arbitraries {
   implicit def FeatureWindowsArbitrary: Arbitrary[FeatureWindows] =
     Arbitrary(GenDictionary.featureWindows)
 
+  implicit def FactStatisticsArbitrary: Arbitrary[FactStatistics] =
+    Arbitrary(GenRepository.factStatistics)
+
   implicit def FileFormatArbitrary: Arbitrary[FileFormat] =
     Arbitrary(GenFileFormat.format)
 

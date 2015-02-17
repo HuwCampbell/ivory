@@ -36,6 +36,28 @@ object GenRepository {
     , snapshot.map(SnapshotDataset.apply)
     )
 
+  def numericalFactStatistics: Gen[NumericalFactStatistics] = for {
+    f <- GenIdentifier.feature
+    d <- GenDate.date
+    c <- GenPlus.posNum[Long]
+    m <- GenPlus.posNum[Double]
+    s <- GenPlus.posNum[Double]
+  } yield NumericalFactStatistics(f, d, c, m, s)
+
+  def categoricalFactStatistics: Gen[CategoricalFactStatistics] = for {
+    f <- GenIdentifier.feature
+    d <- GenDate.date
+    h <- GenPlus.mapOfSized(1, 20, for {
+           v <- GenFact.fact.map(FactStatistics.valueToCategory)
+           c <- GenPlus.posNum[Long]
+         } yield (v, c))
+  } yield CategoricalFactStatistics(f, d, h)
+
+  def factStatistics: Gen[FactStatistics] = for {
+    n <- GenPlus.listOfSized(1, 20, numericalFactStatistics)
+    c <- GenPlus.listOfSized(1, 20, categoricalFactStatistics)
+  } yield FactStatistics.fromNumerical(n) +++ FactStatistics.fromCategorical(c)
+
   def store: Gen[FeatureStore] = for {
     s <- GenIdentifier.store
     f <- factsets

@@ -15,4 +15,7 @@ object GenPlus {
 
   def listOfSized[A](from: Int, to: Int, gen: => Gen[A]): Gen[List[A]] =
     Gen.sized(n => Gen.choose(from, Math.max(from, Math.min(n, to))).flatMap(i => Gen.listOfN(i, gen)))
+
+  def mapOfSized[K, V](from: Int, to: Int, gen: => Gen[(K, V)]): Gen[Map[K, V]] =
+    listOfSized(from, to, gen).map(_.toMap)
 }
