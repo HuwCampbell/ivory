@@ -22,6 +22,7 @@ Combinators
    isCategorical works                                       $isCategorical
    append works                                              $append
    symmetric from/to numerical statistics                    $symmetricNumerical
+   symmetric from/to categorical statistics                  $symmerticCategorical
 
 """
 

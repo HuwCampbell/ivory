@@ -37,8 +37,8 @@ object FactStatsWritable {
     def getFeatureId(bw: BytesWritable): Int =
       WritableComparator.readInt(bw.getBytes, Offsets.featureId)
 
-    def getDate(bw: BytesWritable): Int =
-      WritableComparator.readInt(bw.getBytes, Offsets.date)
+    def getDate(bw: BytesWritable): Date =
+      Date.unsafeFromInt(WritableComparator.readInt(bw.getBytes, Offsets.date))
 
     def getType(bw: BytesWritable): StatsType =
       bw.getBytes()(Offsets.ty) match {

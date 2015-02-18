@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.statistics
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.lookup.{FeatureIdLookup, NamespaceLookup, ThriftNumericalStats, ThriftCategoricalStats, ThriftHistogramEntry}
+import com.ambiata.ivory.lookup.{FeatureIdLookup, ThriftNumericalStats, ThriftCategoricalStats, ThriftHistogramEntry}
 import com.ambiata.ivory.mr._
 import com.ambiata.ivory.operation.extraction.IvoryInputs
 import com.ambiata.ivory.storage.lookup._
@@ -316,7 +316,7 @@ class FactStatsReducer extends Reducer[BytesWritable, BytesWritable, NullWritabl
 
   override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: ReducerContext): Unit = {
     val feature: Int = FactStatsWritable.KeyState.getFeatureId(key)
-    val date = Date.unsafeFromInt(FactStatsWritable.KeyState.getDate(key))
+    val date: Date = FactStatsWritable.KeyState.getDate(key)
     val ty: FactStatsWritable.StatsType = FactStatsWritable.KeyState.getType(key)
     FactStatsReducer.reduce(ty, featureIds(feature), date, iter.iterator, numericalStats, categoricalStats, emitter, vout, serialiser)
     ()
