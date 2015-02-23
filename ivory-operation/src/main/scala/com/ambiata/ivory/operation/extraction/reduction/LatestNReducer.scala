@@ -22,16 +22,19 @@ case class ClockState[@specialized(Int, Float, Double, Boolean) A](val n: Int, v
     }
     xs.reverse
   }
+
+  def reset(): Unit = {
+    hand = 0
+    count = 0
+  }
 }
 
 class LatestNReducer(n: Int) extends Reduction {
 
   val a = ClockState[ThriftFactValue](n, new Array[ThriftFactValue](n), 0, 0)
 
-  def clear(): Unit = {
-    a.hand  = 0
-    a.count = 0
-  }
+  def clear(): Unit =
+    a.reset()
 
   def update(fv: Fact): Unit = {
     val tv = fv.toThrift.getValue
@@ -60,8 +63,7 @@ class LatestNStructReducer[@specialized(Int, Float, Double, Boolean) A : scala.r
   val start = ClockState[A](n, Array.fill(n)(seed), 0, 0)
 
   def initial: ClockState[A] = {
-    start.hand  = 0
-    start.count = 0
+    start.reset()
     start
   }
 
