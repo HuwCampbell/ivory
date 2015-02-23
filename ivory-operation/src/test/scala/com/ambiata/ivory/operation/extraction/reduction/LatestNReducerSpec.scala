@@ -10,6 +10,7 @@ import scalaz.scalacheck.ScalazArbitrary._
 class LatestNReducerSpec extends Specification with ScalaCheck { def is = s2"""
   LatestN reducer works with arbitrary facts       $latestN
   LatestNStruct reducer works with arbitrary facts $latestNStruct
+  LatestNStruct reducer is idempotent              $latestNStructIdempotent
 
 """
 
@@ -29,4 +30,7 @@ class LatestNReducerSpec extends Specification with ScalaCheck { def is = s2"""
     ReducerUtil.run(new LatestNStructReducer[Int](0, num), xs) ==== xs.reverse.take(num)
   })
 
+  def latestNStructIdempotent = prop((x: (Int, NonEmptyList[Int])) => {
+    ReducerUtil.idempotent(new LatestNStructReducer[Int](0, Math.abs(x._1 % 7) + 1), x._2.list)
+  })
 }

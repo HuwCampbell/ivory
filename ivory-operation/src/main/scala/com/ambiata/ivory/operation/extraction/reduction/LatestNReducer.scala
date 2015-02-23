@@ -59,7 +59,11 @@ class LatestNStructReducer[@specialized(Int, Float, Double, Boolean) A : scala.r
 
   val start = ClockState[A](n, Array.fill(n)(seed), 0, 0)
 
-  def initial: ClockState[A] = start
+  def initial: ClockState[A] = {
+    start.hand  = 0
+    start.count = 0
+    start
+  }
 
   def fold(a: ClockState[A], value: A): ClockState[A] = {
     a.tick(value)
