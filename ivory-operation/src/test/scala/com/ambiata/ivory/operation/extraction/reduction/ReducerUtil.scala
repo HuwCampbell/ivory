@@ -32,8 +32,16 @@ object ReducerUtil {
     r.aggregate(dates)
   }
 
-  def idempotent[A, B, C](r: ReductionFold[A, B, C], l: List[B]): Boolean =
+  def consecutive[A, B, C](r: ReductionFold[A, B, C], l: List[B]): Boolean =
     run(r, l) == run(r, l)
+
+  def interleaved[A, B, C](r: ReductionFold[A, B, C], l: List[B], x: List[B]): Boolean = {
+    val a = run(r, l)
+    run(r, x)
+    val b = run(r, l)
+    a == b
+  }
+
 
   def buildDateOffsets[A](ds: List[(A, Date)]) = DateOffsets.compact(ds.headOption.map(_._2).getOrElse(Date.minValue),
       ds.lastOption.map(_._2).getOrElse(Date.minValue))
