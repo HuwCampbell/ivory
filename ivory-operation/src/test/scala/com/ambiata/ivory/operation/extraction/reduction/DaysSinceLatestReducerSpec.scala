@@ -1,23 +1,20 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
-import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import org.specs2.{ScalaCheck, Specification}
 
 class DaysSinceLatestReducerSpec extends Specification with ScalaCheck { def is = s2"""
   Days since latest                                $daysSinceLatest
+  Days since latest reducer laws                   $daysSinceLatestLaws
 """
 
-  def daysSinceLatest = prop((fs: List[Fact]) => {
-    val facts = fs.filter(!_.isTombstone).sortBy(_.date)
-    val dateOffsets = DateOffsets.compact(
-      facts.headOption.map(_.date).getOrElse(Date.minValue),
-      facts.lastOption.map(_.date).getOrElse(Date.minValue)
-    )
-    val r = new DaysSinceLatestReducer(dateOffsets)
+  def daysSinceLatest = prop((fs: FactsWithDate) => {
+    val r = new DaysSinceLatestReducer(fs.offsets)
     r.clear()
-    facts.foreach(r.update)
-    facts.lastOption.map(f => dateOffsets.untilEnd(f.date).value)
+    fs.ds.foreach(r.update)
+    fs.ds.filter(!_.isTombstone).lastOption.map(f => fs.offsets.untilEnd(f.date).value)
       .map(_ ==== r.save.getI).getOrElse(r.save must beNull)
   }).set(minTestsOk = 10)
+
+  def daysSinceLatestLaws =
+    ReducerUtil.reductionWithDatesLaws(new DaysSinceLatestReducer(_))
 }

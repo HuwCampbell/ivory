@@ -8,6 +8,7 @@ class LatestReducerSpec extends Specification with ScalaCheck { def is = s2"""
   Keep latest non-tombstone fact                   $latest
   Clear resets the value                           $clear
   Keep latest non-tombstone fact from a struct     $latestStruct
+  Latest reducer laws                              $latestLaws
 """
 
   def latest = prop((facts: List[Fact]) => {
@@ -27,4 +28,7 @@ class LatestReducerSpec extends Specification with ScalaCheck { def is = s2"""
     val r = ReducerUtil.runWithTombstones(new LatestStructReducer(""), values)
     values.lastOption.flatten.map(s => r.value ==== s and (r.tombstone must beFalse)).getOrElse(r.tombstone must beTrue)
   })
+
+  def latestLaws =
+    ReducerUtil.reductionLaws(new LatestReducer)
 }

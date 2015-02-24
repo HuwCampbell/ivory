@@ -5,6 +5,7 @@ import org.specs2.{ScalaCheck, Specification}
 class MeanReducerSpec extends Specification with ScalaCheck { def is = s2"""
   Take the mean of an arbitrary number of doubles            $meanDouble
   Take the mean of an arbitrary number of ints               $meanInt
+  Mean reducer laws                                          $meanLaws
 """
 
   def meanDouble = prop((xs: List[Double]) =>
@@ -16,4 +17,7 @@ class MeanReducerSpec extends Specification with ScalaCheck { def is = s2"""
     ReducerUtil.run(new MeanReducer[Int](), xs) ====
       (if (xs.length < 1) 0.0 else xs.foldLeft(0)(_ + _).toDouble / xs.length)
   )
+
+  def meanLaws =
+    ReducerUtil.reductionFoldLaws(new MeanReducer[Int]())
 }

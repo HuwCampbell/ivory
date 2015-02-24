@@ -1,7 +1,6 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import org.specs2.{ScalaCheck, Specification}
 import org.specs2.matcher._
 import org.scalacheck.{Gen, Arbitrary}
@@ -11,27 +10,29 @@ import spire.implicits._
 class GradientReducerSpec extends Specification with ScalaCheck { def is = s2"""
   Take the gradient of an arbitrary number of doubles            $gradientDouble
   Take the gradient of an arbitrary number of ints               $gradientInt
+  Gradient reducer laws                                          $gradientLaws
 """
 
   case class SaneDouble(d: Double)
   implicit def SaneDoubleArbitrary: Arbitrary[SaneDouble] =
     Arbitrary(Gen.choose(-10000.0, 10000.0).map(SaneDouble.apply))
 
-  def gradientDouble = prop((xs: List[(SaneDouble, Date)]) =>
-    gradient(xs.map(td => td._1.d -> td._2))
+  def gradientDouble = prop((xs: ValuesWithDate[SaneDouble]) =>
+    gradient(xs.map(_.d))
   )
 
-  def gradientInt = prop((xs: List[(Int, Date)]) =>
-    gradient(xs.map(td => td._1.toLong -> td._2))
+  def gradientInt = prop((xs: ValuesWithDate[Int]) =>
+    gradient(xs.map(_.toLong))
   )
 
-  def gradient[A: Numeric](xs: List[(A, Date)]): MatchResult[Double] = {
-    val ds = xs.map(td => td._1 -> td._2).sortBy(_._2)
-    val dateOffsets = ReducerUtil.buildDateOffsets(ds)
-    ReducerUtil.runWithDates(new GradientReducer[A](dateOffsets), ds) must beCloseTo(
-      ReducerMathsHelpers.gradient(ds)
+  def gradient[A: Numeric](xs: ValuesWithDate[A]): MatchResult[Double] = {
+    ReducerUtil.runWithDates(new GradientReducer[A](xs.offsets), xs.ds) must beCloseTo(
+      ReducerMathsHelpers.gradient(xs.ds)
     , 5.significantFigures)
   }
+
+  def gradientLaws =
+    ReducerUtil.reductionFoldWithDateLaws(offsets => new GradientReducer[Int](offsets))
 }
 
 object ReducerMathsHelpers {
