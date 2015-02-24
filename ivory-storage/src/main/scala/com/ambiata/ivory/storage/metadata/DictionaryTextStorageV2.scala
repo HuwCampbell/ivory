@@ -58,7 +58,7 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
   private def entry(d: String) = rule(zeroOrMore(txt(d)) ~> (_.mkString("")))
   private def nameEntry        = rule(alphaNumSep ~> (values => Namespace.nameFromStringDisjunction(values.mkString(""))))
   private def mapEnty          = rule(zeroOrMore((entry("=") ~ "=" ~ entry(DELIMITER)) ~> ((k, v) => (k.trim, v.trim))).separatedBy(DELIMITER))
-  private def map              = rule(mapEnty ~> (_.toMap))
+  private def map              = rule(mapEnty ~> (_.toList))
   private def featureId        = rule(nameEntry ~ ":" ~ entry(DELIMITER) ~> ((ns, n) => ns.map(FeatureId(_, n))))
   private def row              = rule(featureId ~ optional(DELIMITER ~ map))
 
@@ -108,9 +108,20 @@ case class DictionaryTextStorageV2(input: ParserInput, DELIMITER: String) extend
     }
   }
 
+  def valuesToUniqueMap(l: List[(String, String)]): String \/ Map[String, String] =
+    l.groupBy(_._1).values.find(_.size > 1).cata(
+      f => s"Field '$f' incorrectly defined multiple times".left,
+      l.toMap.right
+    )
+
   def parse: ValidationNel[String, (FeatureId, Definition)] =
     row.run().fold(formatError(_).failureNel, {
-      case \/-(featureId) :: m :: HNil => metaFromMap(featureId, m.getOrElse(Map())).map(featureId ->)
-      case -\/(m) :: _                 => m.failureNel
+      case \/-(featureId) :: m :: HNil =>
+        valuesToUniqueMap(m.getOrElse(Nil)).fold(
+          _.failureNel,
+          map => metaFromMap(featureId, map).map(featureId ->)
+        )
+      case -\/(m) :: _ =>
+        m.failureNel
     })
 }
