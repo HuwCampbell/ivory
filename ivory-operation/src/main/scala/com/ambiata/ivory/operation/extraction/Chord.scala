@@ -1,7 +1,7 @@
 package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.operation.extraction.squash.{SquashConfig, SquashJob}
+import com.ambiata.ivory.operation.extraction.squash.{SquashReducerLookup, SquashConfig, SquashJob}
 import com.ambiata.ivory.storage.entities._
 import com.ambiata.ivory.storage.manifest._
 import com.ambiata.ivory.storage.legacy.FeatureStoreSnapshot
@@ -26,20 +26,21 @@ object Chord {
                             config: SquashConfig, cluster: Cluster): RIO[(ShadowOutputDataset, Dictionary)] = for {
     commit   <- CommitStorage.head(repository)
     entities <- Entities.readEntitiesFrom(entitiesLocation)
-    out      <- createChordRaw(repository, flags, entities, commit, takeSnapshot)
-    (o, dict) = out
+    plan     <- planning(repository, flags, entities, commit, takeSnapshot)
+    dict      = plan.commit.dictionary.value
+    o        <- createChordRaw(repository, plan)
     hr       <- repository.asHdfsRepository
     job      <- SquashJob.initChordJob(hr.configuration, entities, o)
+    lookup    = SquashReducerLookup.createFromChord(plan, job._3)
     // We always need to squash because the entities need to be rewritten, which is _only_ handled by squash
     // This can technically be optimized to do the entity rewriting in the reducer - see the Git history for an example
-    r        <- SquashJob.squash(repository, dict, config, job, cluster)
+    r        <- SquashJob.squash(repository, dict, lookup, config, job, cluster)
     _        <- ChordExtractManifest.io(cluster.toIvoryLocation(r.location)).write(ChordExtractManifest.create(commit.id))
   } yield r -> dict
 
-  def createChordRaw(repository: Repository, flags: IvoryFlags, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[(ChordOutput, Dictionary)] = for {
-    plan     <- planning(repository, flags, entities, commit, takeSnapshot)
+  def createChordRaw(repository: Repository, plan: ChordPlan): RIO[ChordOutput] = for {
     outKey   <- Repository.tmpDir("chord")
-    mappings <- FeatureIdMappingsStorage.fromDictionaryAndSave(repository, outKey, commit.dictionary.value)
+    mappings <- FeatureIdMappingsStorage.fromDictionaryAndSave(repository, outKey, plan.commit.dictionary.value)
     output   <- repository.toIvoryLocation(outKey).asHdfsIvoryLocation
     _        <- RIO.putStrLn(s"Total input size: ${plan.datasets.bytes}")
     reducers =  (plan.datasets.bytes.toLong / 2.gb.toBytes.value + 1).toInt // one reducer per 2GB of input
@@ -47,7 +48,7 @@ object Chord {
     /* DO NOT MOVE CODE BELOW HERE, NOTHING BESIDES THIS JOB CALL SHOULD MAKE HDFS ASSUMPTIONS. */
     hr       <- repository.asHdfsRepository
     _        <- ChordJob.run(hr, plan, reducers, output.toHdfsPath)
-  } yield (ChordOutput(ShadowOutputDataset.fromIvoryLocation(output)), commit.dictionary.value)
+  } yield ChordOutput(ShadowOutputDataset.fromIvoryLocation(output))
 
   def planning(repository: Repository, flags: IvoryFlags, entities: Entities, commit: Commit, takeSnapshot: Boolean): RIO[ChordPlan] =
     SnapshotStorage.ids(repository).flatMap(ids => takeSnapshot match {
