@@ -10,6 +10,7 @@ class StdReducerSpec extends Specification with ScalaCheck { def is = s2"""
   Take the standard deviation of a known special case                      $stdKnown
   Take the standard deviation of an arbitrary number of doubles            $stdDouble
   Take the standard deviation of an arbitrary number of ints               $stdInt
+  Standard deviation reducer laws                                          $stdDevLaw
 """
   case class SaneDouble(d: Double)
   implicit def SaneDoubleArbitrary: Arbitrary[SaneDouble] =
@@ -35,4 +36,7 @@ class StdReducerSpec extends Specification with ScalaCheck { def is = s2"""
         ReducerMathsHelpers.stdDev(ds)
       , 7.significantFigures)
   }
+
+  def stdDevLaw =
+    ReducerUtil.reductionFoldLaws(new StandardDeviationReducer[Int])
 }

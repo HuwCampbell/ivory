@@ -10,8 +10,7 @@ import scalaz.scalacheck.ScalazArbitrary._
 class LatestNReducerSpec extends Specification with ScalaCheck { def is = s2"""
   LatestN reducer works with arbitrary facts                 $latestN
   LatestNStruct reducer works with arbitrary facts           $latestNStruct
-  LatestNStruct reducer is consistent for consecutive calls  $latestNStructConsecutive
-  LatestNStruct reducer is consistent for interleaved calls  $latestNStructInterleaved
+  LatestNStruct reducer laws                                 $latestNStructLaws
 
 """
 
@@ -31,9 +30,6 @@ class LatestNReducerSpec extends Specification with ScalaCheck { def is = s2"""
     ReducerUtil.run(new LatestNStructReducer[Int](0, num), xs) ==== xs.reverse.take(num)
   })
 
-  def latestNStructConsecutive = prop((n: Int, l: NonEmptyList[Int]) =>
-    ReducerUtil.consecutive(new LatestNStructReducer[Int](0, Math.abs(n % 7) + 1), l.list))
-
-  def latestNStructInterleaved = prop((n: Int, l: NonEmptyList[Int], x: NonEmptyList[Int]) =>
-    ReducerUtil.interleaved(new LatestNStructReducer[Int](0, Math.abs(n % 7) + 1), l.list, x.list))
+  def latestNStructLaws = prop((n: Int) =>
+    ReducerUtil.reductionFoldLaws(new LatestNStructReducer[Int](0, Math.abs(n % 7) + 1)))
 }

@@ -21,4 +21,11 @@ class KeyValue[K, V]() {
     map.put(k, v)
     ()
   }
+
+  /** Just for testing */
+  override def equals(other: Any): Boolean =
+    other match {
+      case that: KeyValue[K, V] => map == that.map
+      case _ => false
+    }
 }

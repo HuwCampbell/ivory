@@ -4,12 +4,16 @@ import org.specs2.{ScalaCheck, Specification}
 
 class NumFlipsReducerSpec extends Specification with ScalaCheck { def is = s2"""
   Take the num flips of an arbitrary number of booleans           $numFlips
+  Num flip laws                                                   $numFlipsLaws
 """
 
   // Use booleans here to increase the likelihood of duplicates
   def numFlips = prop((xs: List[Option[Boolean]], empty: Boolean) =>
     ReducerUtil.runWithTombstones(new NumFlipsReducer[Boolean](empty), xs) ==== Math.max(compress(xs).length - 1, 0)
   )
+
+  def numFlipsLaws =
+    ReducerUtil.reductionFoldLaws(new NumFlipsReducer[Boolean](true))
 
   def compress[A](input: List[A]): List[A] = {
     def rec(c: List[A], l: List[A], last: A): List[A] =

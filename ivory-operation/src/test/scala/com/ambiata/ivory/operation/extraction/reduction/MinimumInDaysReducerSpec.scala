@@ -6,6 +6,7 @@ import org.specs2.{ScalaCheck, Specification}
 class MinimumInDaysReducerSpec extends Specification with ScalaCheck { def is = s2"""
   Calculate the minimum in days                                      $minimumInDays
   Default should be zero                                             $minimumInDaysDefault
+  Minimum in days reducer laws                                       $minimumInDaysLaws
 """
 
   def minimumInDays = prop((doc: DatesOfCount) => {
@@ -15,4 +16,7 @@ class MinimumInDaysReducerSpec extends Specification with ScalaCheck { def is = 
   def minimumInDaysDefault = {
     ReducerUtil.reduceDates(DatesOfCount(Nil), new MinimumInDaysReducer) ==== 0
   }
+
+  def minimumInDaysLaws =
+    ReducerUtil.reduceDatesLaws(_ => new MinimumInDaysReducer)
 }

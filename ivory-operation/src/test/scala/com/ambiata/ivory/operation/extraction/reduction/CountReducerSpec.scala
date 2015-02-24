@@ -6,8 +6,9 @@ import com.ambiata.ivory.core.thrift.ThriftFactValue
 import org.specs2.{ScalaCheck, Specification}
 
 class CountReducerSpec extends Specification with ScalaCheck { def is = s2"""
-  Count arbitrary number of facts    $count
-  Clear resets the count             $clear
+  Count arbitrary number of facts              $count
+  Clear resets the count                       $clear
+  Count reducer laws                           $laws
 """
 
   def count = prop((facts: List[Fact]) => {
@@ -22,4 +23,7 @@ class CountReducerSpec extends Specification with ScalaCheck { def is = s2"""
     r.clear()
     r.save ==== ThriftFactValue.l(0)
   })
+
+  def laws =
+    ReducerUtil.reductionLaws(new CountReducer)
 }

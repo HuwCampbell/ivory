@@ -8,6 +8,7 @@ import com.ambiata.ivory.core.thrift.ThriftFactValue
 class InverseReducerSpec extends Specification with ScalaCheck { def is = s2"""
   Inverse count reducer works with doubles       $inverseDouble
   Inverse count reducer works with ints          $inverseInt
+  Inverse count reducer works with ints          $inverseLaws
 
 """
 
@@ -20,6 +21,9 @@ class InverseReducerSpec extends Specification with ScalaCheck { def is = s2"""
     val r = new InverseReducer(new DummyReducer[Int](number, ReductionValueInt))
     r.save ==== ThriftFactValue.d(if (number == 0) Double.NaN else 1.0 / number)
   })
+
+  def inverseLaws =
+    ReducerUtil.reductionLaws(new InverseReducer(new CountReducer))
 
   class DummyReducer[A](ret: A, v: ReductionValueTo[A]) extends Reduction {
     val value = new ThriftFactValue()

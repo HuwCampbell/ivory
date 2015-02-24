@@ -7,19 +7,15 @@ import org.joda.time.{Days => JodaDays}
 
 class DaysSinceReducerSpec extends Specification with ScalaCheck { def is = s2"""
   Can determine the amount of time since the latest date value        $daysSince
+  Days since reducer laws                                             $daysSinceLaws
 
 """
 
-  def daysSince = prop((facts: List[(Option[Date], Date)]) => {
-    val ds = facts.map(td => td._1 -> td._2).sortBy(_._2)
-
-    val dateOffsets = DateOffsets.compact(ds.headOption.map(_._2).getOrElse(Date.minValue),
-      ds.lastOption.map(_._2).getOrElse(Date.minValue))
-
-    val answer = ReducerUtil.runWithTombstones(new DaysSinceReducer(dateOffsets), ds.map(_._1.map(_.int)))
+  def daysSince = prop((facts: ValuesWithDate[Option[Date]]) => {
+    val answer = ReducerUtil.runWithTombstones(new DaysSinceReducer(facts.offsets), facts.ds.map(_._1.map(_.int)))
 
     val myDays: Option[Int] = for {
-        last <- ds.lastOption
+        last <- facts.ds.lastOption
         v    <- last._1
       } yield (JodaDays.daysBetween(v.localDate, last._2.localDate).getDays)
 
@@ -28,4 +24,7 @@ class DaysSinceReducerSpec extends Specification with ScalaCheck { def is = s2""
     else
       myDays must beSome(answer.value)
   })
+
+  def daysSinceLaws =
+    ReducerUtil.reductionFoldWithDateLaws(offsets => new DaysSinceReducer(offsets))
 }

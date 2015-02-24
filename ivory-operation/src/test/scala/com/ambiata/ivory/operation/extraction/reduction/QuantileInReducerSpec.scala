@@ -1,4 +1,6 @@
 package com.ambiata.ivory.operation.extraction.reduction
+
+import com.ambiata.disorder._
 import org.specs2.{ScalaCheck, Specification}
 
 /**
@@ -17,6 +19,7 @@ import org.specs2.{ScalaCheck, Specification}
 
 class QuantileInReducerSpec extends Specification with ScalaCheck { def is = s2"""
   Calculate the quantiles of a sorted array      $quantileInDays
+  Quantile in days laws                          $quantileInDaysLaws
 """
 
   def quantileInDays = {
@@ -52,4 +55,8 @@ class QuantileInReducerSpec extends Specification with ScalaCheck { def is = s2"
 
     output ++ outputLonger ++ outputComplex
   }
+
+  def quantileInDaysLaws = prop((o: OrderedPair[NaturalIntSmall]) =>
+    ReducerUtil.reduceDatesLaws(offsets => new QuantileInDaysReducer(offsets, o.first.value, o.second.value))
+  )
 }
