@@ -12,6 +12,9 @@ case class ConcreteGroupFeature(fid: FeatureId, cg: ConcreteGroup) {
   def withExpression(expression: Expression): ConcreteGroupFeature =
     copy(cg = cg.copy(virtual = cg.virtual.map(vd => vd._1 -> vd._2.copy(query = vd._2.query.copy(expression = expression)))))
 
+  def withMode(mode: Mode): ConcreteGroupFeature =
+    copy(cg = cg.copy(definition = cg.definition.copy(mode = mode)))
+
   def dictionary: Dictionary =
     Dictionary(cg.definition.toDefinition(fid) :: cg.virtual.map(vd => vd._2.toDefinition(vd._1)))
 }
