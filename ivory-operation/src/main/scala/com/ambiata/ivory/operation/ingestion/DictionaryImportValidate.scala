@@ -60,7 +60,14 @@ object DictionaryImportValidate {
       TooManyFeatures(dict.definitions.length).failureNel.void
     else
       dict.definitions.traverseU {
-        case Concrete(_, _)    => OK
+        case Concrete(fid, cd)    =>
+          cd.mode.fold(OK, OK, key => cd.encoding.fold(
+            _ => InvalidEncodingKeyedSet(ValidationPath(fid)).failureNel,
+            s => s.values.get(key).cata(sv =>
+              if (sv.optional) OptionalStructValueKeyedSet(key, ValidationPath(fid)).failureNel else OK,
+              MissingKey(key, ValidationPath(fid)).failureNel),
+            _ => InvalidEncodingKeyedSet(ValidationPath(fid)).failureNel
+          ))
         case Virtual(fid, vd)  => dict.byFeatureId.get(vd.source).cata({
           case Concrete(_, cd) =>
             Expression.validate(vd.query.expression, cd.encoding)
@@ -105,5 +112,14 @@ object DictionaryImportValidate {
   case class TooManyFeatures(features: Int) extends DictionaryValidateFailure {
     override def toString = s"Currently Ivory only supports dictionary sizes up to ${MAX_FEATURES}, but the given dictionary is ${features}." +
                              "If you see this, please open an issue at https://github.com/ambiata/ivory/issues/new"
+  }
+  case class MissingKey(key: String, path: ValidationPath) extends DictionaryValidateFailure {
+    override def toString = s"The key $key required for keyed_set $path is missing"
+  }
+  case class InvalidEncodingKeyedSet(path: ValidationPath) extends DictionaryValidateFailure {
+    override def toString = s"The encoding for $path is invalid - only structs are supported for keyed_set"
+  }
+  case class OptionalStructValueKeyedSet(key: String, path: ValidationPath) extends DictionaryValidateFailure {
+    override def toString = s"The struct field $key for $path is nominated by keyed_set and needs to be mandatory"
   }
 }

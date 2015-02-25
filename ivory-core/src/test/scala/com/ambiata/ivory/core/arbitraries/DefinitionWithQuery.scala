@@ -12,7 +12,8 @@ case class DefinitionWithQuery(cd: ConcreteDefinition, expression: Expression, f
 object DefinitionWithQuery {
   implicit def DefinitionWithQueryArbitrary: Arbitrary[DefinitionWithQuery] =
     Arbitrary(for {
-      cd <- GenDictionary.concreteWith(GenDictionary.subEncoding.map(_.toEncoding))
+      m <- GenDictionary.mode
+      cd <- GenDictionary.concreteWith(m, GenDictionary.subEncodingWithMode(m).map(_.toEncoding))
       e <- GenDictionary.expression(cd)
       f <- GenDictionary.filter(cd)
     } yield DefinitionWithQuery(cd, e, f.get))
