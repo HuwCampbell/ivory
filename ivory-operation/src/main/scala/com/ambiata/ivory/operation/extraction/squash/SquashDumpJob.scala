@@ -29,12 +29,13 @@ object SquashDumpJob {
     snapshot   <- SnapshotStorage.byIdOrFail(repository, snapshotId)
     // When we're filtering, there's a very good chance we only need a reducer per concrete feature
     reducers    = filteredDct.byConcrete.sources.size
+    rlookup     = SquashReducerLookup.createFromSnapshot(snapshot, filteredDct, reducers)
 
     // HDFS below here
     hr         <- repository.asHdfsRepository
     job        <- initDumpJob(hr, snapshot.date, snapshot, filteredDct, lookup)
     out        <- output.asHdfsIvoryLocation
-    _          <- SquashJob.run(job._1, job._2, reducers, filteredDct, out.toHdfsPath, hr.codec, SquashConfig.default, latest = false)
+    _          <- SquashJob.run(job._1, job._2, reducers, filteredDct, rlookup, out.toHdfsPath, hr.codec, SquashConfig.default, latest = false)
   } yield ()
 
   def initDumpJob(repo: HdfsRepository, date: Date, snapshot: Snapshot, dictionary: Dictionary, lookup: EntityFilterLookup): RIO[(Job, MrContext)] = for {

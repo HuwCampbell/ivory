@@ -1,12 +1,12 @@
 package com.ambiata.ivory.operation.extraction.squash
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.lookup.{FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
+import com.ambiata.ivory.lookup.{ReducerLookup, FeatureIdLookup, FeatureReduction, FeatureReductionLookup}
 import com.ambiata.ivory.mr.MrContextIvory
-import com.ambiata.ivory.operation.extraction.{ChordJob, Snapshots, SnapshotJob, IvoryInputs}
+import com.ambiata.ivory.operation.extraction.{ChordJob, SnapshotJob}
 import com.ambiata.ivory.storage.entities._
 import com.ambiata.ivory.storage.lookup.{FeatureLookups, ReducerLookups, ReducerSize, WindowLookup}
-import com.ambiata.ivory.storage.manifest.{SnapshotExtractManifest, SnapshotManifest}
+import com.ambiata.ivory.storage.manifest.SnapshotExtractManifest
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FileName
@@ -21,7 +21,7 @@ import org.apache.hadoop.mapreduce.Job
 import org.apache.hadoop.mapreduce.lib.input.{MultipleInputs, SequenceFileInputFormat}
 import org.apache.hadoop.mapreduce.lib.output.{FileOutputFormat, SequenceFileOutputFormat, MultipleOutputs, LazyOutputFormat}
 import scala.collection.JavaConverters._
-import scalaz._, Scalaz._, effect.IO
+import scalaz._, Scalaz._
 
 object SquashJob {
 
@@ -35,7 +35,8 @@ object SquashJob {
     commit     <- CommitStorage.byIdOrFail(repository, commitId)
     dictionary =  commit.dictionary.value
     job        <- SquashJob.initSnapshotJob(repository, cluster.hdfsConfiguration, snapshot.date, snapshot.format, snapshot)
-    result     <- squash(repository, dictionary, conf, job, cluster)
+    lookup     = SquashReducerLookup.createFromSnapshot(snapshot, dictionary, job._3)
+    result     <- squash(repository, dictionary, lookup, conf, job, cluster)
     _          <- SnapshotExtractManifest.io(cluster.toIvoryLocation(result.location)).write(SnapshotExtractManifest.create(commitId, snapshot.id))
   } yield result -> dictionary
 
@@ -50,13 +51,13 @@ object SquashJob {
    * 2. From a chord, where a single entity may have one or more dates. It will be important to pre-calculate a starting
    *    date for every possible entity date, and then look that up per entity on the reducer.
    */
-  def squash(repository: Repository, dictionary: Dictionary, conf: SquashConfig,
+  def squash(repository: Repository, dictionary: Dictionary, lookup: ReducerLookup, conf: SquashConfig,
              job: (Job, MrContext, Int), cluster: Cluster): RIO[ShadowOutputDataset] = for {
     key      <- Repository.tmpDir("squash")
     hr       <- repository.asHdfsRepository
     mappings <- FeatureIdMappingsStorage.fromDictionaryAndSave(repository, key, dictionary)
     shadow   = ShadowOutputDataset.fromIvoryLocation(hr.toIvoryLocation(key))
-    prof     <- run(job._1, job._2, job._3, dictionary, shadow.hdfsPath, cluster.codec, conf, latest = true)
+    prof     <- run(job._1, job._2, job._3, dictionary, lookup, shadow.hdfsPath, cluster.codec, conf, latest = true)
     _        <- IvoryLocation.writeUtf8Lines(hr.toIvoryLocation(key) </> FileName.unsafe(".profile"), SquashStats.asPsvLines(prof))
   } yield shadow
 
@@ -108,8 +109,8 @@ object SquashJob {
     } yield ret
   }
 
-  def run(job: Job, ctx: MrContext, reducers: Int, dict: Dictionary, output: Path, codec: Option[CompressionCodec],
-          squashConf: SquashConfig, latest: Boolean): RIO[SquashStats] = {
+  def run(job: Job, ctx: MrContext, reducers: Int, dict: Dictionary, reducerLookup: ReducerLookup, output: Path,
+          codec: Option[CompressionCodec], squashConf: SquashConfig, latest: Boolean): RIO[SquashStats] = {
 
     job.setJarByClass(classOf[SquashPartitioner])
     job.setJobName(ctx.id.value)
@@ -140,8 +141,7 @@ object SquashJob {
     job.getConfiguration.setInt(Keys.ProfileMod, squashConf.profileSampleRate)
     val (featureIdLookup, reductionLookup) = dictToLookup(dictionary, latest)
     ctx.thriftCache.push(job, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
-    ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,
-      SquashReducerLookup.create(dictionary, featureIdLookup, reducers))
+    ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup, reducerLookup)
 
     ctx.thriftCache.push(job, Keys.ExpressionLookup, reductionLookup)
     ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTableConcrete(dictionary))
