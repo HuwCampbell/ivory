@@ -59,13 +59,13 @@ spareMapToArray
      d.byConcrete.sources.size)
 
   def sets = prop((d: Dictionary) =>
-   FeatureLookups.isSetTable(d).getFlags.asScala.filter(_._2).size ====
-     d.definitions.filter({
+   FeatureLookups.isSetTable(d).getFlags.asScala.count(_._2) ====
+     d.definitions.count {
        case Concrete(_, definition) =>
          definition.mode.isSet
        case Virtual(_, _) =>
          false
-     }).size)
+     })
 
   def isSetTableConcrete = prop((d: Dictionary) =>
     FeatureLookups.isSetTableConcrete(d.byConcrete).getFlags.size() ==== (d.byConcrete.byFeatureIndexReverse.values.max + 1)
@@ -82,7 +82,7 @@ spareMapToArray
   def flags = prop((d: Dictionary) => {
     val table = FeatureLookups.isSetTable(d)
     val array = FeatureLookups.isSetLookupToArray(table)
-    (table.getFlags.asScala.filter(_._2).size ==== array.filter(identity).length) })
+    table.getFlags.asScala.count(_._2) ==== array.filter(identity).length })
 
   // Using Byte just to speed up the test - otherwise we create some _really_ big arrays
   def sparseMapToArray = prop((ls: List[(Byte, String)]) => ls.nonEmpty ==> {
