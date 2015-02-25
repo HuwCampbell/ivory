@@ -31,7 +31,7 @@ class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2
     val serialiser = ThriftSerialiser()
     val frs = ReducerPool.createTesting(
       SquashJob.concreteGroupToReductions(sf.dict.fid, sf.dict.withExpression(Count).cg, latest = true),
-      sf.dict.cg.definition.mode.isSet
+      sf.dict.cg.definition.mode.fold(false, true, _ => NotImplemented.keyedSet)
     )
 
     MockFactMutator.run(sf.factsSorted) { (bytes, emitter, out) =>
@@ -56,7 +56,8 @@ class SquashReducerStateSpec extends Specification with ScalaCheck { def is = s2
       SquashJob.concreteGroupToReductions(cf.factAndMeta.fact.featureId,
         ConcreteGroup(cf.factAndMeta.meta, List(cf.fid -> VirtualDefinition(cf.factAndMeta.fact.featureId,
           Query(Count, None), cf.window)))
-        , latest = true), cf.factAndMeta.meta.mode.isSet
+        , latest = true),
+      cf.factAndMeta.meta.mode.fold(false, true, _ => NotImplemented.keyedSet)
     )
 
     val facts = cf.facts.sortBy(fact => (fact.entity, fact.datetime.long))

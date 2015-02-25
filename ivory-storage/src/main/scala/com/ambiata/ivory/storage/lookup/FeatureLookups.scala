@@ -9,7 +9,7 @@ object FeatureLookups {
     val isSet = new FlagLookup
     dictionary.byFeatureIndex.foreach({
       case (n, Concrete(id, definition)) =>
-        isSet.putToFlags(n, definition.mode.isSet)
+        isSet.putToFlags(n, definition.mode.fold(false, true, _ => NotImplemented.keyedSet))
       case (n, Virtual(id, definition)) =>
         ()
     })
@@ -21,7 +21,7 @@ object FeatureLookups {
     dictionary.sources.foreach {
       case (fid, cd) =>
         dictionary.byFeatureIndexReverse.get(fid).foreach {
-          n => isSet.putToFlags(n, cd.definition.mode.isSet)
+          n => isSet.putToFlags(n, cd.definition.mode.fold(false, true, _ => NotImplemented.keyedSet))
         }
     }
     isSet
