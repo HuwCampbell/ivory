@@ -26,14 +26,16 @@ SnapshotReducerSpec
 
 """
 
-  def windowLookupToArray = prop((l: NonEmptyList[(FeatureId, Option[Date])], e: Encoding, m: Mode, x: Date) => {
-    val dictionary = Dictionary(l.list.map({ case (fid, date) =>
+  def windowLookupToArray = prop((l2: NonEmptyList[(FeatureId, Option[Date])], e: Encoding, m: Mode, x: Date) => {
+    // Remove duplicate featureIds
+    val l = l2.list.toMap.toList
+    val dictionary = Dictionary(l.map({ case (fid, date) =>
       Definition.concrete(fid, e, m, None, fid.toString, Nil)
     }))
     val index = dictionary.byFeatureIndex.map({ case (n, d) => d.featureId -> n })
-    val lookup = SnapshotJob.windowTable(dictionary, Ranges(l.list.map({ case (f, date) => Range(f, date.toList, x) })))._2
+    val lookup = SnapshotJob.windowTable(dictionary, Ranges(l.map({ case (f, date) => Range(f, date.toList, x) })))._2
     val a = SnapshotReducer.windowLookupToArray(lookup)
-    seqToResult(l.list.map {
+    seqToResult(l.map {
       case (fid, w) => a(index(fid)) ==== w.getOrElse(Date.maxValue).int
     })
   })
