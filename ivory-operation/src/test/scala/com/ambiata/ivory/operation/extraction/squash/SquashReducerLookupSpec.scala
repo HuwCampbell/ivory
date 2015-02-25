@@ -24,8 +24,8 @@ class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s
   The total of all sized reducers is >= total reducers            $lookupByNamespaceSizeAndWindowTotal
 """
 
-  def lookup = prop((d: VirtualDictionaryWindow, d2: Dictionary, s: Short, e: Int) => {
-    val reducers = s & (Short.MaxValue - 1)
+  def lookup = prop((d: VirtualDictionaryWindow, d2: Dictionary, s: NaturalInt, e: Int) => s.value != Short.MaxValue ==> {
+    val reducers = s.value.toShort
     val dict = d.vd.dictionary.append(d2)
     val create = SquashReducerLookup.createLookup(dict, SquashReducerLookup.lookupByWindowOnly(dict, reducers))
     val lookupV = create.reducers.get(dict.byFeatureIndexReverse.getOrElse(d.vdict.vd.source, 0))
