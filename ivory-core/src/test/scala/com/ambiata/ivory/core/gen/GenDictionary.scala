@@ -75,6 +75,11 @@ object GenDictionary {
   def identified: Gen[Identified[DictionaryId, Dictionary]] =
     GenIdentifier.identified(Arbitrary(GenIdentifier.dictionary), Arbitrary(GenDictionary.dictionary))
 
+  def concreteGroup(source: FeatureId): Gen[ConcreteGroup] = for {
+    cd <- concrete
+    vd <- GenPlus.listOfSizedWithIndex(0, 3, GenDictionary.virtual(source -> cd, _))
+  } yield ConcreteGroup(cd, vd.toMap.mapValues(_.copy(source = source)).toList)
+
   def dictionary: Gen[Dictionary] = for {
     i <- GenPlus.listOfSized(3, 20, GenIdentifier.feature).map(_.distinct)
     c <- Gen.listOfN(i.size, concrete).map(cds => i.zip(cds))

@@ -4,8 +4,6 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.gen._
 import org.scalacheck._, Arbitrary._
 import Arbitraries._
-import scalaz._, Scalaz._
-import scalaz.scalacheck.ScalaCheckBinding._
 
 /** Helpful wrapper around [[ConcreteGroup]] */
 case class ConcreteGroupFeature(fid: FeatureId, cg: ConcreteGroup) {
@@ -22,8 +20,6 @@ case class ConcreteGroupFeature(fid: FeatureId, cg: ConcreteGroup) {
 object ConcreteGroupFeature {
   implicit def ConcreteGroupFeatureArbitrary: Arbitrary[ConcreteGroupFeature] = Arbitrary(for {
     fid <- arbitrary[FeatureId]
-    cd  <- arbitrary[ConcreteDefinition]
-    vi <- Gen.choose(0, 3)
-    vd <- (0 until vi).zipWithIndex.map(_._2).toList.traverse(GenDictionary.virtual(fid -> cd, _))
-  } yield ConcreteGroupFeature(fid, ConcreteGroup(cd, vd.toMap.mapValues(_.copy(source = fid)).toList)))
+    cg  <- GenDictionary.concreteGroup(fid)
+  } yield ConcreteGroupFeature(fid, cg))
 }
