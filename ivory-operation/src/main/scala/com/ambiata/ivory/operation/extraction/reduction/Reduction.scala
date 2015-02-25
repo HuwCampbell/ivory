@@ -8,6 +8,144 @@ import com.ambiata.ivory.storage.metadata.DictionaryTextStorageV2
 import scala.PartialFunction.condOpt
 import scalaz.{Value => _, _}, Scalaz._
 
+
+/* There are some days a programmer could burn the world for lack of
+   nice rank-2 types....
+
+   lets just pretend this is:
+     data Reductio a b =
+       forall x. Reductio {
+           seed :: x
+         , step :: x -> a -> x
+         , stop :: x -> b
+         } */
+
+trait Reductio[A, B] {
+  type X
+  def seed: X
+  def step(state: X, value: A): X
+  def stop: B
+}
+
+trait ReductioAd {
+  type X
+  def seed: X
+  def step(state: X, value: Fact): X
+  def stop: ThriftFactValue
+}
+
+trait Absurdum {
+  type X
+  def seed: X
+
+  def step(state: X, value: Fact): X
+  def stop: ThriftFactValue
+
+  def accept(state: X, value: Fact): (X, Boolean)
+}
+
+
+class ReductioAdAbsurdum(delegate: Absurdum) extends Absurdum {
+  // TODO
+}
+
+class LatestAbsurdum(delegate: Absurdum) extends Absurdum {
+  type X = (Boolean, ThriftFact, delegate#X)
+
+  def foundLatest(state: X): Boolean =
+    state._1
+
+  def delegateState(state: X): Boolean =
+    state._3
+
+  def seed =
+    (false, delegate.seed)
+
+  def step(state: X, fact: Fact): X =
+    if (Window.isFactWithinWindowRange(windowStart, windowEnd, fact))
+      (foundLast(state), delegate.step(delegateState(state), fact))
+    else
+      state
+
+  def accept(state: X, fact: Fact): (X, Boolean) =
+    if (foundLatest(state))
+      ((true, state._2, state._3), false)
+    else {
+      val (updated, accept) = delegate.accept(delegateState(state), fact)
+      ((true, state._2, updated), accept)
+    }
+}
+
+
+class StateWindowAbsurdum(delegate: Absurdum, windowStart: Date, windowEnd: Date) extends Absurdum {
+  type X = (Boolean, delegate#X)
+
+  def foundLast(state: X): Boolean =
+    state._1
+
+  def delegateState(state: X): Boolean =
+    state._2
+
+  def seed =
+    (false, delegate.seed)
+
+  def step(state: X, fact: Fact): X =
+    if (Window.isFactWithinWindowRange(windowStart, windowEnd, fact))
+      (foundLast(state), delegate.step(delegateState(state), fact))
+    else
+      state
+
+  def accept(state: X, fact: Fact): (X, Boolean) =
+    if (Window.isFactWithinWindowRange(windowStart, windowEnd, fact))
+      delegate.accept(delegateState(state), fact)
+    else if (fact.date <= windowStart && !foundLast) {
+      val (updated, accept) = delegate.accept(delegateState(state), fact)
+      ((true, updated), accept)
+    } else
+      (state, false)
+}
+
+
+class SetWindowAbsurdum(delegate: Absurdum, windowStart: Date, windowEnd: Date) extends Absurdum {
+  type X = delegate#X
+
+  def seed =
+    delegate.seed
+
+  def step(state: X, fact: Fact): X =
+    if (Window.isFactWithinWindowRange(windowStart, windowEnd, fact))
+      delegate.step(state, fact)
+    else
+      state
+
+  def accept(state: X, fact: Fact): (X, Boolean) = {
+    if (Window.isFactWithinWindowRange(windowStart, windowEnd, fact))
+      delegate.accept(state, fact)
+    else
+      (state, false)
+  }
+}
+
+class FilterAbsurdum(delegate: Absurdum, expression: FilterReductionExpression) extends Absurdum {
+  type X = delegate#X
+
+  def seed =
+    delegate.seed
+
+  def step(state: X, fact: Fact): X =
+    if (expression.eval(fact))
+      delegate.step(state, fact)
+    else
+      state
+
+  def accept(state: X, fact: Fact): (X, Boolean) = {
+    if (expression.eval(fact))
+      delegate.accept(state, fact)
+    else
+      (state, false)
+  }
+}
+
 /**
  * Map-reduce reductions that represent a single feature gen.
  *
@@ -212,6 +350,7 @@ trait EncodedReduction {
   def d[A, B](f: ReductionFoldWithDate[A, Double, B],  to: ReductionValueTo[B]): Reduction
   def date[A, B](f: ReductionFoldWithDate[A, Int, B],  to: ReductionValueTo[B]): Reduction
 }
+
 
 /**
  * Pure version of [[Reduction]], specialized for the [[B]] value being folded over.

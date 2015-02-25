@@ -136,8 +136,7 @@ trait SquashReducer[A <: Writable] extends Reducer[BytesWritable, BytesWritable,
   }
 
   def trace(fr: FeatureReduction, r: Reduction): Reduction =
-    r /* FIX MAX COUNTERS tracer.wrap */
-}
+    r /* FIX MAX COUNTERS tracer.wrap */}
 
 class SquashReducerSnapshot extends SquashReducer[BytesWritable] {
 
