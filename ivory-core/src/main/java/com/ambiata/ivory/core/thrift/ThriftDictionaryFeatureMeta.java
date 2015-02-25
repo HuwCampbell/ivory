@@ -41,6 +41,7 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
   private static final org.apache.thrift.protocol.TField TOMBSTONE_VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("tombstoneValue", org.apache.thrift.protocol.TType.LIST, (short)4);
   private static final org.apache.thrift.protocol.TField VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("value", org.apache.thrift.protocol.TType.STRUCT, (short)5);
   private static final org.apache.thrift.protocol.TField MODE_FIELD_DESC = new org.apache.thrift.protocol.TField("mode", org.apache.thrift.protocol.TType.I32, (short)6);
+  private static final org.apache.thrift.protocol.TField MODE_V2_FIELD_DESC = new org.apache.thrift.protocol.TField("modeV2", org.apache.thrift.protocol.TType.STRUCT, (short)7);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -66,6 +67,7 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
    * @see ThriftDictionaryMode
    */
   public ThriftDictionaryMode mode; // optional
+  public ThriftDictionaryModeV2 modeV2; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -86,7 +88,8 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
      * 
      * @see ThriftDictionaryMode
      */
-    MODE((short)6, "mode");
+    MODE((short)6, "mode"),
+    MODE_V2((short)7, "modeV2");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -113,6 +116,8 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
           return VALUE;
         case 6: // MODE
           return MODE;
+        case 7: // MODE_V2
+          return MODE_V2;
         default:
           return null;
       }
@@ -153,7 +158,7 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
   }
 
   // isset id assignments
-  private _Fields optionals[] = {_Fields.TYPE,_Fields.VALUE,_Fields.MODE};
+  private _Fields optionals[] = {_Fields.TYPE,_Fields.VALUE,_Fields.MODE,_Fields.MODE_V2};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -170,6 +175,8 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftDictionaryFeatureValue.class)));
     tmpMap.put(_Fields.MODE, new org.apache.thrift.meta_data.FieldMetaData("mode", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, ThriftDictionaryMode.class)));
+    tmpMap.put(_Fields.MODE_V2, new org.apache.thrift.meta_data.FieldMetaData("modeV2", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftDictionaryModeV2.class)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftDictionaryFeatureMeta.class, metaDataMap);
   }
@@ -211,6 +218,9 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
     if (other.isSetMode()) {
       this.mode = other.mode;
     }
+    if (other.isSetModeV2()) {
+      this.modeV2 = new ThriftDictionaryModeV2(other.modeV2);
+    }
   }
 
   public ThriftDictionaryFeatureMeta deepCopy() {
@@ -225,6 +235,7 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
     this.tombstoneValue = null;
     this.value = null;
     this.mode = null;
+    this.modeV2 = null;
   }
 
   /**
@@ -410,6 +421,30 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
     }
   }
 
+  public ThriftDictionaryModeV2 getModeV2() {
+    return this.modeV2;
+  }
+
+  public ThriftDictionaryFeatureMeta setModeV2(ThriftDictionaryModeV2 modeV2) {
+    this.modeV2 = modeV2;
+    return this;
+  }
+
+  public void unsetModeV2() {
+    this.modeV2 = null;
+  }
+
+  /** Returns true if field modeV2 is set (has been assigned a value) and false otherwise */
+  public boolean isSetModeV2() {
+    return this.modeV2 != null;
+  }
+
+  public void setModeV2IsSet(boolean value) {
+    if (!value) {
+      this.modeV2 = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case ENCODING:
@@ -460,6 +495,14 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
       }
       break;
 
+    case MODE_V2:
+      if (value == null) {
+        unsetModeV2();
+      } else {
+        setModeV2((ThriftDictionaryModeV2)value);
+      }
+      break;
+
     }
   }
 
@@ -482,6 +525,9 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
 
     case MODE:
       return getMode();
+
+    case MODE_V2:
+      return getModeV2();
 
     }
     throw new IllegalStateException();
@@ -506,6 +552,8 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
       return isSetValue();
     case MODE:
       return isSetMode();
+    case MODE_V2:
+      return isSetModeV2();
     }
     throw new IllegalStateException();
   }
@@ -574,6 +622,15 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
       if (!(this_present_mode && that_present_mode))
         return false;
       if (!this.mode.equals(that.mode))
+        return false;
+    }
+
+    boolean this_present_modeV2 = true && this.isSetModeV2();
+    boolean that_present_modeV2 = true && that.isSetModeV2();
+    if (this_present_modeV2 || that_present_modeV2) {
+      if (!(this_present_modeV2 && that_present_modeV2))
+        return false;
+      if (!this.modeV2.equals(that.modeV2))
         return false;
     }
 
@@ -653,6 +710,16 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetModeV2()).compareTo(other.isSetModeV2());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetModeV2()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.modeV2, other.modeV2);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -723,6 +790,16 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
         sb.append("null");
       } else {
         sb.append(this.mode);
+      }
+      first = false;
+    }
+    if (isSetModeV2()) {
+      if (!first) sb.append(", ");
+      sb.append("modeV2:");
+      if (this.modeV2 == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.modeV2);
       }
       first = false;
     }
@@ -828,6 +905,15 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 7: // MODE_V2
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+              struct.modeV2 = new ThriftDictionaryModeV2();
+              struct.modeV2.read(iprot);
+              struct.setModeV2IsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -886,6 +972,13 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
           oprot.writeFieldEnd();
         }
       }
+      if (struct.modeV2 != null) {
+        if (struct.isSetModeV2()) {
+          oprot.writeFieldBegin(MODE_V2_FIELD_DESC);
+          struct.modeV2.write(oprot);
+          oprot.writeFieldEnd();
+        }
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -922,7 +1015,10 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
       if (struct.isSetMode()) {
         optionals.set(5);
       }
-      oprot.writeBitSet(optionals, 6);
+      if (struct.isSetModeV2()) {
+        optionals.set(6);
+      }
+      oprot.writeBitSet(optionals, 7);
       if (struct.isSetEncoding()) {
         oprot.writeI32(struct.encoding.getValue());
       }
@@ -947,12 +1043,15 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
       if (struct.isSetMode()) {
         oprot.writeI32(struct.mode.getValue());
       }
+      if (struct.isSetModeV2()) {
+        struct.modeV2.write(oprot);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, ThriftDictionaryFeatureMeta struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(6);
+      BitSet incoming = iprot.readBitSet(7);
       if (incoming.get(0)) {
         struct.encoding = ThriftDictionaryEncoding.findByValue(iprot.readI32());
         struct.setEncodingIsSet(true);
@@ -986,6 +1085,11 @@ public class ThriftDictionaryFeatureMeta implements org.apache.thrift.TBase<Thri
       if (incoming.get(5)) {
         struct.mode = ThriftDictionaryMode.findByValue(iprot.readI32());
         struct.setModeIsSet(true);
+      }
+      if (incoming.get(6)) {
+        struct.modeV2 = new ThriftDictionaryModeV2();
+        struct.modeV2.read(iprot);
+        struct.setModeV2IsSet(true);
       }
     }
   }

@@ -6,24 +6,21 @@ sealed trait Mode {
   def fold[X](
     state: => X
   , set: => X
+  , keyedSet: String => X
   ): X = this match {
     case State => state
     case Set => set
+    case KeyedSet(key) => keyedSet(key)
   }
 
   def render: String =
-    fold("state", "set")
-
-  def isState: Boolean =
-    fold(true, false)
-
-  def isSet: Boolean =
-    fold(false, true)
+    fold("state", "set", "keyed_set," + _)
 }
 
 object Mode {
   case object State extends Mode
   case object Set extends Mode
+  case class KeyedSet(key: String) extends Mode
 
   def state: Mode =
     State
@@ -31,11 +28,16 @@ object Mode {
   def set: Mode =
     Set
 
-  def fromString(s: String): Option[Mode] = s match {
-    case "state" =>
+  def keyedSet(key: String): Mode =
+    KeyedSet(key)
+
+  def fromString(s: String): Option[Mode] = s.split(",", 2).toList match {
+    case List("state") =>
       Some(State)
-    case "set" =>
+    case List("set") =>
       Some(Set)
+    case List("keyed_set", key) =>
+      Some(KeyedSet(key))
     case _ =>
       None
   }

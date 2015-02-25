@@ -19,7 +19,8 @@ object FactsWithDictionary {
    */
   implicit def FactsWithDictionaryArbitrary: Arbitrary[FactsWithDictionary] =
     Arbitrary(for {
-      cg <- arbitrary[ConcreteGroupFeature]
+      m <- GenDictionary.modeImplemented
+      cg <- arbitrary[ConcreteGroupFeature].map(_.withMode(m))
       facts <- GenPlus.listOfSized(2, 10, GenFact.factWith(GenEntity.entity, cg.fid, cg.cg.definition, arbitrary[DateTime]))
     } yield FactsWithDictionary(cg, facts))
 }

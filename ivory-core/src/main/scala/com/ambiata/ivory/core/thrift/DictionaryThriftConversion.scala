@@ -76,13 +76,25 @@ object DictionaryThriftConversion {
     case NUMERICAL => NumericalType
   })
 
-  private val modeBi = bijection[Id, Id, Mode, ThriftDictionaryMode]({
-    case Mode.State => STATE
-    case Mode.Set => SET
-  }, {
-    case STATE => Mode.State
-    case SET => Mode.Set
-  })
+  object modeBi {
+    def to(mode: Mode): ThriftDictionaryModeV2 = mode match {
+      case Mode.State => ThriftDictionaryModeV2.mode(STATE)
+      case Mode.Set => ThriftDictionaryModeV2.mode(SET)
+      case Mode.KeyedSet(key) => ThriftDictionaryModeV2.keyedSet(key)
+    }
+
+    def from(moveV1: Option[ThriftDictionaryMode], modeV2: Option[ThriftDictionaryModeV2]): Mode = {
+      def fromV1(m: ThriftDictionaryMode): Mode =
+        m match {
+          case STATE => Mode.State
+          case SET => Mode.Set
+        }
+      modeV2
+        .map(m => if (m.isSetKeyedSet) Mode.keyedSet(m.getKeyedSet) else fromV1(m.getMode))
+        .orElse(moveV1.map(fromV1))
+        .getOrElse(Mode.State)
+    }
+  }
 
   object window {
     def to(window: Window): ThriftDictionaryWindow =
@@ -133,12 +145,12 @@ object DictionaryThriftConversion {
       val (encJava, structJava) = encoding.to(cd.encoding)
       val meta = new ThriftDictionaryFeatureMeta(encJava, cd.desc, cd.tombstoneValue.asJava)
       cd.ty.foreach(t => meta.setType(typeBi.to(t)))
-      meta.setMode(modeBi.to(cd.mode))
+      meta.setModeV2(modeBi.to(cd.mode))
       structJava.foreach(meta.setValue)
       meta
     }
     def from(meta: ThriftDictionaryFeatureMeta): ConcreteDefinition =
-      ConcreteDefinition(encoding.from(meta), Option(meta.mode).cata(modeBi.from, Mode.state), Option(meta.`type`).map(typeBi.from), meta.desc, meta.tombstoneValue.asScala.toList)
+      ConcreteDefinition(encoding.from(meta), modeBi.from(Option(meta.mode), Option(meta.modeV2)), Option(meta.`type`).map(typeBi.from), meta.desc, meta.tombstoneValue.asScala.toList)
   }
 
   def dictionaryToThrift(dictionary: Dictionary): ThriftDictionary =

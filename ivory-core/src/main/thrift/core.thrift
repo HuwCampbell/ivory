@@ -139,6 +139,11 @@ enum ThriftDictionaryMode {
     SET = 2
 }
 
+union ThriftDictionaryModeV2 {
+    1: ThriftDictionaryMode mode,
+    2: string keyedSet
+}
+
 struct ThriftDictionaryFeatureMeta {
     1: ThriftDictionaryEncoding encoding;
     2: optional ThriftDictionaryType type;
@@ -146,6 +151,7 @@ struct ThriftDictionaryFeatureMeta {
     4: list<string> tombstoneValue;
     5: optional ThriftDictionaryFeatureValue value;
     6: optional ThriftDictionaryMode mode;
+    7: optional ThriftDictionaryModeV2 modeV2;
 }
 
 enum ThriftDictionaryWindowUnit {

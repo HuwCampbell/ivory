@@ -1,7 +1,7 @@
 package com.ambiata.ivory.storage.lookup
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.arbitraries.Arbitraries._
+import com.ambiata.ivory.storage.arbitraries.DictionaryWithoutKeyedSet
 import org.specs2.{ScalaCheck, Specification}
 import scala.collection.JavaConverters._
 
@@ -54,35 +54,36 @@ spareMapToArray
     $sparseMapToArray
 """
 
-  def concretes = prop((d: Dictionary) =>
-   FeatureLookups.isSetTable(d).getFlags.size ====
-     d.byConcrete.sources.size)
+  def concretes = prop((d: DictionaryWithoutKeyedSet) =>
+   FeatureLookups.isSetTable(d.value).getFlags.size ====
+     d.value.byConcrete.sources.size)
 
-  def sets = prop((d: Dictionary) =>
-   FeatureLookups.isSetTable(d).getFlags.asScala.filter(_._2).size ====
-     d.definitions.filter({
+  def sets = prop((d: DictionaryWithoutKeyedSet) =>
+   FeatureLookups.isSetTable(d.value).getFlags.asScala.count(_._2) ====
+     d.value.definitions.count {
        case Concrete(_, definition) =>
-         definition.mode.isSet
+         definition.mode.fold(false, true, _ => NotImplemented.keyedSet)
        case Virtual(_, _) =>
          false
-     }).size)
+     })
 
-  def isSetTableConcrete = prop((d: Dictionary) =>
-    FeatureLookups.isSetTableConcrete(d.byConcrete).getFlags.size() ==== (d.byConcrete.byFeatureIndexReverse.values.max + 1)
+  def isSetTableConcrete = prop((d: DictionaryWithoutKeyedSet) =>
+    FeatureLookups.isSetTableConcrete(d.value.byConcrete).getFlags.size() ====
+      (d.value.byConcrete.byFeatureIndexReverse.values.max + 1)
   )
 
-  def size = prop((d: Dictionary) =>
-    FeatureLookups.featureIdTable(d).getIds.size ====
-      d.definitions.size)
+  def size = prop((d: DictionaryWithoutKeyedSet) =>
+    FeatureLookups.featureIdTable(d.value).getIds.size ====
+      d.value.definitions.size)
 
-  def index = prop((d: Dictionary) =>
-    FeatureLookups.featureIdTable(d).getIds.asScala.toMap ====
-      d.byFeatureIndex.map({  case (n, m) => m.featureId.toString -> Integer.valueOf(n) }))
+  def index = prop((d: DictionaryWithoutKeyedSet) =>
+    FeatureLookups.featureIdTable(d.value).getIds.asScala.toMap ====
+      d.value.byFeatureIndex.map({  case (n, m) => m.featureId.toString -> Integer.valueOf(n) }))
 
-  def flags = prop((d: Dictionary) => {
-    val table = FeatureLookups.isSetTable(d)
+  def flags = prop((d: DictionaryWithoutKeyedSet) => {
+    val table = FeatureLookups.isSetTable(d.value)
     val array = FeatureLookups.isSetLookupToArray(table)
-    (table.getFlags.asScala.filter(_._2).size ==== array.filter(identity).length) })
+    table.getFlags.asScala.count(_._2) ==== array.filter(identity).length })
 
   // Using Byte just to speed up the test - otherwise we create some _really_ big arrays
   def sparseMapToArray = prop((ls: List[(Byte, String)]) => ls.nonEmpty ==> {

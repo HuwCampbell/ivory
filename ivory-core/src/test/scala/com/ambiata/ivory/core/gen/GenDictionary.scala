@@ -9,6 +9,10 @@ import scalaz.scalacheck.ScalaCheckBinding._
 
 object GenDictionary {
   def mode: Gen[Mode] =
+    Gen.oneOf(modeImplemented, GenString.sensible.map(Mode.KeyedSet))
+
+  // Remove when KeyedSet is supported fully
+  def modeImplemented: Gen[Mode] =
     Gen.oneOf(Mode.State, Mode.Set)
 
   def type_ : Gen[Type] =

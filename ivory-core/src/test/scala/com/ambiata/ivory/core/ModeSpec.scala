@@ -11,29 +11,27 @@ Combinators
 
   State fold only evaluates 'state' expression:
 
-    ${ prop((n: Int) => State.fold(n, ???) ==== n) }
+    ${ prop((n: Int) => State.fold(n, ???, _ => ???) ==== n) }
 
   Set fold only evaluates 'state' expression:
 
-    ${ prop((n: Int) => Set.fold(???, n) ==== n) }
+    ${ prop((n: Int) => Set.fold(???, n, _ => ???) ==== n) }
+
+  Set fold only evaluates 'keyed_set' expression:
+
+    ${ prop((n: Int, key: String) => KeyedSet(key).fold(???, ???, _ => + n) ==== n) }
 
   Fold constructors is identity:
 
-    ${ prop((m: Mode) => m.fold(Mode.state, Mode.set) ==== m) }
-
-  isState is true iff mode is State:
-
-    ${ prop((m: Mode) => m.isState ==== (m == State)) }
-
-  isSet is true iff mode is Set:
-
-    ${ prop((m: Mode) => m.isSet ==== (m == Set)) }
+    ${ prop((m: Mode) => m.fold(Mode.state, Mode.set, Mode.keyedSet) ==== m) }
 
   Render correct strings:
 
     ${ State.render ==== "state" }
 
     ${ Set.render ==== "set" }
+
+    ${ prop((key: String) => KeyedSet(key).render ==== "keyed_set," + key) }
 
   fromString and render are symmetric:
 

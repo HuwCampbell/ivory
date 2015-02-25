@@ -19,7 +19,9 @@ object SquashArbitraries {
 
     /** Return the squashed view of entities to their expected facts for each feature, given the window */
     def expected: Map[String, Map[FeatureId, (Option[Fact], List[Fact])]] = {
-      val windows = dict.cg.definition.mode.fold(List(dict.fid -> None), Nil) ++ dict.cg.virtual.map(vd => vd._1 -> vd._2.window)
+      val windows = dict.cg.definition.mode.fold(
+        List(dict.fid -> None), Nil, _ => NotImplemented.keyedSet
+      ) ++ dict.cg.virtual.map(vd => vd._1 -> vd._2.window)
       facts.list.groupBy(_.entity).mapValues { facts =>
         windows.toMap.mapValues { window =>
           facts.sortBy(_.datetime.long)
@@ -51,7 +53,10 @@ object SquashArbitraries {
     }
 
     def expectedFactsWithCount: List[Fact] =
-      dict.cg.definition.mode.fold(expectedFactsWithCountState, expectedFactsWithCountSet)
+      dict.cg.definition.mode.fold(
+        expectedFactsWithCountState,
+        expectedFactsWithCountSet,
+        _ => expectedFactsWithCountSet)
 
     def removeNonWindowFeatures: SquashFacts =
       copy(dict = dict.copy(cg = dict.cg.copy(virtual = dict.cg.virtual.filter(_._2.window.isDefined))))
@@ -79,6 +84,8 @@ object SquashArbitraries {
     Arbitrary(Arbitrary.arbitrary[Date].flatMap(squashFactsArbitraryFromDate))
 
   def squashFactsArbitraryFromDate(date: Date): Gen[SquashFacts] = for {
+    // Make sure we only generate State/Set for now
+    m <- GenDictionary.modeImplemented
     w <- Arbitrary.arbitrary[ConcreteGroupFeature].flatMap { w =>
       // Make sure we have _at least_ one virtual feature
       if (w.dictionary.hasVirtual) Gen.const(w)
@@ -88,7 +95,7 @@ object SquashArbitraries {
       // Disable filtering in squash tests, handled in FilterReductionSpec and window cli test
       cgf => cgf.copy(cg = cgf.cg.copy(virtual = cgf.cg.virtual.map {
         case (fid, vd) => fid -> vd.copy(query = vd.query.copy(filter = None))
-      }))
+      })).withMode(m)
     }
     // We should only ever see 1 fact when no window is defined
     i <- startingDate(w, date).cata(_ => Gen.choose(2, 10), Gen.const(1))
@@ -100,7 +107,8 @@ object SquashArbitraries {
     fa = w.cg.definition.mode.fold (
       // For state it's impossible to have a duplicate entity + datetime (the result is non-deterministic)
       fs.groupBy1(f => f.entity -> f.datetime).values.map(_.head).toList,
-      fs
+      fs,
+      _ => NotImplemented.keyedSet
     )
   } yield SquashFacts(date, w, NonEmptyList(fa.head, fa.tail: _*))
 

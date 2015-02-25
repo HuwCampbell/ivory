@@ -35,10 +35,7 @@ object ChordArbitraries {
         date -> facts.zip(facts.map(incValue(_, "p"))).flatMap(f => List(f._1, f._2)) })
 
     def fromFactWithMode(fact: Fact, mode: Mode): List[(Date, List[Fact])] = {
-      mode match {
-        case Mode.State => fromFact(fact)
-        case Mode.Set   => fromFactWithPriority(fact)
-      }
+      mode.fold(fromFact(fact), fromFactWithPriority(fact), _ => NotImplemented.keyedSet)
     }
 
     def toFacts[A](fact: Fact, mode: Mode)(t: (Date, List[Fact], List[Fact]) => List[A]): List[A] =
@@ -153,8 +150,9 @@ object ChordArbitraries {
   implicit def ChordFactsArbitrary: Arbitrary[ChordFacts] = Arbitrary(for {
     n     <- Gen.choose(1, 20)
     dates <- Gen.sequence[List, ChordEntity]((0 until n).map(chordEntityGen)).map(_.filter(!_.isEmpty))
+    mode  <- GenDictionary.modeImplemented
     // Just generate one stub fact - we only care about the entity and date
-    fact  <- Arbitrary.arbitrary[SparseEntities]
+    fact  <- Arbitrary.arbitrary[SparseEntities].map(se => se.copy(meta = se.meta.copy(mode = mode)))
     fid   <- GenIdentifier.featureUnique(Set(fact.fact.featureId))
     win   <- Arbitrary.arbitrary[Option[Window]]
     // Generate other facts that aren't related in any way - they should be ignored

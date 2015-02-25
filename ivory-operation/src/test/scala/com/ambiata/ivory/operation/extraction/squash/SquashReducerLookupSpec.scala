@@ -6,6 +6,7 @@ import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.gen._
 import com.ambiata.ivory.lookup.ReducerLookup
+import com.ambiata.ivory.storage.arbitraries.DictionaryWithoutKeyedSet
 import com.ambiata.poacher.mr.{ByteWriter, Writables}
 import org.scalacheck.{Gen, Arbitrary}
 import org.specs2.{ScalaCheck, Specification}
@@ -24,13 +25,13 @@ class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s
   The total of all sized reducers is >= total reducers            $lookupByNamespaceSizeAndWindowTotal
 """
 
-  def lookup = prop((d: VirtualDictionaryWindow, d2: Dictionary, s: NaturalInt, e: Int) => s.value != Short.MaxValue ==> {
+  def lookup = prop((d: VirtualDictionaryWindow, d2: DictionaryWithoutKeyedSet, s: NaturalInt, e: Int) => s.value != Short.MaxValue ==> {
     val reducers = s.value.toShort
-    val dict = d.vd.dictionary.append(d2)
+    val dict = d.vd.dictionary.append(d2.value)
     val create = SquashReducerLookup.createLookup(dict, SquashReducerLookup.lookupByWindowOnly(dict, reducers))
     val lookupV = create.reducers.get(dict.byFeatureIndexReverse.getOrElse(d.vdict.vd.source, 0))
     val windowReducers = create.reducers.values().asScala.map(_ & 0xffff).sum
-    windowReducers must beGreaterThan(reducers - d2.byConcrete.sources.size) and
+    windowReducers must beGreaterThan(reducers - d2.value.byConcrete.sources.size) and
       (FeatureReducerOffset.getReducer(lookupV, e & Int.MaxValue) must beGreaterThanOrEqualTo(0))
   })
 
