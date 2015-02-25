@@ -36,7 +36,7 @@ Sync operations from cluster
   def file = prop((data: String, location: TemporaryType) => {
     withCluster(cluster =>
       withIvoryLocationFile(TemporaryType.Hdfs)(hdfs =>
-        withIvoryLocationFile(TemporaryType.Hdfs)(output => {
+        withIvoryLocationFile(location)(output => {
           val dataset = help(hdfs.location)
           for {
             _ <- IvoryLocation.writeUtf8(hdfs, data)
