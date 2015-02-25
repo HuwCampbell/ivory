@@ -112,7 +112,8 @@ object SnapshotPlan {
    */
   def isValid(at: Date, commit: Commit, snapshot: Snapshot): Boolean =
     snapshot.date.isBeforeOrEqual(at) && snapshot.store.subsetOf(commit.store) &&
-      (sameDictionary(commit, snapshot) || noWindows(commit, snapshot) || containedBy(at, commit, snapshot))
+      (sameDictionary(commit, snapshot) ||
+        ((noWindows(commit, snapshot) || containedBy(at, commit, snapshot)) && sameMode(commit, snapshot)))
 
   /**
    * Determine if the commit and snapshot have the same dictionary. This is a
@@ -148,6 +149,21 @@ object SnapshotPlan {
       // features, even for overlapping date ranges.
       val restricted = commit.dictionary.value.forFeatureIds(dictionary.value.featureIds)
       restricted.windows.byNamespace(at).containedBy(dictionary.value.windows.byNamespace(at))
+    })
+
+  /**
+   * Determine if one of the concrete features modes hasn't been altered since the snapshot.
+   */
+  def sameMode(commit: Commit, snapshot: Snapshot): Boolean =
+    snapshot.dictionary.exists(dictionary => {
+      Maps.outerJoin(dictionary.value.byConcrete.sources, commit.dictionary.value.byConcrete.sources).forall {
+        case (_, \&/.This(_)) =>
+          true
+        case (_, \&/.That(_)) =>
+          true
+        case (_, \&/.Both(f1, f2)) =>
+          f1.definition.mode == f2.definition.mode
+      }
     })
 
   /**

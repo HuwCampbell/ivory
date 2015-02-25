@@ -1,5 +1,6 @@
 package com.ambiata.ivory.storage.plan
 
+import com.ambiata.disorder.DistinctPair
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
@@ -99,6 +100,9 @@ Support 2 - Determining if a given snapshot is valid
 
   If the snapshot date is after stored snapshot date and valid store, it is valid.
     ${support2.past}
+
+  If one concrete feature mode changes, it is always invalid.
+    ${support2.mode}
 
 
 Support 3 - Fallback behaviour when there is no incremental snapshot to load from
@@ -260,6 +264,14 @@ Invariants 1 - Things that always hold true for SnapshotPlan
     def disjoint =
       prop((at: Date, commit: Commit, snapshot: Snapshot) => !snapshot.store.subsetOf(commit.store) ==> {
         SnapshotPlan.isValid(at, commit, snapshot) must beFalse })
+
+    def mode =
+      prop((commit: Commit, snapshot: Snapshot, cg: ConcreteGroupFeature, dictionary: Dictionary,
+            ids: DistinctPair[DictionaryId], modes: DistinctPair[Mode]) => {
+        SnapshotPlan.isValid(snapshot.date,
+          commit.copy(dictionary = Identified(ids.first, cg.withMode(modes.first).dictionary.append(dictionary))),
+          snapshot.copy(dictionary = Some(Identified(ids.second, cg.withMode(modes.second).dictionary.append(dictionary))))
+        ) must beFalse})
   }
 
   object support3 {
