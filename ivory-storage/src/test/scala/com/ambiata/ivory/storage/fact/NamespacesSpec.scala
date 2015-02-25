@@ -66,12 +66,14 @@ class NamespacesSpec extends Specification with ScalaCheck { def is = s2"""
     r <- namespaceSizesSingle(new Path(p.path, "ns1"), Namespace("namespace")).run(p.conf)
   } yield r ==== Namespace("namespace") -> data.value.getBytes("UTF-8").size.bytes)
 
-  def e3 = prop((tmp: LocalTemporary, nsInc: Set[Namespace], nsExc: Set[Namespace], fsInc: FactsetIds, fsExc: FactsetIds, data: S) => !nsInc.exists(nsExc.contains) ==> {
+  def e3 = prop((tmp: LocalTemporary, nsIncSet: Set[Namespace], nsExc: Set[Namespace], fsInc: FactsetIds, fsExc: FactsetIds, data: S) => !nsIncSet.exists(nsExc.contains) ==> {
+    // Ordering is relevant in the assertion
+    val nsInc = nsIncSet.toList
     for {
       c <- IvoryConfigurationTemporary.random.conf
       d <- tmp.directory
       r = HdfsRepository(HdfsLocation(d.path), c)
-      n = (nsInc ++ nsExc).toList.flatMap(ns => (fsInc.ids ++ fsExc.ids).map(fs => fs -> ns)).map {
+      n = (nsInc ++ nsExc.toList).flatMap(ns => (fsInc.ids ++ fsExc.ids).map(fs => fs -> ns)).map {
         case (fs, ns) => Repository.namespace(fs, ns)
       }
       _ <- n.traverse(k => Hdfs.mkdir(r.toIvoryLocation(k).toHdfsPath).run(c.configuration))
@@ -79,7 +81,7 @@ class NamespacesSpec extends Specification with ScalaCheck { def is = s2"""
       s <- allNamespaceSizes(r, nsInc.toList, fsInc.ids).run(c.configuration)
     } yield s ==== nsInc.map(ns =>
       ns -> (fsInc.ids.length * data.value.getBytes("UTF-8").size).bytes).toList
-  }).set(maxSize = 5, minTestsOk = 5)
+  }).set(maxSize = 5, minTestsOk = 10)
 
 
 
