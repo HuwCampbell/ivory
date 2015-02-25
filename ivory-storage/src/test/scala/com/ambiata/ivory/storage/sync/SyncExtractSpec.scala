@@ -43,8 +43,8 @@ Sync operations from cluster
             o = OutputDataset(output.location)
             _ <- SyncExtract.outputDataset(dataset, cluster, o)
             e <- IvoryLocation.exists(output)
-            d <- IvoryLocation.readLines(output)
-        } yield e -> d.mkString
+            d <- IvoryLocation.readUtf8(output)
+        } yield e -> d
         })
       )
     ) must beOkValue(true -> data)
@@ -63,9 +63,9 @@ Sync operations from cluster
             _ <- SyncExtract.outputDataset(dataset, cluster, o)
             f <- IvoryLocation.exists(output </> FilePath.unsafe("foo"))
             b <- IvoryLocation.exists(output </> DirPath.unsafe("foos") </> FilePath.unsafe("bar"))
-            d <- IvoryLocation.readLines(output </> FilePath.unsafe("foo"))
-            e <- IvoryLocation.readLines(output </> DirPath.unsafe("foos") </> FilePath.unsafe("bar"))
-        } yield (f, b, d.mkString, e.mkString)
+            d <- IvoryLocation.readUtf8(output </> FilePath.unsafe("foo"))
+            e <- IvoryLocation.readUtf8(output </> DirPath.unsafe("foos") </> FilePath.unsafe("bar"))
+        } yield (f, b, d, e)
         })
       })
     ) must beOkValue((true, true, data, data))
