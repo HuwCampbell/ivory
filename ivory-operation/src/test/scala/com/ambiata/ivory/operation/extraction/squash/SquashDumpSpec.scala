@@ -16,11 +16,11 @@ class SquashDumpSpec extends Specification with ScalaCheck { def is = s2"""
 """
 
   def filterConcrete = prop((conc: ConcreteGroupFeature, dict: Dictionary) => {
-    SquashDump.filterByConcreteOrVirtual(conc.dictionary append dict, Set(conc.fid)) ==== conc.dictionary.right
+    SquashDump.filterByConcreteOrVirtual(dict append conc.dictionary, Set(conc.fid)) ==== conc.dictionary.right
   })
 
   def filterVirtual = prop((virt: VirtualDictionary, dict: Dictionary) => {
-    SquashDump.filterByConcreteOrVirtual(virt.dictionary append dict, Set(virt.fid)) ==== virt.dictionary.right
+    SquashDump.filterByConcreteOrVirtual(dict append virt.dictionary, Set(virt.fid)) ==== virt.dictionary.right
   })
 
   def filterMissing = prop((dict: Dictionary, featureId: FeatureId) => !dict.byFeatureId.keySet.contains(featureId) ==> {
@@ -28,10 +28,10 @@ class SquashDumpSpec extends Specification with ScalaCheck { def is = s2"""
   })
 
   def lookupConcrete = prop((virt: VirtualDictionary, dict: Dictionary) => {
-    SquashDump.lookupConcreteFromVirtual(virt.dictionary append dict, virt.vd.source) must beNone
+    SquashDump.lookupConcreteFromVirtual(dict append virt.dictionary, virt.vd.source) must beNone
   })
 
   def lookupVirtual = prop((virt: VirtualDictionary, dict: Dictionary) => {
-    SquashDump.lookupConcreteFromVirtual(virt.dictionary append dict, virt.fid) must beSome(virt.vd.source)
+    SquashDump.lookupConcreteFromVirtual(dict append virt.dictionary, virt.fid) must beSome(virt.vd.source)
   })
 }
