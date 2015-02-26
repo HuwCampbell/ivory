@@ -80,9 +80,9 @@ object SquashReducerLookup {
    * }}}
    */
   def lookupByNamespaceSizeAndWindow(dictionary: Dictionary, sizes: List[Sized[Namespace]], reducers: Int): Map[FeatureId, Int] = {
-    val windowSizes: Map[FeatureId, Int] = calcWindowSizes(dictionary)
-    val namespaceTotals: Map[Namespace, Int] = calculateNamespaceTotals(windowSizes)
-    val reducersPerNamespace: Map[Namespace, Int] = proportionReducersPerNamespace(sizes, reducers)
+    val windowSizes = calcWindowSizes(dictionary)
+    val namespaceTotals = calculateNamespaceTotals(windowSizes)
+    val reducersPerNamespace = proportionReducersPerNamespace(sizes, reducers)
     calculateReducers(windowSizes,
       f => namespaceTotals.getOrElse(f.namespace, 1),
       ns => reducersPerNamespace.getOrElse(ns, 1)
