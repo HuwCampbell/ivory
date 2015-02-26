@@ -2,12 +2,10 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.lookup.FeatureIdLookup
-import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable.KeyState
+import com.ambiata.ivory.operation.extraction.mode.ModeReducer
 import com.ambiata.ivory.mr._
 
 import com.ambiata.poacher.mr.ThriftSerialiser
-import org.apache.hadoop.io.BytesWritable
 import org.specs2._
 import org.specs2.matcher.ThrownExpectations
 
@@ -44,7 +42,7 @@ SnapshotReducerSpec
     val facts = SnapshotFacts(dts, fact, date)
     val serialiser = ThriftSerialiser()
     MockFactMutator.runThriftFactKeep(fact.namespace, facts.facts) { (bytes, emitter, kout, vout) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, isSet = false, serialiser)
+      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, ModeReducer.fromMode(Mode.State), serialiser)
     } ==== (facts.expected -> facts.expected.size)
   }).set(maxSize = 10)
 
@@ -52,7 +50,7 @@ SnapshotReducerSpec
     val facts = SnapshotFacts(dts, fact, date)
     val serialiser = ThriftSerialiser()
     MockFactMutator.runThriftFactKeep(fact.namespace, facts.factsDupe) { (bytes, emitter, kout, vout) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, isSet = false, serialiser)
+      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, ModeReducer.fromMode(Mode.State), serialiser)
     } ==== (facts.expected -> facts.expected.size)
   }).set(maxSize = 10)
 
@@ -60,7 +58,7 @@ SnapshotReducerSpec
     val facts = SnapshotFacts(dts, fact, date)
     val serialiser = ThriftSerialiser()
     MockFactMutator.runThriftFactKeep(fact.namespace, facts.factsDupe) { (bytes, emitter, kout, vout) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, isSet = true, serialiser)
+      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, ModeReducer.fromMode(Mode.Set), serialiser)
     } ==== (facts.expectedSet -> facts.expectedSet.size)
   }).set(maxSize = 10)
 

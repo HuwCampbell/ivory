@@ -6,6 +6,7 @@ import com.ambiata.ivory.mr.MockFactMutator
 
 import com.ambiata.ivory.operation.extraction.ChordReducer._
 import com.ambiata.ivory.operation.extraction.chord.ChordArbitraries._
+import com.ambiata.ivory.operation.extraction.mode.{ModeReducerSet, ModeReducerState, ModeReducer}
 import com.ambiata.ivory.storage.lookup.FeatureLookups
 
 import com.ambiata.poacher.mr.ThriftSerialiser
@@ -22,19 +23,19 @@ class ChordJobSpec extends Specification with ScalaCheck { def is = s2"""
 """
 
   def window = prop((cf: ChordFact) =>
-    reduce(cf.facts, cf.expectedWindow, cf.ce.dateArray, cf.windowDateArray.orNull, isSet = false))
+    reduce(cf.facts, cf.expectedWindow, cf.ce.dateArray, cf.windowDateArray.orNull, Mode.State))
 
   def prioritywindow = prop((cf: ChordFact) =>
-    reduce(cf.facts, cf.expectedWindow, cf.ce.dateArray, cf.windowDateArray.orNull, isSet = false))
+    reduce(cf.facts, cf.expectedWindow, cf.ce.dateArray, cf.windowDateArray.orNull, Mode.State))
 
   def windowset = prop((cf: ChordFact) =>
-    reduce(cf.factsWithPriority, cf.expectedWindowSet, cf.ce.dateArray, cf.windowDateArray.orNull, isSet = true))
+    reduce(cf.factsWithPriority, cf.expectedWindowSet, cf.ce.dateArray, cf.windowDateArray.orNull, Mode.Set))
 
-  def reduce(facts: List[Fact], expected: List[Fact], dateArray: Array[Int], windowStarts: Array[Int], isSet: Boolean): Result = {
+  def reduce(facts: List[Fact], expected: List[Fact], dateArray: Array[Int], windowStarts: Array[Int], mode: Mode): Result = {
     val serialiser = ThriftSerialiser()
     MockFactMutator.run(facts) { (bytes, emitter, out) =>
       ChordReducer.reduce(createMutableFact, bytes, new ChordWindowEmitter(emitter), out, dateArray, windowStarts,
-        new StringBuilder, isSet, serialiser)
+        new StringBuilder, ModeReducer.fromMode(mode), serialiser)
     } ==== expected
   }
 

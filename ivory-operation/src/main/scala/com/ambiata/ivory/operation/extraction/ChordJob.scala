@@ -4,6 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.operation.extraction.chord._
+import com.ambiata.ivory.operation.extraction.mode.ModeReducer
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
@@ -334,8 +335,7 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
 
   val buffer = new StringBuilder(4096)
 
-  /** Optimised array lookup to flag "Set" features vs "State" features. */
-  var isSetLookup: Array[Boolean] = null
+  var modeReducer: Array[ModeReducer] = null
 
   var out: MultipleOutputs[NullWritable, BytesWritable] = null
 
@@ -345,7 +345,7 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
 
     val isSetLookupThrift = new FlagLookup
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
-    isSetLookup = FeatureLookups.isSetLookupToArray(isSetLookupThrift)
+    modeReducer = ModeReducer.fromLookup(isSetLookupThrift)
 
     featureWindows = ChordReducer.setupWindows(ctx.thriftCache, context.getConfiguration).map(_.map(a => (b: Date) => Window.startingDate(a, b)))
     windows = new Array(entities.maxChordSize)
@@ -371,7 +371,7 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
       ChordWindows.updateWindowsForChords(chords, dateLookup.get, windows)
     val windowStarts = if (dateLookup.isDefined) windows else null
 
-    ChordReducer.reduce(fact, iter.iterator, chordEmitter, vout, chords, windowStarts, buffer, isSetLookup(feature), serializer)
+    ChordReducer.reduce(fact, iter.iterator, chordEmitter, vout, chords, windowStarts, buffer, modeReducer(feature), serializer)
   }
 }
 
@@ -403,7 +403,7 @@ object ChordReducer {
 
     /** `windowStarts` will be the same length as `dates`, or `null` if no window is set for the current feature. */
     def emit(fact: MutableFact, out: BytesWritable, dates: Array[Int], windowStarts: Array[Int],
-             buffer: StringBuilder, previousDatetime: DateTime, date: Date, offset: Int): Int = {
+             buffer: StringBuilder, date: Date, offset: Int): Int = {
       var i = offset
       // For window features _always_ emit the last fact before the window (for state-based features)
       // Keep in mind that this will _also_ handily emit the previous fact when it _is_ in the window
@@ -423,17 +423,17 @@ object ChordReducer {
   }
 
   def reduce(fact: MutableFact, iter: JIterator[BytesWritable], emitter: ChordWindowEmitter, out: BytesWritable,
-             dates: Array[Int], windowStarts: Array[Int], buffer: StringBuilder, isSet: Boolean, serializer: ThriftSerialiser): Unit = {
+             dates: Array[Int], windowStarts: Array[Int], buffer: StringBuilder, modeReducer: ModeReducer, serializer: ThriftSerialiser): Unit = {
 
     /**
      * Entity ids need to be appended with the date in the chord file as its possible to have the same entity
      * id with multiple dates in the chord file.
      */
-    def emitEntity(previousDatetime: DateTime, date: Date, offset: Int): Int = {
+    def emitEntity(first: Boolean, date: Date, offset: Int): Int = {
       // If the first chord has no matches there won't be anything to emit
       // It also covers the (otherwise impossible) case that the iterator is empty
-      if (previousDatetime != sentinelDateTime) {
-        emitter.emit(fact, out, dates, windowStarts, buffer, previousDatetime, date, offset)
+      if (!first) {
+        emitter.emit(fact, out, dates, windowStarts, buffer, date, offset)
       } else {
         var i = offset
         // Ignore any old chords that don't have a matching fact
@@ -445,21 +445,22 @@ object ChordReducer {
     }
     // dates are ordered latest to earliest, but we want it the other way around
     var i = dates.length - 1
-    var previousDatetime = sentinelDateTime
+    var first = true
+    var modeState = modeReducer.seed
     while (iter.hasNext) {
       val next = iter.next
       ThriftByteMutator.from(next, fact, serializer)
-      val datetime = fact.datetime
       // facts are in priority order already, so this simply takes the top priority when there is a date/time clash
-      if (datetime != previousDatetime || isSet) {
-        i = emitEntity(previousDatetime, datetime.date, i)
-        previousDatetime = datetime
+      if (modeReducer.accept(modeState, fact)) {
+        i = emitEntity(first, fact.date, i)
+        modeState = modeReducer.step(modeState, fact)
+        first = false
         // Store this fact to be emitted if we can't find a better match
         ThriftByteMutator.pipe(next, out)
       }
     }
     // Flush the remaining chords
-    emitEntity(previousDatetime, Date.maxValue, i)
+    emitEntity(first, Date.maxValue, i)
     ()
   }
 }

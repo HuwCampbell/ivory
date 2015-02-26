@@ -2,6 +2,7 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, SnapshotWindowLookup, FlagLookup, NamespaceLookup}
+import com.ambiata.ivory.operation.extraction.mode.ModeReducer
 import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
@@ -328,7 +329,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, IntWritable,
   var windowLookup: Array[Int] = null
 
   /** Optimised array lookup to flag "Set" features vs "State" features. */
-  var isSetLookup: Array[Boolean] = null
+  var modeReducer: Array[ModeReducer] = null
   var feaureIdStrings: Array[String] = null
 
   var featureCounter: LabelledCounter = null
@@ -346,7 +347,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, IntWritable,
 
     val isSetLookupThrift = new FlagLookup
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
-    isSetLookup = FeatureLookups.isSetLookupToArray(isSetLookupThrift)
+    modeReducer = ModeReducer.fromLookup(isSetLookupThrift)
 
     featureCounter = new MrLabelledCounter(SnapshotJob.Keys.CounterFeatureGroup, context)
     // Kinda sucky for debugging - we're using ints for counters because Hadoop limits the size of counter names to 64
@@ -366,7 +367,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, IntWritable,
     val windowStart: Date = Date.unsafeFromInt(windowLookup(feature))
     // emit to namespaced subdirs
     val emitter = MrOutputEmitter(SnapshotJob.Keys.Out, out, "snapshot/" + namespaceLookup.namespaces.get(feature) + "/part")
-    val count: Int = SnapshotReducer.reduce(fact, iter.iterator, emitter, kout, vout, windowStart, isSetLookup(feature), serialiser)
+    val count: Int = SnapshotReducer.reduce(fact, iter.iterator, emitter, kout, vout, windowStart, modeReducer(feature), serialiser)
 // FIX MAX COUNTERS    featureCounter.count(feaureIdStrings(feature), count)
     ()
   }
@@ -382,27 +383,27 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, IntWritable,
 object SnapshotReducer {
   type ReducerContext = Reducer[BytesWritable, BytesWritable, IntWritable, BytesWritable]#Context
 
-  val sentinelDateTime = DateTime.unsafeFromLong(-1)
-
   def reduce(fact: MutableFact, iter: JIterator[BytesWritable], emitter: Emitter[IntWritable, BytesWritable],
-             kout: IntWritable, vout: BytesWritable, windowStart: Date, isSet: Boolean, serialiser: ThriftSerialiser): Int = {
+             kout: IntWritable, vout: BytesWritable, windowStart: Date, mode: ModeReducer, serialiser: ThriftSerialiser): Int = {
 
-    var datetime = sentinelDateTime
     var count = 0
+    var first = true
+    var modeState = mode.seed
     while(iter.hasNext) {
       val next = iter.next
       ThriftByteMutator.from(next, fact, serialiser)
       // Respect the "highest" priority (ie. the first fact with any given datetime), unless this is a set
       // then we want to include every value (at least until we have keyed sets, see https://github.com/ambiata/ivory/issues/376).
-      if (datetime != fact.datetime || isSet) {
+      if (mode.accept(modeState, fact)) {
         // If the _current_ fact is in the window we still want to emit the _previous_ fact which may be
         // the last fact within the window, or another fact within the window
         // As such we can't do anything on the first fact
-        if (datetime != sentinelDateTime && Window.isFactWithinWindow(windowStart, fact)) {
+        if (!first && Window.isFactWithinWindow(windowStart, fact)) {
           emitter.emit(kout, vout)
           count += 1
         }
-        datetime = fact.datetime
+        first = false
+        modeState = mode.step(modeState, fact)
         // Store the current fact, which may or may not be emitted depending on the next fact
         kout.set(fact.date.int)
         ThriftByteMutator.mutate(fact.toThrift, vout, serialiser)
