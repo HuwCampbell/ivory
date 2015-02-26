@@ -21,6 +21,9 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
    is invalid with a virtual definition with an invalid filter     $virtualInvalidFilter
    is invalid with a virtual definition with an invalid expression $virtualInvalidExpression
    is invalid when there are more then Short.MaxValue features     $numFeaturesInvalid
+   is invalid when the encoding for keyed set is not a struct      $keyedSetInvalidEncoding
+   is invalid when the keyed set key is missing                    $keyedSetMissingKey
+   is invalid when the keyed set field is not mandatory            $keyedSetMandatory
 
 """
 
@@ -87,6 +90,27 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
 
   def numFeaturesInvalid = prop((dict: TooLargeDictionary) =>
     validateSelf(dict.dictionary) ==== TooManyFeatures(dict.dictionary.size).failureNel.void)
+
+  def keyedSetInvalidEncoding = prop((key: String, encoding: PrimitiveEncoding, fid: FeatureId, cd: ConcreteDefinition) =>
+    validateSelf(Dictionary(List(Concrete(fid,
+      cd.copy(mode = Mode.keyedSet(key), encoding = EncodingPrim(encoding))
+    )))) ==== InvalidEncodingKeyedSet(ValidationPath(fid)).failureNel
+  )
+
+  def keyedSetMissingKey = prop((key: String, encoding: StructEncoding, fid: FeatureId, cd: ConcreteDefinition) =>
+    validateSelf(Dictionary(List(Concrete(fid,
+      cd.copy(mode = Mode.keyedSet(key), encoding = EncodingStruct(encoding.copy(values = encoding.values - key)))
+    )))) ==== MissingKey(key, ValidationPath(fid)).failureNel
+  )
+
+  def keyedSetMandatory = prop((key: String, encoding: StructEncoding, pe: PrimitiveEncoding, fid: FeatureId, cd: ConcreteDefinition) =>
+    validateSelf(Dictionary(List(Concrete(fid,
+      cd.copy(
+        mode = Mode.keyedSet(key),
+        encoding = EncodingStruct(encoding.copy(values = encoding.values + (key -> StructEncodedValue.optional(pe))))
+      )
+    )))) ==== OptionalStructValueKeyedSet(key, ValidationPath(fid)).failureNel
+  )
 
   // At some point it might be worth investigating Prism's from Monocle to share this code with the actual logic
   private def structChecks(enc: PrimitiveEncoding, path: ValidationPath):

@@ -9,7 +9,8 @@ import scalaz.scalacheck.ScalaCheckBinding._
 
 object GenDictionary {
   def mode: Gen[Mode] =
-    Gen.oneOf(modeImplemented, GenString.sensible.map(Mode.KeyedSet))
+    // By generating a KeyedSet we force the encoding to be a struct, so let's generate less of them
+    Gen.frequency(9 -> modeImplemented, 1 -> GenString.sensible.map(Mode.KeyedSet))
 
   // Remove when KeyedSet is supported fully
   def modeImplemented: Gen[Mode] =
@@ -19,30 +20,48 @@ object GenDictionary {
     Gen.oneOf(NumericalType, ContinuousType, CategoricalType, BinaryType)
 
   def encoding: Gen[Encoding] =
-    Gen.oneOf(subEncoding.map(_.toEncoding), listEncoding.map(_.toEncoding))
+    mode.flatMap(encodingWithMode)
+
+  def encodingWithMode(mode: Mode): Gen[Encoding] = {
+    val normal = Gen.oneOf(subEncoding.map(_.toEncoding), listEncoding.map(_.toEncoding))
+    mode.fold(normal, normal, _ => structEncodingWithMode(mode).map(_.toEncoding))
+  }
 
   def subEncoding: Gen[SubEncoding] =
-    Gen.oneOf(primitiveEncoding.map(SubPrim), structEncoding.map(SubStruct))
+    mode.flatMap(subEncodingWithMode)
+
+  def subEncodingWithMode(m: Mode): Gen[SubEncoding] =
+    Gen.oneOf(primitiveEncoding.map(SubPrim), structEncodingWithMode(m).map(SubStruct))
 
   def listEncoding: Gen[ListEncoding] =
+    // The mode here doesn't matter - it's only required for top-level structs
     subEncoding.map(ListEncoding)
 
   def primitiveEncoding: Gen[PrimitiveEncoding] =
     Gen.oneOf(BooleanEncoding, IntEncoding, LongEncoding, DoubleEncoding, StringEncoding, DateEncoding)
 
   def structEncoding: Gen[StructEncoding] =
-    Gen.choose(1, 5).flatMap(n => Gen.listOfN(n, for {
-      name <- GenString.sensible
+    mode.flatMap(structEncodingWithMode)
+
+  def structEncodingWithMode(mode: Mode): Gen[StructEncoding] =
+    GenPlus
+      .listOfSizedWithIndex(1, 5, i => GenString.sensible.map(_ + "_" + i))
+      // If the mode is keyed then ensure we always have that that key as well
+      .map(n => mode.fold(n -> arbitrary[Boolean], n -> arbitrary[Boolean], k => (k :: n) -> Gen.const(false)))
+      .flatMap({ case (l, b) => l.traverse(n => structEncodedValue(b).map(n ->)) })
+      .map(x => StructEncoding(x.toMap))
+
+  def structEncodedValue(optionalGen: Gen[Boolean]): Gen[StructEncodedValue[PrimitiveEncoding]] =
+    for {
+      optional <- optionalGen
       enc <- primitiveEncoding
-      optional <- arbitrary[Boolean]
-    } yield name -> StructEncodedValue(enc, optional)).map(x => StructEncoding(x.toMap)))
+    } yield StructEncodedValue(enc, optional)
 
   def concrete: Gen[ConcreteDefinition] =
-    concreteWith(encoding)
+    mode.flatMap(m => concreteWith(m, encodingWithMode(m)))
 
-  def concreteWith(genc: Gen[Encoding]): Gen[ConcreteDefinition] = for {
+  def concreteWith(m: Mode, genc: Gen[Encoding]): Gen[ConcreteDefinition] = for {
     e <- genc
-    m <- mode
     t <- Gen.option(type_)
     d <- GenString.sentence
     x <- GenString.words
