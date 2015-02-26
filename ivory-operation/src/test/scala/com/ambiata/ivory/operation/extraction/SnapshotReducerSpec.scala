@@ -2,12 +2,9 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.lookup.FeatureIdLookup
-import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable.KeyState
 import com.ambiata.ivory.mr._
 
 import com.ambiata.poacher.mr.ThriftSerialiser
-import org.apache.hadoop.io.BytesWritable
 import org.specs2._
 import org.specs2.matcher.ThrownExpectations
 
