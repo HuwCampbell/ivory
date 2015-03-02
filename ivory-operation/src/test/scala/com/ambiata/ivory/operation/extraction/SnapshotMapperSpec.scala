@@ -13,8 +13,6 @@ import org.apache.hadoop.io.{BytesWritable, IntWritable, NullWritable}
 import org.specs2._
 import org.specs2.matcher.ThrownExpectations
 
-import scalaz.NonEmptyList
-
 object SnapshotMapperSpec extends Specification with ScalaCheck with ThrownExpectations { def is = s2"""
 
 SnapshotMapperSpec
