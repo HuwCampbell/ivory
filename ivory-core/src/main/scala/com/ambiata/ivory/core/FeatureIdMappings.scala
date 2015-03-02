@@ -2,7 +2,17 @@ package com.ambiata.ivory.core
 
 import scalaz._, Scalaz._
 
-case class FeatureIdIndex(int: Int) extends AnyVal
+class FeatureIdIndex(val int: Int) extends AnyVal {
+
+  override def toString: String =
+    s"FeatureIdIndex($int)"
+}
+
+object FeatureIdIndex {
+
+  def apply(int: Int): FeatureIdIndex =
+    new FeatureIdIndex(int)
+}
 
 case class FeatureIdMappings(private val lookup: Array[FeatureId]) {
 
