@@ -194,7 +194,8 @@ abstract class ChordFactsetMapper[K <: Writable] extends CombinableMapper[K, Byt
    * 2. chord.<version>.skip - number of facts skipped because they were in the future
    */
   override def map(key: K, value: BytesWritable, context: MapperContext[K]): Unit = {
-    ChordFactsetMapper.map(fact, converter, key, value, priority, kout, vout, emitter, okCounter, skipCounter, dropCounter, serializer,
+    converter.convert(fact, key, value)
+    ChordFactsetMapper.map(fact, priority, kout, vout, emitter, okCounter, skipCounter, dropCounter, serializer,
       featureIdLookup, entities)
   }
 }
@@ -204,10 +205,10 @@ class ChordV2FactsetMapper extends ChordFactsetMapper[NullWritable] with MrFacts
 
 object ChordFactsetMapper {
 
-  def map[K <: Writable](fact: MutableFact, converter: MrFactConverter[K, BytesWritable], key: K, value: BytesWritable, priority: Priority,
-          kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter,
-          skipCounter: Counter, dropCounter: Counter, deserializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup, entities: Entities) {
-    converter.convert(fact, key, value)
+  def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
+          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, skipCounter: Counter,
+          dropCounter: Counter, deserializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup,
+          entities: Entities) {
     val name = fact.featureId.toString
     val featureId = featureIdLookup.getIds.get(name)
     if (featureId == null)
