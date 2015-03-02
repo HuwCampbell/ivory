@@ -2,9 +2,7 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.storage.fact._
 import com.ambiata.poacher.mr._
-import org.apache.hadoop.io._
 import org.specs2._
 
 class ChordFactsetMapperSpec extends Specification with ScalaCheck { def is = s2"""
@@ -27,10 +25,7 @@ class ChordFactsetMapperSpec extends Specification with ScalaCheck { def is = s2
 
   def map(f: Fact, context: ChordMapperSpecContext, priority: Priority): Unit = {
     ChordFactsetMapper.map(
-      createMutableFact
-      , PartitionFactConverter(f.partition)
-      , NullWritable.get
-      , new BytesWritable(context.serializer.toBytes(f.toThrift))
+        f.toNamespacedThrift
       , priority
       , Writables.bytesWritable(4096)
       , Writables.bytesWritable(4096)

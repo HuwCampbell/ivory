@@ -200,8 +200,9 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
    * 2. snapshot.<version>.skip - number of facts skipped because they were in the future
    */
   override def map(key: K, value: BytesWritable, context: MapperContext[K]): Unit = {
-    SnapshotFactsetMapper.map(fact, date, converter, key, value, priority, kout, vout, emitter,
-                              okCounter, skipCounter, dropCounter, serializer, featureIdLookup)
+    converter.convert(fact, key, value)
+    SnapshotFactsetMapper.map(fact, date, priority, kout, vout, emitter, okCounter, skipCounter, dropCounter,
+      serializer, featureIdLookup)
   }
 }
 
@@ -210,11 +211,9 @@ class SnapshotV2FactsetMapper extends SnapshotFactsetMapper[NullWritable] with M
 
 object SnapshotFactsetMapper {
 
-  def map[K <: Writable](fact: MutableFact, date: Date, converter: MrFactConverter[K, BytesWritable], key: K, value: BytesWritable,
-                         priority: Priority, kout: BytesWritable, vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable],
-                         okCounter: Counter, skipCounter: Counter, dropCounter: Counter, deserializer: ThriftSerialiser,
-                         featureIdLookup: FeatureIdLookup) {
-    converter.convert(fact, key, value)
+  def map(fact: MutableFact, date: Date, priority: Priority, kout: BytesWritable, vout: BytesWritable,
+          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, skipCounter: Counter,
+          dropCounter: Counter, deserializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup) {
     val name = fact.featureId.toString
     val featureId = featureIdLookup.getIds.get(name)
     if (featureId == null)
@@ -274,7 +273,8 @@ abstract class SnapshotIncrementalMapper[K <: Writable] extends CombinableMapper
   }
 
   override def map(key: K, value: BytesWritable, context: MapperContext[K]): Unit = {
-    SnapshotIncrementalMapper.map(fact, key, value, Priority.Max, kout, vout, emitter, okCounter, dropCounter, serializer, featureIdLookup, converter)
+    converter.convert(fact, key, value)
+    SnapshotIncrementalMapper.map(fact, Priority.Max, kout, vout, emitter, okCounter, dropCounter, serializer, featureIdLookup)
   }
 }
 
@@ -282,11 +282,9 @@ class SnapshotV1IncrementalMapper extends SnapshotIncrementalMapper[NullWritable
 class SnapshotV2IncrementalMapper extends SnapshotIncrementalMapper[IntWritable] with MrSnapshotFactFormatV2
 
 object SnapshotIncrementalMapper {
-  def map[K <: Writable](fact: MutableFact, key: K, value: BytesWritable, priority: Priority, kout: BytesWritable,
-                         vout: BytesWritable, emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter,
-                         dropCounter: Counter, serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup,
-                         converter: MrFactConverter[K, BytesWritable]) {
-    converter.convert(fact, key, value)
+  def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
+          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, dropCounter: Counter,
+          serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup) {
     val name = fact.featureId.toString
     val featureId = featureIdLookup.getIds.get(name)
     if (featureId == null)
