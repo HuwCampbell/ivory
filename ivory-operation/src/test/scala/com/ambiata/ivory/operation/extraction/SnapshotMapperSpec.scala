@@ -80,7 +80,7 @@ SnapshotMapperSpec
 
   def keyBytes(p: Priority)(f: Fact): String = {
     val bw = Writables.bytesWritable(4096)
-    KeyState.set(f, p, bw, f.featureId.hashCode)
+    KeyState.set(f, p, bw, FeatureIdIndex(f.featureId.hashCode))
     new String(bw.copyBytes())
   }
 }

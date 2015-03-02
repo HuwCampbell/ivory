@@ -28,14 +28,14 @@ object SnapshotWritable {
 
   object KeyState {
 
-    def set(f: Fact, priority: Priority, bw: BytesWritable, featureId: Int): Unit = {
+    def set(f: Fact, priority: Priority, bw: BytesWritable, featureId: FeatureIdIndex): Unit = {
       val bytes = bw.getBytes
       // We're assuming entity is never going to be greater than 4096
       val o1 = ByteWriter.writeStringUTF8(bytes, f.entity, 0)
       val end = o1 + Offsets.featureId
       // We don't need to bw.set() because we're sharing the array
       bw.setSize(end)
-      ByteWriter.writeInt(bytes, featureId, end - Offsets.featureId)
+      ByteWriter.writeInt(bytes, featureId.int, end - Offsets.featureId)
       ByteWriter.writeInt(bytes, f.date.int, end - Offsets.date)
       ByteWriter.writeInt(bytes, f.time.seconds, end - Offsets.time)
       ByteWriter.writeShort(bytes, priority.toShort, end - Offsets.priority)

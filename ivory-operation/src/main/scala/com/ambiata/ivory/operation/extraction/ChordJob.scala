@@ -217,7 +217,7 @@ object ChordFactsetMapper {
       skipCounter.count(1)
     else {
       okCounter.count(1)
-      SnapshotWritable.KeyState.set(fact, priority, kout, featureId)
+      SnapshotWritable.KeyState.set(fact, priority, kout, FeatureIdIndex(featureId))
       val bytes = deserializer.toBytes(fact)
       vout.set(bytes, 0, bytes.length)
       emitter.emit(kout, vout)
@@ -296,7 +296,7 @@ object ChordIncrementalMapper {
       skipCounter.count(1)
     else {
       okCounter.count(1)
-      SnapshotWritable.KeyState.set(fact, priority, kout, featureIdLookup.getIds.get(fact.featureId.toString))
+      SnapshotWritable.KeyState.set(fact, priority, kout, FeatureIdIndex(featureId))
       val bytes = serializer.toBytes(fact)
       vout.set(bytes, 0, bytes.length)
       emitter.emit(kout, vout)

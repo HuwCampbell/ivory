@@ -222,7 +222,7 @@ object SnapshotFactsetMapper {
       skipCounter.count(1)
     else {
       okCounter.count(1)
-      KeyState.set(fact, priority, kout, featureId)
+      KeyState.set(fact, priority, kout, FeatureIdIndex(featureId))
       val bytes = deserializer.toBytes(fact)
       vout.set(bytes, 0, bytes.length)
       emitter.emit(kout, vout)
@@ -291,7 +291,7 @@ object SnapshotIncrementalMapper {
       dropCounter.count(1)
     else {
       okCounter.count(1)
-      KeyState.set(fact, priority, kout, featureId)
+      KeyState.set(fact, priority, kout, FeatureIdIndex(featureId))
       val bytes = serializer.toBytes(fact)
       vout.set(bytes, 0, bytes.length)
       emitter.emit(kout, vout)
