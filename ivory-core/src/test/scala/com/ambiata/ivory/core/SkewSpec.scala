@@ -27,6 +27,9 @@ Skew Tests
 
  Property test for arbitrary features                   $allFeatures
 
+ Missing namespace
+   $missingNamespace
+
 """
    def small = {
      val namespaces = List(
@@ -74,6 +77,14 @@ Skew Tests
       // Remove any duplicate namespaces
       .toMap.toList
     checkAll(dict, namespace)
+  }
+
+  def missingNamespace = prop { (features: NonEmptyList[(ConcreteGroupFeature, Int)]) =>
+    val dict = features.list.foldLeft(Dictionary.empty)(_ append _._1.dictionary)
+    val namespace = features.list.map { case (cgf, size) => cgf.fid.namespace -> (size & (Int.MaxValue - 1) + 1).bytes }
+      // Remove any duplicate namespaces
+      .toMap.toList
+    everyReducerBeingUsed(dict.forNamespace(features.head._1.fid.namespace), namespace)
   }
 
   def checkAll(dict: Dictionary, namespace: List[(Namespace, BytesQuantity)]): Result =

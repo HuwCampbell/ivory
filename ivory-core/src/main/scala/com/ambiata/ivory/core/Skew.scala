@@ -19,17 +19,22 @@ object Skew {
     namespaces.foldLeft(0 -> List[(Namespace, String, FeatureReducerOffset)]()) { case ((allocated, acc), (namespace, size)) =>
       // Only consider the concrete features
       val features = dictionary.forNamespace(namespace).byConcrete.sources.keys.map(_.name).toList
-      val potential = (size.toBytes.value / optimal.toBytes.value).toInt + 1
-      // For this namespace, what is the proportion of the reducers that _each_ feature gets (rounding up to 1)
-      val proportion = Math.max(1, potential / features.size)
-      // Remove any used excess count if we have more reducers than features and they don't divide evenly
-      // Alternatively we could give it (arbitrarily) to one of the features
-      val excessCount = if (potential <= features.size) 0 else potential % features.size
+      // Ignore namespaces no longer in the dictionary
+      if (features.isEmpty)
+        (allocated, acc)
+      else {
+        val potential = (size.toBytes.value / optimal.toBytes.value).toInt + 1
+        // For this namespace, what is the proportion of the reducers that _each_ feature gets (rounding up to 1)
+        val proportion = Math.max(1, potential / features.size)
+        // Remove any used excess count if we have more reducers than features and they don't divide evenly
+        // Alternatively we could give it (arbitrarily) to one of the features
+        val excessCount = if (potential <= features.size) 0 else potential % features.size
 
-      val x = features.zipWithIndex.map { case (feature, idx) =>
-        (namespace, feature, FeatureReducerOffset((allocated + (idx * proportion % potential)).toShort, proportion.toShort))
+        val x = features.zipWithIndex.map { case (feature, idx) =>
+          (namespace, feature, FeatureReducerOffset((allocated + (idx * proportion % potential)).toShort, proportion.toShort))
+        }
+        (allocated + potential - excessCount, x ::: acc)
       }
-      (allocated + potential - excessCount, x ::: acc)
     }
 
 }
