@@ -208,9 +208,7 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
       skipCounter.count(1)
     else {
       KeyState.set(fact, priority, kout, featureId.get)
-      val bytes = serializer.toBytes(fact)
-      vout.set(bytes, 0, bytes.length)
-      emitter.emit(kout, vout)
+      EmitterThrift.writeAndEmit(fact, kout, vout, serializer, emitter)
       okCounter.count(1)
     }
   }
@@ -268,9 +266,7 @@ abstract class SnapshotIncrementalMapper[K <: Writable] extends CombinableMapper
       dropCounter.count(1)
     else {
       KeyState.set(fact, Priority.Max, kout, featureId.get)
-      val bytes = serializer.toBytes(fact)
-      vout.set(bytes, 0, bytes.length)
-      emitter.emit(kout, vout)
+      EmitterThrift.writeAndEmit(fact, kout, vout, serializer, emitter)
       okCounter.count(1)
     }
   }

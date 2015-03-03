@@ -202,9 +202,7 @@ abstract class ChordFactsetMapper[K <: Writable] extends CombinableMapper[K, Byt
       skipCounter.count(1)
     else {
       SnapshotWritable.KeyState.set(fact, priority, kout, featureId.get)
-      val bytes = serializer.toBytes(fact)
-      vout.set(bytes, 0, bytes.length)
-      emitter.emit(kout, vout)
+      EmitterThrift.writeAndEmit(fact, kout, vout, serializer, emitter)
       okCounter.count(1)
     }
   }
@@ -271,9 +269,7 @@ abstract class ChordIncrementalMapper[K <: Writable] extends CombinableMapper[K,
       skipCounter.count(1)
     else {
       SnapshotWritable.KeyState.set(fact, Priority.Max, kout, featureId.get)
-      val bytes = serializer.toBytes(fact)
-      vout.set(bytes, 0, bytes.length)
-      emitter.emit(kout, vout)
+      EmitterThrift.writeAndEmit(fact, kout, vout, serializer, emitter)
       okCounter.count(1)
     }
   }
