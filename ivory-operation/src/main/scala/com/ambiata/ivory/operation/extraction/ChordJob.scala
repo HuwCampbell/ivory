@@ -201,7 +201,10 @@ abstract class ChordFactsetMapper[K <: Writable] extends CombinableMapper[K, Byt
     else if (!entities.keep(fact))
       skipCounter.count(1)
     else {
-      ChordFactsetMapper.map(fact, priority, kout, vout, emitter, serializer, featureId.get)
+      SnapshotWritable.KeyState.set(fact, priority, kout, featureId.get)
+      val bytes = serializer.toBytes(fact)
+      vout.set(bytes, 0, bytes.length)
+      emitter.emit(kout, vout)
       okCounter.count(1)
     }
   }
@@ -209,17 +212,6 @@ abstract class ChordFactsetMapper[K <: Writable] extends CombinableMapper[K, Byt
 
 class ChordV1FactsetMapper extends ChordFactsetMapper[NullWritable] with MrFactsetFactFormatV1
 class ChordV2FactsetMapper extends ChordFactsetMapper[NullWritable] with MrFactsetFactFormatV2
-
-object ChordFactsetMapper {
-
-  def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-          emitter: Emitter[BytesWritable, BytesWritable], deserializer: ThriftSerialiser, featureId: FeatureIdIndex) {
-    SnapshotWritable.KeyState.set(fact, priority, kout, featureId)
-    val bytes = deserializer.toBytes(fact)
-    vout.set(bytes, 0, bytes.length)
-    emitter.emit(kout, vout)
-  }
-}
 
 /**
  * Incremental chord mapper.
@@ -278,7 +270,10 @@ abstract class ChordIncrementalMapper[K <: Writable] extends CombinableMapper[K,
     else if (!entities.keep(fact))
       skipCounter.count(1)
     else {
-      ChordIncrementalMapper.map(fact, Priority.Max, kout, vout, emitter, serializer, featureId.get)
+      SnapshotWritable.KeyState.set(fact, Priority.Max, kout, featureId.get)
+      val bytes = serializer.toBytes(fact)
+      vout.set(bytes, 0, bytes.length)
+      emitter.emit(kout, vout)
       okCounter.count(1)
     }
   }
@@ -286,17 +281,6 @@ abstract class ChordIncrementalMapper[K <: Writable] extends CombinableMapper[K,
 
 class ChordV1IncrementalMapper extends ChordIncrementalMapper[NullWritable] with MrSnapshotFactFormatV1
 class ChordV2IncrementalMapper extends ChordIncrementalMapper[IntWritable] with MrSnapshotFactFormatV2
-
-object ChordIncrementalMapper {
-
-  def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-          emitter: Emitter[BytesWritable, BytesWritable], serializer: ThriftSerialiser, featureId: FeatureIdIndex) {
-    SnapshotWritable.KeyState.set(fact, priority, kout, featureId)
-    val bytes = serializer.toBytes(fact)
-    vout.set(bytes, 0, bytes.length)
-    emitter.emit(kout, vout)
-  }
-}
 
 /**
  * Reducer for ivory-chord.

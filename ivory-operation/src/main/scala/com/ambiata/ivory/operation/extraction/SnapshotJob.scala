@@ -207,7 +207,10 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
     else if (fact.date > date)
       skipCounter.count(1)
     else {
-      SnapshotFactsetMapper.map(fact, priority, kout, vout, emitter, serializer, featureId.get)
+      KeyState.set(fact, priority, kout, featureId.get)
+      val bytes = serializer.toBytes(fact)
+      vout.set(bytes, 0, bytes.length)
+      emitter.emit(kout, vout)
       okCounter.count(1)
     }
   }
@@ -215,17 +218,6 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
 
 class SnapshotV1FactsetMapper extends SnapshotFactsetMapper[NullWritable] with MrFactsetFactFormatV1
 class SnapshotV2FactsetMapper extends SnapshotFactsetMapper[NullWritable] with MrFactsetFactFormatV2
-
-object SnapshotFactsetMapper {
-
-  def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-          emitter: Emitter[BytesWritable, BytesWritable], deserializer: ThriftSerialiser, featureId: FeatureIdIndex) {
-    KeyState.set(fact, priority, kout, featureId)
-    val bytes = deserializer.toBytes(fact)
-    vout.set(bytes, 0, bytes.length)
-    emitter.emit(kout, vout)
-  }
-}
 
 /**
  * Incremental snapshot mapper.
@@ -275,7 +267,10 @@ abstract class SnapshotIncrementalMapper[K <: Writable] extends CombinableMapper
     if (featureId.isEmpty)
       dropCounter.count(1)
     else {
-      SnapshotIncrementalMapper.map(fact, Priority.Max, kout, vout, emitter, serializer, featureId.get)
+      KeyState.set(fact, Priority.Max, kout, featureId.get)
+      val bytes = serializer.toBytes(fact)
+      vout.set(bytes, 0, bytes.length)
+      emitter.emit(kout, vout)
       okCounter.count(1)
     }
   }
@@ -283,16 +278,6 @@ abstract class SnapshotIncrementalMapper[K <: Writable] extends CombinableMapper
 
 class SnapshotV1IncrementalMapper extends SnapshotIncrementalMapper[NullWritable] with MrSnapshotFactFormatV1
 class SnapshotV2IncrementalMapper extends SnapshotIncrementalMapper[IntWritable] with MrSnapshotFactFormatV2
-
-object SnapshotIncrementalMapper {
-  def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-          emitter: Emitter[BytesWritable, BytesWritable], serializer: ThriftSerialiser, featureId: FeatureIdIndex) {
-    KeyState.set(fact, priority, kout, featureId)
-    val bytes = serializer.toBytes(fact)
-    vout.set(bytes, 0, bytes.length)
-    emitter.emit(kout, vout)
-  }
-}
 
 /**
  * Reducer for ivory-snapshot.
