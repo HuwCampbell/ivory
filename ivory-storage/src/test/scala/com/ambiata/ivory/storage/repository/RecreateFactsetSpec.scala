@@ -18,7 +18,7 @@ class RecreateFactsetSpec extends Specification with ScalaCheck { def is = s2"""
 Recreate Factset Tests
 -----------------------
 
-  Can recreate factsets                  $recreate
+  Can recreate factsets                  $recreate ${tag("mr")}
   CommitFactset works                    $commit
 
 """
@@ -26,6 +26,8 @@ Recreate Factset Tests
   def recreate = prop((facts1: FactsWithDictionary, facts2: FactsWithDictionary) =>
     RepositoryBuilder.using(repo => for {
       storeId   <- RepositoryBuilder.createRepo(repo, facts1.dictionary.append(facts2.dictionary), List(facts1.facts, facts2.facts))
+      // Remove part of the dictionary to test that we don't fail
+      _         <- Metadata.dictionaryToIvory(repo, facts2.dictionary)
       store     <- Metadata.featureStoreFromIvory(repo, storeId)
       recreated <- RecreateFactset.recreateFactsets(repo, store.unprioritizedIds).run.run(IvoryRead.create)
       completed <- recreated.completed.traverse(re => Hdfs.exists(re.path.toHdfsPath).map((re.factsetId, _))).run(repo.configuration)

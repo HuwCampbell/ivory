@@ -14,6 +14,7 @@ import com.ambiata.ivory.storage.task.{FactsetWritable, FactsetJob}
 import com.ambiata.ivory.storage.partition._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.{BytesQuantity, FilePath}
+import com.ambiata.poacher.hdfs.Hdfs
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io._
@@ -21,6 +22,7 @@ import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat, SequenceFileInputFormat}
 
 import scalaz.{Reducer => _, _}
+import scala.collection.JavaConverters._
 
 /**
  * This is a hand-coded MR job to read facts from factsets as
@@ -41,26 +43,36 @@ object RecreateFactsetJob {
   def run(repository: HdfsRepository, dictionary: Dictionary, namespaces: List[(Namespace, BytesQuantity)],
           factset: Factset, target: Path, reducerSize: BytesQuantity): RIO[Unit] = {
     val reducerLookups = ReducerLookups.createLookups(dictionary, namespaces, reducerSize)
-    val job = Job.getInstance(repository.configuration)
-    val ctx = FactsetJob.configureJob("ivory-recreate-factset", job, dictionary, reducerLookups, target, repository.codec)
+    for {
+      reducers <-
+        if (reducerLookups.reducersNb != 0)
+          RIO.safe(reducerLookups.reducersNb)
+        else
+          Hdfs.size(repository.toIvoryLocation(Repository.factset(factset.id)).toHdfsPath).run(repository.configuration)
+            .map(_.toBytes.value / reducerSize.toBytes.value).map(l => math.max(1, l.toInt))
+      job = Job.getInstance(repository.configuration)
+      ctx = FactsetJob.configureJob("ivory-recreate-factset", job, dictionary,
+        reducerLookups.copy(reducersNb = reducers), target, repository.codec)
+      _ <- RIO.io {
+        /** input */
+        val partitions = Partitions.globs(repository, factset.id, factset.partitions.map(_.value))
+        job.setInputFormatClass(classOf[SequenceFileInputFormat[_, _]])
+        FileInputFormat.addInputPaths(job, partitions.mkString(","))
 
-    /** input */
-    val partitions = Partitions.globs(repository, factset.id, factset.partitions.map(_.value))
-    job.setInputFormatClass(classOf[SequenceFileInputFormat[_, _]])
-    FileInputFormat.addInputPaths(job, partitions.mkString(","))
+        /** map */
+        job.setMapperClass(classOf[RecreateFactsetMapper])
+        job.getConfiguration.set(Keys.Version, factset.format.toStringFormat)
 
-    /** map */
-    job.setMapperClass(classOf[RecreateFactsetMapper])
-    job.getConfiguration.set(Keys.Version, factset.format.toStringFormat)
+        /** run job */
+        if (!job.waitForCompletion(true))
+          Crash.error(Crash.RIO, "ivory recreate factset failed.")
+      }
 
-    /** run job */
-    if (!job.waitForCompletion(true))
-      Crash.error(Crash.RIO, "ivory recreate factset failed.")
-
-    /** commit files to factset */
-    Committer.commit(ctx, {
-      case "factset" => target
-    }, true).run(repository.configuration)
+      /** commit files to factset */
+      _ <- Committer.commit(ctx, {
+        case "factset" => target
+      }, true).run(repository.configuration)
+    } yield ()
   }
 
   object Keys {
@@ -88,6 +100,7 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
   var path: FilePath = null
 
   var featureIdLookup = new FeatureIdLookup
+  var featureIdMissing = FeatureIdIndex(0)
 
   var createFact: ThriftFact => Fact = null
 
@@ -98,6 +111,7 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     path = FilePath.unsafe(MrContext.getSplitPath(context.getInputSplit).toString)
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.FeatureIdLookup, featureIdLookup)
+    featureIdMissing = FeatureIdIndex(featureIdLookup.ids.asScala.values.max + 1)
     partition = Partition.parseFile(path) match {
       case Success(p) => p
       case Failure(e) => Crash.error(Crash.Serialization, s"Can not parse partition $e")
@@ -111,16 +125,14 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
     serializer.fromBytesViewUnsafe(thrift, value.getBytes, 0, value.getLength)
     val fact = createFact(thrift)
     val featureId = FeatureIdIndexOption.lookup(fact, featureIdLookup)
-    if (featureId.isEmpty)
-      Crash.error(Crash.Invariant, s"Unknown feature '${fact.featureId}' for entity '${fact.entity}'")
-    else {
-      FactsetWritable.set(fact, kout, featureId.get)
 
-      val v = serializer.toBytes(fact.toThrift)
-      vout.set(v, 0, v.length)
+    // If we don't know about this feature any more just default to a different value - don't fail
+    FactsetWritable.set(fact, kout, if (featureId.isDefined) featureId.get else featureIdMissing)
 
-      context.write(kout, vout)
-    }
+    val v = serializer.toBytes(fact.toThrift)
+    vout.set(v, 0, v.length)
+
+    context.write(kout, vout)
   }
 
 }
