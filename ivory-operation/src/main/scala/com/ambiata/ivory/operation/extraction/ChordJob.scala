@@ -275,7 +275,9 @@ abstract class ChordIncrementalMapper[K <: Writable] extends CombinableMapper[K,
   }
 
   override def map(key: K, value: BytesWritable, context: MapperContext[K]): Unit = {
-    ChordIncrementalMapper.map(fact, key, value, Priority.Max, kout, vout, emitter, okCounter, skipCounter, dropCounter, serializer, featureIdLookup, entities, converter)
+    converter.convert(fact, key, value)
+    ChordIncrementalMapper.map(fact, Priority.Max, kout, vout, emitter, okCounter, skipCounter, dropCounter, serializer,
+      featureIdLookup, entities)
   }
 }
 
@@ -284,10 +286,9 @@ class ChordV2IncrementalMapper extends ChordIncrementalMapper[IntWritable] with 
 
 object ChordIncrementalMapper {
 
-  def map[K <: Writable](fact: MutableFact, key: K, value: BytesWritable, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-                         emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, skipCounter: Counter, dropCounter: Counter,
-                         serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup, entities: Entities, converter: MrFactConverter[K, BytesWritable]) {
-    converter.convert(fact, key, value)
+  def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
+          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, skipCounter: Counter,
+          dropCounter: Counter, serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup, entities: Entities) {
     val name = fact.featureId.toString
     val featureId = featureIdLookup.getIds.get(name)
     if (featureId == null)

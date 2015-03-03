@@ -2,9 +2,7 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.storage.fact._
 import com.ambiata.poacher.mr._
-import org.apache.hadoop.io._
 import org.specs2._
 
 class ChordIncrementalMapperSpec extends Specification with ScalaCheck { def is = s2"""
@@ -27,9 +25,7 @@ class ChordIncrementalMapperSpec extends Specification with ScalaCheck { def is 
 
   def map(f: Fact, context: ChordMapperSpecContext, priority: Priority): Unit = {
     ChordIncrementalMapper.map(
-      createMutableFact
-      , new IntWritable(f.date.int)
-      , new BytesWritable(context.serializer.toBytes(f.toThrift))
+        f.toNamespacedThrift
       , priority
       , Writables.bytesWritable(4096)
       , Writables.bytesWritable(4096)
@@ -39,7 +35,6 @@ class ChordIncrementalMapperSpec extends Specification with ScalaCheck { def is 
       , context.drop
       , context.serializer
       , context.lookup
-      , context.entities
-      , NamespaceDateFactConverter(f.namespace))
+      , context.entities)
   }
 }
