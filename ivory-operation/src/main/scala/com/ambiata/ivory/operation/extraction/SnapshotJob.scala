@@ -204,8 +204,10 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
     val featureId = FeatureIdIndexOption.lookup(fact, featureIdLookup)
     if (featureId.isEmpty)
       dropCounter.count(1)
+    else if (fact.date > date)
+      skipCounter.count(1)
     else
-      SnapshotFactsetMapper.map(fact, date, priority, kout, vout, emitter, okCounter, skipCounter, serializer, featureId.get)
+      SnapshotFactsetMapper.map(fact, priority, kout, vout, emitter, okCounter, serializer, featureId.get)
   }
 }
 
@@ -214,18 +216,14 @@ class SnapshotV2FactsetMapper extends SnapshotFactsetMapper[NullWritable] with M
 
 object SnapshotFactsetMapper {
 
-  def map(fact: MutableFact, date: Date, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, skipCounter: Counter,
-          deserializer: ThriftSerialiser, featureId: FeatureIdIndex) {
-    if (fact.date > date)
-      skipCounter.count(1)
-    else {
-      okCounter.count(1)
-      KeyState.set(fact, priority, kout, featureId)
-      val bytes = deserializer.toBytes(fact)
-      vout.set(bytes, 0, bytes.length)
-      emitter.emit(kout, vout)
-    }
+  def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
+          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, deserializer: ThriftSerialiser,
+          featureId: FeatureIdIndex) {
+    okCounter.count(1)
+    KeyState.set(fact, priority, kout, featureId)
+    val bytes = deserializer.toBytes(fact)
+    vout.set(bytes, 0, bytes.length)
+    emitter.emit(kout, vout)
   }
 }
 

@@ -14,13 +14,12 @@ class ChordFactsetMapperSpec extends Specification with ScalaCheck { def is = s2
 
   def counters = prop((context: ChordMapperSpecContext, priority: Priority) => {
     context.all.foreach(map(_, context, priority))
-    (context.ok.counter + context.skip.counter) ==== context.all.size
+    context.ok.counter ==== context.all.size
   })
 
   def totals = prop((context: ChordMapperSpecContext, priority: Priority) => {
     context.all.foreach(map(_, context, priority))
-    (context.ok.counter, context.skip.counter) ==== (
-    (context.facts.size, context.skipped.size))
+    context.ok.counter ==== context.facts.size
   })
 
   def map(f: Fact, context: ChordMapperSpecContext, priority: Priority): Unit = {
@@ -31,9 +30,7 @@ class ChordFactsetMapperSpec extends Specification with ScalaCheck { def is = s2
       , Writables.bytesWritable(4096)
       , context.emitter
       , context.ok
-      , context.skip
       , context.serializer
-      , FeatureIdIndex(0)
-      , context.entities)
+      , FeatureIdIndex(0))
   }
 }

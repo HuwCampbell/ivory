@@ -23,23 +23,20 @@ SnapshotMapperSpec
   def disjoint(a: List[Fact], b: List[Fact]): Boolean =
     b.forall(x => !a.exists(_.featureId == x.featureId))
 
-  def factset = prop((fs: List[Fact], priority: Priority, date: Date) => {
+  def factset = prop((fs: List[Fact], priority: Priority) => {
     val serializer = ThriftSerialiser()
     val kout = Writables.bytesWritable(4096)
     val vout = Writables.bytesWritable(4096)
     val emitter = newEmitter
     val okCounter = MemoryCounter()
-    val skipCounter = MemoryCounter()
 
     // Run mapper
     fs.foreach(f => {
-      SnapshotFactsetMapper.map(f.toNamespacedThrift, date, priority, kout, vout, emitter, okCounter, skipCounter,
-        serializer, FeatureIdIndex(f.featureId.hashCode))
+      SnapshotFactsetMapper.map(f.toNamespacedThrift, priority, kout, vout, emitter, okCounter, serializer,
+        FeatureIdIndex(f.featureId.hashCode))
     })
 
-    val expected = fs.filter(_.date.isBeforeOrEqual(date))
-
-    assertMapperOutput(emitter, okCounter, skipCounter, expected, fs.length - expected.length, priority, serializer)
+    assertMapperOutput(emitter, okCounter, fs, priority, serializer)
   })
 
   def incremental = prop((fs: List[Fact]) => {
@@ -55,14 +52,13 @@ SnapshotMapperSpec
         FeatureIdIndex(f.featureId.hashCode))
     )
 
-    assertMapperOutput(emitter, okCounter, MemoryCounter(), fs, 0, Priority.Max, serializer)
+    assertMapperOutput(emitter, okCounter, fs, Priority.Max, serializer)
   })
 
   def assertMapperOutput(emitter: TestEmitter[BytesWritable, BytesWritable, (String, Fact)], okCounter: MemoryCounter,
-                         skipCounter: MemoryCounter, expectedFacts: List[Fact], expectedSkip: Int, priority: Priority,
-                         serializer: ThriftSerialiser): matcher.MatchResult[Any] = {
-    (emitter.emitted.toList, okCounter.counter, skipCounter.counter) ==== (
-    (expectedFacts.map(f => (keyBytes(priority)(f), f)), expectedFacts.length, expectedSkip))
+                         expectedFacts: List[Fact], priority: Priority, serializer: ThriftSerialiser): matcher.MatchResult[Any] = {
+    (emitter.emitted.toList, okCounter.counter) ==== (
+    (expectedFacts.map(f => (keyBytes(priority)(f), f)), expectedFacts.length))
   }
 
   def newEmitter: TestEmitter[BytesWritable, BytesWritable, (String, Fact)] = {
