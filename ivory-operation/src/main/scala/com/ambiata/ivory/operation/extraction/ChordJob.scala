@@ -201,8 +201,7 @@ abstract class ChordFactsetMapper[K <: Writable] extends CombinableMapper[K, Byt
     else if (!entities.keep(fact))
       skipCounter.count(1)
     else {
-      SnapshotWritable.KeyState.set(fact, priority, kout, featureId.get)
-      EmitterThrift.writeAndEmit(fact, kout, vout, serializer, emitter)
+      SnapshotWritable.writeAndEmit(fact, priority, featureId.get, kout, vout, serializer, emitter)
       okCounter.count(1)
     }
   }
@@ -268,8 +267,7 @@ abstract class ChordIncrementalMapper[K <: Writable] extends CombinableMapper[K,
     else if (!entities.keep(fact))
       skipCounter.count(1)
     else {
-      SnapshotWritable.KeyState.set(fact, Priority.Max, kout, featureId.get)
-      EmitterThrift.writeAndEmit(fact, kout, vout, serializer, emitter)
+      SnapshotWritable.writeAndEmit(fact, Priority.Max, featureId.get, kout, vout, serializer, emitter)
       okCounter.count(1)
     }
   }

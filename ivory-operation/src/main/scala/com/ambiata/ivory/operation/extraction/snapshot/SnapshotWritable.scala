@@ -1,6 +1,7 @@
 package com.ambiata.ivory.operation.extraction.snapshot
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.mr.{Emitter, EmitterThrift}
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.io.{BytesWritable, WritableComparator}
 import org.apache.hadoop.mapreduce.Partitioner
@@ -24,6 +25,13 @@ object SnapshotWritable {
     val date = 10
     val time = 6
     val priority = 2
+  }
+
+  def writeAndEmit(fact: MutableFact, priority: Priority, featureIdIndex: FeatureIdIndex,
+                   kout: BytesWritable, vout: BytesWritable, serializer: ThriftSerialiser,
+                   emitter: Emitter[BytesWritable, BytesWritable]): Unit = {
+    KeyState.set(fact, priority, kout, featureIdIndex)
+    EmitterThrift.writeAndEmit(fact, kout, vout, serializer, emitter)
   }
 
   object KeyState {

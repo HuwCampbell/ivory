@@ -3,7 +3,7 @@ package com.ambiata.ivory.operation.extraction
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, SnapshotWindowLookup, FlagLookup, NamespaceLookup}
 import com.ambiata.ivory.operation.extraction.mode.ModeReducer
-import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
+import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.storage.plan._
@@ -207,8 +207,7 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
     else if (fact.date > date)
       skipCounter.count(1)
     else {
-      KeyState.set(fact, priority, kout, featureId.get)
-      EmitterThrift.writeAndEmit(fact, kout, vout, serializer, emitter)
+      SnapshotWritable.writeAndEmit(fact, priority, featureId.get, kout, vout, serializer, emitter)
       okCounter.count(1)
     }
   }
@@ -265,8 +264,7 @@ abstract class SnapshotIncrementalMapper[K <: Writable] extends CombinableMapper
     if (featureId.isEmpty)
       dropCounter.count(1)
     else {
-      KeyState.set(fact, Priority.Max, kout, featureId.get)
-      EmitterThrift.writeAndEmit(fact, kout, vout, serializer, emitter)
+      SnapshotWritable.writeAndEmit(fact, Priority.Max, featureId.get, kout, vout, serializer, emitter)
       okCounter.count(1)
     }
   }
