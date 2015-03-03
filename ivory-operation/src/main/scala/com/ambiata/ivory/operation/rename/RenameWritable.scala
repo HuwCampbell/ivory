@@ -31,9 +31,9 @@ object RenameWritable {
 
   object KeyState {
 
-    def set(f: Fact, priority: Priority, bw: BytesWritable, featureId: Int): Unit = {
+    def set(f: Fact, priority: Priority, bw: BytesWritable, featureId: FeatureIdIndex): Unit = {
       val bytes = bw.getBytes
-      ByteWriter.writeInt(bytes, featureId, Offsets.Before.featureId)
+      ByteWriter.writeInt(bytes, featureId.int, Offsets.Before.featureId)
       ByteWriter.writeInt(bytes, f.date.int, Offsets.Before.date)
       // We're assuming entity is never going to be greater than 4096
       val o1 = ByteWriter.writeStringUTF8(bytes, f.entity, Offsets.Before.entity)
@@ -47,8 +47,8 @@ object RenameWritable {
 
   object GroupingByFeatureIdDate {
 
-    def getFeatureId(bw: BytesWritable): Int =
-      WritableComparator.readInt(bw.getBytes, Offsets.Before.featureId)
+    def getFeatureId(bw: BytesWritable): FeatureIdIndex =
+      FeatureIdIndex(WritableComparator.readInt(bw.getBytes, Offsets.Before.featureId))
 
     def getDate(bw: BytesWritable): Date =
       Date.unsafeFromInt(WritableComparator.readInt(bw.getBytes, Offsets.Before.date))
@@ -66,7 +66,7 @@ object RenameWritable {
 
   /** We only partition by featureId to avoid skew */
   class PartitionerFeatureId extends BaseFactsPartitioner[BytesWritable] {
-    def getFeatureId(bw: BytesWritable): Int =
+    def getFeatureId(bw: BytesWritable): FeatureIdIndex =
       GroupingByFeatureIdDate.getFeatureId(bw)
     def getHash(bw: BytesWritable): Int =
       GroupingByFeatureIdDate.getEntityHash(bw)

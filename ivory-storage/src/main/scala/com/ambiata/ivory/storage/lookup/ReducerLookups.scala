@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.lookup
 
-import com.ambiata.ivory.core.{Namespace, Date, FeatureId, Skew, Dictionary, Definition}
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{ReducerLookup, FeatureIdLookup, NamespaceLookup}
 import com.ambiata.mundane.io.BytesQuantity
 import com.ambiata.poacher.mr.ThriftCache
@@ -36,8 +36,8 @@ object ReducerLookups {
     ReducerLookups(reducersNb, reducers, namespaces, features)
   }
 
-  def factsetPartitionForInt(lookup: NamespaceLookup, featureId: Int, date: Date): String =
-    "factset" + "/" + lookup.namespaces.get(featureId) + "/" + date.slashed + "/part"
+  def factsetPartitionForInt(lookup: NamespaceLookup, featureId: FeatureIdIndex, date: Date): String =
+    "factset" + "/" + lookup.namespaces.get(featureId.int) + "/" + date.slashed + "/part"
 
   /**
    * create a dictionary index, i.e. 2 lookup tables:

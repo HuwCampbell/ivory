@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.task
 
-import com.ambiata.ivory.core.FeatureReducerOffset
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.ReducerLookup
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.poacher.mr.MrContext
@@ -16,7 +16,7 @@ import org.apache.hadoop.mapreduce.Partitioner
  * the input size is used to reduce skew on input data.
  */
 class FactsPartitioner extends BaseFactsPartitioner[BytesWritable] {
-  def getFeatureId(k: BytesWritable): Int =
+  def getFeatureId(k: BytesWritable): FeatureIdIndex =
     FactsetWritable.getFeatureId(k)
   def getHash(k: BytesWritable): Int =
     // Currently this is the date, but at some point we want to switch between date and entity depending on the feature
@@ -38,9 +38,11 @@ trait BaseFactsPartitioner[A] extends Partitioner[A, BytesWritable] with Configu
   def getConf: Configuration =
     _conf
 
-  def getPartition(k: A, v: BytesWritable, partitions: Int): Int =
-    FeatureReducerOffset.getReducer(lookup.reducers.get(getFeatureId(k)), getHash(k)) % partitions
+  def getPartition(k: A, v: BytesWritable, partitions: Int): Int = {
+    val offset = lookup.reducers.get(getFeatureId(k).int)
+    FeatureReducerOffset.getReducer(offset, getHash(k)) % partitions
+  }
 
-  def getFeatureId(k: A): Int
+  def getFeatureId(k: A): FeatureIdIndex
   def getHash(k: A): Int
 }

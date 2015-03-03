@@ -5,6 +5,7 @@ package repository
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
+import com.ambiata.ivory.storage.fact.FeatureIdIndexOption
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.repository.RecreateFactsetJob.Keys
@@ -109,14 +110,17 @@ class RecreateFactsetMapper extends Mapper[NullWritable, BytesWritable, BytesWri
   override def map(key: NullWritable, value: BytesWritable, context: MapperContext): Unit = {
     serializer.fromBytesViewUnsafe(thrift, value.getBytes, 0, value.getLength)
     val fact = createFact(thrift)
-    val k = featureIdLookup.ids.get(fact.featureId.toString).toInt
+    val featureId = FeatureIdIndexOption.lookup(fact, featureIdLookup)
+    if (featureId.isEmpty)
+      Crash.error(Crash.Invariant, s"Unknown feature '${fact.featureId}' for entity '${fact.entity}'")
+    else {
+      FactsetWritable.set(fact, kout, featureId.get)
 
-    FactsetWritable.set(fact, kout, k)
+      val v = serializer.toBytes(fact.toThrift)
+      vout.set(v, 0, v.length)
 
-    val v = serializer.toBytes(fact.toThrift)
-    vout.set(v, 0, v.length)
-
-    context.write(kout, vout)
+      context.write(kout, vout)
+    }
   }
 
 }

@@ -60,7 +60,7 @@ abstract class RenameMapper[K <: Writable] extends CombinableMapper[K, BytesWrit
        ***************************************************************/
       fact.toThrift.setAttribute(to.newName)
 
-      RenameWritable.KeyState.set(fact, priority, kout, to.getFeatureId)
+      RenameWritable.KeyState.set(fact, priority, kout, FeatureIdIndex(to.getFeatureId))
 
       val bytes = serializer.toBytes(fact.toThrift)
       vout.set(bytes, 0, bytes.length)

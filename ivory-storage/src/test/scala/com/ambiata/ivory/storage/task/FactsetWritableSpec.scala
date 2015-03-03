@@ -22,19 +22,19 @@ class FactsetWritableSpec extends Specification with ScalaCheck { def is = s2"""
     }
   })
 
-  def featureId = prop((f1: Fact, i: Int) => {
+  def featureId = prop((f1: Fact, i: FeatureIdIndex) => {
     val bw = FactsetWritable.create
     FactsetWritable.set(f1, bw, i)
     FactsetWritable.getFeatureId(bw) ==== i
   })
 
-  def date = prop((f1: Fact, i: Int) => {
+  def date = prop((f1: Fact, i: FeatureIdIndex) => {
     val bw = FactsetWritable.create
     FactsetWritable.set(f1, bw, i)
     FactsetWritable.getDate(bw) ==== f1.date
   })
 
-  def entityHash = prop((f1: Fact, i: Int) => {
+  def entityHash = prop((f1: Fact, i: FeatureIdIndex) => {
     val bw = FactsetWritable.create
     FactsetWritable.set(f1, bw, i)
     FactsetWritable.getEntityHash(bw) ==== f1.entity.hashCode
@@ -68,10 +68,10 @@ class FactsetWritableSpec extends Specification with ScalaCheck { def is = s2"""
   }
 
   def compare(f1: Fact, f2: Fact): Int = {
-    val e = getFeatureId(f1).compareTo(getFeatureId(f2))
+    val e = getFeatureId(f1).int.compareTo(getFeatureId(f2).int)
     if (e == 0) f1.date.int.compare(f2.date.int) else e
   }
 
-  def getFeatureId(f: Fact): Int =
-    Math.abs(f.featureId.hashCode)
+  def getFeatureId(f: Fact): FeatureIdIndex =
+    FeatureIdIndex(Math.abs(f.featureId.hashCode))
 }

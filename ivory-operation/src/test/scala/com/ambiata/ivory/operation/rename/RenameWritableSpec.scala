@@ -4,6 +4,7 @@ import java.io.{ByteArrayOutputStream, DataOutputStream}
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.operation.rename.RenameWritable._
 import com.ambiata.poacher.mr.Writables
 import org.apache.hadoop.io.WritableComparator
@@ -31,19 +32,19 @@ class RenameWritableSpec extends Specification with ScalaCheck { def is = s2"""
     }
   })
 
-  def featureId = prop((f1: FactAndPriority, i: Int) => {
+  def featureId = prop((f1: FactAndPriority, i: FeatureIdIndex) => {
     val bw = Writables.bytesWritable(4096)
     KeyState.set(f1.f, f1.p, bw, i)
     GroupingByFeatureIdDate.getFeatureId(bw) ==== i
   })
 
-  def getDate = prop((f1: FactAndPriority, i: Int) => {
+  def getDate = prop((f1: FactAndPriority, i: FeatureIdIndex) => {
     val bw = Writables.bytesWritable(4096)
     KeyState.set(f1.f, f1.p, bw, i)
     GroupingByFeatureIdDate.getDate(bw) ==== f1.f.date
   })
 
-  def getEntityHash = prop((f1: FactAndPriority, i: Int) => {
+  def getEntityHash = prop((f1: FactAndPriority, i: FeatureIdIndex) => {
     val bw = Writables.bytesWritable(4096)
     KeyState.set(f1.f, f1.p, bw, i)
     val bw2 = Writables.bytesWritable(4096)
@@ -72,7 +73,7 @@ class RenameWritableSpec extends Specification with ScalaCheck { def is = s2"""
   def set(f1: FactAndPriority, f2: FactAndPriority): (Array[Byte], Array[Byte]) = {
     val bw = Writables.bytesWritable(4096)
     def toBytes(f: FactAndPriority): Array[Byte] = {
-      KeyState.set(f.f, f.p, bw, Math.abs(f.f.featureId.hashCode))
+      KeyState.set(f.f, f.p, bw, FeatureIdIndex(Math.abs(f.f.featureId.hashCode)))
       val b = new ByteArrayOutputStream()
       // This appends the size to the array, which is what Hadoop does, so we do it too
       bw.write(new DataOutputStream(b))

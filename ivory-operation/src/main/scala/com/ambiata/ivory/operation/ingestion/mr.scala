@@ -3,6 +3,7 @@ package com.ambiata.ivory.operation.ingestion
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.FeatureIdLookup
 import com.ambiata.ivory.mr.{DictionaryCache, MapString}
+import com.ambiata.ivory.storage.fact.FeatureIdIndexOption
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.parse._
 import com.ambiata.ivory.storage.task.{FactsetWritable, FactsetJob}
@@ -145,8 +146,10 @@ trait IngestMapper[K, I] extends Mapper[K, I, BytesWritable, BytesWritable] {
 
         context.getCounter("ivory", "ingest.ok").increment(1)
 
-        val k = lookup.ids.get(f.featureId.toString).toInt
-        FactsetWritable.set(f, kout, k)
+        val featureId = FeatureIdIndexOption.lookup(f, lookup)
+        if (featureId.isEmpty)
+          Crash.error(Crash.Invariant, s"Unknown feature '${f.featureId}' for entity '${f.entity}'")
+        FactsetWritable.set(f, kout, featureId.get)
 
         val v = serializer.toBytes(f.toThrift)
         vout.set(v, 0, v.length)
