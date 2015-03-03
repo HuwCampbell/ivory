@@ -200,8 +200,10 @@ abstract class ChordFactsetMapper[K <: Writable] extends CombinableMapper[K, Byt
       dropCounter.count(1)
     else if (!entities.keep(fact))
       skipCounter.count(1)
-    else
-      ChordFactsetMapper.map(fact, priority, kout, vout, emitter, okCounter, serializer, featureId.get)
+    else {
+      ChordFactsetMapper.map(fact, priority, kout, vout, emitter, serializer, featureId.get)
+      okCounter.count(1)
+    }
   }
 }
 
@@ -211,9 +213,7 @@ class ChordV2FactsetMapper extends ChordFactsetMapper[NullWritable] with MrFacts
 object ChordFactsetMapper {
 
   def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, deserializer: ThriftSerialiser,
-          featureId: FeatureIdIndex) {
-    okCounter.count(1)
+          emitter: Emitter[BytesWritable, BytesWritable], deserializer: ThriftSerialiser, featureId: FeatureIdIndex) {
     SnapshotWritable.KeyState.set(fact, priority, kout, featureId)
     val bytes = deserializer.toBytes(fact)
     vout.set(bytes, 0, bytes.length)
@@ -277,8 +277,10 @@ abstract class ChordIncrementalMapper[K <: Writable] extends CombinableMapper[K,
       dropCounter.count(1)
     else if (!entities.keep(fact))
       skipCounter.count(1)
-    else
-      ChordIncrementalMapper.map(fact, Priority.Max, kout, vout, emitter, okCounter, serializer, featureId.get)
+    else {
+      ChordIncrementalMapper.map(fact, Priority.Max, kout, vout, emitter, serializer, featureId.get)
+      okCounter.count(1)
+    }
   }
 }
 
@@ -288,9 +290,7 @@ class ChordV2IncrementalMapper extends ChordIncrementalMapper[IntWritable] with 
 object ChordIncrementalMapper {
 
   def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, serializer: ThriftSerialiser,
-          featureId: FeatureIdIndex) {
-    okCounter.count(1)
+          emitter: Emitter[BytesWritable, BytesWritable], serializer: ThriftSerialiser, featureId: FeatureIdIndex) {
     SnapshotWritable.KeyState.set(fact, priority, kout, featureId)
     val bytes = serializer.toBytes(fact)
     vout.set(bytes, 0, bytes.length)

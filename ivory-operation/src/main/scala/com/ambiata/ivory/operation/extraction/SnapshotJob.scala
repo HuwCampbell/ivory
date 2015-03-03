@@ -206,8 +206,10 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
       dropCounter.count(1)
     else if (fact.date > date)
       skipCounter.count(1)
-    else
-      SnapshotFactsetMapper.map(fact, priority, kout, vout, emitter, okCounter, serializer, featureId.get)
+    else {
+      SnapshotFactsetMapper.map(fact, priority, kout, vout, emitter, serializer, featureId.get)
+      okCounter.count(1)
+    }
   }
 }
 
@@ -217,9 +219,7 @@ class SnapshotV2FactsetMapper extends SnapshotFactsetMapper[NullWritable] with M
 object SnapshotFactsetMapper {
 
   def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, deserializer: ThriftSerialiser,
-          featureId: FeatureIdIndex) {
-    okCounter.count(1)
+          emitter: Emitter[BytesWritable, BytesWritable], deserializer: ThriftSerialiser, featureId: FeatureIdIndex) {
     KeyState.set(fact, priority, kout, featureId)
     val bytes = deserializer.toBytes(fact)
     vout.set(bytes, 0, bytes.length)
@@ -274,8 +274,10 @@ abstract class SnapshotIncrementalMapper[K <: Writable] extends CombinableMapper
     val featureId = FeatureIdIndexOption.lookup(fact, featureIdLookup)
     if (featureId.isEmpty)
       dropCounter.count(1)
-    else
-      SnapshotIncrementalMapper.map(fact, Priority.Max, kout, vout, emitter, okCounter, serializer, featureId.get)
+    else {
+      SnapshotIncrementalMapper.map(fact, Priority.Max, kout, vout, emitter, serializer, featureId.get)
+      okCounter.count(1)
+    }
   }
 }
 
@@ -284,9 +286,7 @@ class SnapshotV2IncrementalMapper extends SnapshotIncrementalMapper[IntWritable]
 
 object SnapshotIncrementalMapper {
   def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, serializer: ThriftSerialiser,
-          featureId: FeatureIdIndex) {
-    okCounter.count(1)
+          emitter: Emitter[BytesWritable, BytesWritable], serializer: ThriftSerialiser, featureId: FeatureIdIndex) {
     KeyState.set(fact, priority, kout, featureId)
     val bytes = serializer.toBytes(fact)
     vout.set(bytes, 0, bytes.length)

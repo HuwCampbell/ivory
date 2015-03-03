@@ -28,15 +28,14 @@ SnapshotMapperSpec
     val kout = Writables.bytesWritable(4096)
     val vout = Writables.bytesWritable(4096)
     val emitter = newEmitter
-    val okCounter = MemoryCounter()
 
     // Run mapper
     fs.foreach(f => {
-      SnapshotFactsetMapper.map(f.toNamespacedThrift, priority, kout, vout, emitter, okCounter, serializer,
+      SnapshotFactsetMapper.map(f.toNamespacedThrift, priority, kout, vout, emitter, serializer,
         FeatureIdIndex(f.featureId.hashCode))
     })
 
-    assertMapperOutput(emitter, okCounter, fs, priority, serializer)
+    assertMapperOutput(emitter, fs, priority, serializer)
   })
 
   def incremental = prop((fs: List[Fact]) => {
@@ -44,21 +43,19 @@ SnapshotMapperSpec
     val kout = Writables.bytesWritable(4096)
     val vout = Writables.bytesWritable(4096)
     val emitter = newEmitter
-    val okCounter = MemoryCounter()
 
     // Run mapper
     fs.foreach(f =>
-      SnapshotIncrementalMapper.map(f.toNamespacedThrift, Priority.Max, kout, vout, emitter, okCounter, serializer,
+      SnapshotIncrementalMapper.map(f.toNamespacedThrift, Priority.Max, kout, vout, emitter, serializer,
         FeatureIdIndex(f.featureId.hashCode))
     )
 
-    assertMapperOutput(emitter, okCounter, fs, Priority.Max, serializer)
+    assertMapperOutput(emitter, fs, Priority.Max, serializer)
   })
 
-  def assertMapperOutput(emitter: TestEmitter[BytesWritable, BytesWritable, (String, Fact)], okCounter: MemoryCounter,
-                         expectedFacts: List[Fact], priority: Priority, serializer: ThriftSerialiser): matcher.MatchResult[Any] = {
-    (emitter.emitted.toList, okCounter.counter) ==== (
-    (expectedFacts.map(f => (keyBytes(priority)(f), f)), expectedFacts.length))
+  def assertMapperOutput(emitter: TestEmitter[BytesWritable, BytesWritable, (String, Fact)], expectedFacts: List[Fact],
+                         priority: Priority, serializer: ThriftSerialiser): matcher.MatchResult[Any] = {
+    emitter.emitted.toList ==== expectedFacts.map(f => (keyBytes(priority)(f), f))
   }
 
   def newEmitter: TestEmitter[BytesWritable, BytesWritable, (String, Fact)] = {
