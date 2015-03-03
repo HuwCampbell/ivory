@@ -68,6 +68,9 @@ trait Arbitraries {
   implicit def FeatureIdArbitrary: Arbitrary[FeatureId] =
     Arbitrary(GenIdentifier.feature)
 
+  implicit def FeatureIdIndexArbitrary: Arbitrary[FeatureIdIndex] =
+    Arbitrary(GenIdentifier.featureIdIndex)
+
   implicit def FeatureIdMappingsArbitrary: Arbitrary[FeatureIdMappings] =
     Arbitrary(GenIdentifier.featureMappings)
 

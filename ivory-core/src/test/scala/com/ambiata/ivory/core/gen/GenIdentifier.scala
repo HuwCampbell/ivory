@@ -13,6 +13,9 @@ object GenIdentifier {
     name <- GenString.sensible
   } yield FeatureId(ns, name)
 
+  def featureIdIndex: Gen[FeatureIdIndex] =
+    Gen.choose(0, Int.MaxValue).map(FeatureIdIndex.apply)
+
   def featureMappings: Gen[FeatureIdMappings] =
     GenPlus.listOfSized(1, 100, feature).map(_.distinct).map(FeatureIdMappings.apply)
 

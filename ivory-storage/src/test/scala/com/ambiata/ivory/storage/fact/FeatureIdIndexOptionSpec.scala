@@ -33,12 +33,12 @@ class FeatureIdIndexOptionSpec extends Specification with ScalaCheck { def is = 
   def empty =
     FeatureIdIndexOption.empty.isEmpty
 
-  def defined = prop((n: NaturalInt) =>
-    FeatureIdIndexOption.fromInt(n.value).isDefined
+  def defined = prop((f: FeatureIdIndex) =>
+    FeatureIdIndexOption.fromInt(f.int).isDefined
   )
 
-  def get = prop((n: NaturalInt) =>
-    FeatureIdIndexOption.fromInt(n.value).get.int ==== n.value
+  def get = prop((f: FeatureIdIndex) =>
+    FeatureIdIndexOption.fromInt(f.int).get ==== f
   )
 
   def getError =
