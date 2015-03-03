@@ -201,8 +201,11 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
    */
   override def map(key: K, value: BytesWritable, context: MapperContext[K]): Unit = {
     converter.convert(fact, key, value)
-    SnapshotFactsetMapper.map(fact, date, priority, kout, vout, emitter, okCounter, skipCounter, dropCounter,
-      serializer, featureIdLookup)
+    val featureId = FeatureIdIndexOption.lookup(fact, featureIdLookup)
+    if (featureId.isEmpty)
+      dropCounter.count(1)
+    else
+      SnapshotFactsetMapper.map(fact, date, priority, kout, vout, emitter, okCounter, skipCounter, serializer, featureId.get)
   }
 }
 
@@ -213,12 +216,8 @@ object SnapshotFactsetMapper {
 
   def map(fact: MutableFact, date: Date, priority: Priority, kout: BytesWritable, vout: BytesWritable,
           emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, skipCounter: Counter,
-          dropCounter: Counter, deserializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup) {
-    val name = fact.featureId.toString
-    val featureId = featureIdLookup.getIds.get(name)
-    if (featureId == null)
-      dropCounter.count(1)
-    else if (fact.date > date)
+          deserializer: ThriftSerialiser, featureId: FeatureIdIndex) {
+    if (fact.date > date)
       skipCounter.count(1)
     else {
       okCounter.count(1)
@@ -274,7 +273,11 @@ abstract class SnapshotIncrementalMapper[K <: Writable] extends CombinableMapper
 
   override def map(key: K, value: BytesWritable, context: MapperContext[K]): Unit = {
     converter.convert(fact, key, value)
-    SnapshotIncrementalMapper.map(fact, Priority.Max, kout, vout, emitter, okCounter, dropCounter, serializer, featureIdLookup)
+    val featureId = FeatureIdIndexOption.lookup(fact, featureIdLookup)
+    if (featureId.isEmpty)
+      dropCounter.count(1)
+    else
+      SnapshotIncrementalMapper.map(fact, Priority.Max, kout, vout, emitter, okCounter, serializer, featureId.get)
   }
 }
 
@@ -283,19 +286,13 @@ class SnapshotV2IncrementalMapper extends SnapshotIncrementalMapper[IntWritable]
 
 object SnapshotIncrementalMapper {
   def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, dropCounter: Counter,
-          serializer: ThriftSerialiser, featureIdLookup: FeatureIdLookup) {
-    val name = fact.featureId.toString
-    val featureId = featureIdLookup.getIds.get(name)
-    if (featureId == null)
-      dropCounter.count(1)
-    else {
-      okCounter.count(1)
-      KeyState.set(fact, priority, kout, featureId)
-      val bytes = serializer.toBytes(fact)
-      vout.set(bytes, 0, bytes.length)
-      emitter.emit(kout, vout)
-    }
+          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, serializer: ThriftSerialiser,
+          featureId: FeatureIdIndex) {
+    okCounter.count(1)
+    KeyState.set(fact, priority, kout, featureId)
+    val bytes = serializer.toBytes(fact)
+    vout.set(bytes, 0, bytes.length)
+    emitter.emit(kout, vout)
   }
 }
 

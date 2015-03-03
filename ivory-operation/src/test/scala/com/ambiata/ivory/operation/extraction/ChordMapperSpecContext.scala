@@ -11,12 +11,11 @@ import org.apache.hadoop.io.BytesWritable
 
 import org.scalacheck._, Arbitrary.arbitrary
 
-case class ChordMapperSpecContext(facts: List[Fact], skipped: List[Fact], dropped: List[Fact]) {
-  val all = facts ++ skipped ++ dropped
+case class ChordMapperSpecContext(facts: List[Fact], skipped: List[Fact]) {
+  val all = facts ++ skipped
   val serializer = ThriftSerialiser()
   val ok = MemoryCounter()
   val skip = MemoryCounter()
-  val drop = MemoryCounter()
   val lookup = new FeatureIdLookup(new java.util.HashMap[String, Integer])
   val emitter = TestEmitter[BytesWritable, BytesWritable, (BytesWritable, BytesWritable)]((k, v) => (k, v))
   val entities = Entities(new java.util.HashMap)
@@ -35,9 +34,7 @@ object ChordMapperSpecContext {
   implicit def ChordMapperSpecContextArbitrary: Arbitrary[ChordMapperSpecContext] = Arbitrary(Gen.resize(10, for {
     facts   <- arbitrary[List[Fact]].map(fs => fs.zipWithIndex.map({ case (f, i) => f.withEntity(f.entity + i) }))
     skipped <- arbitrary[List[Fact]].map(fs => fs.zipWithIndex.map({ case (f, i) => f.withEntity(f.entity + i + facts.size) }))
-    dropped <- arbitrary[List[Fact]].map(fs => fs.zipWithIndex.map({ case (f, i) => f.withEntity(f.entity + i + facts.size + skipped.size) }))
   } yield ChordMapperSpecContext(
       facts
-    , skipped.filter(f => !facts.exists(_.featureId == f.featureId))
-    , dropped.filter(f => !(facts ++ skipped).exists(_.featureId == f.featureId)))))
+    , skipped.filter(f => !facts.exists(_.featureId == f.featureId)))))
 }

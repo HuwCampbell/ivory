@@ -31,13 +31,13 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
 
   def featureId = prop((f1: FactAndPriority, i: Int) => {
     val bw = Writables.bytesWritable(4096)
-    KeyState.set(f1.f, f1.p, bw, i)
+    KeyState.set(f1.f, f1.p, bw, FeatureIdIndex(i))
     GroupingEntityFeatureId.getFeatureId(bw) ==== i
   })
 
   def entity = prop((f1: FactAndPriority, i: Int) => {
     val bw = Writables.bytesWritable(4096)
-    KeyState.set(f1.f, f1.p, bw, i)
+    KeyState.set(f1.f, f1.p, bw, FeatureIdIndex(i))
     GroupingEntityFeatureId.getEntity(bw) ==== f1.f.entity
   })
 
@@ -61,7 +61,7 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
   def set(f1: FactAndPriority, f2: FactAndPriority): (Array[Byte], Array[Byte]) = {
     val bw = Writables.bytesWritable(4096)
     def toBytes(f: FactAndPriority): Array[Byte] = {
-      KeyState.set(f.f, f.p, bw, Math.abs(f.f.featureId.hashCode))
+      KeyState.set(f.f, f.p, bw, FeatureIdIndex(Math.abs(f.f.featureId.hashCode)))
       val b = new ByteArrayOutputStream()
       // This appends the size to the array, which is what Hadoop does, so we do it too
       bw.write(new DataOutputStream(b))
