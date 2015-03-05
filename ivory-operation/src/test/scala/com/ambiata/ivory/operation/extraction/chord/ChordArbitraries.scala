@@ -4,6 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core.gen._
+import com.ambiata.ivory.operation.model._
 import com.ambiata.ivory.storage.entities._
 import com.ambiata.ivory.lookup.ChordEntities
 import org.scalacheck._
@@ -16,6 +17,8 @@ object ChordArbitraries {
 
   /** Represents a single entity with a number of dates, and for each date a number of possible facts */
   case class ChordEntity(entity: String, dates: List[(Date, List[Date])], above: List[Date]) {
+    lazy val dateList: List[Date] =
+      dates.map(_._1).sorted.reverse
     lazy val dateArray: Array[Int] =
       dates.map(_._1.int).sorted.reverse.toArray
 
@@ -45,44 +48,12 @@ object ChordArbitraries {
 
     def facts(fact: Fact, mode: Mode): List[Fact] =
       toFacts(fact, mode)((_, fs, _) => fs).map(_.withEntity(entity))
-
-    def expected(fact: Fact, mode: Mode, rwDate: Boolean): List[Fact] =
-      // Take the latest fact, which may come from a previous chord period if this one is empty
-      toFacts(fact, mode)(expecteds(rwDate))
-
-    def expecteds(rwDate: Boolean): (Date, List[Fact], List[Fact]) => List[Fact] =
-      (d, fs, prev) => (prev ++ fs).lastOption.map(_.withEntity(entity + ":" + d.hyphenated))
-        .map(rewriteDate(rwDate, d)).toList
-
-    def expectedWindow(fact: Fact, mode: Mode, window: Option[Window], rwDate: Boolean): List[Fact] =
-      toFacts(fact, mode)(expectedWindows(window, rwDate)).distinct
-
-    def expectedWindows: (Option[Window], Boolean) => (Date, List[Fact], List[Fact]) => List[Fact] =
-      (window, rwDate) => (d, fs, prev) =>
-        window.map(Window.startingDate(_, d)).map {
-          sd =>
-            // _Always_ emit the last fact before the window (for state-based features)
-            (prev ++ fs).filter(!Window.isFactWithinWindow(sd, _)).lastOption.toList ++
-              // All the facts from the window
-              fs.filter(Window.isFactWithinWindow(sd, _))
-        }.getOrElse((prev ++ fs).lastOption.toList).map(_.withEntity(entity)).map(rewriteDate(rwDate, d))
-
-    /** Squash will rewrite the date of the fact to be the same as the chord */
-    def rewriteDate(rewrite: Boolean, date: Date): Fact => Fact =
-      fact => if (rewrite) fact.withDate(date) else fact
   }
 
   /** A single entity, for testing [[com.ambiata.ivory.operation.extraction.ChordReducer]] */
   case class ChordFact(ce: ChordEntity, fact: Fact, window: Option[Window]) {
     lazy val facts: List[Fact] = ce.facts(fact, Mode.State)
     lazy val factsWithPriority: List[Fact] = ce.facts(fact, Mode.Set)
-    lazy val expected: List[Fact] = ce.expected(fact, Mode.State, false)
-    lazy val expectedSet: List[Fact] = ce.expected(fact, Mode.Set, false)
-    lazy val expectedWindow: List[Fact] = ce.expectedWindow(fact, Mode.State, window, false)
-    lazy val expectedWindowSet: List[Fact] = ce.expectedWindow(fact, Mode.Set, window, false)
-    lazy val windowDateArray: Option[Array[Int]] = window.map {
-      win => ce.dates.map(_._1).map(Window.startingDate(win, _).int).sorted.reverse.toArray
-    }
   }
 
   case class ChordFacts(ces: List[ChordEntity], fid: FeatureId, factAndMeta: SparseEntities, window: Option[Window],
@@ -97,9 +68,9 @@ object ChordArbitraries {
         facts ++ above ++ other.map(_.withFeatureId(factAndMeta.fact.featureId))
       )
     }
+    lazy val factsPriority: List[Prioritized[Fact]] =
+      FactModel.factsPriority(allFacts)
     lazy val above: List[Fact] = ces.flatMap(_.above.map(factAndMeta.fact.withDate))
-    lazy val expected: List[Fact] =
-      ces.flatMap(_.expected(factAndMeta.fact, factAndMeta.meta.mode, true)).map(_.withTime(Time(0)))
     lazy val dictionary: Dictionary = Dictionary(List(
       factAndMeta.meta.toDefinition(factAndMeta.fact.featureId)
     ))
@@ -138,6 +109,9 @@ object ChordArbitraries {
 
     def withMode(mode: Mode): ChordFacts =
       copy(factAndMeta = factAndMeta.copy(meta = factAndMeta.meta.copy(mode = mode)))
+
+    def expectedFromModel(dict: Dictionary): List[Fact] =
+      ChordModel.run(factsPriority, ChordModelConf(chord, dict)).sorted(Fact.orderEntityDateTime.toScalaOrdering)
   }
 
   implicit def ChordFactArbitrary: Arbitrary[ChordFact] = Arbitrary(for {

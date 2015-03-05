@@ -4,6 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.operation.extraction.mode.ModeReducer
 import com.ambiata.ivory.mr._
+import com.ambiata.ivory.operation.model.ModeHandler
 
 import com.ambiata.poacher.mr.ThriftSerialiser
 import org.specs2._
@@ -39,41 +40,28 @@ SnapshotReducerSpec
   })
 
   def window = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
-    val facts = SnapshotFacts(dts, fact, date)
-    val serialiser = ThriftSerialiser()
-    MockFactMutator.runThriftFactKeep(fact.namespace, facts.facts) { (bytes, emitter, kout, vout) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, ModeReducer.fromMode(Mode.State), serialiser)
-    } ==== (facts.expected -> facts.expected.size)
+    reduce(toFacts(dts, fact), fact, date, Mode.State)
   }).set(maxSize = 10)
 
   def windowPriority = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
-    val facts = SnapshotFacts(dts, fact, date)
-    val serialiser = ThriftSerialiser()
-    MockFactMutator.runThriftFactKeep(fact.namespace, facts.factsDupe) { (bytes, emitter, kout, vout) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, ModeReducer.fromMode(Mode.State), serialiser)
-    } ==== (facts.expected -> facts.expected.size)
+    def dupe(f: List[Fact]): List[Fact] =
+      f.zip(f).flatMap(fs => List(fs._1, fs._2.withValue(IntValue(fs._2.value match { case IntValue(x) => x + 10; case _ => 99 }))))
+    reduce(dupe(toFacts(dts, fact)), fact, date, Mode.State)
   }).set(maxSize = 10)
 
   def windowIsSet = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
-    val facts = SnapshotFacts(dts, fact, date)
-    val serialiser = ThriftSerialiser()
-    MockFactMutator.runThriftFactKeep(fact.namespace, facts.factsDupe) { (bytes, emitter, kout, vout) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, ModeReducer.fromMode(Mode.Set), serialiser)
-    } ==== (facts.expectedSet -> facts.expectedSet.size)
+    reduce(toFacts(dts, fact), fact, date, Mode.Set)
   }).set(maxSize = 10)
 
-  /** We only care about the DateTime for reducing snapshots, so we reuse the same fact */
-  case class SnapshotFacts(dts: NonEmptyList[DateTime], fact: Fact, date: Date) {
-    // Make sure we remove distinct times here to avoid confusion later in the dupe test
-    val (oldFacts, newFacts) = dts.list.distinct.sortBy(_.long)
-      .map(dt => fact.withDate(dt.date).withTime(dt.time))
-      .zipWithIndex.map(f => f._1.withValue(IntValue(f._2)))
-      .partition(!Window.isFactWithinWindow(date, _))
-    def facts: List[Fact] = oldFacts ++ newFacts
-    def factsDupe: List[Fact] = dupe(oldFacts) ++ dupe(newFacts)
-    lazy val expected: List[Fact] = oldFacts.lastOption.toList ++ newFacts
-    lazy val expectedSet: List[Fact] = dupe(oldFacts).lastOption.toList ++ dupe(newFacts)
-    def dupe(f: List[Fact]): List[Fact] =
-      f.zip(f).flatMap(fs => List(fs._1, fs._2.withValue(IntValue(fs._2.value match { case IntValue(x) => x + 10; case _ => 99 }))))
+  def reduce(facts: List[Fact], fact: Fact, date: Date, mode: Mode) = {
+    val serialiser = ThriftSerialiser()
+    val expected = ModeHandler.get(mode).reduce(NonEmptyList(facts.head, facts.tail: _*), date)
+    MockFactMutator.runThriftFactKeep(fact.namespace, facts) { (bytes, emitter, kout, vout) =>
+      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, ModeReducer.fromMode(mode), serialiser)
+    } ==== (expected -> expected.size)
   }
+
+  def toFacts(dts: NonEmptyList[DateTime], fact: Fact): List[Fact] =
+    dts.list.distinct.sortBy(_.long)
+      .map(dt => fact.withDate(dt.date).withTime(dt.time))
 }

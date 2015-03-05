@@ -146,7 +146,8 @@ object build extends Build {
     , libraryDependencies ++= (if (scalaVersion.value.contains("2.10")) Seq(compilerPlugin("org.scalamacros" %% "paradise" % "2.0.0" cross CrossVersion.full)) else Nil)
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++ depend.argonaut ++
                                                depend.thrift ++ depend.hadoop(version.value) ++ depend.reflect(scalaVersion.value) ++
-                                               depend.scoobi(version.value) ++ depend.poacher(version.value) ++ depend.saws ++ depend.notion(version.value))
+                                               depend.scoobi(version.value) ++ depend.poacher(version.value) ++
+                                               depend.saws ++ depend.notion(version.value) ++ depend.disorder)
   )
 
   lazy val operation = Project(
