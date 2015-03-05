@@ -344,4 +344,24 @@ object Value {
     case tsv if tsv.isSetB => ThriftFactValue.b(tsv.getB)
     case tsv if tsv.isSetDate => ThriftFactValue.date(tsv.getDate)
   }
+
+  /** For testing - make a single value a little more unique based on an offset */
+  def unique(value: Value, i: Int): Value = value match {
+    case v: PrimitiveValue => uniquePrim(v, i)
+    case StructValue(v) => StructValue(v.mapValues(uniquePrim(_, i)))
+    case ListValue(lv) => ListValue(lv.map({
+      case v: PrimitiveValue => uniquePrim(v, i)
+      case StructValue(v) => StructValue(v.mapValues(uniquePrim(_, i)))
+    }))
+    case TombstoneValue => TombstoneValue
+  }
+
+  def uniquePrim(value: PrimitiveValue, i: Int): PrimitiveValue = value match {
+    case StringValue(v) => StringValue(v + "_" + i)
+    case BooleanValue(_) => BooleanValue(i % 2 == 0)
+    case IntValue(v) => IntValue(v + i)
+    case LongValue(v) => LongValue(v + i)
+    case DoubleValue(v) => DoubleValue(v + i)
+    case DateValue(v) => DateValue(DateTimeUtil.minusDays(v, i))
+  }
 }

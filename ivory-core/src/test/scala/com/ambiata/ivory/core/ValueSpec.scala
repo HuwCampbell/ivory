@@ -12,6 +12,7 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
   Can convert to and from thrift                         $thrift
   Facts with entity ids larger then 256 are invalid      $invalidEntityIdFact
   Can convert between primitive and non-primitive        $primitive
+  Can make any value unique                              $unique
 """
 
   def valid = prop((e: EncodingAndValue) =>
@@ -33,6 +34,10 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
     Value.toPrimitive(Value.toThrift(v)).map(Value.fromPrimitive) must beSome(Value.toThrift(v))
   }
 
+  def unique = prop((v: EncodingAndValue, i: Int) => (i != 0 && canBeMadeUnique(v.value)) ==> {
+    Value.unique(v.value, i) !=== v.value
+  })
+
   // A small subset of  encoded values are valid for different optional/empty Structs/Lists
   private def isCompatible(e1: EncodingAndValue, e2: Encoding): Boolean =
     (e1, e2) match {
@@ -42,6 +47,25 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
         l.forall(v => isCompatible(EncodingAndValue(e.toEncoding, v), e.toEncoding))
       case _ => false
     }
+
+  def canBeMadeUnique(v: Value): Boolean = {
+    def canBeMadeUniquePrim(pv: PrimitiveValue): Boolean = pv match {
+      // Yeah good luck with that
+      case BooleanValue(_) => false
+      case DoubleValue(d) => d + 1 != d
+      case _ => true
+    }
+    v match {
+      case TombstoneValue => false
+      case pv: PrimitiveValue => canBeMadeUniquePrim(pv)
+      case ListValue(lv) => lv.headOption.exists {
+        case pv: PrimitiveValue => canBeMadeUniquePrim(pv)
+        case StructValue(sv) => sv.values.headOption.exists(canBeMadeUniquePrim)
+      }
+      case StructValue(sv) => sv.values.headOption.exists(canBeMadeUniquePrim)
+      case _ => true
+    }
+  }
 
   case class BadEntityFact(fact: Fact, dictionary: Dictionary)
   implicit def BadEntityArbitrary: Arbitrary[BadEntityFact] = Arbitrary(for {
