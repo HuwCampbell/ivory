@@ -3,7 +3,7 @@ package com.ambiata.ivory.operation.extraction
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.{FeatureIdLookup, SnapshotWindowLookup, FlagLookup, NamespaceLookup}
 import com.ambiata.ivory.operation.extraction.mode.ModeReducer
-import com.ambiata.ivory.operation.extraction.snapshot._, SnapshotWritable._
+import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
 import com.ambiata.ivory.storage.plan._
@@ -204,30 +204,17 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
     val featureId = FeatureIdIndexOption.lookup(fact, featureIdLookup)
     if (featureId.isEmpty)
       dropCounter.count(1)
-    else
-      SnapshotFactsetMapper.map(fact, date, priority, kout, vout, emitter, okCounter, skipCounter, serializer, featureId.get)
+    else if (fact.date > date)
+      skipCounter.count(1)
+    else {
+      SnapshotWritable.writeAndEmit(fact, priority, featureId.get, kout, vout, serializer, emitter)
+      okCounter.count(1)
+    }
   }
 }
 
 class SnapshotV1FactsetMapper extends SnapshotFactsetMapper[NullWritable] with MrFactsetFactFormatV1
 class SnapshotV2FactsetMapper extends SnapshotFactsetMapper[NullWritable] with MrFactsetFactFormatV2
-
-object SnapshotFactsetMapper {
-
-  def map(fact: MutableFact, date: Date, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, skipCounter: Counter,
-          deserializer: ThriftSerialiser, featureId: FeatureIdIndex) {
-    if (fact.date > date)
-      skipCounter.count(1)
-    else {
-      okCounter.count(1)
-      KeyState.set(fact, priority, kout, featureId)
-      val bytes = deserializer.toBytes(fact)
-      vout.set(bytes, 0, bytes.length)
-      emitter.emit(kout, vout)
-    }
-  }
-}
 
 /**
  * Incremental snapshot mapper.
@@ -276,25 +263,15 @@ abstract class SnapshotIncrementalMapper[K <: Writable] extends CombinableMapper
     val featureId = FeatureIdIndexOption.lookup(fact, featureIdLookup)
     if (featureId.isEmpty)
       dropCounter.count(1)
-    else
-      SnapshotIncrementalMapper.map(fact, Priority.Max, kout, vout, emitter, okCounter, serializer, featureId.get)
+    else {
+      SnapshotWritable.writeAndEmit(fact, Priority.Max, featureId.get, kout, vout, serializer, emitter)
+      okCounter.count(1)
+    }
   }
 }
 
 class SnapshotV1IncrementalMapper extends SnapshotIncrementalMapper[NullWritable] with MrSnapshotFactFormatV1
 class SnapshotV2IncrementalMapper extends SnapshotIncrementalMapper[IntWritable] with MrSnapshotFactFormatV2
-
-object SnapshotIncrementalMapper {
-  def map(fact: MutableFact, priority: Priority, kout: BytesWritable, vout: BytesWritable,
-          emitter: Emitter[BytesWritable, BytesWritable], okCounter: Counter, serializer: ThriftSerialiser,
-          featureId: FeatureIdIndex) {
-    okCounter.count(1)
-    KeyState.set(fact, priority, kout, featureId)
-    val bytes = serializer.toBytes(fact)
-    vout.set(bytes, 0, bytes.length)
-    emitter.emit(kout, vout)
-  }
-}
 
 /**
  * Reducer for ivory-snapshot.
