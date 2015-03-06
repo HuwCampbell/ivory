@@ -4,6 +4,7 @@ import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.arbitraries._, Arbitraries._
 import com.ambiata.ivory.core.gen._
 import org.specs2.{ScalaCheck, Specification}
+import scalaz.scalacheck.ScalazProperties
 
 class ValueSpec extends Specification with ScalaCheck { def is = s2"""
 
@@ -13,6 +14,8 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
   Facts with entity ids larger then 256 are invalid      $invalidEntityIdFact
   Can convert between primitive and non-primitive        $primitive
   Can make any value unique                              $unique
+  Can make any value unique                              $order
+  Can make any value unique                              $orderPrimitive
 """
 
   def valid = prop((e: EncodingAndValue) =>
@@ -37,6 +40,12 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
   def unique = prop((v: EncodingAndValue, i: Int) => (i != 0 && canBeMadeUnique(v.value)) ==> {
     Value.unique(v.value, i) !=== v.value
   })
+
+  def order =
+    ScalazProperties.order.laws[Value](Value.order, Arbitraries.ValueArbitrary)
+
+  def orderPrimitive =
+    ScalazProperties.order.laws[PrimitiveValue](Value.orderPrimitive, Arbitraries.PrimitiveValueArbitrary)
 
   // A small subset of  encoded values are valid for different optional/empty Structs/Lists
   private def isCompatible(e1: EncodingAndValue, e2: Encoding): Boolean =
