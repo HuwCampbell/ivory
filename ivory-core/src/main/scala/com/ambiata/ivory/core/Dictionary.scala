@@ -67,7 +67,7 @@ case class Dictionary(definitions: List[Definition]) {
   def windows: FeatureWindows =
     FeatureWindows(byConcrete.sources.toList.map({
       case (id, group) =>
-        FeatureWindow(id, group.virtual.map({ case (_, definition) => definition.window }).flatten)
+        FeatureWindow(id, group.windows)
     }))
 }
 
@@ -93,4 +93,11 @@ case class DictionaryConcrete(sources: Map[FeatureId, ConcreteGroup]) {
   })
 }
 
-case class ConcreteGroup(definition: ConcreteDefinition, virtual: List[(FeatureId, VirtualDefinition)])
+case class ConcreteGroup(definition: ConcreteDefinition, virtual: List[(FeatureId, VirtualDefinition)]) {
+
+  def range(to: Date): Range[ConcreteGroup] =
+    Range(this, windows.map(Window.startingDate(_, to)), to)
+
+  def windows: List[Window] =
+    virtual.map({ case (_, vd) => vd.window }).flatten
+}

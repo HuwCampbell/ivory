@@ -10,7 +10,14 @@ import Arbitraries._
 
 
 // FIX ARB Name? looks like this has moved on...
-case class SparseEntities(meta: ConcreteDefinition, fact: Fact, zone: DateTimeZone)
+case class SparseEntities(meta: ConcreteDefinition, fact: Fact, zone: DateTimeZone) {
+
+  def dictionary: Dictionary =
+    Dictionary(List(Concrete(fact.featureId, meta)))
+
+  def onDefinition(f: ConcreteDefinition => ConcreteDefinition): SparseEntities =
+    copy(meta = f(meta))
+}
 
 object SparseEntities {
   implicit def SparseEntitiesArbitrary: Arbitrary[SparseEntities] =

@@ -15,6 +15,12 @@ object GenValue {
       , 2 -> (GenDate.date map DateValue.apply)
       )
 
+  def value: Gen[Value] = for {
+    e <- GenDictionary.encoding
+    t <- GenString.words
+    v <- valueOf(e, t)
+  } yield v
+
   def valueOf(encoding: Encoding, tombstones: List[String]): Gen[Value] = encoding.fold(
     p => valueOfPrimOrTomb(p, tombstones),
     s => valueOfStruct(s),

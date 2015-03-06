@@ -15,6 +15,12 @@ case class VirtualDictionary(cd: ConcreteDefinition, fid: FeatureId, vd: Virtual
   def withSource(source: FeatureId): VirtualDictionary =
     copy(vd = vd.copy(source = source))
 
+  def onConcrete(f: ConcreteDefinition => ConcreteDefinition): VirtualDictionary =
+    copy(cd = f(cd))
+
+  def concreteGroup: ConcreteGroup =
+    ConcreteGroup(cd, List(fid -> vd))
+
   def dictionary: Dictionary =
     Dictionary(List(cd.toDefinition(vd.source), vd.toDefinition(fid)))
 }

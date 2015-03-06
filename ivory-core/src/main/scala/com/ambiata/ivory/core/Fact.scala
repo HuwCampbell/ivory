@@ -54,6 +54,12 @@ object Fact {
 
   def newFact(entity: String, namespace: String, feature: String, date: Date, time: Time, value: Value): Fact =
     FatThriftFact.factWith(entity, namespace, feature, date, time, Value.toThrift(value))
+
+  /** For testing only! */
+  def orderEntityDateTime: Order[Fact] =
+    Order.orderBy[Fact, (String, Long)](f => f.entity -> f.datetime.long) |+|
+      // We need to sort by value too for sets where the same entity/datetime exists
+      Order.order { case (f1, f2) => Value.order(f1.value, f2.value) }
 }
 
 trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
@@ -344,4 +350,71 @@ object Value {
     case tsv if tsv.isSetB => ThriftFactValue.b(tsv.getB)
     case tsv if tsv.isSetDate => ThriftFactValue.date(tsv.getDate)
   }
+
+  /** For testing - make a single value a little more unique based on an offset */
+  def unique(value: Value, i: Int): Value = value match {
+    case v: PrimitiveValue => uniquePrim(v, i)
+    case StructValue(v) => StructValue(v.mapValues(uniquePrim(_, i)))
+    case ListValue(lv) => ListValue(lv.map({
+      case v: PrimitiveValue => uniquePrim(v, i)
+      case StructValue(v) => StructValue(v.mapValues(uniquePrim(_, i)))
+    }))
+    case TombstoneValue => TombstoneValue
+  }
+
+  def uniquePrim(value: PrimitiveValue, i: Int): PrimitiveValue = value match {
+    case StringValue(v) => StringValue(v + "_" + i)
+    case BooleanValue(_) => BooleanValue(i % 2 == 0)
+    case IntValue(v) => IntValue(v + i)
+    case LongValue(v) => LongValue(v + i)
+    case DoubleValue(v) => DoubleValue(v + i)
+    case DateValue(v) => DateValue(DateTimeUtil.minusDays(v, i))
+  }
+
+  /** For testing only! */
+  def order: Order[Value] =
+    Order.order {
+      case (TombstoneValue, TombstoneValue) => Ordering.EQ
+      case (v1: PrimitiveValue, v2: PrimitiveValue) => Value.orderPrimitive.order(v1, v2)
+      case (StructValue(v1), StructValue(v2)) => mapOrder(stringInstance, orderPrimitive)(v1, v2)
+      case (ListValue(lv1), ListValue(lv2)) => listOrder(Order.order[SubValue] {
+        case (v1: PrimitiveValue, v2: PrimitiveValue) => Value.orderPrimitive.order(v1, v2)
+        case (StructValue(v1), StructValue(v2)) => mapOrder(stringInstance, orderPrimitive)(v1, v2)
+        case (_: PrimitiveValue, _) => Ordering.LT
+        case (_, _: PrimitiveValue) => Ordering.GT
+        case (StructValue(_), _) => Ordering.LT
+        case (_, StructValue(_)) => Ordering.GT
+      })(lv1, lv2)
+      case (TombstoneValue, _) => Ordering.LT
+      case (_, TombstoneValue) => Ordering.GT
+      case (_: PrimitiveValue, _) => Ordering.LT
+      case (_, _: PrimitiveValue) => Ordering.GT
+      case (StructValue(_), _) => Ordering.LT
+      case (_, StructValue(_)) => Ordering.GT
+      case (ListValue(_), _) => Ordering.LT
+      case (_, ListValue(_)) => Ordering.GT
+    }
+
+  /** For testing only! */
+  def orderPrimitive: Order[PrimitiveValue] =
+    Order.order {
+      case (BooleanValue(v1), BooleanValue(v2)) => v1 ?|? v2
+      case (StringValue(v1), StringValue(v2)) => v1 ?|? v2
+      case (IntValue(v1), IntValue(v2)) => v1 ?|? v2
+      case (LongValue(v1), LongValue(v2)) => v1 ?|? v2
+      case (DoubleValue(v1), DoubleValue(v2)) => v1 ?|? v2
+      case (DateValue(v1), DateValue(v2)) => v1 ?|? v2
+      case (BooleanValue(_), _) => Ordering.LT
+      case (_, BooleanValue(_)) => Ordering.GT
+      case (StringValue(_), _) => Ordering.LT
+      case (_, StringValue(_)) => Ordering.GT
+      case (IntValue(_), _) => Ordering.LT
+      case (_, IntValue(_)) => Ordering.GT
+      case (LongValue(_), _) => Ordering.LT
+      case (_, LongValue(_)) => Ordering.GT
+      case (DoubleValue(_), _) => Ordering.LT
+      case (_, DoubleValue(_)) => Ordering.GT
+      case (DateValue(_), _) => Ordering.LT
+      case (_, DateValue(_)) => Ordering.GT
+    }
 }
