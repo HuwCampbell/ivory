@@ -122,6 +122,9 @@ trait Arbitraries {
   implicit def PrimitiveEncodingArbitrary: Arbitrary[PrimitiveEncoding] =
     Arbitrary(GenDictionary.primitiveEncoding)
 
+  implicit def PrimitiveValueArbitrary: Arbitrary[PrimitiveValue] =
+    Arbitrary(GenValue.primitiveValue)
+
   implicit def PrioritizedArbitrary[A: Arbitrary]: Arbitrary[Prioritized[A]] =
     Arbitrary((arbitrary[Priority] |@| arbitrary[A])(Prioritized.apply))
 
@@ -170,8 +173,8 @@ trait Arbitraries {
   implicit def TypeArbitrary: Arbitrary[Type] =
     Arbitrary(GenDictionary.type_)
 
-  implicit def PrimitiveValueArbitrary: Arbitrary[PrimitiveValue] =
-    Arbitrary(GenValue.primitiveValue)
+  implicit def ValueArbitrary: Arbitrary[Value] =
+    Arbitrary(GenValue.value)
 
   implicit def WindowArbitrary: Arbitrary[Window] =
     Arbitrary(GenDictionary.window)
