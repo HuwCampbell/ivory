@@ -361,12 +361,14 @@ object SnapshotReducer {
     var count = 0
     var first = true
     var modeState = mode.seed
+    var option = MutableOption.none(mode.seed)
     while(iter.hasNext) {
       val next = iter.next
       ThriftByteMutator.from(next, fact, serialiser)
+      option = mode.step(modeState, option, fact)
       // Respect the "highest" priority (ie. the first fact with any given datetime), unless this is a set
       // then we want to include every value (at least until we have keyed sets, see https://github.com/ambiata/ivory/issues/376).
-      if (mode.accept(modeState, fact)) {
+      if (option.isSet) {
         // If the _current_ fact is in the window we still want to emit the _previous_ fact which may be
         // the last fact within the window, or another fact within the window
         // As such we can't do anything on the first fact
@@ -375,7 +377,7 @@ object SnapshotReducer {
           count += 1
         }
         first = false
-        modeState = mode.step(modeState, fact)
+        modeState = option.get
         // Store the current fact, which may or may not be emitted depending on the next fact
         kout.set(fact.date.int)
         ThriftByteMutator.mutate(fact.toThrift, vout, serialiser)

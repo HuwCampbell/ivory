@@ -2,6 +2,7 @@ package com.ambiata.ivory.operation.extraction.mode
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.lookup.FlagLookup
+import com.ambiata.ivory.mr.MutableOption
 import com.ambiata.ivory.storage.lookup.FeatureLookups
 
 import scala.collection.JavaConverters._
@@ -11,8 +12,8 @@ trait ModeReducer {
   /** My kingdom for decent rank-2 types */
   type X
   def seed: X
-  def step(state: X, fact: Fact): X
-  def accept(state: X, fact: Fact): Boolean
+  /** Return the next state if the step is valid, or none otherwise */
+  def step(state: X, option: MutableOption[X], fact: Fact): MutableOption[X]
 }
 
 object ModeReducer {
@@ -36,11 +37,9 @@ object ModeReducerState extends ModeReducer {
   def seed: DateTime =
     DateTime.unsafeFromLong(-1)
 
-  def step(datetime: DateTime, f: Fact): DateTime =
-    f.datetime
-
-  def accept(datetime: DateTime, f: Fact): Boolean =
-    datetime != f.datetime
+  def step(datetime: DateTime, option: MutableOption[DateTime], f: Fact): MutableOption[DateTime] =
+    if (datetime != f.datetime) MutableOption.set(option, f.datetime)
+    else MutableOption.setNone(option)
 }
 
 object ModeReducerSet extends ModeReducer {
@@ -50,9 +49,6 @@ object ModeReducerSet extends ModeReducer {
   def seed: Unit =
     ()
 
-  def step(state: Unit, f: Fact): Unit =
-    state
-
-  def accept(state: Unit, f: Fact): Boolean =
-    true
+  def step(state: Unit, option: MutableOption[Unit], f: Fact): MutableOption[Unit] =
+    MutableOption.set(option, state)
 }

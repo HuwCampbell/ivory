@@ -420,13 +420,15 @@ object ChordReducer {
     var i = dates.length - 1
     var first = true
     var modeState = modeReducer.seed
+    var option = MutableOption.none(modeState)
     while (iter.hasNext) {
       val next = iter.next
       ThriftByteMutator.from(next, fact, serializer)
+      option = modeReducer.step(modeState, option, fact)
       // facts are in priority order already, so this simply takes the top priority when there is a date/time clash
-      if (modeReducer.accept(modeState, fact)) {
+      if (option.isSet) {
         i = emitEntity(first, fact.date, i)
-        modeState = modeReducer.step(modeState, fact)
+        modeState = option.get
         first = false
         // Store this fact to be emitted if we can't find a better match
         ThriftByteMutator.pipe(next, out)
