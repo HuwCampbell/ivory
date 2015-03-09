@@ -4,7 +4,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup._
 import com.ambiata.ivory.operation.extraction.chord._
-import com.ambiata.ivory.operation.extraction.mode.ModeReducer
+import com.ambiata.ivory.operation.extraction.mode.{ModeKey, ModeReducer}
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
@@ -78,8 +78,8 @@ object ChordJob {
     ctx.thriftCache.push(job, Keys.FactsetVersionLookup, FactsetLookups.versionTable(plan.datasets))
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup(plan.commit.dictionary.value))
     ctx.thriftCache.push(job, Keys.ChordEntitiesLookup, Entities.toChordEntities(plan.entities))
-    ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(plan.commit.dictionary.value))
     ctx.thriftCache.push(job, Keys.ChordWindowsLookup, FeatureLookups.windowTable(plan.commit.dictionary.value))
+    DictionaryCache.store(job, ctx.thriftCache, plan.commit.dictionary.value)
 
     // run job
     if (!job.waitForCompletion(true))
@@ -106,7 +106,6 @@ object ChordJob {
     val FactsetLookup = ThriftCache.Key("factset-lookup")
     val FactsetVersionLookup = ThriftCache.Key("factset-version-lookup")
     val ChordEntitiesLookup = ThriftCache.Key("chord-entities-lookup")
-    val FeatureIsSetLookup = ThriftCache.Key("feature-is-set-lookup")
     val ChordWindowsLookup = ThriftCache.Key("chord-window-lookup")
     val Out = "out" // MultipleOutputs named output
   }
@@ -166,6 +165,7 @@ abstract class ChordFactsetMapper[K <: Writable] extends CombinableMapper[K, Byt
   val featureIdLookup = new FeatureIdLookup
 
   var entities: Entities = null
+  var modeKeys: Array[ModeKey] = null
 
   /** The format the mapper is reading from, set once per mapper from the subclass */
   val format: FactsetFormat
@@ -175,6 +175,8 @@ abstract class ChordFactsetMapper[K <: Writable] extends CombinableMapper[K, Byt
     ctx.thriftCache.pop(context.getConfiguration, ChordJob.Keys.FeatureIdLookup, featureIdLookup)
     entities = ChordJob.setupEntities(ctx.thriftCache, context.getConfiguration)
     emitter = MrContextEmitter(context)
+
+    modeKeys = ModeKey.fromDictionary(DictionaryCache.load(context.getConfiguration, ctx.thriftCache))
   }
 
   final override def setupSplit(context: MapperContext[K], split: InputSplit): Unit = {
@@ -201,7 +203,7 @@ abstract class ChordFactsetMapper[K <: Writable] extends CombinableMapper[K, Byt
     else if (!entities.keep(fact))
       skipCounter.count(1)
     else {
-      SnapshotWritable.writeAndEmit(fact, priority, featureId.get, kout, vout, serializer, emitter)
+      SnapshotWritable.writeAndEmit(fact, priority, featureId.get, modeKeys, kout, vout, serializer, emitter)
       okCounter.count(1)
     }
   }
@@ -243,6 +245,7 @@ abstract class ChordIncrementalMapper[K <: Writable] extends CombinableMapper[K,
   val featureIdLookup = new FeatureIdLookup
 
   var entities: Entities = null
+  var modeKeys: Array[ModeKey] = null
 
   /** Class to convert a key/value into a Fact based of the version, created once per mapper */
   var converter: MrFactConverter[K, BytesWritable] = null
@@ -257,6 +260,7 @@ abstract class ChordIncrementalMapper[K <: Writable] extends CombinableMapper[K,
     dropCounter = MrCounter("ivory", "drop", context)
     emitter = MrContextEmitter(context)
     converter = factConverter(MrContext.getSplitPath(split))
+    modeKeys = ModeKey.fromDictionary(DictionaryCache.load(context.getConfiguration, ctx.thriftCache))
   }
 
   override def map(key: K, value: BytesWritable, context: MapperContext[K]): Unit = {
@@ -267,7 +271,7 @@ abstract class ChordIncrementalMapper[K <: Writable] extends CombinableMapper[K,
     else if (!entities.keep(fact))
       skipCounter.count(1)
     else {
-      SnapshotWritable.writeAndEmit(fact, Priority.Max, featureId.get, kout, vout, serializer, emitter)
+      SnapshotWritable.writeAndEmit(fact, Priority.Max, featureId.get, modeKeys, kout, vout, serializer, emitter)
       okCounter.count(1)
     }
   }
@@ -316,9 +320,7 @@ class ChordReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, B
     val ctx = MrContext.fromConfiguration(context.getConfiguration)
     entities = ChordJob.setupEntities(ctx.thriftCache, context.getConfiguration)
 
-    val isSetLookupThrift = new FlagLookup
-    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
-    modeReducer = ModeReducer.fromLookup(isSetLookupThrift)
+    modeReducer = ModeReducer.fromDictionary(DictionaryCache.load(context.getConfiguration, ctx.thriftCache))
 
     featureWindows = ChordReducer.setupWindows(ctx.thriftCache, context.getConfiguration).map(_.map(a => (b: Date) => Window.startingDate(a, b)))
     windows = new Array(entities.maxChordSize)

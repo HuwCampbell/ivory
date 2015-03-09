@@ -1,8 +1,8 @@
 package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.lookup.{FeatureIdLookup, SnapshotWindowLookup, FlagLookup, NamespaceLookup}
-import com.ambiata.ivory.operation.extraction.mode.ModeReducer
+import com.ambiata.ivory.lookup.{FeatureIdLookup, SnapshotWindowLookup, NamespaceLookup}
+import com.ambiata.ivory.operation.extraction.mode.{ModeKey, ModeReducer}
 import com.ambiata.ivory.operation.extraction.snapshot._
 import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.lookup._
@@ -13,6 +13,8 @@ import com.ambiata.poacher.mr._
 
 import java.lang.{Iterable => JIterable}
 import java.util.{Iterator => JIterator}
+
+import org.apache.hadoop.conf.Configuration
 
 import scala.collection.JavaConverters._
 
@@ -76,8 +78,8 @@ object SnapshotJob {
     val (featureIdLookup, windowLookup) = windowTable(plan.commit.dictionary.value, plan.commit.dictionary.value.windows.byFeature(plan.date))
     ctx.thriftCache.push(job, Keys.FeatureIdLookup, featureIdLookup)
     ctx.thriftCache.push(job, Keys.WindowLookup, windowLookup)
-    ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTable(plan.commit.dictionary.value))
     ctx.thriftCache.push(job, ReducerLookups.Keys.NamespaceLookup, ReducerLookups.index(plan.commit.dictionary.value)._1)
+    DictionaryCache.store(job, ctx.thriftCache, plan.commit.dictionary.value)
 
     // run job
     if (!job.waitForCompletion(true))
@@ -114,7 +116,6 @@ object SnapshotJob {
     val FactsetLookup = ThriftCache.Key("factset-lookup")
     val FactsetVersionLookup = ThriftCache.Key("factset-version-lookup")
     val WindowLookup = ThriftCache.Key("factset-window-lookup")
-    val FeatureIsSetLookup = ThriftCache.Key("feature-is-set-lookup")
     val Out = "out" // MultipleOutputs named output
   }
 }
@@ -174,6 +175,7 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
   var converter: MrFactConverter[K, BytesWritable] = null
 
   val featureIdLookup = new FeatureIdLookup
+  var modeKeys: Array[ModeKey] = null
 
   /** The format the mapper is reading from, set once per mapper from the subclass */
   val format: FactsetFormat
@@ -190,6 +192,7 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
     emitter = MrContextEmitter(context)
     converter = factConverter(MrContext.getSplitPath(split))
+    modeKeys = ModeKey.fromDictionary(DictionaryCache.load(context.getConfiguration, ctx.thriftCache))
   }
 
   /**
@@ -207,7 +210,7 @@ abstract class SnapshotFactsetMapper[K <: Writable] extends CombinableMapper[K, 
     else if (fact.date > date)
       skipCounter.count(1)
     else {
-      SnapshotWritable.writeAndEmit(fact, priority, featureId.get, kout, vout, serializer, emitter)
+      SnapshotWritable.writeAndEmit(fact, priority, featureId.get, modeKeys, kout, vout, serializer, emitter)
       okCounter.count(1)
     }
   }
@@ -244,6 +247,7 @@ abstract class SnapshotIncrementalMapper[K <: Writable] extends CombinableMapper
   var dropCounter: Counter = null
 
   val featureIdLookup = new FeatureIdLookup
+  var modeKeys: Array[ModeKey] = null
 
   /** Class to convert a key/value into a Fact based of the version, created once per mapper */
   var converter: MrFactConverter[K, BytesWritable] = null
@@ -256,6 +260,7 @@ abstract class SnapshotIncrementalMapper[K <: Writable] extends CombinableMapper
     dropCounter = MrCounter("ivory", "drop", context)
     emitter = MrContextEmitter(context)
     converter = factConverter(MrContext.getSplitPath(split))
+    modeKeys = ModeKey.fromDictionary(DictionaryCache.load(context.getConfiguration, ctx.thriftCache))
   }
 
   override def map(key: K, value: BytesWritable, context: MapperContext[K]): Unit = {
@@ -264,7 +269,7 @@ abstract class SnapshotIncrementalMapper[K <: Writable] extends CombinableMapper
     if (featureId.isEmpty)
       dropCounter.count(1)
     else {
-      SnapshotWritable.writeAndEmit(fact, Priority.Max, featureId.get, kout, vout, serializer, emitter)
+      SnapshotWritable.writeAndEmit(fact, Priority.Max, featureId.get, modeKeys, kout, vout, serializer, emitter)
       okCounter.count(1)
     }
   }
@@ -317,9 +322,7 @@ class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, IntWritable,
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.WindowLookup, windowLookupThrift)
     windowLookup = windowLookupToArray(windowLookupThrift)
 
-    val isSetLookupThrift = new FlagLookup
-    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FeatureIsSetLookup, isSetLookupThrift)
-    modeReducer = ModeReducer.fromLookup(isSetLookupThrift)
+    modeReducer = ModeReducer.fromDictionary(DictionaryCache.load(context.getConfiguration, ctx.thriftCache))
 
     featureCounter = new MrLabelledCounter(SnapshotJob.Keys.CounterFeatureGroup, context)
     // Kinda sucky for debugging - we're using ints for counters because Hadoop limits the size of counter names to 64

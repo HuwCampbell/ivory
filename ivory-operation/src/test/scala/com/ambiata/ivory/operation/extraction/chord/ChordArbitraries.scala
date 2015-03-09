@@ -4,7 +4,6 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.core.gen._
-import com.ambiata.ivory.operation.model._
 import com.ambiata.ivory.storage.entities._
 import com.ambiata.ivory.lookup.ChordEntities
 import org.scalacheck._
@@ -38,7 +37,7 @@ object ChordArbitraries {
         date -> facts.zip(facts.map(incValue(_, "p"))).flatMap(f => List(f._1, f._2)) })
 
     def fromFactWithMode(fact: Fact, mode: Mode): List[(Date, List[Fact])] = {
-      mode.fold(fromFact(fact), fromFactWithPriority(fact), _ => NotImplemented.keyedSet)
+      mode.fold(fromFact(fact), fromFactWithPriority(fact), _ => sys.error("Not implemented - see FactsWithKeyedSetPriority"))
     }
 
     def toFacts[A](fact: Fact, mode: Mode)(t: (Date, List[Fact], List[Fact]) => List[A]): List[A] =
@@ -68,8 +67,6 @@ object ChordArbitraries {
         facts ++ above ++ other.map(_.withFeatureId(factAndMeta.fact.featureId))
       )
     }
-    lazy val factsPriority: List[Prioritized[Fact]] =
-      FactModel.factsPriority(allFacts)
     lazy val above: List[Fact] = ces.flatMap(_.above.map(factAndMeta.fact.withDate))
     lazy val dictionary: Dictionary = Dictionary(List(
       factAndMeta.meta.toDefinition(factAndMeta.fact.featureId)
@@ -109,9 +106,6 @@ object ChordArbitraries {
 
     def withMode(mode: Mode): ChordFacts =
       copy(factAndMeta = factAndMeta.copy(meta = factAndMeta.meta.copy(mode = mode)))
-
-    def expectedFromModel(dict: Dictionary): List[Fact] =
-      ChordModel.run(factsPriority, ChordModelConf(chord, dict)).sorted(Fact.orderEntityDateTime.toScalaOrdering)
   }
 
   implicit def ChordFactArbitrary: Arbitrary[ChordFact] = Arbitrary(for {

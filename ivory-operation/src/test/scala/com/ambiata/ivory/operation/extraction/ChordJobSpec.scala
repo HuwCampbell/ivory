@@ -41,9 +41,11 @@ class ChordJobSpec extends Specification with ScalaCheck { def is = s2"""
     val serialiser = ThriftSerialiser()
     val expected = ChordModel.reduceWithDates(NonEmptyList(facts.head, facts.tail: _*), dictionary.concreteGroup, dates)
     val windowStarts = dictionary.vd.window.map(w => dates.map(Window.startingDate(w, _).int).toArray).orNull
+    val modeReducer = ModeReducer.fromMode(dictionary.cd.mode, dictionary.concreteGroup.definition.encoding)
+      .getOrElse(Crash.error(Crash.CodeGeneration, "Invalid arbitrary"))
     MockFactMutator.run(facts) { (bytes, emitter, out) =>
       ChordReducer.reduce(createMutableFact, bytes, new ChordWindowEmitter(emitter), out, dates.map(_.int).toArray, windowStarts,
-        new StringBuilder, ModeReducer.fromMode(dictionary.cd.mode), serialiser)
+        new StringBuilder, modeReducer, serialiser)
     } ==== expected
   }
 

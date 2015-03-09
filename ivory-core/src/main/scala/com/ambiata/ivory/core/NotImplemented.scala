@@ -12,7 +12,4 @@ object NotImplemented {
 
   def reducerPerformance(name: String): Unit =
     println(s"WARNING: $name has not been optimized")
-
-  def keyedSet: Nothing =
-    Crash.error(Crash.CodeGeneration, "Keyed set has not been fully implemented yet")
 }

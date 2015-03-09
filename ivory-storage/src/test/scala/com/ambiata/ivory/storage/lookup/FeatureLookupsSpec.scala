@@ -1,6 +1,5 @@
 package com.ambiata.ivory.storage.lookup
 
-import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.arbitraries.DictionaryWithoutKeyedSet
 import org.specs2.{ScalaCheck, Specification}
 import scala.collection.JavaConverters._
@@ -9,15 +8,6 @@ class FeatureLookupsSpec extends Specification with ScalaCheck { def is = s2"""
 
 isSetTable
 ----------
-
-  There should be a flag entry for each concrete feature.
-
-    $concretes
-
-  The number of true flags should be the same as the number of
-  entries that are sets.
-
-    $sets
 
   There should be a flag entry for each concrete feature.
 
@@ -54,19 +44,6 @@ spareMapToArray
     $sparseMapToArray
 """
 
-  def concretes = prop((d: DictionaryWithoutKeyedSet) =>
-   FeatureLookups.isSetTable(d.value).getFlags.size ====
-     d.value.byConcrete.sources.size)
-
-  def sets = prop((d: DictionaryWithoutKeyedSet) =>
-   FeatureLookups.isSetTable(d.value).getFlags.asScala.count(_._2) ====
-     d.value.definitions.count {
-       case Concrete(_, definition) =>
-         definition.mode.fold(false, true, _ => NotImplemented.keyedSet)
-       case Virtual(_, _) =>
-         false
-     })
-
   def isSetTableConcrete = prop((d: DictionaryWithoutKeyedSet) =>
     FeatureLookups.isSetTableConcrete(d.value.byConcrete).getFlags.size() ====
       (d.value.byConcrete.byFeatureIndexReverse.values.max + 1)
@@ -81,7 +58,7 @@ spareMapToArray
       d.value.byFeatureIndex.map({  case (n, m) => m.featureId.toString -> Integer.valueOf(n) }))
 
   def flags = prop((d: DictionaryWithoutKeyedSet) => {
-    val table = FeatureLookups.isSetTable(d.value)
+    val table = FeatureLookups.isSetTableConcrete(d.value.byConcrete)
     val array = FeatureLookups.isSetLookupToArray(table)
     table.getFlags.asScala.count(_._2) ==== array.filter(identity).length })
 

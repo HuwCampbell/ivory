@@ -2,15 +2,16 @@ package com.ambiata.ivory.operation.extraction
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.operation.extraction.mode.ModeReducer
+import com.ambiata.ivory.core.arbitraries.{FactsWithStatePriority, SparseEntities}
+import com.ambiata.ivory.operation.extraction.mode._
 import com.ambiata.ivory.mr._
-import com.ambiata.ivory.operation.model.ModeHandler
+import com.ambiata.ivory.operation.model.{FactModel, ModeHandler}
 
 import com.ambiata.poacher.mr.ThriftSerialiser
 import org.specs2._
 import org.specs2.matcher.ThrownExpectations
 
-import scalaz.NonEmptyList
+import scalaz._
 import scalaz.scalacheck.ScalazArbitrary._
 
 object SnapshotReducerSpec extends Specification with ScalaCheck with ThrownExpectations { def is = s2"""
@@ -20,8 +21,8 @@ SnapshotReducerSpec
 
   window lookup to array                                            $windowLookupToArray
   window facts                                                      $window
-  window respects priority                                          $windowPriority
   window outputs all facts when isSet regardless of priority        $windowIsSet
+  window facts (keyed set)                                          $windowKeySet
 
 """
 
@@ -39,29 +40,30 @@ SnapshotReducerSpec
     })
   })
 
-  def window = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
-    reduce(toFacts(dts, fact), fact, date, Mode.State)
+  def window = prop((facts: FactsWithStatePriority, fact: SparseEntities, date: Date) => {
+    reduce(toFacts(facts, fact.fact), fact.onDefinition(_.copy(mode = Mode.State)), date)
   }).set(maxSize = 10)
 
-  def windowPriority = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
-    def dupe(f: List[Fact]): List[Fact] =
-      f.zip(f).flatMap(fs => List(fs._1, fs._2.withValue(IntValue(fs._2.value match { case IntValue(x) => x + 10; case _ => 99 }))))
-    reduce(dupe(toFacts(dts, fact)), fact, date, Mode.State)
+  def windowIsSet = prop((facts: FactsWithStatePriority, fact: SparseEntities, date: Date) => {
+    reduce(toFacts(facts, fact.fact), fact.onDefinition(_.copy(mode = Mode.Set)), date)
   }).set(maxSize = 10)
 
-  def windowIsSet = prop((dts: NonEmptyList[DateTime], fact: Fact, date: Date) => {
-    reduce(toFacts(dts, fact), fact, date, Mode.Set)
+  def windowKeySet = prop((facts: FactsWithKeyedSetPriority, fact: SparseEntities) => {
+    val factsP = FactModel.factsPriority(facts.factsets(fact.fact)).map(_.value)
+    val date = facts.dates.max
+    reduce(factsP, fact.onDefinition(facts.definition), date)
   }).set(maxSize = 10)
 
-  def reduce(facts: List[Fact], fact: Fact, date: Date, mode: Mode) = {
+  def reduce(facts: List[Fact], se: SparseEntities, date: Date) = {
     val serialiser = ThriftSerialiser()
-    val expected = ModeHandler.get(mode).reduce(NonEmptyList(facts.head, facts.tail: _*), date)
-    MockFactMutator.runThriftFactKeep(fact.namespace, facts) { (bytes, emitter, kout, vout) =>
-      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, ModeReducer.fromMode(mode), serialiser)
+    val expected = ModeHandler.get(se.meta.mode).reduce(NonEmptyList(facts.head, facts.tail: _*), date)
+    val modeReducer = ModeReducer.fromMode(se.meta.mode, se.meta.encoding)
+      .fold(e => Crash.error(Crash.CodeGeneration, s"Incorrect arbitrary for mode/encoding: $e"), identity)
+    MockFactMutator.runThriftFactKeep(se.fact.namespace, facts) { (bytes, emitter, kout, vout) =>
+      SnapshotReducer.reduce(createMutableFact, bytes, emitter, kout, vout, date, modeReducer, serialiser)
     } ==== (expected -> expected.size)
   }
 
-  def toFacts(dts: NonEmptyList[DateTime], fact: Fact): List[Fact] =
-    dts.list.distinct.sortBy(_.long)
-      .map(dt => fact.withDate(dt.date).withTime(dt.time))
+  def toFacts(facts: FactsWithStatePriority, fact: Fact): List[Fact] =
+    FactModel.factsPriority(facts.factsets(fact)).map(_.value).sortBy(_.datetime.long)
 }

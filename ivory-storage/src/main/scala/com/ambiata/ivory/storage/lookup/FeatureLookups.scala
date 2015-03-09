@@ -5,23 +5,14 @@ import com.ambiata.ivory.lookup._
 import scala.collection.JavaConverters._
 
 object FeatureLookups {
-  def isSetTable(dictionary: Dictionary): FlagLookup = {
-    val isSet = new FlagLookup
-    dictionary.byFeatureIndex.foreach({
-      case (n, Concrete(id, definition)) =>
-        isSet.putToFlags(n, definition.mode.fold(false, true, _ => NotImplemented.keyedSet))
-      case (n, Virtual(id, definition)) =>
-        ()
-    })
-    isSet
-  }
 
+  /** Use with care - treats keyed sets as sets */
   def isSetTableConcrete(dictionary: DictionaryConcrete): FlagLookup = {
     val isSet = new FlagLookup
     dictionary.sources.foreach {
       case (fid, cd) =>
         dictionary.byFeatureIndexReverse.get(fid).foreach {
-          n => isSet.putToFlags(n, cd.definition.mode.fold(false, true, _ => NotImplemented.keyedSet))
+          n => isSet.putToFlags(n, cd.definition.mode.fold(false, true, _ => true))
         }
     }
     isSet

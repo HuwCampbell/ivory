@@ -60,7 +60,6 @@ object ReducerLookups {
     val NamespaceLookup = ThriftCache.Key("namespace-lookup")
     val FeatureIdLookup = ThriftCache.Key("feature-id-lookup")
     val ReducerLookup   = ThriftCache.Key("reducer-lookup")
-    val Dictionary      = ThriftCache.Key("dictionary")
   }
 }
 
