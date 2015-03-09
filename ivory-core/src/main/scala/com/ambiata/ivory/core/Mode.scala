@@ -6,7 +6,7 @@ sealed trait Mode {
   def fold[X](
     state: => X
   , set: => X
-  , keyedSet: String => X
+  , keyedSet: List[String] => X
   ): X = this match {
     case State => state
     case Set => set
@@ -14,13 +14,13 @@ sealed trait Mode {
   }
 
   def render: String =
-    fold("state", "set", "keyed_set," + _)
+    fold("state", "set", "keyed_set," + _.mkString(","))
 }
 
 object Mode {
   case object State extends Mode
   case object Set extends Mode
-  case class KeyedSet(key: String) extends Mode
+  case class KeyedSet(keys: List[String]) extends Mode
 
   def state: Mode =
     State
@@ -28,16 +28,16 @@ object Mode {
   def set: Mode =
     Set
 
-  def keyedSet(key: String): Mode =
-    KeyedSet(key)
+  def keyedSet(keys: List[String]): Mode =
+    KeyedSet(keys)
 
-  def fromString(s: String): Option[Mode] = s.split(",", 2).toList match {
+  def fromString(s: String): Option[Mode] = s.split(",", -1).toList match {
     case List("state") =>
       Some(State)
     case List("set") =>
       Some(Set)
-    case List("keyed_set", key) =>
-      Some(KeyedSet(key))
+    case "keyed_set" :: keys =>
+      Some(KeyedSet(keys))
     case _ =>
       None
   }

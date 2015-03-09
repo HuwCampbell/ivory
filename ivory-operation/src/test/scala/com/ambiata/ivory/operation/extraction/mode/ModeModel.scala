@@ -10,9 +10,9 @@ object ModeModel {
     mode.fold(
       facts.groupBy1(f => f.entity -> f.datetime).values.map(_.head).toList,
       facts,
-      key => facts.groupBy1(f => f.value match {
+      keys => facts.groupBy1(f => f.value match {
         case StructValue(value) =>
-          value.get(key).get
+          keys.flatMap(value.get)
         case _ =>
           sys.error(s"Invalid fact $f for mode $mode")
       }).values.map(_.head).toList

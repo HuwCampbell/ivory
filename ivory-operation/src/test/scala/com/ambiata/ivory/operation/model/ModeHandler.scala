@@ -12,7 +12,7 @@ trait ModeHandler {
 object ModeHandler {
 
   def get(mode: Mode): ModeHandler =
-    mode.fold(ModeHandlerState, ModeHandlerSet, key => new ModeHandlerKeyedSet(key))
+    mode.fold(ModeHandlerState, ModeHandlerSet, keys => new ModeHandlerKeyedSet(keys))
 }
 
 object ModeHandlerState extends ModeHandler {
@@ -38,7 +38,7 @@ object ModeHandlerSet extends ModeHandler {
   }
 }
 
-class ModeHandlerKeyedSet(key: String) extends ModeHandler {
+class ModeHandlerKeyedSet(keys: List[String]) extends ModeHandler {
 
   def reduce(facts: NonEmptyList[Fact], window: Date): List[Fact] = {
     val noPriorityFacts = facts.list.foldLeft(List[Fact]()) {
@@ -48,7 +48,7 @@ class ModeHandlerKeyedSet(key: String) extends ModeHandler {
         (h.value, f.value) match {
           case (StructValue(sv1), StructValue(sv2)) =>
             // Just use the natural equality of PrimitiveValue - works well enough and should match the byte comparison
-            if (h.datetime != f.datetime || sv1.get(key) != sv2.get(key)) f :: l else l
+            if (h.datetime != f.datetime || keys.exists(key => sv1.get(key) != sv2.get(key))) f :: l else l
           case (_, _) =>
             sys.error(s"Incorrectly generated fact for keyed_set: ${h.value}")
         }

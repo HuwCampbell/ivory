@@ -102,13 +102,13 @@ Construction
   )
 
   def keyedSetEqual = prop((se: StructEntity, f1: Fact, f2: Fact) => {
-    val mr = new ModeReducerKeyedSet(ModeKey.fromStruct(se.k, se.e).fold(sys.error, identity))
-    val o1 = mr.step(mr.seed, MutableOption.none(mr.seed), f1.withValue(se.v).withDateTime(f1.datetime))
-    mr.step(o1.get, o1, f2.withValue(se.v).withDateTime(f1.datetime)).isSet must beFalse
+    val mr = new ModeReducerKeyedSet(ModeKey.fromStruct(se.keys, se.encoding).fold(sys.error, identity))
+    val o1 = mr.step(mr.seed, MutableOption.none(mr.seed), f1.withValue(se.value).withDateTime(f1.datetime))
+    mr.step(o1.get, o1, f2.withValue(se.value).withDateTime(f1.datetime)).isSet must beFalse
   })
 
   def keyedSetNotEqual = prop((k: String, f: PrimitiveValuePair, fact: Fact) => f.v1 != f.v2 ==> {
-    val mr = new ModeReducerKeyedSet(ModeKey.fromStruct(k, StructEncoding(Map(k -> StructEncodedValue.mandatory(f.e)))).fold(sys.error, identity))
+    val mr = new ModeReducerKeyedSet(ModeKey.fromStruct(List(k), StructEncoding(Map(k -> StructEncodedValue.mandatory(f.e)))).fold(sys.error, identity))
     val o1 = mr.step(mr.seed, MutableOption.none(mr.seed), fact.withValue(StructValue(Map(k -> f.v1))))
     mr.step(o1.get, o1, fact.withValue(StructValue(Map(k -> f.v2)))).isSet must beTrue
   })

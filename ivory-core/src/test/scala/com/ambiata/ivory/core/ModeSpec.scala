@@ -19,7 +19,7 @@ Combinators
 
   Set fold only evaluates 'keyed_set' expression:
 
-    ${ prop((n: Int, key: String) => KeyedSet(key).fold(???, ???, _ => + n) ==== n) }
+    ${ prop((n: Int, keys: List[String]) => KeyedSet(keys).fold(???, ???, _ => + n) ==== n) }
 
   Fold constructors is identity:
 
@@ -31,7 +31,7 @@ Combinators
 
     ${ Set.render ==== "set" }
 
-    ${ prop((key: String) => KeyedSet(key).render ==== "keyed_set," + key) }
+    ${ prop((keys: List[String]) => KeyedSet(keys).render ==== "keyed_set," + keys.mkString(",")) }
 
   fromString and render are symmetric:
 

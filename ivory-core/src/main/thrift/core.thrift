@@ -142,6 +142,7 @@ enum ThriftDictionaryMode {
 union ThriftDictionaryModeV2 {
     1: ThriftDictionaryMode mode,
     2: string keyedSet
+    3: list<string> keyedSetMulti
 }
 
 struct ThriftDictionaryFeatureMeta {

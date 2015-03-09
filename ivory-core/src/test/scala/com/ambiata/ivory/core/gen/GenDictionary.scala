@@ -10,7 +10,10 @@ import scalaz.scalacheck.ScalaCheckBinding._
 object GenDictionary {
   def mode: Gen[Mode] =
     // By generating a KeyedSet we force the encoding to be a struct, so let's generate less of them
-    Gen.frequency(9 -> modeImplemented, 1 -> GenString.sensible.map(Mode.KeyedSet))
+    Gen.frequency(
+      9 -> modeImplemented,
+      1 -> GenPlus.listOfSized(1, 3, GenString.sensible).map(Mode.KeyedSet)
+    )
 
   // Remove when KeyedSet is supported fully
   def modeImplemented: Gen[Mode] =
@@ -47,7 +50,7 @@ object GenDictionary {
     GenPlus
       .listOfSizedWithIndex(1, 5, i => GenString.sensible.map(_ + "_" + i))
       // If the mode is keyed then ensure we always have that that key as well
-      .map(n => mode.fold(n -> arbitrary[Boolean], n -> arbitrary[Boolean], k => (k :: n) -> Gen.const(false)))
+      .map(n => mode.fold(n -> arbitrary[Boolean], n -> arbitrary[Boolean], k => (k ++ n) -> Gen.const(false)))
       .flatMap({ case (l, b) => l.traverse(n => structEncodedValue(b).map(n ->)) })
       .map(x => StructEncoding(x.toMap))
 

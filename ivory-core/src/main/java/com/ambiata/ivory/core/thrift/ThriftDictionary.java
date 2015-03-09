@@ -427,17 +427,17 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
           case 1: // META
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map44 = iprot.readMapBegin();
-                struct.meta = new HashMap<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta>(2*_map44.size);
-                for (int _i45 = 0; _i45 < _map44.size; ++_i45)
+                org.apache.thrift.protocol.TMap _map52 = iprot.readMapBegin();
+                struct.meta = new HashMap<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta>(2*_map52.size);
+                for (int _i53 = 0; _i53 < _map52.size; ++_i53)
                 {
-                  ThriftDictionaryFeatureId _key46;
-                  ThriftDictionaryFeatureMeta _val47;
-                  _key46 = new ThriftDictionaryFeatureId();
-                  _key46.read(iprot);
-                  _val47 = new ThriftDictionaryFeatureMeta();
-                  _val47.read(iprot);
-                  struct.meta.put(_key46, _val47);
+                  ThriftDictionaryFeatureId _key54;
+                  ThriftDictionaryFeatureMeta _val55;
+                  _key54 = new ThriftDictionaryFeatureId();
+                  _key54.read(iprot);
+                  _val55 = new ThriftDictionaryFeatureMeta();
+                  _val55.read(iprot);
+                  struct.meta.put(_key54, _val55);
                 }
                 iprot.readMapEnd();
               }
@@ -474,10 +474,10 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
         oprot.writeFieldBegin(META_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.STRUCT, struct.meta.size()));
-          for (Map.Entry<ThriftDictionaryFeatureId, ThriftDictionaryFeatureMeta> _iter48 : struct.meta.entrySet())
+          for (Map.Entry<ThriftDictionaryFeatureId, ThriftDictionaryFeatureMeta> _iter56 : struct.meta.entrySet())
           {
-            _iter48.getKey().write(oprot);
-            _iter48.getValue().write(oprot);
+            _iter56.getKey().write(oprot);
+            _iter56.getValue().write(oprot);
           }
           oprot.writeMapEnd();
         }
@@ -518,10 +518,10 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
       if (struct.isSetMeta()) {
         {
           oprot.writeI32(struct.meta.size());
-          for (Map.Entry<ThriftDictionaryFeatureId, ThriftDictionaryFeatureMeta> _iter49 : struct.meta.entrySet())
+          for (Map.Entry<ThriftDictionaryFeatureId, ThriftDictionaryFeatureMeta> _iter57 : struct.meta.entrySet())
           {
-            _iter49.getKey().write(oprot);
-            _iter49.getValue().write(oprot);
+            _iter57.getKey().write(oprot);
+            _iter57.getValue().write(oprot);
           }
         }
       }
@@ -536,17 +536,17 @@ public class ThriftDictionary implements org.apache.thrift.TBase<ThriftDictionar
       BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map50 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.meta = new HashMap<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta>(2*_map50.size);
-          for (int _i51 = 0; _i51 < _map50.size; ++_i51)
+          org.apache.thrift.protocol.TMap _map58 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.meta = new HashMap<ThriftDictionaryFeatureId,ThriftDictionaryFeatureMeta>(2*_map58.size);
+          for (int _i59 = 0; _i59 < _map58.size; ++_i59)
           {
-            ThriftDictionaryFeatureId _key52;
-            ThriftDictionaryFeatureMeta _val53;
-            _key52 = new ThriftDictionaryFeatureId();
-            _key52.read(iprot);
-            _val53 = new ThriftDictionaryFeatureMeta();
-            _val53.read(iprot);
-            struct.meta.put(_key52, _val53);
+            ThriftDictionaryFeatureId _key60;
+            ThriftDictionaryFeatureMeta _val61;
+            _key60 = new ThriftDictionaryFeatureId();
+            _key60.read(iprot);
+            _val61 = new ThriftDictionaryFeatureMeta();
+            _val61.read(iprot);
+            struct.meta.put(_key60, _val61);
           }
         }
         struct.setMetaIsSet(true);

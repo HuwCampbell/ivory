@@ -131,7 +131,7 @@ object dictionaryGen {
   }
 
   def mode: List[Mode] =
-    List(Mode.State, Mode.State, Mode.KeyedSet("keyed_set")).map({
+    List(Mode.State, Mode.State, Mode.KeyedSet(List("keyed_set"))).map({
       case Mode.State => Mode.State
       case Mode.Set => Mode.Set
       case s@Mode.KeyedSet(_) => s

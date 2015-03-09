@@ -10,7 +10,7 @@ case class SnapshotModelConf(date: Date, dictionary: Dictionary)
 object SnapshotModel extends MapReduceSimple[Prioritized[Fact], Fact, SnapshotModelConf] {
   type M = Fact
   type K = (String, FeatureId)
-  type S = (DateTime, Option[PrimitiveValue], Priority)
+  type S = (DateTime, List[PrimitiveValue], Priority)
 
   def map(facts: List[Prioritized[Fact]], conf: SnapshotModelConf): List[(K, S, Fact)] =
     facts
@@ -22,9 +22,9 @@ object SnapshotModel extends MapReduceSimple[Prioritized[Fact], Fact, SnapshotMo
 
   def mapKeyed(cd: ConcreteDefinition, pf: Prioritized[Fact]): (K, S, Fact) = {
     val f = pf.value
-    val v = cd.mode.fold(None, None, key => f.value match {
+    val v = cd.mode.fold(Nil, Nil, keys => f.value match {
       case StructValue(m) =>
-        m.get(key)
+        keys.map(m.get).flatten
       case _ =>
         sys.error(s"Non-struct value for keyed_set fact: $f")
     })
@@ -35,7 +35,7 @@ object SnapshotModel extends MapReduceSimple[Prioritized[Fact], Fact, SnapshotMo
     Order.order {
       case ((dt1, v1, p1), (dt2, v2, p2)) =>
         dt1.long ?|? dt2.long |+|
-          optionOrder(Value.orderPrimitive)(v1, v2) |+|
+          listOrder(Value.orderPrimitive)(v1, v2) |+|
           p1 ?|? p2
     }
 
