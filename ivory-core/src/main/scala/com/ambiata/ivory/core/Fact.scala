@@ -280,16 +280,7 @@ object Value {
     }
   }
 
-  def toThrift(value: Value): ThriftFactValue = {
-    def primValue(p: PrimitiveValue): ThriftFactPrimitiveValue = p match {
-      // This duplication here is annoying/unfortunate - and will require a backwards-incompatible change
-      case StringValue(s)   => ThriftFactPrimitiveValue.s(s)
-      case BooleanValue(b)  => ThriftFactPrimitiveValue.b(b)
-      case IntValue(i)      => ThriftFactPrimitiveValue.i(i)
-      case LongValue(l)     => ThriftFactPrimitiveValue.l(l)
-      case DoubleValue(d)   => ThriftFactPrimitiveValue.d(d)
-      case DateValue(r)     => ThriftFactPrimitiveValue.date(r.int)
-    }
+  def toThrift(value: Value): ThriftFactValue =
     value match {
       case StringValue(s)   => ThriftFactValue.s(s)
       case BooleanValue(b)  => ThriftFactValue.b(b)
@@ -299,23 +290,23 @@ object Value {
       case TombstoneValue   => ThriftFactValue.t(new ThriftTombstone())
       case DateValue(r)     => ThriftFactValue.date(r.int)
       case ListValue(v)     => ThriftFactValue.lst(new ThriftFactList(v.map {
-        case p: PrimitiveValue  => ThriftFactListValue.p(primValue(p))
-        case StructValue(m)     => ThriftFactListValue.s(new ThriftFactStructSparse(m.mapValues(primValue).asJava))
+        case p: PrimitiveValue  => ThriftFactListValue.p(toThriftPrimitive(p))
+        case StructValue(m)     => ThriftFactListValue.s(new ThriftFactStructSparse(m.mapValues(toThriftPrimitive).asJava))
       }.asJava))
-      case StructValue(m)   => ThriftFactValue.structSparse(new ThriftFactStructSparse(m.mapValues(primValue).asJava))
+      case StructValue(m)   => ThriftFactValue.structSparse(new ThriftFactStructSparse(m.mapValues(toThriftPrimitive).asJava))
     }
+
+  def toThriftPrimitive(p: PrimitiveValue): ThriftFactPrimitiveValue = p match {
+    // This duplication here is annoying/unfortunate - and will require a backwards-incompatible change
+    case StringValue(s)   => ThriftFactPrimitiveValue.s(s)
+    case BooleanValue(b)  => ThriftFactPrimitiveValue.b(b)
+    case IntValue(i)      => ThriftFactPrimitiveValue.i(i)
+    case LongValue(l)     => ThriftFactPrimitiveValue.l(l)
+    case DoubleValue(d)   => ThriftFactPrimitiveValue.d(d)
+    case DateValue(r)     => ThriftFactPrimitiveValue.date(r.int)
   }
 
   def fromThrift(value: ThriftFactValue): Value = {
-    def factPrimitiveToValue(v: ThriftFactPrimitiveValue): PrimitiveValue = v match {
-      case tsv if tsv.isSetD => DoubleValue(tsv.getD)
-      case tsv if tsv.isSetS => StringValue(tsv.getS)
-      case tsv if tsv.isSetI => IntValue(tsv.getI)
-      case tsv if tsv.isSetL => LongValue(tsv.getL)
-      case tsv if tsv.isSetB => BooleanValue(tsv.getB)
-      case tsv if tsv.isSetDate => DateValue(Date.unsafeFromInt(tsv.getDate))
-      case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
-    }
     value match {
       case tv if tv.isSetD => DoubleValue(tv.getD)
       case tv if tv.isSetS => StringValue(tv.getS)
@@ -325,14 +316,24 @@ object Value {
       case tv if tv.isSetDate => DateValue(Date.unsafeFromInt(tv.getDate))
       case tv if tv.isSetT => TombstoneValue
       case tv if tv.isSetStructSparse
-                           => StructValue(tv.getStructSparse.getV.asScala.toMap.mapValues(factPrimitiveToValue))
+                           => StructValue(tv.getStructSparse.getV.asScala.toMap.mapValues(fromThriftPrimitive))
       case tv if tv.isSetLst
                            => ListValue(tv.getLst.getL.asScala.map {
-        case l if l.isSetP => factPrimitiveToValue(l.getP)
-        case l if l.isSetS => StructValue(l.getS.getV.asScala.toMap.mapValues(factPrimitiveToValue))
+        case l if l.isSetP => fromThriftPrimitive(l.getP)
+        case l if l.isSetS => StructValue(l.getS.getV.asScala.toMap.mapValues(fromThriftPrimitive))
       }.toList)
       case _               => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${value.toString}].'")
     }
+  }
+
+  def fromThriftPrimitive(v: ThriftFactPrimitiveValue): PrimitiveValue = v match {
+    case tsv if tsv.isSetD => DoubleValue(tsv.getD)
+    case tsv if tsv.isSetS => StringValue(tsv.getS)
+    case tsv if tsv.isSetI => IntValue(tsv.getI)
+    case tsv if tsv.isSetL => LongValue(tsv.getL)
+    case tsv if tsv.isSetB => BooleanValue(tsv.getB)
+    case tsv if tsv.isSetDate => DateValue(Date.unsafeFromInt(tsv.getDate))
+    case _                 => Crash.error(Crash.CodeGeneration, s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${v.toString}].'")
   }
 
   def toPrimitive(value: ThriftFactValue): Option[ThriftFactPrimitiveValue] = value match {

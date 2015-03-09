@@ -19,6 +19,9 @@ Properties
   Can set the date time
     $withDateTime
 
+  fromThriftPrimitive and toThriftPrimitive are symmetrical
+    $thriftPrimitive
+
 """
 
   def order =
@@ -26,5 +29,9 @@ Properties
 
   def withDateTime = prop((f: Fact, dt: DateTime) =>
     f.withDateTime(dt).datetime ==== dt
+  )
+
+  def thriftPrimitive = prop((v: PrimitiveValue) =>
+    Value.fromThriftPrimitive(Value.toThriftPrimitive(v)) ==== v
   )
 }
