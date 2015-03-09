@@ -44,6 +44,9 @@ trait Fact {
   def withTime(newTime: Time): Fact =
     Fact.newFactWithNamespace(entity, namespace, feature, date, newTime, value)
 
+  def withDateTime(newDateTime: DateTime): Fact =
+    Fact.newFactWithNamespace(entity, namespace, feature, newDateTime.date, newDateTime.time, value)
+
   def withValue(newValue: Value): Fact =
     Fact.newFactWithNamespace(entity, namespace, feature, date, time, newValue)
 }
