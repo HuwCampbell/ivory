@@ -42,7 +42,7 @@ object ModeKey {
 
   def const(bytes: Array[Byte]): ModeKey =
     ModeKey((_, b) => {
-      val b2 = Buffer.allocate(b, bytes.length)
+      val b2 = Buffer.grow(b, bytes.length)
       ByteWriter.write(b2.bytes, bytes, b2.offset)
       b2
     })
@@ -64,7 +64,7 @@ object ModeKey {
       (f, b) =>
         val value = f.toThrift.getValue
         if (value.isSetT) {
-          val b2 = Buffer.allocate(b, 1)
+          val b2 = Buffer.grow(b, 1)
           ByteWriter.writeByte(b2.bytes, Byte.MinValue, b2.offset)
           b2
         } else {
@@ -82,32 +82,32 @@ object ModeKey {
       case StringEncoding  =>
         (v, b) =>
           val bytes = v.getS.getBytes("UTF-8")
-          val b2 = Buffer.allocate(b, bytes.length)
+          val b2 = Buffer.grow(b, bytes.length)
           System.arraycopy(bytes, 0, b2.bytes, b2.offset, bytes.length)
           b2
       case BooleanEncoding =>
         (v, b) =>
-          val b2 = Buffer.allocate(b, 1)
+          val b2 = Buffer.grow(b, 1)
           b2.bytes(b2.offset) = if (v.getB) 1 else 0
           b2
       case IntEncoding =>
         (v, b) =>
-          val b2 = Buffer.allocate(b, 4)
+          val b2 = Buffer.grow(b, 4)
           ByteWriter.writeInt(b2.bytes, v.getI, b2.offset)
           b2
       case LongEncoding =>
         (v, b) =>
-          val b2 = Buffer.allocate(b, 8)
+          val b2 = Buffer.grow(b, 8)
           ByteWriter.writeLong(b2.bytes, v.getL, b2.offset)
           b2
       case DoubleEncoding =>
         (v, b) =>
-          val b2 = Buffer.allocate(b, 8)
+          val b2 = Buffer.grow(b, 8)
           ByteWriter.writeLong(b2.bytes, java.lang.Double.doubleToLongBits(v.getD), b2.offset)
           b2
       case DateEncoding =>
         (v, b) =>
-          val b2 = Buffer.allocate(b, 4)
+          val b2 = Buffer.grow(b, 4)
           ByteWriter.writeInt(b2.bytes, v.getDate, b2.offset)
           b2
     }
