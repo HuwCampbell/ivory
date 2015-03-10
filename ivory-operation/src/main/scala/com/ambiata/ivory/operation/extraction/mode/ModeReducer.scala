@@ -66,8 +66,14 @@ class ModeReducerKeyedSet(key: ModeKey) extends ModeReducer {
 
   type X = State
 
-  def seed: State =
-    State(Buffer.empty(255), Buffer.empty(255), DateTime.unsafeFromLong(-1))
+  val initial = State(Buffer.empty(255), Buffer.empty(255), DateTime.unsafeFromLong(-1))
+
+  def seed: State = {
+    Buffer.reset(initial.buffer1)
+    Buffer.reset(initial.buffer2)
+    initial.datetime = DateTime.unsafeFromLong(-1)
+    initial
+  }
 
   def step(state: State, option: MutableOption[State], f: Fact): MutableOption[State] = {
     Buffer.reset(state.buffer2)
