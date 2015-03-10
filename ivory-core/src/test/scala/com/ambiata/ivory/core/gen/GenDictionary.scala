@@ -11,13 +11,9 @@ object GenDictionary {
   def mode: Gen[Mode] =
     // By generating a KeyedSet we force the encoding to be a struct, so let's generate less of them
     Gen.frequency(
-      9 -> modeImplemented,
+      9 -> Gen.oneOf(Mode.State, Mode.Set),
       1 -> GenPlus.listOfSized(1, 3, GenString.sensible).map(Mode.KeyedSet)
     )
-
-  // Remove when KeyedSet is supported fully
-  def modeImplemented: Gen[Mode] =
-    Gen.oneOf(Mode.State, Mode.Set)
 
   def type_ : Gen[Type] =
     Gen.oneOf(NumericalType, ContinuousType, CategoricalType, BinaryType)

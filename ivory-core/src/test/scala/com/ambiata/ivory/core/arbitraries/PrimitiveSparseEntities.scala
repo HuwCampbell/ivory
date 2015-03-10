@@ -19,6 +19,6 @@ object PrimitiveSparseEntities {
   implicit def PrimitiveSparseEntitiesArbitrary: Arbitrary[PrimitiveSparseEntities] =
     Arbitrary(GenFact.factWithZone(
       GenEntity.entity,
-      GenDictionary.modeImplemented.flatMap(m => GenDictionary.concreteWith(m, arbitrary[PrimitiveEncoding].map(_.toEncoding)))
+      GenDictionary.mode.flatMap(m => GenDictionary.concreteWith(m, arbitrary[PrimitiveEncoding].map(_.toEncoding)))
     ).map((PrimitiveSparseEntities.apply _).tupled))
 }
