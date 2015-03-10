@@ -2,13 +2,15 @@ package com.ambiata.ivory.operation.extraction.snapshot
 
 import java.io.{ByteArrayOutputStream, DataOutputStream}
 
+import com.ambiata.disorder.NaturalIntSmall
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
 import com.ambiata.ivory.operation.extraction.mode.ModeKey
 import com.ambiata.ivory.operation.extraction.snapshot.SnapshotWritable._
+import com.ambiata.mundane.bytes.Buffer
 import com.ambiata.poacher.mr.Writables
 import org.apache.hadoop.io.WritableComparator
-import org.scalacheck.Arbitrary
+import org.scalacheck._
 import org.specs2.execute.Result
 import org.specs2.{ScalaCheck, Specification}
 
@@ -22,13 +24,13 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
 
   def grouping = prop((f1: FactAndPriorityKey, f2: FactAndPriorityKey) => {
     check(f1, f2) { case (f3, b1, b2) =>
-      new GroupingEntityFeatureId().compare(b1, 0, b1.length, b2, 0, b2.length) -> compareByGroup(f1.f, f3.f)
+      new GroupingEntityFeatureId().compare(b1.bytes, b1.offset, b1.length, b2.bytes, b2.offset, b2.length) -> compareByGroup(f1.f, f3.f)
     }
   })
 
   def sorting = prop((f1: FactAndPriorityKey, f2: FactAndPriorityKey) => {
     check(f1, f2) { case (f3, b1, b2) =>
-      new Comparator().compare(b1, 0, b1.length, b2, 0, b2.length) -> compareAll(f1, f3)
+      new Comparator().compare(b1.bytes, b1.offset, b1.length, b2.bytes, b2.offset, b2.length) -> compareAll(f1, f3)
     }
   })
 
@@ -44,7 +46,7 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
     GroupingEntityFeatureId.getEntity(bw) ==== f1.f.entity
   })
 
-  def check(f1: FactAndPriorityKey, f2: FactAndPriorityKey)(f: (FactAndPriorityKey, Array[Byte], Array[Byte]) => (Int, Int)): Result =
+  def check(f1: FactAndPriorityKey, f2: FactAndPriorityKey)(f: (FactAndPriorityKey, Buffer, Buffer) => (Int, Int)): Result =
     seqToResult(List(
       "entity"   -> f1.copy(f = f1.f.withEntity(f2.f.entity)),
       "feature"  -> f1.copy(f = f1.f.withFeatureId(f2.f.featureId)),
@@ -62,14 +64,16 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
         (norm(a) ==== norm(b)).updateMessage(message + ": " + _)
     })
 
-  def set(f1: FactAndPriorityKey, f2: FactAndPriorityKey): (Array[Byte], Array[Byte]) = {
+  def set(f1: FactAndPriorityKey, f2: FactAndPriorityKey): (Buffer, Buffer) = {
     val bw = Writables.bytesWritable(4096)
-    def toBytes(f: FactAndPriorityKey): Array[Byte] = {
+    def toBytes(f: FactAndPriorityKey): Buffer = {
       KeyState.set(f.f, f.p, bw, FeatureIdIndex(Math.abs(f.f.featureId.hashCode)), ModeKey.const(f.k))
       val b = new ByteArrayOutputStream()
+      // Prepend some extra values to ensure offset is working
+      (0 until f.o).foreach(b.write)
       // This appends the size to the array, which is what Hadoop does, so we do it too
       bw.write(new DataOutputStream(b))
-      b.toByteArray
+      Buffer.wrapArray(b.toByteArray, f.o, bw.getLength + 4)
     }
     (toBytes(f1), toBytes(f2))
   }
@@ -99,14 +103,15 @@ class SnapshotWritableSpec extends Specification with ScalaCheck { def is = s2""
     e
   }
 
-  case class FactAndPriorityKey(f: Fact, p: Priority, k: Array[Byte])
+  case class FactAndPriorityKey(f: Fact, p: Priority, k: Array[Byte], o: Int)
 
   object FactAndPriorityKey {
     implicit def ArbitraryFactAndPriorityKey: Arbitrary[FactAndPriorityKey] =
       Arbitrary(for {
         f <- Arbitrary.arbitrary[Fact]
         p <- Arbitrary.arbitrary[Priority]
+        o <- Gen.oneOf(Gen.const(0), Arbitrary.arbitrary[NaturalIntSmall].map(_.value))
         k <- Arbitrary.arbitrary[Array[Byte]]
-      } yield new FactAndPriorityKey(f, p, k))
+      } yield new FactAndPriorityKey(f, p, k, o))
   }
 }
