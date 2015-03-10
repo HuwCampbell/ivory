@@ -1,5 +1,13 @@
 namespace java com.ambiata.ivory.core.thrift
 
+/**
+ * ====================================================================================================
+ *
+ * NOTE: Please update the Ivory metadata version for _any_ non-forward compatible change to this file.
+ *
+ * ====================================================================================================
+ */
+
 struct ThriftTombstone {}
 
 // Unfortunately Thrift doesn't (yet) support recursive types, or this could be ThriftFactValue :(
