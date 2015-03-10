@@ -183,7 +183,7 @@ object SquashJob {
     // We use 'latest' reduction to output the concrete feature as well
     // NOTE: Only states have the concept of "latest" - it doesn't make sense for sets
     val cr = (latest && cg.definition.mode
-      .fold(true, false, _ => NotImplemented.keyedSet)
+      .fold(true, false, _ => false)
       ).option(reductionToThriftExp(fid, Query.empty, cg.definition.encoding, None))
     val vrs = cg.virtual.map((reductionToThrift(cg.definition.encoding) _).tupled)
     cr.toList ++ vrs

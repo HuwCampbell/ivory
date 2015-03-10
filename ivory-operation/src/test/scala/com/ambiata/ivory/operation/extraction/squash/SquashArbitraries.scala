@@ -20,7 +20,7 @@ object SquashArbitraries {
     /** Return the squashed view of entities to their expected facts for each feature, given the window */
     def expected: Map[String, Map[FeatureId, (Option[Fact], List[Fact])]] = {
       val windows = dict.cg.definition.mode.fold(
-        List(dict.fid -> None), Nil, _ => NotImplemented.keyedSet
+        List(dict.fid -> None), Nil, _ => Nil
       ) ++ dict.cg.virtual.map(vd => vd._1 -> vd._2.window)
       facts.list.groupBy(_.entity).mapValues { facts =>
         windows.toMap.mapValues { window =>
@@ -85,7 +85,6 @@ object SquashArbitraries {
 
   def squashFactsArbitraryFromDate(date: Date): Gen[SquashFacts] = for {
     // Make sure we only generate State/Set for now
-    m <- GenDictionary.modeImplemented
     w <- Arbitrary.arbitrary[ConcreteGroupFeature].flatMap { w =>
       // Make sure we have _at least_ one virtual feature
       if (w.dictionary.hasVirtual) Gen.const(w)
@@ -95,20 +94,20 @@ object SquashArbitraries {
       // Disable filtering in squash tests, handled in FilterReductionSpec and window cli test
       cgf => cgf.copy(cg = cgf.cg.copy(virtual = cgf.cg.virtual.map {
         case (fid, vd) => fid -> vd.copy(query = vd.query.copy(filter = None))
-      })).withMode(m)
+      }))
     }
     // We should only ever see 1 fact when no window is defined
     i <- startingDate(w, date).cata(_ => Gen.choose(2, 10), Gen.const(1))
-    f <- Gen.listOfN(i, Arbitrary.arbitrary[Fact].flatMap {
+    f <- Gen.listOfN(i, GenFact.factWithZone(GenEntity.entity, Gen.const(w.cg.definition)).flatMap {
       // NOTE: We're not testing snapshot logic here, so there's no point generating facts after the snapshot date
-      fact => Gen.choose(0, 100).map(o => fact.withDate(Date.fromLocalDate(date.localDate.minusDays(o))))
+      fact => Gen.choose(0, 100).map(o => fact._2.withDate(Date.fromLocalDate(date.localDate.minusDays(o))))
     })
     fs = f.map(_.withFeatureId(w.fid))
     fa = w.cg.definition.mode.fold (
       // For state it's impossible to have a duplicate entity + datetime (the result is non-deterministic)
       fs.groupBy1(f => f.entity -> f.datetime).values.map(_.head).toList,
       fs,
-      _ => NotImplemented.keyedSet
+      _ => fs
     )
   } yield SquashFacts(date, w, NonEmptyList(fa.head, fa.tail: _*))
 

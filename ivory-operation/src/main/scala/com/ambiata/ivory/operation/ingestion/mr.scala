@@ -1,9 +1,8 @@
 package com.ambiata.ivory.operation.ingestion
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.lookup.FeatureIdLookup
-import com.ambiata.ivory.mr.MapString
+import com.ambiata.ivory.mr.{DictionaryCache, MapString}
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.ivory.storage.parse._
 import com.ambiata.ivory.storage.task.{FactsetWritable, FactsetJob}
@@ -127,12 +126,7 @@ trait IngestMapper[K, I] extends Mapper[K, I, BytesWritable, BytesWritable] {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     out = new MultipleOutputs(context.asInstanceOf[Mapper[K, I, NullWritable, BytesWritable]#Context])
     ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.FeatureIdLookup, lookup)
-    val dictThrift = new ThriftDictionary
-    ctx.thriftCache.pop(context.getConfiguration, ReducerLookups.Keys.Dictionary, dictThrift)
-    dict = DictionaryThriftConversion.dictionaryFromThrift(dictThrift) match {
-      case -\/(m)          => Crash.error(Crash.Serialization, m)
-      case \/-(dictionary) => dictionary
-    }
+    dict = DictionaryCache.load(context.getConfiguration, ctx.thriftCache)
     ivoryZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IvoryZone))
     ingestZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IngestZone))
     bases = MapString.fromString(context.getConfiguration.get(IngestJob.Keys.Namespaces, ""))

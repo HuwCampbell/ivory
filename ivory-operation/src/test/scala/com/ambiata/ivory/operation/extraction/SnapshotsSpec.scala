@@ -21,6 +21,9 @@ class SnapshotsSpec extends Specification with ScalaCheck { def is = s2"""
   Snapshot keeps all set records
     $snapshotSetPriority ${tag("mr")}
 
+  Snapshot keeps all keyed set records
+    $snapshotKeyedSetPriority ${tag("mr")}
+
   A snapshot contains a mapping of FeatureIds
     $featureMapping ${tag("mr")}
 
@@ -32,6 +35,10 @@ class SnapshotsSpec extends Specification with ScalaCheck { def is = s2"""
 
   def snapshotSetPriority = prop((c: ConcreteGroupFact, facts: FactsWithStatePriority, d2: Date) =>
     run(c.onDefinition(_.copy(mode = Mode.Set)).dictionary, facts.factsets(c.fact), facts.values.head._1.date max d2)
+  ).set(minTestsOk = 5)
+
+  def snapshotKeyedSetPriority = prop((c: ConcreteGroupFact, facts: FactsWithKeyedSetPriority, d2: Date) =>
+    run(c.onDefinition(facts.definition).dictionary, facts.factsets(c.fact), facts.dates.head max d2)
   ).set(minTestsOk = 5)
 
   def run(dictionary: Dictionary, facts: List[List[Fact]], d: Date): RIO[MatchResult[List[Fact]]] = {

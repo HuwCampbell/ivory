@@ -1,8 +1,7 @@
 package com.ambiata.ivory.storage.task
 
 import com.ambiata.ivory.core.Dictionary
-import com.ambiata.ivory.core.thrift.DictionaryThriftConversion
-import com.ambiata.ivory.mr.MrContextIvory
+import com.ambiata.ivory.mr.{DictionaryCache, MrContextIvory}
 import com.ambiata.ivory.storage.lookup.ReducerLookups
 import com.ambiata.poacher.mr._
 import org.apache.hadoop.fs.Path
@@ -72,8 +71,7 @@ object FactsetJob {
     ctx.thriftCache.push(job, ReducerLookups.Keys.NamespaceLookup, reducerLookups.namespaces)
     ctx.thriftCache.push(job, ReducerLookups.Keys.FeatureIdLookup, reducerLookups.features)
     ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup,   reducerLookups.reducers)
-    val thriftDict = DictionaryThriftConversion.dictionaryToThrift(dictionary)
-    ctx.thriftCache.push(job, ReducerLookups.Keys.Dictionary, thriftDict)
+    DictionaryCache.store(job, ctx.thriftCache, dictionary)
     ctx
   }
 }

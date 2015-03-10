@@ -3,8 +3,10 @@ package com.ambiata.ivory.operation.extraction.mode
 import com.ambiata.disorder.{NaturalIntSmall, DistinctPair}
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.arbitraries.Arbitraries._
-import com.ambiata.ivory.lookup.FlagLookup
+import com.ambiata.ivory.core.arbitraries._
+import com.ambiata.ivory.core.gen.GenFact
 import com.ambiata.ivory.mr.MutableOption
+import org.apache.hadoop.io.WritableComparator
 import org.scalacheck._, Prop._
 import org.specs2.{ScalaCheck, Specification}
 
@@ -14,10 +16,13 @@ Laws
 ====
 
   ModeReducerState
-    ${laws(ModeReducerState)}
+    ${lawsSimple(ModeReducerState)}
 
   ModeReducerSet
-    ${laws(ModeReducerSet)}
+    ${lawsSimple(ModeReducerSet)}
+
+  ModeReducerKeyedSet
+    $keyedSetLaws
 
 ModeReducerState
 ================
@@ -34,6 +39,15 @@ ModeReducerSet
   Will always be false
     $setAcceptAlwaysTrue
 
+ModeReducerKeyedSet
+===================
+
+  Will not accept when two values are equal
+    $keyedSetEqual
+
+  Will accept when two values are not equal
+    $keyedSetNotEqual
+
 Construction
 ============
 
@@ -41,12 +55,31 @@ Construction
     $lookup
 """
 
-  def laws(mr: ModeReducer): Prop = new Properties("ModeReducer laws") {
+  def keyedSetLaws = prop((se: SparseEntities) =>
+    laws(
+      new ModeReducerKeyedSet(ModeKey.fromDefinition(se.meta.mode, se.meta.encoding)
+        .getOrElse(Crash.error(Crash.Invariant, "Invalid mode and encoding"))),
+      Gen.const(se.fact)
+    ) {
+      (b1, b2) =>
+        WritableComparator.compareBytes(
+          b1.buffer1.bytes, b1.buffer1.offset, b1.buffer1.length,
+          b2.buffer1.bytes, b2.buffer1.offset, b2.buffer1.length
+        ) == 0
+    }
+  )
+
+  def lawsSimple(mr: ModeReducer): Prop =
+    laws(mr, GenFact.fact)(_ ?= _)
+
+  def laws(mr: ModeReducer, gen: Gen[Fact])(compare: (mr.X, mr.X) => Prop): Prop = new Properties("ModeReducer laws") {
     property("seed is always equal") =
-        mr.seed ?= mr.seed
-    property("step is consistent") = forAll((f: Fact) =>
-      mr.step(mr.seed, MutableOption.none(mr.seed), f) ?= mr.step(mr.seed, MutableOption.some(mr.seed), f)
-    )
+      compare(mr.seed, mr.seed)
+    property("step is consistent") = forAll(gen)((f: Fact) => {
+      val s1 = mr.step(mr.seed, MutableOption.none(mr.seed), f)
+      val s2 = mr.step(mr.seed, MutableOption.some(mr.seed), f)
+      if (s1.isSet && s2.isSet) compare(s1.get, s2.get) else s1.isSet ?= s2.isSet
+    })
   }
 
   def stateDifferentFacts = prop((f: Fact, d: DistinctPair[DateTime]) => {
@@ -68,9 +101,20 @@ Construction
     ModeReducerSet.step(ModeReducerSet.seed, MutableOption.none(ModeReducerSet.seed), f).isSet ==== true
   )
 
-  def lookup = prop((i: NaturalIntSmall, m: Mode) => m.fold(true, true, _ => false) ==> {
-    val l = new FlagLookup
-    l.putToFlags(i.value, m.fold(false, true, _ => NotImplemented.keyedSet))
-    ModeReducer.fromLookup(l)(i.value) ==== ModeReducer.fromMode(m)
+  def keyedSetEqual = prop((se: StructEntity, f1: Fact, f2: Fact) => {
+    val mr = new ModeReducerKeyedSet(ModeKey.fromStruct(se.k, se.e).fold(sys.error, identity))
+    val o1 = mr.step(mr.seed, MutableOption.none(mr.seed), f1.withValue(se.v).withDateTime(f1.datetime))
+    mr.step(o1.get, o1, f2.withValue(se.v).withDateTime(f1.datetime)).isSet must beFalse
   })
+
+  def keyedSetNotEqual = prop((k: String, f: PrimitiveValuePair, fact: Fact) => f.v1 != f.v2 ==> {
+    val mr = new ModeReducerKeyedSet(ModeKey.fromStruct(k, StructEncoding(Map(k -> StructEncodedValue.mandatory(f.e)))).fold(sys.error, identity))
+    val o1 = mr.step(mr.seed, MutableOption.none(mr.seed), fact.withValue(StructValue(Map(k -> f.v1))))
+    mr.step(o1.get, o1, fact.withValue(StructValue(Map(k -> f.v2)))).isSet must beTrue
+  })
+
+  def lookup = prop((i: NaturalIntSmall, cd: ConcreteDefinition) =>
+    ModeReducer.fromLookup(Map(i.value -> (cd.mode -> cd.encoding)))(i.value).getClass.getName ====
+      ModeReducer.fromMode(cd.mode, cd.encoding).fold(sys.error, identity).getClass.getName
+  )
 }

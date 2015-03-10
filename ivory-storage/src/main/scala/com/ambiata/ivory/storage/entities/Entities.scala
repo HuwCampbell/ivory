@@ -128,6 +128,10 @@ object Entities {
   def toChordEntities(entities: Entities): ChordEntities =
     new ChordEntities(entities.entities)
 
+  /** For testing only */
+  def fromMap(entities: Map[String, List[Date]]): Entities =
+    Entities(entities.mapValues(_.distinct.sorted.reverse.map(_.int).toArray).asJava)
+
   def empty = Entities(new java.util.HashMap[String, Array[Int]])
 
   private def parseLine(DatePattern: Regex): String => (String, Date) = (line: String) =>

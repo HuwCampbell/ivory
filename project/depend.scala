@@ -19,21 +19,21 @@ object depend {
   // NOTE: We have a copy of TDeserializer in core that needs to be kept in sync (or removed) when thrift is updated
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1" excludeAll ExclusionRule(organization = "org.apache.httpcomponents"))
 
-  val sawsVersion = "1.2.1-20150107025036-cf7b8a3"
+  val sawsVersion = "1.2.1-20150309055210-e068cee"
   val saws      = Seq("com.ambiata"          %% "saws"            % sawsVersion excludeAll(
     ExclusionRule(organization = "javax.mail"),
     ExclusionRule(organization = "com.owtelse.codec")
   )) ++           Seq("com.ambiata"          %% "saws-testing"            % sawsVersion % "test->test")
 
-  val MUNDANE_VERSION ="1.2.1-20150107022646-a11fc35"
-  val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-trace").map(c =>
+  val MUNDANE_VERSION ="1.2.1-20150309045107-feef53f"
+  val mundane   = Seq("mundane-io", "mundane-control", "mundane-parse", "mundane-trace", "mundane-bytes").map(c =>
                       "com.ambiata"          %% c                 % MUNDANE_VERSION) ++
                   Seq("com.ambiata"          %% "mundane-io"      % MUNDANE_VERSION % "test->test") ++
                   Seq("com.ambiata"          %% "mundane-testing" % MUNDANE_VERSION % "test")
 
   def notion(version: String) = {
-    val cdh4Version = "0.0.1-cdh4-20150303031029-52c3000"
-    val cdh5Version = "0.0.1-cdh5-20150303031050-52c3000"
+    val cdh4Version = "0.0.1-cdh4-20150309061314-70948f1"
+    val cdh5Version = "0.0.1-cdh5-20150309061314-70948f1"
     if (version.contains("cdh4"))
       Seq("com.ambiata" %% "notion-core"     % cdh4Version % "compile->compile;test->test") ++
       Seq("com.ambiata" %% "notion-distcopy" % cdh4Version) ++
@@ -65,8 +65,8 @@ object depend {
   }
 
   def poacher(version: String) =
-    if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20150223055326-0594f20" % "compile->compile;test->test")
-    else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20150223055322-0594f20" % "compile->compile;test->test")
+    if (version.contains("cdh4"))      Seq("com.ambiata" %% "poacher" % "1.0.0-cdh4-20150309055122-87a87d8" % "compile->compile;test->test")
+    else if (version.contains("cdh5")) Seq("com.ambiata" %% "poacher" % "1.0.0-cdh5-20150309055121-87a87d8" % "compile->compile;test->test")
     else                               sys.error(s"unsupported poacher version, can not build for $version")
 
 
