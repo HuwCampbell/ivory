@@ -1,0 +1,16 @@
+#!/bin/sh -eux
+
+DIR=$(dirname $0)
+. "${DIR}/../../setup.sh"
+
+### TEST ###
+
+java -cp ${PROJECT}/target/ivory-cli/lib/ivory.jar com.ambiata.ivory.cli.test.dictionaryGen | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
+
+$IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
+$IVORY import-dictionary -p "${TARGET}/dictionary.psv"
+
+IVORY_BASELINE="ivory_run ${IVORY_BASELINE}"
+
+$IVORY_BASELINE cat-dictionary | grep -v "^$" | sort > "${TARGET}/dictionary2.psv"
+diff_test "${TARGET}/dictionary.psv" "${TARGET}/dictionary2.psv"
