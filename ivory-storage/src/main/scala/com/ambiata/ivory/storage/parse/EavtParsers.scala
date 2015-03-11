@@ -36,7 +36,7 @@ object EavtParsers {
                 case \/-(dt) => Fact.newFactWithNamespace(entity, namespace, name, dt.date, dt.time, v)
                 case -\/(d)  => Fact.newFactWithNamespace(entity, namespace, name, d, Time(0), v)
               }
-    fact   <- value(Value.validateFact(f, dictionary))
+    fact   <- value(Fact.validate(f, dictionary))
   } yield fact
 
   def validateFeature(dict: Dictionary, fid: FeatureId, rawv: String): Validation[String, Value] =

@@ -2,7 +2,6 @@ package com.ambiata.ivory.core
 
 import org.scalacheck._, Arbitrary._
 import com.ambiata.ivory.core.arbitraries._, Arbitraries._
-import com.ambiata.ivory.core.gen._
 import org.specs2.{ScalaCheck, Specification}
 import scalaz.scalacheck.ScalazProperties
 
@@ -11,7 +10,6 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
   Can validate with correct encoding                     $valid
   Can validate with incorrect encoding                   $invalid
   Can convert to and from thrift                         $thrift
-  Facts with entity ids larger then 256 are invalid      $invalidEntityIdFact
   Can convert between primitive and non-primitive        $primitive
   Can make any value unique                              $unique
   Can make any value unique                              $order
@@ -29,9 +27,6 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
   def thrift = prop { (e: EncodingAndValue) =>
     Value.fromThrift(Value.toThrift(e.value)) ==== e.value
   }
-
-  def invalidEntityIdFact = prop((fact: BadEntityFact) =>
-    Value.validateFact(fact.fact, fact.dictionary).toEither must beLeft)
 
   def primitive = prop { (v: PrimitiveValue) =>
     Value.toPrimitive(Value.toThrift(v)).map(Value.fromPrimitive) must beSome(Value.toThrift(v))
@@ -75,13 +70,4 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
       case _ => true
     }
   }
-
-  case class BadEntityFact(fact: Fact, dictionary: Dictionary)
-  implicit def BadEntityArbitrary: Arbitrary[BadEntityFact] = Arbitrary(for {
-    n     <- Gen.choose(257, 1000)
-    chars <- Gen.listOfN(n, arbitrary[Char])
-    cg    <- arbitrary[ConcreteGroupFeature]
-    dt    <- arbitrary[DateTime]
-    fact  <- GenFact.factWith(chars.mkString, cg.fid, cg.cg.definition, dt)
-  } yield BadEntityFact(fact, cg.dictionary))
 }

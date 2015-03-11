@@ -214,7 +214,7 @@ class ThriftIngestMapper extends IngestMapper[NullWritable, BytesWritable] {
     }
     Conversion.thrift2fact(namespace.name, thrift, ingestZone, ivoryZone).fold(
       e => e.failure,
-      Value.validateFact(_, dict)
+      Fact.validate(_, dict)
     ).leftMap(ParseError(_, ThriftError(ThriftErrorDataVersionV1, ByteVector.view(value.getBytes).take(value.getLength))))
   }
 }
