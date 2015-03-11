@@ -3,6 +3,11 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-71d176e
+
+- Introduce keyed_set mode which can handle a list of (mandatory) struct fields that are used to distinguish
+  a record from another at the exact same date/time.
+
 ## 1.0.0-*-323e06e
 
 - cat-facts cli has been merged into debug-dump-facts. To output to stdout, do not provide a file location
