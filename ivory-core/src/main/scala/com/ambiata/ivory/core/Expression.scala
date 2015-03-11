@@ -299,7 +299,7 @@ case class Interval(exp: SubExpression) extends Expression
 case class Inverse(exp: Expression) extends Expression
 
 /** Represents an expression that can be done on values, which may be a specific field of a struct */
-trait SubExpression
+sealed trait SubExpression
 case object Latest extends SubExpression
 case object Sum extends SubExpression
 case object Min extends SubExpression
