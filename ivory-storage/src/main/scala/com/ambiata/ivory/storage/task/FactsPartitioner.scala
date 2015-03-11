@@ -40,7 +40,9 @@ trait BaseFactsPartitioner[A] extends Partitioner[A, BytesWritable] with Configu
 
   def getPartition(k: A, v: BytesWritable, partitions: Int): Int = {
     val offset = lookup.reducers.get(getFeatureId(k).int)
-    FeatureReducerOffset.getReducer(offset, getHash(k)) % partitions
+    // If we don't know about this feature partition across all reducers
+    if (offset == null) getHash(k) % partitions
+    else FeatureReducerOffset.getReducer(offset, getHash(k)) % partitions
   }
 
   def getFeatureId(k: A): FeatureIdIndex
