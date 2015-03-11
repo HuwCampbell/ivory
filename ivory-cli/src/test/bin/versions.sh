@@ -29,4 +29,4 @@ export IVORY_V5="1.0.0-cdh5-20150112052717-f20b962 2.11"
 export IVORY_V6="1.0.0-cdh5-20150310005628-6e4e57 2.11"
 
 # The _first_ version that had the current metadata version - see 'dictionary-metadata' test
-export IVORY_BASELINE="1.0.0-cdh5-20150310031300-d62a1e9 2.11"
+export IVORY_BASELINE="1.0.0-cdh5-20150311033320-3eb8f01 2.11"
