@@ -3,7 +3,12 @@
 DIR=$(dirname $0)
 . "${DIR}/../../setup.sh"
 
+# NOTE: This test has an unfortunate chicken/egg problem in that new metadata versions will break here
+# The recommended approach (for now) is to ignore this broken test in cli (assuming it is the only failures) and then
+# upgrade $IVORY_BASELINE in master straight afterwards (you need to wait until Ivory builds/publishes).
+
 ### TEST ###
+
 
 java -cp ${PROJECT}/target/ivory-cli/lib/ivory.jar com.ambiata.ivory.cli.test.dictionaryGen | grep -v "^$" | sort > "${TARGET}/dictionary.psv"
 
