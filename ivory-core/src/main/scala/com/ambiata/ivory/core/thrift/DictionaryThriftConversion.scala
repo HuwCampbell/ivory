@@ -80,7 +80,7 @@ object DictionaryThriftConversion {
     def to(mode: Mode): ThriftDictionaryModeV2 = mode match {
       case Mode.State => ThriftDictionaryModeV2.mode(STATE)
       case Mode.Set => ThriftDictionaryModeV2.mode(SET)
-      case Mode.KeyedSet(key) => ThriftDictionaryModeV2.keyedSet(key)
+      case Mode.KeyedSet(key) => ThriftDictionaryModeV2.keyedSetMulti(key.asJava)
     }
 
     def from(moveV1: Option[ThriftDictionaryMode], modeV2: Option[ThriftDictionaryModeV2]): Mode = {
@@ -90,7 +90,11 @@ object DictionaryThriftConversion {
           case SET => Mode.Set
         }
       modeV2
-        .map(m => if (m.isSetKeyedSet) Mode.keyedSet(m.getKeyedSet) else fromV1(m.getMode))
+        .map(m =>
+          if (m.isSetKeyedSet) Mode.keyedSet(List(m.getKeyedSet))
+          else if (m.isSetKeyedSetMulti) Mode.keyedSet(m.getKeyedSetMulti.asScala.toList)
+          else fromV1(m.getMode)
+        )
         .orElse(moveV1.map(fromV1))
         .getOrElse(Mode.State)
     }

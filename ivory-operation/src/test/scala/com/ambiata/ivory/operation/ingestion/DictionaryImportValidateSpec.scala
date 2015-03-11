@@ -93,20 +93,20 @@ class DictionaryImportValidateSpec extends Specification with ScalaCheck { def i
 
   def keyedSetInvalidEncoding = prop((key: String, encoding: PrimitiveEncoding, fid: FeatureId, cd: ConcreteDefinition) =>
     validateSelf(Dictionary(List(Concrete(fid,
-      cd.copy(mode = Mode.keyedSet(key), encoding = EncodingPrim(encoding))
+      cd.copy(mode = Mode.keyedSet(List(key)), encoding = EncodingPrim(encoding))
     )))) ==== InvalidEncodingKeyedSet(ValidationPath(fid)).failureNel
   )
 
   def keyedSetMissingKey = prop((key: String, encoding: StructEncoding, fid: FeatureId, cd: ConcreteDefinition) =>
     validateSelf(Dictionary(List(Concrete(fid,
-      cd.copy(mode = Mode.keyedSet(key), encoding = EncodingStruct(encoding.copy(values = encoding.values - key)))
+      cd.copy(mode = Mode.keyedSet(List(key)), encoding = EncodingStruct(encoding.copy(values = encoding.values - key)))
     )))) ==== MissingKey(key, ValidationPath(fid)).failureNel
   )
 
   def keyedSetMandatory = prop((key: String, encoding: StructEncoding, pe: PrimitiveEncoding, fid: FeatureId, cd: ConcreteDefinition) =>
     validateSelf(Dictionary(List(Concrete(fid,
       cd.copy(
-        mode = Mode.keyedSet(key),
+        mode = Mode.keyedSet(List(key)),
         encoding = EncodingStruct(encoding.copy(values = encoding.values + (key -> StructEncodedValue.optional(pe))))
       )
     )))) ==== OptionalStructValueKeyedSet(key, ValidationPath(fid)).failureNel

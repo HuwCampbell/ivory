@@ -15,7 +15,7 @@ object ChordModel extends MapReduceSimple[Prioritized[Fact], Fact, ChordModelCon
 
   def map(facts: List[Prioritized[Fact]], conf: ChordModelConf): List[(K, S, Fact)] =
     facts.filter(f => conf.entities.keep(f.value))
-      .map(SnapshotModel.mapKeyed)
+      .map(pf => SnapshotModel.mapKeyedDict(conf.dictionary, pf))
 
   def secondary: Order[S] =
     SnapshotModel.secondary

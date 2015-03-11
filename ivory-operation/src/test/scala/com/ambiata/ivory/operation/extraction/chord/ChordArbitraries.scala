@@ -118,7 +118,8 @@ object ChordArbitraries {
   implicit def ChordFactsArbitrary: Arbitrary[ChordFacts] = Arbitrary(for {
     n     <- Gen.choose(1, 20)
     dates <- Gen.sequence[List, ChordEntity]((0 until n).map(chordEntityGen)).map(_.filter(!_.isEmpty))
-    mode  <- GenDictionary.modeImplemented
+    // We don't support keyed sets here - see FactsWithKeyedSetPriority
+    mode  <- Gen.oneOf(Mode.State, Mode.Set)
     // Just generate one stub fact - we only care about the entity and date
     fact  <- Arbitrary.arbitrary[SparseEntities].map(se => se.copy(meta = se.meta.copy(mode = mode)))
     fid   <- GenIdentifier.featureUnique(Set(fact.fact.featureId))

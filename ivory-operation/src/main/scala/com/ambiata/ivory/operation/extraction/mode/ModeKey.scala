@@ -33,7 +33,7 @@ object ModeKey {
     mode.fold(
       blank.right,
       blank.right,
-      key => fromEncoding(key, encoding)
+      keys => fromEncoding(keys, encoding)
     )
   }
 
@@ -47,84 +47,99 @@ object ModeKey {
       b2
     })
 
-  def fromEncoding(key: String, encoding: Encoding): String \/ ModeKey =
+  def fromEncoding(keys: List[String], encoding: Encoding): String \/ ModeKey =
     encoding.fold(
       _ => "Invalid primitive encoding for keyed_set".left,
-      s => fromStruct(key, s),
+      s => fromStruct(keys, s),
       _ => "Invalid list encoding for keyed_set".left
     )
 
-  def fromStruct(key: String, encoding: StructEncoding): String \/ ModeKey =
-    encoding.values.get(key)
+  def fromStruct(keys: List[String], encoding: StructEncoding): String \/ ModeKey =
+    keys.traverseU(key => encoding.values.get(key)
       .toRightDisjunction(s"Missing required keyed_set struct field: $key")
-      .map(pe => struct(key, valueBytes(pe.encoding)))
+      .map(pe => struct(key, valueBytes(pe.encoding)))).map(structs)
 
-  def struct(key: String, toBytes: (ThriftFactPrimitiveValue, Buffer) => Buffer): ModeKey =
+  def structs(keys: List[(Fact, Buffer, Int) => Buffer]): ModeKey =
     ModeKey({
       (f, b) =>
-        val value = f.toThrift.getValue
-        if (value.isSetT) {
-          val b2 = Buffer.grow(b, 1)
-          ByteWriter.writeByte(b2.bytes, Byte.MinValue, b2.offset)
-          b2
-        } else {
-          if (!value.isSetStructSparse)
-            Crash.error(Crash.DataIntegrity, s"Fact '${f.entity}' is not a struct required by a keyed_set")
-          val v = value.getStructSparse.v.get(key)
-          if (v == null)
-            Crash.error(Crash.DataIntegrity, s"Fact '${f.entity}' is missing the struct field '$key'")
-          toBytes(v, b)
+        var b2 = b
+        // Saving that one, stupid extra allocation
+        var _keys = keys
+        var offset = 0
+        while (!_keys.isEmpty) {
+          val oldLength = b2.length
+          b2 = _keys.head(f, b2, offset)
+          offset += b2.length - oldLength
+          _keys = _keys.tail
         }
+        b2
     })
 
-  def valueBytes(encoding: PrimitiveEncoding): (ThriftFactPrimitiveValue, Buffer) => Buffer =
+  def struct(key: String, toBytes: (ThriftFactPrimitiveValue, Buffer, Int) => Buffer): (Fact, Buffer, Int) => Buffer = {
+    (f, b, i) =>
+      val value = f.toThrift.getValue
+      if (value.isSetT) {
+        val b2 = Buffer.grow(b, 1)
+        ByteWriter.writeByte(b2.bytes, Byte.MinValue, b2.offset + i)
+        b2
+      } else {
+        if (!value.isSetStructSparse)
+          Crash.error(Crash.DataIntegrity, s"Fact '${f.entity}' is not a struct required by a keyed_set")
+        val v = value.getStructSparse.v.get(key)
+        if (v == null)
+          Crash.error(Crash.DataIntegrity, s"Fact '${f.entity}' is missing the struct field '$key'")
+        toBytes(v, b, i)
+      }
+  }
+
+  def valueBytes(encoding: PrimitiveEncoding): (ThriftFactPrimitiveValue, Buffer, Int) => Buffer =
     encoding match {
       case StringEncoding  =>
-        (v, b) =>
+        (v, b, o) =>
           val bytes = v.getS.getBytes("UTF-8")
           val b2 = Buffer.grow(b, bytes.length)
-          System.arraycopy(bytes, 0, b2.bytes, b2.offset, bytes.length)
+          System.arraycopy(bytes, 0, b2.bytes, b2.offset + o, bytes.length)
           b2
       case BooleanEncoding =>
-        (v, b) =>
+        (v, b, o) =>
           val b2 = Buffer.grow(b, 1)
-          b2.bytes(b2.offset) = if (v.getB) 1 else 0
+          b2.bytes(b2.offset + o) = if (v.getB) 1 else 0
           b2
       case IntEncoding =>
-        (v, b) =>
+        (v, b, o) =>
           val b2 = Buffer.grow(b, 4)
-          ByteWriter.writeInt(b2.bytes, v.getI, b2.offset)
+          ByteWriter.writeInt(b2.bytes, v.getI, b2.offset + o)
           b2
       case LongEncoding =>
-        (v, b) =>
+        (v, b, o) =>
           val b2 = Buffer.grow(b, 8)
-          ByteWriter.writeLong(b2.bytes, v.getL, b2.offset)
+          ByteWriter.writeLong(b2.bytes, v.getL, b2.offset + o)
           b2
       case DoubleEncoding =>
-        (v, b) =>
+        (v, b, o) =>
           val b2 = Buffer.grow(b, 8)
-          ByteWriter.writeLong(b2.bytes, java.lang.Double.doubleToLongBits(v.getD), b2.offset)
+          ByteWriter.writeLong(b2.bytes, java.lang.Double.doubleToLongBits(v.getD), b2.offset + o)
           b2
       case DateEncoding =>
-        (v, b) =>
+        (v, b, o) =>
           val b2 = Buffer.grow(b, 4)
-          ByteWriter.writeInt(b2.bytes, v.getDate, b2.offset)
+          ByteWriter.writeInt(b2.bytes, v.getDate, b2.offset + o)
           b2
     }
 
-  def byteValue(encoding: PrimitiveEncoding): Buffer => ThriftFactPrimitiveValue =
+  def byteValue(encoding: PrimitiveEncoding): (Buffer, Int) => ThriftFactPrimitiveValue =
     encoding match {
       case StringEncoding =>
-        v => ThriftFactPrimitiveValue.s(new String(v.bytes, v.offset, v.length, "UTF-8"))
+        (v, o) => ThriftFactPrimitiveValue.s(new String(v.bytes, v.offset + o, v.length, "UTF-8"))
       case BooleanEncoding =>
-        v => ThriftFactPrimitiveValue.b(v.bytes(v.offset) == 1)
+        (v, o) => ThriftFactPrimitiveValue.b(v.bytes(v.offset + o) == 1)
       case IntEncoding =>
-        v => ThriftFactPrimitiveValue.i(WritableComparator.readInt(v.bytes, v.offset))
+        (v, o) => ThriftFactPrimitiveValue.i(WritableComparator.readInt(v.bytes, v.offset + o))
       case LongEncoding =>
-        v => ThriftFactPrimitiveValue.l(WritableComparator.readLong(v.bytes, v.offset))
+        (v, o) => ThriftFactPrimitiveValue.l(WritableComparator.readLong(v.bytes, v.offset + o))
       case DoubleEncoding =>
-        v => ThriftFactPrimitiveValue.d(WritableComparator.readDouble(v.bytes, v.offset))
+        (v, o) => ThriftFactPrimitiveValue.d(WritableComparator.readDouble(v.bytes, v.offset + o))
       case DateEncoding =>
-        v => ThriftFactPrimitiveValue.date(WritableComparator.readInt(v.bytes, v.offset))
+        (v, o) => ThriftFactPrimitiveValue.date(WritableComparator.readInt(v.bytes, v.offset + o))
     }
 }

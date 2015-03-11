@@ -27,8 +27,7 @@ case class VirtualDictionary(cd: ConcreteDefinition, fid: FeatureId, vd: Virtual
 
 object VirtualDictionary {
   implicit def VirtualDictionaryArbitrary: Arbitrary[VirtualDictionary] = Arbitrary(for {
-    m   <- GenDictionary.modeImplemented
-    cd  <- arbitrary[ConcreteDefinition].map(_.copy(mode = m))
+    cd  <- arbitrary[ConcreteDefinition]
     fid <- arbitrary[FeatureId]
     vd  <- GenDictionary.virtual(fid -> cd, 0)
   } yield VirtualDictionary(cd, vd._1, vd._2))

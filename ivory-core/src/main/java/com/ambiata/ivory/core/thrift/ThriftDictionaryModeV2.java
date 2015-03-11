@@ -36,6 +36,7 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftDictionaryModeV2");
   private static final org.apache.thrift.protocol.TField MODE_FIELD_DESC = new org.apache.thrift.protocol.TField("mode", org.apache.thrift.protocol.TType.I32, (short)1);
   private static final org.apache.thrift.protocol.TField KEYED_SET_FIELD_DESC = new org.apache.thrift.protocol.TField("keyedSet", org.apache.thrift.protocol.TType.STRING, (short)2);
+  private static final org.apache.thrift.protocol.TField KEYED_SET_MULTI_FIELD_DESC = new org.apache.thrift.protocol.TField("keyedSetMulti", org.apache.thrift.protocol.TType.LIST, (short)3);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -44,7 +45,8 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
      * @see ThriftDictionaryMode
      */
     MODE((short)1, "mode"),
-    KEYED_SET((short)2, "keyedSet");
+    KEYED_SET((short)2, "keyedSet"),
+    KEYED_SET_MULTI((short)3, "keyedSetMulti");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -63,6 +65,8 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
           return MODE;
         case 2: // KEYED_SET
           return KEYED_SET;
+        case 3: // KEYED_SET_MULTI
+          return KEYED_SET_MULTI;
         default:
           return null;
       }
@@ -109,6 +113,9 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
         new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, ThriftDictionaryMode.class)));
     tmpMap.put(_Fields.KEYED_SET, new org.apache.thrift.meta_data.FieldMetaData("keyedSet", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.KEYED_SET_MULTI, new org.apache.thrift.meta_data.FieldMetaData("keyedSetMulti", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftDictionaryModeV2.class, metaDataMap);
   }
@@ -140,6 +147,12 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
     return x;
   }
 
+  public static ThriftDictionaryModeV2 keyedSetMulti(List<String> value) {
+    ThriftDictionaryModeV2 x = new ThriftDictionaryModeV2();
+    x.setKeyedSetMulti(value);
+    return x;
+  }
+
 
   @Override
   protected void checkType(_Fields setField, Object value) throws ClassCastException {
@@ -154,6 +167,11 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
           break;
         }
         throw new ClassCastException("Was expecting value of type String for field 'keyedSet', but got " + value.getClass().getSimpleName());
+      case KEYED_SET_MULTI:
+        if (value instanceof List) {
+          break;
+        }
+        throw new ClassCastException("Was expecting value of type List<String> for field 'keyedSetMulti', but got " + value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -182,6 +200,25 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
+        case KEYED_SET_MULTI:
+          if (field.type == KEYED_SET_MULTI_FIELD_DESC.type) {
+            List<String> keyedSetMulti;
+            {
+              org.apache.thrift.protocol.TList _list26 = iprot.readListBegin();
+              keyedSetMulti = new ArrayList<String>(_list26.size);
+              for (int _i27 = 0; _i27 < _list26.size; ++_i27)
+              {
+                String _elem28;
+                _elem28 = iprot.readString();
+                keyedSetMulti.add(_elem28);
+              }
+              iprot.readListEnd();
+            }
+            return keyedSetMulti;
+          } else {
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            return null;
+          }
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -202,6 +239,17 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
         String keyedSet = (String)value_;
         oprot.writeString(keyedSet);
         return;
+      case KEYED_SET_MULTI:
+        List<String> keyedSetMulti = (List<String>)value_;
+        {
+          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, keyedSetMulti.size()));
+          for (String _iter29 : keyedSetMulti)
+          {
+            oprot.writeString(_iter29);
+          }
+          oprot.writeListEnd();
+        }
+        return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
     }
@@ -220,6 +268,20 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
           String keyedSet;
           keyedSet = iprot.readString();
           return keyedSet;
+        case KEYED_SET_MULTI:
+          List<String> keyedSetMulti;
+          {
+            org.apache.thrift.protocol.TList _list30 = iprot.readListBegin();
+            keyedSetMulti = new ArrayList<String>(_list30.size);
+            for (int _i31 = 0; _i31 < _list30.size; ++_i31)
+            {
+              String _elem32;
+              _elem32 = iprot.readString();
+              keyedSetMulti.add(_elem32);
+            }
+            iprot.readListEnd();
+          }
+          return keyedSetMulti;
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -239,6 +301,17 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
         String keyedSet = (String)value_;
         oprot.writeString(keyedSet);
         return;
+      case KEYED_SET_MULTI:
+        List<String> keyedSetMulti = (List<String>)value_;
+        {
+          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, keyedSetMulti.size()));
+          for (String _iter33 : keyedSetMulti)
+          {
+            oprot.writeString(_iter33);
+          }
+          oprot.writeListEnd();
+        }
+        return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
     }
@@ -251,6 +324,8 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
         return MODE_FIELD_DESC;
       case KEYED_SET:
         return KEYED_SET_FIELD_DESC;
+      case KEYED_SET_MULTI:
+        return KEYED_SET_MULTI_FIELD_DESC;
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -307,6 +382,20 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
     value_ = value;
   }
 
+  public List<String> getKeyedSetMulti() {
+    if (getSetField() == _Fields.KEYED_SET_MULTI) {
+      return (List<String>)getFieldValue();
+    } else {
+      throw new RuntimeException("Cannot get field 'keyedSetMulti' because union is currently set to " + getFieldDesc(getSetField()).name);
+    }
+  }
+
+  public void setKeyedSetMulti(List<String> value) {
+    if (value == null) throw new NullPointerException();
+    setField_ = _Fields.KEYED_SET_MULTI;
+    value_ = value;
+  }
+
   public boolean isSetMode() {
     return setField_ == _Fields.MODE;
   }
@@ -314,6 +403,11 @@ public class ThriftDictionaryModeV2 extends org.apache.thrift.TUnion<ThriftDicti
 
   public boolean isSetKeyedSet() {
     return setField_ == _Fields.KEYED_SET;
+  }
+
+
+  public boolean isSetKeyedSetMulti() {
+    return setField_ == _Fields.KEYED_SET_MULTI;
   }
 
 

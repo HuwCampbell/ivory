@@ -61,11 +61,13 @@ object DictionaryImportValidate {
     else
       dict.definitions.traverseU {
         case Concrete(fid, cd)    =>
-          cd.mode.fold(OK, OK, key => cd.encoding.fold(
+          cd.mode.fold(OK, OK, keys => cd.encoding.fold(
             _ => InvalidEncodingKeyedSet(ValidationPath(fid)).failureNel,
-            s => s.values.get(key).cata(sv =>
-              if (sv.optional) OptionalStructValueKeyedSet(key, ValidationPath(fid)).failureNel else OK,
-              MissingKey(key, ValidationPath(fid)).failureNel),
+            s => keys.traverseU(key =>
+              s.values.get(key).cata(sv =>
+                if (sv.optional) OptionalStructValueKeyedSet(key, ValidationPath(fid)).failureNel else OK,
+                MissingKey(key, ValidationPath(fid)).failureNel)
+            ),
             _ => InvalidEncodingKeyedSet(ValidationPath(fid)).failureNel
           ))
         case Virtual(fid, vd)  => dict.byFeatureId.get(vd.source).cata({

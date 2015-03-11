@@ -50,8 +50,7 @@ SnapshotReducerSpec
 
   def windowKeySet = prop((facts: FactsWithKeyedSetPriority, fact: SparseEntities) => {
     val factsP = FactModel.factsPriority(facts.factsets(fact.fact)).map(_.value)
-    val date = facts.dates.max
-    reduce(factsP, fact.onDefinition(facts.definition), date)
+    reduce(factsP, fact.onDefinition(facts.definition), facts.dates.max)
   }).set(maxSize = 10)
 
   def reduce(facts: List[Fact], se: SparseEntities, date: Date) = {
