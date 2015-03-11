@@ -24,3 +24,6 @@ export IVORY_V4="1.0.0-cdh5-20141229233818-6d996f7 2.11"
 
 # Last version before v3 metadata where old snapshots manifests were actually written out.
 export IVORY_V5="1.0.0-cdh5-20150112052717-f20b962 2.11"
+
+# The _first_ version that had the current metadata version - see 'dictionary-metadata' test
+export IVORY_BASELINE="1.0.0-cdh5-20150310031300-d62a1e9 2.11"
