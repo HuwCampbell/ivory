@@ -1,0 +1,6 @@
+ID00000000|keyed_set|stuff|{"b":true,"c":"a1","a":0}|2014-04-01T00:00:00|Snapshot[00000000]
+ID00000000|keyed_set|stuff|{"b":true,"c":"x","a":0}|2014-04-02T00:00:00|Snapshot[00000000]
+ID00000001|keyed_set|stuff|{"b":false,"c":"y1","a":1}|2014-04-02T00:00:00|Snapshot[00000000]
+ID00000001|keyed_set|stuff|{"b":true,"c":"y2","a":1}|2014-04-02T00:00:00|Snapshot[00000000]
+ID00000002|keyed_set|stuff|{"b":false,"c":"z","a":2}|2014-04-02T00:00:00|Snapshot[00000000]
+ID00000002|keyed_set|stuff|{"b":true,"c":"c","a":2}|2014-04-02T00:00:00|Snapshot[00000000]

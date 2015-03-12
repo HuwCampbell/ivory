@@ -5,10 +5,10 @@ import com.ambiata.mundane.control._
 
 object SparseOutput {
   def extractWithDictionary(repository: Repository, input: ShadowOutputDataset, output: ShadowOutputDataset, dictionary: Dictionary,
-                            delim: Delimiter, missing: String, escaping: TextEscaping): RIO[Unit] = for {
+                            delim: Delimiter, missing: String, escaping: TextEscaping, format: TextFormat): RIO[Unit] = for {
     hdfsRepo <- repository.asHdfsRepository
     in        = input.hdfsPath
     out       = output.hdfsPath
-    _        <- SparseOutputJob.run(hdfsRepo.configuration, dictionary, in, out, missing, delim, escaping, hdfsRepo.codec)
+    _        <- SparseOutputJob.run(hdfsRepo.configuration, dictionary, in, out, missing, delim, escaping, format, hdfsRepo.codec)
     } yield ()
 }

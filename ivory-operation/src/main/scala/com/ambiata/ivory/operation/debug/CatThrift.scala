@@ -108,7 +108,7 @@ abstract class CatThriftMapper[A](implicit ev: A <:< ThriftLike) extends Mapper[
     // This isn't ideal - it's converting to our internal thrift format first, and then to Value and _then_ to String
     Conversion.thrift2value(thriftValue).fold(
       identity,
-      value => Value.toStringWithStruct(Value.fromThrift(value), missingValue)
+      value => Value.json.toStringWithStruct(Value.fromThrift(value), missingValue)
     )
 
   def getEntity(thrift: A): String

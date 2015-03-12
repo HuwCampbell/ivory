@@ -37,7 +37,7 @@ class IngestSpec extends Specification with ScalaCheck { def is = section("mr") 
  FeatureId Mappings are stored when facts ingested                                        $featureIdMappings
 """
 
-  def partitionIngest = prop((facts: PrimitiveSparseEntities, tt: TemporaryType) => {
+  def partitionIngest = prop((facts: SparseEntities, tt: TemporaryType) => {
     withRepository(Hdfs) { repository: Repository =>
       withCluster { cluster: Cluster =>
         withIvoryLocationDir(tt) { location =>
@@ -46,14 +46,14 @@ class IngestSpec extends Specification with ScalaCheck { def is = section("mr") 
           IvoryLocation.writeUtf8Lines(location </> FileName.unsafe(facts.fact.featureId.namespace.name) </> "part-r-00000", List(facts.fact).map(toEavt)) >>
           IvoryLocation.writeUtf8Lines(location </> FileName.unsafe(facts.fact.featureId.namespace.name) </> "part-r-00001", List(facts.fact).map(toEavt)) >>
           Ingest.ingestFacts(repository, cluster, List(
-            (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited), None, location)
+            (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited, TextFormat.Json), None, location)
           ), None, 100.mb).run.run(IvoryRead.create)
         }
       }
     } must beOk
   }).set(minTestsOk = 5)
 
-  def namespaceIngest = prop((facts: PrimitiveSparseEntities, tt: TemporaryType) => {
+  def namespaceIngest = prop((facts: SparseEntities, tt: TemporaryType) => {
     withRepository(Hdfs) { repository: Repository =>
       withCluster { cluster: Cluster =>
         withIvoryLocationDir(tt) { location =>
@@ -62,14 +62,14 @@ class IngestSpec extends Specification with ScalaCheck { def is = section("mr") 
           IvoryLocation.writeUtf8Lines(location </> "part-r-00000", List(facts.fact).map(toEavt)) >>
           IvoryLocation.writeUtf8Lines(location </> "part-r-00001", List(facts.fact).map(toEavt)) >>
           Ingest.ingestFacts(repository, cluster, List(
-            (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited), Some(facts.fact.namespace), location)
+            (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited, TextFormat.Json), Some(facts.fact.namespace), location)
           ), None, 100.mb).run.run(IvoryRead.create)
         }
       }
     } must beOk
   }).set(minTestsOk = 5)
 
-  def escapedText = prop((facts: PrimitiveSparseEntities, tt: TemporaryType) => {
+  def escapedText = prop((facts: SparseEntities, tt: TemporaryType) => {
     withRepository(Hdfs) { repository: Repository =>
       withCluster { cluster: Cluster =>
         withIvoryLocationDir(tt) { location =>
@@ -78,7 +78,7 @@ class IngestSpec extends Specification with ScalaCheck { def is = section("mr") 
             _  <- DictionaryThriftStorage(repository).store(facts.dictionary)
             _  <- IvoryLocation.writeUtf8Lines(location </> "part-r-00000", List(facts.fact).map(toEavtEscaped))
             _  <- Ingest.ingestFacts(repository, cluster, List(
-              (FileFormat.Text(Delimiter.Psv, TextEscaping.Escaped), Some(facts.fact.namespace), location)
+              (FileFormat.Text(Delimiter.Psv, TextEscaping.Escaped, TextFormat.Json), Some(facts.fact.namespace), location)
             ), None, 100.mb).run.run(IvoryRead.create)
             r  <- repository.asHdfsRepository
             l  <- repository.toIvoryLocation(Repository.namespace(FactsetId.initial, facts.fact.namespace)).asHdfsIvoryLocation
@@ -116,7 +116,7 @@ class IngestSpec extends Specification with ScalaCheck { def is = section("mr") 
     } must beOkValue(facts.facts.map(_.toThrift).toSet -> (badFacts.size + 1))
   }.set(minTestsOk = 3, maxDiscardRatio = 10)
 
-  def featureIdMappings = prop((facts: PrimitiveSparseEntities, tlocation: IvoryLocationTemporary, rtemp: RepositoryTemporary) => {
+  def featureIdMappings = prop((facts: SparseEntities, tlocation: IvoryLocationTemporary, rtemp: RepositoryTemporary) => {
     val expected: List[FeatureId] = FeatureIdMappings.fromDictionary(facts.dictionary).featureIds
     (for {
       repository <- rtemp.hdfs
@@ -126,7 +126,7 @@ class IngestSpec extends Specification with ScalaCheck { def is = section("mr") 
       _          <- DictionaryThriftStorage(repository).store(facts.dictionary)
       _          <- IvoryLocation.writeUtf8Lines(location </> "part-r-00000", List(facts.fact).map(toEavt))
       fid        <- Ingest.ingestFacts(repository, cluster, List(
-                      (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited), Some(facts.fact.namespace), location)
+                      (FileFormat.Text(Delimiter.Psv, TextEscaping.Delimited, TextFormat.Json), Some(facts.fact.namespace), location)
                     ), None, 100.mb).run.run(IvoryRead.create)
       ms         <- FeatureIdMappingsStorage.fromKeyStore(repository, Repository.factset(fid) / FeatureIdMappingsStorage.keyname).map(_.featureIds)
     } yield ms) must beOkValue(expected)

@@ -21,7 +21,7 @@ case class DumpFactsMapper(entities: Set[String], attributes: Set[String], sourc
     buffer.append(delimiter)
     buffer.append(fact.feature)
     buffer.append(delimiter)
-    TextEscaping.escapeAppend(delimiter, Value.toStringWithStruct(fact.value, missing), buffer)
+    TextEscaping.escapeAppend(delimiter, Value.json.toStringWithStruct(fact.value, missing), buffer)
     buffer.append(delimiter)
     buffer.append(fact.datetime.localIso8601)
     buffer.append(delimiter)

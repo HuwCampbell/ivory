@@ -12,7 +12,7 @@ import scala.collection.JavaConverters._
 object ChordArbitraries {
 
   def incValue(f: Fact, post: String): Fact =
-    f.withValue(StringValue(Value.toStringWithStruct(f.value, "") + post))
+    f.withValue(StringValue(Value.json.toStringWithStruct(f.value, "") + post))
 
   /** Represents a single entity with a number of dates, and for each date a number of possible facts */
   case class ChordEntity(entity: String, dates: List[(Date, List[Date])], above: List[Date]) {

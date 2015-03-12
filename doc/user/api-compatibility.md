@@ -3,6 +3,14 @@ API Compatibility
 
 This document serves as a list of changes to the Ivory API, both in the file format and in the Scala API.
 
+## 1.0.0-*-3eb8f01
+
+- Introduce json on ingest/extract for formatting structs/lists as JSON.
+  Previously struct/list records could only be extracted and not ingested.
+  JSON is now the default, but the old behaviour is still available (for now) with the following.
+
+    ivory snapshot -o "sparse:delimited:psv:deprecated=..."
+
 ## 1.0.0-*-71d176e
 
 - Introduce keyed_set mode which can handle a list of (mandatory) struct fields that are used to distinguish

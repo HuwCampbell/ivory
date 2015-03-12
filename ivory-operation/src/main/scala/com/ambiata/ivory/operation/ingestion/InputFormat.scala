@@ -20,6 +20,8 @@ object InputFormat {
         "Invalid input, missing format".left
     }).flatMap { x =>
       if (x._1.form != Form.Sparse) s"Only sparse supported for ingest: ${x._1.form}".left
+      else if (x._1.format.fold((_, _, x) => x.fold(true, false), false))
+        s"Only json format supported for ingest".left
       else (x._1.format, x._2, x._3).right
     }
 

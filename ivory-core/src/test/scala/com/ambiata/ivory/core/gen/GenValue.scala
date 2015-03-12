@@ -9,7 +9,7 @@ object GenValue {
     Gen.frequency(
         1 -> (Gen.identifier map StringValue.apply)
       , 2 -> (arbitrary[Int] map IntValue.apply)
-      , 2 -> (arbitrary[Long] map LongValue.apply)
+      , 2 -> long.map(LongValue.apply)
       , 2 -> (arbitrary[Double] map DoubleValue.apply)
       , 2 -> (arbitrary[Boolean] map BooleanValue.apply)
       , 2 -> (GenDate.date map DateValue.apply)
@@ -55,7 +55,8 @@ object GenValue {
     case IntEncoding =>
       arbitrary[Int].map(IntValue)
     case LongEncoding =>
-      arbitrary[Long].map(LongValue)
+      // Longs are encoded as IEE754 in JSON which makes some values non-symmetric
+      long.map(LongValue)
     case DoubleEncoding =>
       // FIX ARB avoid retry.
       arbitrary[Double].retryUntil(Value.validDouble).map(DoubleValue)
@@ -70,4 +71,8 @@ object GenValue {
     case DateEncoding =>
       GenDate.date.map(DateValue)
   }
+
+  // Longs are encoded as IEE754 in JSON which makes some values non-symmetric
+  def long: Gen[Long] =
+    arbitrary[Long].map(_.toDouble.toLong)
 }
