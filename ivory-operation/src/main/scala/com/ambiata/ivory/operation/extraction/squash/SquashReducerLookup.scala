@@ -14,16 +14,24 @@ import scalaz._, Scalaz._
 
 object SquashReducerLookup {
 
-  def createFromChord(chord: ChordPlan, reducers: Int): ReducerLookup =
+  def createFromChord(chord: ChordPlan, reducers: Int): Map[FeatureId, FeatureReducerOffset] =
     // This is not optimal at the moment and falls back to the dictionary-only implementation
     // https://github.com/ambiata/ivory/issues/610
-    createLookup(chord.commit.dictionary.value, lookupByWindowOnly(chord.commit.dictionary.value, reducers))
+    calculateOffsets(lookupByWindowOnly(chord.commit.dictionary.value, reducers))
 
-  def createFromSnapshot(snapshot: Snapshot, dictionary: Dictionary, reducers: Int): ReducerLookup =
-    createLookup(dictionary, snapshot.bytes.fold(
+  def createFromSnapshot(snapshot: Snapshot, dictionary: Dictionary, reducers: Int): Map[FeatureId, FeatureReducerOffset] =
+    calculateOffsets(snapshot.bytes.fold(
       _ => lookupByWindowOnly(dictionary, reducers),
       s => lookupByNamespaceSizeAndWindow(dictionary, s, reducers)
     ))
+
+  def toTraceString(offsets: Map[FeatureId, FeatureReducerOffset]): String =
+    (List(
+      "=== Squash Reducers ===",
+      "Feature|Offset|Reducers"
+    ) ++ offsets.toList.sortBy(_._2.offset).map(x => s"${x._1.toString}|${x._2.offset}|${x._2.count}") ++ List(
+      "======================="
+    )).mkString("\n")
 
   /**
    * To partition features across reducers we use the window "size" and assume it's proportional to the data size
@@ -96,12 +104,17 @@ object SquashReducerLookup {
         fid -> math.max(1, math.ceil(days.toDouble / totalDays(fid) * reducers(fid.namespace)).toInt)
     }.toMap
 
-  def createLookup(dictionary: Dictionary, reducers: Map[FeatureId, Int]): ReducerLookup =
+  def calculateOffsets(reducers: Map[FeatureId, Int]): Map[FeatureId, FeatureReducerOffset] =
     // Create a sub-index for all of the features so they don't overlap on the reducers
-    new ReducerLookup(reducers.zipWithIndex.map {
+    reducers.zipWithIndex.map {
       case ((fid, count), i) =>
-        val id = dictionary.byFeatureIndexReverse.getOrElse(fid, 0)
-        Int.box(id) -> Int.box(FeatureReducerOffset(i.toShort, count.toShort).toInt)
+        fid -> FeatureReducerOffset(i.toShort, count.toShort)
+    }.toMap
+
+  def toLookup(dictionary: Dictionary, reducers: Map[FeatureId, FeatureReducerOffset]): ReducerLookup =
+    new ReducerLookup(reducers.map {
+      case (fid, offset) =>
+        Int.box(dictionary.byFeatureIndexReverse.getOrElse(fid, 0)) -> Int.box(offset.toInt)
     }.toMap.asJava)
 
   def calcWindowSizes(dictionary: Dictionary): Map[FeatureId, Int] = {

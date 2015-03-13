@@ -51,7 +51,7 @@ object SquashJob {
    * 2. From a chord, where a single entity may have one or more dates. It will be important to pre-calculate a starting
    *    date for every possible entity date, and then look that up per entity on the reducer.
    */
-  def squash(repository: Repository, dictionary: Dictionary, lookup: ReducerLookup, conf: SquashConfig,
+  def squash(repository: Repository, dictionary: Dictionary, lookup: Map[FeatureId, FeatureReducerOffset], conf: SquashConfig,
              job: (Job, MrContext, Int), cluster: Cluster): RIO[ShadowOutputDataset] = for {
     key      <- Repository.tmpDir("squash")
     hr       <- repository.asHdfsRepository
@@ -109,8 +109,11 @@ object SquashJob {
     } yield ret
   }
 
-  def run(job: Job, ctx: MrContext, reducers: Int, dict: Dictionary, reducerLookup: ReducerLookup, output: Path,
+  def run(job: Job, ctx: MrContext, reducers: Int, dict: Dictionary, reducerLookup: Map[FeatureId, FeatureReducerOffset], output: Path,
           codec: Option[CompressionCodec], squashConf: SquashConfig, latest: Boolean): RIO[SquashStats] = {
+
+    // Eventually we'll want to add this to the Ivory trace
+    println(SquashReducerLookup.toTraceString(reducerLookup))
 
     job.setJarByClass(classOf[SquashPartitioner])
     job.setJobName(ctx.id.value)
@@ -141,7 +144,7 @@ object SquashJob {
     job.getConfiguration.setInt(Keys.ProfileMod, squashConf.profileSampleRate)
     val (featureIdLookup, reductionLookup) = dictToLookup(dictionary, latest)
     ctx.thriftCache.push(job, SnapshotJob.Keys.FeatureIdLookup, featureIdLookup)
-    ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup, reducerLookup)
+    ctx.thriftCache.push(job, ReducerLookups.Keys.ReducerLookup, SquashReducerLookup.toLookup(dict, reducerLookup))
 
     ctx.thriftCache.push(job, Keys.ExpressionLookup, reductionLookup)
     ctx.thriftCache.push(job, Keys.FeatureIsSetLookup, FeatureLookups.isSetTableConcrete(dictionary))

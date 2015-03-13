@@ -28,7 +28,7 @@ class SquashReducerLookupSpec extends Specification with ScalaCheck { def is = s
   def lookup = prop((d: VirtualDictionaryWindow, d2: DictionaryWithoutKeyedSet, s: NaturalInt, e: Int) => s.value != Short.MaxValue ==> {
     val reducers = s.value.toShort
     val dict = d.vd.dictionary.append(d2.value)
-    val create = SquashReducerLookup.createLookup(dict, SquashReducerLookup.lookupByWindowOnly(dict, reducers))
+    val create = SquashReducerLookup.toLookup(dict, SquashReducerLookup.calculateOffsets(SquashReducerLookup.lookupByWindowOnly(dict, reducers)))
     val lookupV = create.reducers.get(dict.byFeatureIndexReverse.getOrElse(d.vdict.vd.source, 0))
     val windowReducers = create.reducers.values().asScala.map(_ & 0xffff).sum
     windowReducers must beGreaterThan(reducers - d2.value.byConcrete.sources.size) and
