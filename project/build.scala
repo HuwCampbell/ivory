@@ -132,7 +132,7 @@ object build extends Build {
       -keepclassmembers class * { ** serialVersionUID; }
     """
     , javaOptions in (Proguard, ProguardKeys.proguard) := Seq("-Xmx2G")
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.hadoop(version.value)  ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.slf4j)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.pirate ++ depend.scalaz ++ depend.hadoop(version.value)  ++ depend.poacher(version.value) ++ depend.specs2 ++ depend.slf4j)
       ++ addArtifact(Artifact("ivory", "dist", "tgz"), packageZipTarball in Universal)
       ++ addArtifact(Artifact("ivory", "dist", "zip"), packageBin in Universal)
   )

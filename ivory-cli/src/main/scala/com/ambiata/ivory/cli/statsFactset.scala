@@ -1,27 +1,27 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.api.IvoryRetire
-import com.ambiata.ivory.core.HdfsRepository
 import com.ambiata.ivory.core.FactsetId
 import com.ambiata.ivory.storage.control._
 import com.ambiata.mundane.control._
+
+import pirate._, Pirate._
 
 object statsFactset extends IvoryApp {
   case class CliArguments(
     factSet: String
   )
 
-  val parser = new scopt.OptionParser[CliArguments]("factset-statistics") {
-    head("""
-           | Calculate and store statistics of features in a fact-set
-           |""".stripMargin)
+  val parser = Command(
+    "factset-statistics"
+  , Some("""
+    | Calculate and store statistics of features in a fact-set
+    |""".stripMargin)
+  , CliArguments |*|
+    flag[String](both('f', "fact-set"), description("Input ivory factset ID."))
+  )
 
-    help("help") text "shows this usage text"
-
-    opt[String]('f', "fact-set")   action { (x, c) => c.copy(factSet = x) }  required() text "Input ivory factset ID."
-  }
-
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(""), { repo => configuration => flags => c =>
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repo => configuration => flags => c =>
 
     IvoryT.fromRIO { for {
       hdfs          <- repo.asHdfsRepository

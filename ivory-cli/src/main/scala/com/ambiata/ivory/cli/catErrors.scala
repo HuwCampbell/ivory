@@ -3,24 +3,25 @@ package com.ambiata.ivory.cli
 import org.apache.hadoop.fs.Path
 import com.ambiata.ivory.api.Ivory.printErrors
 import com.ambiata.ivory.storage.control._
-import scalaz._, Scalaz._, effect.IO
+
+import pirate._, Pirate._
+
+import scalaz._, Scalaz._
 
 object catErrors extends IvoryApp {
-  case class CliArguments(delimiter: String = "|", paths: List[String] = Nil)
+  case class CliArguments(delimiter: String, paths: List[String])
 
-  val parser = new scopt.OptionParser[CliArguments]("cat-errors") {
-    head("""
-           |Print errors as text (LINE-MESSAGE) to standard out, delimited by '|' or explicitly set delimiter.
-           |""".stripMargin)
+  val parser = Command(
+    "cat-errors"
+  ,  Some("""
+     |Print errors as text (LINE-MESSAGE) to standard out, delimited by '|' or explicitly set delimiter.
+     |""".stripMargin)
+  , CliArguments |*| (
+    flag[String](both('d', "delimiter"), description("Delimiter (`|` by default)")).default("|")
+  , argument[String](metavar("INPUT_PATH") |+| description("Glob path to errors file or parent dir")).some
+  ))
 
-    help("help") text "shows this usage text"
-    arg[String]("INPUT_PATH")       action { (x, c) => c.copy(paths = x :: c.paths) } required() unbounded() text
-      "Glob path to errors file or parent dir"
-    opt[String]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) }        optional()             text
-      "Delimiter (`|` by default)"
-  }
-
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), IvoryRunner { conf => c =>
+  val cmd = IvoryCmd.cmd[CliArguments](parser, IvoryRunner { conf => c =>
     IvoryT.fromRIO { printErrors(c.paths.map(new Path(_)), conf.configuration, c.delimiter).as(Nil) }
   })
 }

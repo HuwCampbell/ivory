@@ -4,22 +4,23 @@ import com.ambiata.mundane.control._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.metadata._
 import com.ambiata.ivory.storage.control._
-import scalaz.effect.IO
+
+import pirate._, Pirate._
+
 object catDictionary extends IvoryApp {
 
   case class CliArguments(name: Option[String])
 
-  val parser = new scopt.OptionParser[CliArguments]("cat-dictionary") {
-    head("""
-           |Print dictionary as text to standard out, delimited by '|'.
-           |""".stripMargin)
+  val parser = Command(
+    "cat-dictionary"
+  , Some("""
+    |Print dictionary as text to standard out, delimited by '|'.
+    |""".stripMargin)
+  , CliArguments |*|
+    flag[String](both('n', "name"), description("For displaying the contents of an older dictionary")).option
+  )
 
-    help("help") text "shows this usage text"
-    opt[String]('n', "name")        action { (x, c) => c.copy(name = Some(x)) }           optional()       text
-      s"For displaying the contents of an older dictionary"
-  }
-
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(None), repo => flags => conf => {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, repo => flags => conf => {
     case CliArguments(nameOpt) =>
       val store = DictionaryThriftStorage(repo)
       IvoryT.fromRIO { for {

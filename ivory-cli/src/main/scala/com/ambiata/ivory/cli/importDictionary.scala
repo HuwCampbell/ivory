@@ -1,31 +1,32 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.operation.ingestion._, DictionaryImporter._
+
+import pirate._, Pirate._
+
 import scalaz._
 
 object importDictionary extends IvoryApp {
 
   case class CliArguments(path: String, update: Boolean, force: Boolean)
 
-  val parser = new scopt.OptionParser[CliArguments]("import-dictionary"){
-    head("""
-|Import dictionary into ivory.
-|
-|This app will parse the given dictionary and if valid, import it into the given repository.
-|""".stripMargin)
+  val parser = Command(
+    "import-dictionary"
+  , Some("""
+    |Import dictionary into ivory.
+    |
+    |This app will parse the given dictionary and if valid, import it into the given repository.
+    |""".stripMargin)
+  , CliArguments |*| (
+    flag[String](both('p', "path"), description(s"Hdfs path to either a single dictionary file or directory of files to import."))
+  , switch(both('u', "update"), description("Update the existing dictionary with extra values."))
+  , switch(both('f', "force"), description("Ignore any import warnings."))
+  ))
 
-    help("help") text "shows this usage text"
-
-    opt[String]('p', "path") action { (x, c) => c.copy(path = x) } required() text s"Hdfs path to either a single dictionary file or directory of files to import."
-    opt[Unit]('u', "update") action { (x, c) => c.copy(update = true) } optional() text s"Update the existing dictionary with extra values."
-    opt[Unit]('f', "force")  action { (x, c) => c.copy(force = true) } optional() text s"Ignore any import warnings."
-  }
-
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments("", update = false, force = false), { repository => configuration => flags => c =>
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repository => configuration => flags => c =>
       IvoryT.fromRIO { for {
         source <- IvoryLocation.fromUri(c.path, configuration)
         opts    = ImportOpts(if (c.update) Update else Override, c.force)
