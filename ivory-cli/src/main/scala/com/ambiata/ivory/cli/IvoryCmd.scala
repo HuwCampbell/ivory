@@ -33,8 +33,6 @@ object IvoryCmd {
 
   case class RepositoryArgs(repositoryPath: Option[String], strategy: Option[StrategyFlag])
 
-  case class ClusterArgs(shadowPath: String, syncParallelism: Int)
-
   def diagnostic(repository: Repository, flags: IvoryFlags): RIO[Unit] =
     RIO.safe(System.err.println(
       s"""================================================================================
@@ -86,21 +84,15 @@ object IvoryCmd {
     ))
   }
 
-  def withCluster[A](command: Command[A],
-                     runner: Repository => Cluster  => IvoryConfiguration => IvoryFlags => A => IvoryT[RIO, List[String]]): IvoryCmd[((A, ClusterArgs), RepositoryArgs)] = {
-
-    val commandCluster = command.copy(parse = command.parse tuple (ClusterArgs |*| (
-      flag[String](long("shadow-repository"), description(
+  def cluster: Parse[IvoryConfiguration => Cluster] =
+    (   flag[String](long("shadow-repository"), description(
         "Path to a shadow repository, defaults to environment variable SHADOW_REPOSITORY if set"))
         .default(sys.env.getOrElse("SHADOW_REPOSITORY", s"/tmp/ivory-shadow-${UUID.randomUUID()}"))
-    , flag[Int](long("sync-parallelism"), description("Number of parallel nodes to run operations with, defaults to 20"))
+    |@| flag[Int](long("sync-parallelism"), description("Number of parallel nodes to run operations with, defaults to 20"))
         .default(20)
-    )))
-    withRepo[(A, ClusterArgs)](commandCluster, repo => config => flags => c => {
-      val cluster = Cluster.fromIvoryConfiguration(new Path(c._2.shadowPath), config, c._2.syncParallelism)
-      runner(repo)(cluster)(config)(flags)(c._1)
-    })
-  }
+    )((shadowPath, syncParallelism) =>
+      config => Cluster.fromIvoryConfiguration(new Path(shadowPath), config, syncParallelism)
+    )
 
   def checkVersion: RepositoryTIO[Unit] = for {
     c <- Metadata.configuration

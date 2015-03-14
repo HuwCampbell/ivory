@@ -16,7 +16,8 @@ import scalaz._, Scalaz._
 
 object ingest extends IvoryApp {
 
-  case class CliArguments(inputs: List[String], timezone: Option[DateTimeZone], optimal: BytesQuantity)
+  case class CliArguments(inputs: List[String], timezone: Option[DateTimeZone], optimal: BytesQuantity,
+                          cluster: IvoryConfiguration => Cluster)
 
   val parser = Command(
     "ingest"
@@ -37,10 +38,11 @@ object ingest extends IvoryApp {
       |Defaults to the timezone specified on creation time of the Ivory repository.
       |""".stripMargin)).option
   , flag[BytesQuantity](both('o', "optimal-input-chunk"), description("Optimal size (in bytes) of input chunk.")).default(256.mb)
+  , IvoryCmd.cluster
   ))
 
-  val cmd = IvoryCmd.withCluster[CliArguments](parser,
-      repo => cluster => configuration => _ => c => for {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser,
+      repo => configuration => _ => c => for {
         inputs  <- IvoryT.fromRIO(RIO.fromDisjunctionString(
           c.inputs.traverseU(InputFormat.fromString).flatMap(_.traverseU {
             case (f, ns, i) => IvoryLocation.parseUri(i, configuration).map(il => (f, ns, il))
@@ -50,7 +52,7 @@ object ingest extends IvoryApp {
           case (_, ns, i) => ns.cata(_ => RIO.unit,
             IvoryLocation.isDirectory(i).flatMap(RIO.unless(_, RIO.fail(s"Invalid file ${i.show} for ingesting namespaces - must be a directory"))))
         })
-        factset <- Ingest.ingestFacts(repo, cluster, inputs, c.timezone, c.optimal)
+        factset <- Ingest.ingestFacts(repo, c.cluster(configuration), inputs, c.timezone, c.optimal)
       } yield List(s"""Successfully imported '${c.inputs.mkString(", ")}' as $factset into '${repo}'"""))
 
 }

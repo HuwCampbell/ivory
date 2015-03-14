@@ -17,7 +17,8 @@ import pirate._, Pirate._
 
 object snapshot extends IvoryApp {
 
-  case class CliArguments(date: Date, squash: SquashConfig, formats: ExtractOutput)
+  case class CliArguments(date: Date, squash: SquashConfig, formats: ExtractOutput,
+                          cluster: IvoryConfiguration => Cluster)
 
   val parser = Command[CliArguments](
     "snapshot"
@@ -32,10 +33,11 @@ object snapshot extends IvoryApp {
       .default(Date.fromLocalDate(LocalDate.now))
   , Extract.parseSquashConfig
   , Extract.parseOutput
+  , IvoryCmd.cluster
   ))
 
-  val cmd = IvoryCmd.withCluster[CliArguments](parser, {
-    repo => cluster => configuration => flags => c =>
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, {
+    repo => configuration => flags => c =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
                       |
@@ -51,6 +53,7 @@ object snapshot extends IvoryApp {
       IvoryT.fromRIO { for {
         of        <- Extract.parse(configuration, c.formats)
         snapshot  <- IvoryRetire.takeSnapshot(repo, flags, c.date)
+        cluster    = c.cluster(configuration)
         x         <- SquashJob.squashFromSnapshotWith(repo, snapshot, c.squash, cluster)
         (output, dictionary) = x
         r         <- RepositoryRead.fromRepository(repo)
