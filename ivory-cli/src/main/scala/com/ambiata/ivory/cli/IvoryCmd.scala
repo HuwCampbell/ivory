@@ -16,13 +16,14 @@ import scalaz._, Scalaz._
 
 object IvoryCmd {
 
-  def diagnostic(repository: Repository): RIO[Unit] =
+  def diagnostic(repository: Repository, flags: IvoryFlags): RIO[Unit] =
     RIO.safe(System.err.println(
       s"""================================================================================
          |
          |Ivory:
          |  Version:             ${IvoryVersion.get.version}
          |  Path:                ${repository.root.show}
+         |  Planning Strategy:   ${flags.plan.render}
          |
          |Hadoop:
          |  Version:             ${org.apache.hadoop.util.VersionInfo.getVersion}
@@ -35,31 +36,30 @@ object IvoryCmd {
          |""".stripMargin))
 
   def repository: Parse[IvoryConfiguration => IvoryT[RIO, Repository]] =
+    repositoryWithFlags.map(_.andThen(_.map(_._1)))
+
+  def repositoryWithFlags: Parse[IvoryConfiguration => IvoryT[RIO, (Repository, IvoryFlags)]] =
     repositoryBypassVersionCheck
-      .map(c => c.andThen(rio => IvoryT.fromRIO(rio).flatMap(repo => checkVersion.toIvoryT(repo).as(repo))))
+      .map(c => c.andThen(rio => IvoryT.fromRIO(rio).flatMap(repo => checkVersion.toIvoryT(repo._1).as(repo))))
 
   /** Should _only_ be called by upgrade - everything else related to a repository should call [[repository]] */
-  def repositoryBypassVersionCheck: Parse[IvoryConfiguration => RIO[Repository]] = {
-    flag[String](both('r', "repository"), description(
+  def repositoryBypassVersionCheck: Parse[IvoryConfiguration => RIO[(Repository, IvoryFlags)]] = {
+    ( flag[String](both('r', "repository"), description(
        "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"))
-    .map(some).default(sys.env.get("IVORY_REPOSITORY"))
-    .map(repoPathO => config =>
+      .map(some).default(sys.env.get("IVORY_REPOSITORY"))
+  |@| flag[StrategyFlag](long("plan-strategy"), description(
+      "Run with the specified plan strategy, one of: pessimistic - minimal IO, best answer, higher memory; " +
+        "conservative - higher IO, best answer, lower memory; optimistic - higher IO, good answer, quicker.")).option
+      .map(_.cata(IvoryFlags.apply, IvoryFlags.default))
+    )((repoPathO, flags) => config =>
       for {
         repoPath <- RIO.fromOption[String](repoPathO,
           "-r|--repository was missing or environment variable IVORY_REPOSITORY not set")
         repo     <- Repository.fromUri(repoPath, config)
-        _        <- diagnostic(repo)
-      } yield repo
+        _        <- diagnostic(repo, flags)
+      } yield (repo, flags)
     )
   }
-
-  def flags: Parse[RIO[IvoryFlags]] =
-    flag[StrategyFlag](long("plan-strategy"), description(
-      "Run with the specified plan strategy, one of: pessimistic - minimal IO, best answer, higher memory; " +
-        "conservative - higher IO, best answer, lower memory; optimistic - higher IO, good answer, quicker.")).option
-      .map(_.cata(IvoryFlags.apply, IvoryFlags.default))
-      // Make sure we trace uses of strategy
-      .map(flags => RIO.putStrLn(s"Planning Strategy:   ${flags.plan.render}").as(flags))
 
   def cluster: Parse[IvoryConfiguration => Cluster] =
     (   flag[String](long("shadow-repository"), description(

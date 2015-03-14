@@ -32,12 +32,12 @@ object snapshot extends IvoryApp {
   |@| Extract.parseSquashConfig
   |@| Extract.parseOutput
   |@| IvoryCmd.cluster
-  |@| IvoryCmd.flags
-  |@| IvoryCmd.repository
+  |@| IvoryCmd.repositoryWithFlags
 
-  )((date, squash, formats, clusterLoad, flags, loadRepo) =>
-      IvoryRunner(configuration => loadRepo(configuration).flatMap(repo => {
+  )((date, squash, formats, clusterLoad, loadRepo) =>
+      IvoryRunner(configuration => loadRepo(configuration).flatMap(repoAndFlags => {
 
+      val repo = repoAndFlags._1
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
                       |
@@ -52,8 +52,7 @@ object snapshot extends IvoryApp {
       println(banner)
       IvoryT.fromRIO { for {
         of        <- Extract.parse(configuration, formats)
-        flags     <- flags
-        snapshot  <- IvoryRetire.takeSnapshot(repo, flags, date)
+        snapshot  <- IvoryRetire.takeSnapshot(repo, repoAndFlags._2, date)
         cluster    = clusterLoad(configuration)
         x         <- SquashJob.squashFromSnapshotWith(repo, snapshot, squash, cluster)
         (output, dictionary) = x

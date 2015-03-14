@@ -15,6 +15,6 @@ object update extends IvoryApp {
     |Update to the latest ivory metadata version.
     |""".stripMargin)
   , IvoryCmd.repositoryBypassVersionCheck.map(r => IvoryRunner(configuration =>
-      IvoryT.fromRIO(r(configuration)).flatMap(repo => Update.update.toIvoryT(repo).as(Nil))
+      IvoryT.fromRIO(r(configuration)).flatMap(repo => Update.update.toIvoryT(repo._1).as(Nil))
   )))
 }
