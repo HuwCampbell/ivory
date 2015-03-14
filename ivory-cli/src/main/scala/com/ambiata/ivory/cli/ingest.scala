@@ -42,7 +42,7 @@ object ingest extends IvoryApp {
   ))
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser,
-      repo => configuration => _ => c => for {
+      repo => configuration => c => for {
         inputs  <- IvoryT.fromRIO(RIO.fromDisjunctionString(
           c.inputs.traverseU(InputFormat.fromString).flatMap(_.traverseU {
             case (f, ns, i) => IvoryLocation.parseUri(i, configuration).map(il => (f, ns, il))

@@ -29,7 +29,7 @@ object dumpFacts extends IvoryApp {
     , flag[String](both('o', "output"), empty).option
   ))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repository => conf => flags => c => IvoryT.fromRIO { for {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repository => conf => c => IvoryT.fromRIO { for {
     output <- c.output.traverse(o => IvoryLocation.fromUri(o, conf))
     request = DumpFactsRequest(c.factsets, c.snapshots, c.entities, c.attributes)
     ret    <- output.cata(out => Ivory.dumpFactsToFile(repository, request, out), Ivory.dumpFactsToStdout(repository, request))

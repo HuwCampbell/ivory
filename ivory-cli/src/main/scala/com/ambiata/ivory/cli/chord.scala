@@ -12,7 +12,7 @@ import pirate._, Pirate._
 object chord extends IvoryApp {
 
   case class CliArguments(entities: String, takeSnapshot: Boolean, squash: SquashConfig, formats: ExtractOutput,
-                          cluster: IvoryConfiguration => Cluster)
+                          cluster: IvoryConfiguration => Cluster, flags: RIO[IvoryFlags])
 
   val parser = Command(
     "chord"
@@ -27,9 +27,10 @@ object chord extends IvoryApp {
   , Extract.parseSquashConfig
   , Extract.parseOutput
   , IvoryCmd.cluster
+  , IvoryCmd.flags
   ))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repo => conf => flags => c =>
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repo => conf => c =>
     IvoryT.fromRIO { for {
       ent  <- IvoryLocation.fromUri(c.entities, conf)
       of   <- Extract.parse(conf, c.formats)
@@ -38,6 +39,7 @@ object chord extends IvoryApp {
       _    <- RIO.when(of.outputs.exists(_._1.format.isThrift), RIO.fail[Unit]("Thrift output for chord not currently supported"))
       r    <- RepositoryRead.fromRepository(repo)
       cluster = c.cluster(conf)
+      flags <- c.flags
       // TODO Should be using Ivory API here, but the generic return type is lost on the monomorphic function
       x    <- Chord.createChordWithSquash(repo, flags, ent, c.takeSnapshot, c.squash, cluster)
       (out, dict) = x

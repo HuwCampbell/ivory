@@ -24,7 +24,7 @@ object dumpReduction extends IvoryApp {
   , flag[String](both('o', "output"), description("The output location of the dump"))
   ))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repo => conf => flags => c =>
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repo => conf => c =>
     IvoryT.fromRIO { for {
       sid <- RIO.fromOption[SnapshotId](SnapshotId.parse(c.snapshot), s"Invalid snapshot ${c.snapshot}")
       out <- RIO.fromDisjunctionString[IvoryLocation](IvoryLocation.parseUri(c.output, conf))

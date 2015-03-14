@@ -18,7 +18,7 @@ object config extends IvoryApp {
   , ValueParse(CliArguments())
   )
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, repo => flags => conf => {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, repo => conf => {
     case CliArguments() =>
       (for {
         config <- Metadata.configuration

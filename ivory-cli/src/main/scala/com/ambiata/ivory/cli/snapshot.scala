@@ -8,6 +8,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.api.Ivory.{Date => _, _}
 import com.ambiata.ivory.operation.extraction.squash.SquashJob
 import com.ambiata.ivory.storage.control._
+import com.ambiata.mundane.control._
 
 import java.util.UUID
 
@@ -18,7 +19,7 @@ import pirate._, Pirate._
 object snapshot extends IvoryApp {
 
   case class CliArguments(date: Date, squash: SquashConfig, formats: ExtractOutput,
-                          cluster: IvoryConfiguration => Cluster)
+                          cluster: IvoryConfiguration => Cluster, flags: RIO[IvoryFlags])
 
   val parser = Command[CliArguments](
     "snapshot"
@@ -34,10 +35,11 @@ object snapshot extends IvoryApp {
   , Extract.parseSquashConfig
   , Extract.parseOutput
   , IvoryCmd.cluster
+  , IvoryCmd.flags
   ))
 
   val cmd = IvoryCmd.withRepo[CliArguments](parser, {
-    repo => configuration => flags => c =>
+    repo => configuration => c =>
       val runId = UUID.randomUUID
       val banner = s"""======================= snapshot =======================
                       |
@@ -52,6 +54,7 @@ object snapshot extends IvoryApp {
       println(banner)
       IvoryT.fromRIO { for {
         of        <- Extract.parse(configuration, c.formats)
+        flags     <- c.flags
         snapshot  <- IvoryRetire.takeSnapshot(repo, flags, c.date)
         cluster    = c.cluster(configuration)
         x         <- SquashJob.squashFromSnapshotWith(repo, snapshot, c.squash, cluster)

@@ -31,16 +31,13 @@ case class IvoryCmd[A](command: Command[A], runner: IvoryRunner[A]) {
 
 object IvoryCmd {
 
-  case class RepositoryArgs(repositoryPath: Option[String], strategy: Option[StrategyFlag])
-
-  def diagnostic(repository: Repository, flags: IvoryFlags): RIO[Unit] =
+  def diagnostic(repository: Repository): RIO[Unit] =
     RIO.safe(System.err.println(
       s"""================================================================================
          |
          |Ivory:
          |  Version:             ${IvoryVersion.get.version}
          |  Path:                ${repository.root.show}
-         |  Planning Strategy:   ${flags.plan.render}
          |
          |Hadoop:
          |  Version:             ${org.apache.hadoop.util.VersionInfo.getVersion}
@@ -56,33 +53,37 @@ object IvoryCmd {
     IvoryCmd(command, runner)
 
   def withRepo[A](command: Command[A],
-                  runner: Repository => IvoryConfiguration => IvoryFlags => A => IvoryT[RIO, List[String]]): IvoryCmd[(A, RepositoryArgs)] =
-    withRepoBypassVersionCheck(command, repo => config => flags => c =>
-      checkVersion.toIvoryT(repo) >> runner(repo)(config)(flags)(c))
+                  runner: Repository => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[(A, Option[String])] =
+    withRepoBypassVersionCheck(command, repo => config => c =>
+      checkVersion.toIvoryT(repo) >> runner(repo)(config)(c))
 
   /** Should _only_ be called by upgrade - everything else related to a repository should call [[withRepo]] */
   def withRepoBypassVersionCheck[A](command: Command[A],
-                                    runner: Repository => IvoryConfiguration => IvoryFlags => A => IvoryT[RIO, List[String]]): IvoryCmd[(A, RepositoryArgs)] = {
+                                    runner: Repository => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[(A, Option[String])] = {
 
-    val commandRepo = command.copy(parse = command.parse tuple (RepositoryArgs |*| (
+    val commandRepo = command.copy(parse = command.parse tuple
         flag[String](both('r', "repository"), description(
            "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"))
         .map(some).default(sys.env.get("IVORY_REPOSITORY"))
-      , flag[StrategyFlag](long("plan-strategy"), description(
-          "Run with the specified plan strategy, one of: pessimistic - minimal IO, best answer, higher memory; " +
-          "conservative - higher IO, best answer, lower memory; optimistic - higher IO, good answer, quicker.")).option
-    )))
+    )
     new IvoryCmd(commandRepo, IvoryRunner(config => c =>
       for {
-        repoPath        <- IvoryT.fromRIO { RIO.fromOption[String](c._2.repositoryPath,
+        repoPath        <- IvoryT.fromRIO { RIO.fromOption[String](c._2,
           "-r|--repository was missing or environment variable IVORY_REPOSITORY not set") }
-        flags           =  c._2.strategy.cata(IvoryFlags.apply, IvoryFlags.default)
         repo            <- IvoryT.fromRIO { Repository.fromUri(repoPath, config) }
-        _               <- IvoryT.fromRIO { diagnostic(repo, flags) }
-        result          <- runner(repo)(config)(flags)(c._1)
+        _               <- IvoryT.fromRIO { diagnostic(repo) }
+        result          <- runner(repo)(config)(c._1)
       } yield result
     ))
   }
+
+  def flags: Parse[RIO[IvoryFlags]] =
+    flag[StrategyFlag](long("plan-strategy"), description(
+      "Run with the specified plan strategy, one of: pessimistic - minimal IO, best answer, higher memory; " +
+        "conservative - higher IO, best answer, lower memory; optimistic - higher IO, good answer, quicker.")).option
+      .map(_.cata(IvoryFlags.apply, IvoryFlags.default))
+      // Make sure we trace uses of strategy
+      .map(flags => RIO.putStrLn(s"Planning Strategy:   ${flags.plan.render}").as(flags))
 
   def cluster: Parse[IvoryConfiguration => Cluster] =
     (   flag[String](long("shadow-repository"), description(

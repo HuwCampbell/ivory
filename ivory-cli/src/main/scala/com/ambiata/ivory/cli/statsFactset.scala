@@ -21,7 +21,7 @@ object statsFactset extends IvoryApp {
     flag[String](both('f', "fact-set"), description("Input ivory factset ID."))
   )
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repo => configuration => flags => c =>
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repo => configuration => c =>
 
     IvoryT.fromRIO { for {
       hdfs          <- repo.asHdfsRepository

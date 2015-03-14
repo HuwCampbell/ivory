@@ -26,7 +26,7 @@ object importDictionary extends IvoryApp {
   , switch(both('f', "force"), description("Ignore any import warnings."))
   ))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repository => configuration => flags => c =>
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repository => configuration => c =>
       IvoryT.fromRIO { for {
         source <- IvoryLocation.fromUri(c.path, configuration)
         opts    = ImportOpts(if (c.update) Update else Override, c.force)

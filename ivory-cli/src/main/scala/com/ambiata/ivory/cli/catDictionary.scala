@@ -20,7 +20,7 @@ object catDictionary extends IvoryApp {
     flag[String](both('n', "name"), description("For displaying the contents of an older dictionary")).option
   )
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, repo => flags => conf => {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, repo => conf => {
     case CliArguments(nameOpt) =>
       val store = DictionaryThriftStorage(repo)
       IvoryT.fromRIO { for {

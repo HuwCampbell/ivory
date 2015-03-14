@@ -32,7 +32,7 @@ object renameFacts extends IvoryApp {
     , flag[Long](both('s', "reducer-size"), description("Max size (in bytes) of a reducer used to copy Factsets")).option
   ))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repo => conf => flags => c => IvoryT.fromRIO { for {
+  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repo => conf => c => IvoryT.fromRIO { for {
     batch   <- c.batch.cata(parseBatchFile(_, conf), RIO.ok[RenameMapping](RenameMapping(Nil)))
     mapping <- RIO.fromDisjunction[RenameMapping](createMapping(c.mapping).leftMap(\&/.This.apply))
     r       <- RepositoryRead.fromRepository(repo)
