@@ -6,22 +6,18 @@ import pirate.{Metadata => _, _}
 
 object config extends IvoryApp {
 
-  case class CliArguments()
-
-  val parser = Command[CliArguments](
+  val cmd = Command(
     "config"
   , Some("""
     |Manipulate Ivory configuration values.
     |
     |Currently this is limited to printing the configuration only.
     |""".stripMargin)
-  , ValueParse(CliArguments())
-  )
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, repo => conf => {
-    case CliArguments() =>
-      (for {
-        config <- Metadata.configuration
-      } yield List(RepositoryConfigTextStorage.toJson(config))).toIvoryT(repo)
-  })
+  , IvoryCmd.repository.map(loadRepo => IvoryRunner(config =>
+      for {
+        repo <- loadRepo(config)
+        config <- Metadata.configuration.toIvoryT(repo)
+      } yield List(RepositoryConfigTextStorage.toJson(config))
+  )))
 }

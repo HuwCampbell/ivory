@@ -13,29 +13,27 @@ import scalaz._, Scalaz._
 
 object createRepository extends IvoryApp {
 
-  case class CliArguments(path: String, timezone: String)
-
-  val parser = Command(
+  val cmd = Command(
     "create-repository"
   , Some("""
       |Create Ivory Repository.
       |
       |This app will create an empty ivory repository.
       |""".stripMargin)
-  , CliArguments |*| (
-    argument[String](metavar("PATH") |+| description(s"Ivory repository to create."))
-  , flag[String](both('z', "timezone"), description(s"""
+
+  , ( argument[String](metavar("PATH") |+| description(s"Ivory repository to create."))
+  |@| flag[String](both('z', "timezone"), description(s"""
       |Timezone for all dates to be stored in Ivory.
       |For examples see http://joda-time.sourceforge.net/timezones.html, (eg. Sydney is 'Australia/Sydney')
       |""".stripMargin))
-  ))
 
-  val cmd = IvoryCmd.cmd[CliArguments](parser, IvoryRunner { configuration => c =>
-    println("Created configuration: " + configuration)
+  )((path, timezone) => IvoryRunner(configuration =>
+
     IvoryT.fromRIO(for {
-      repo     <- Repository.fromUri(c.path, configuration)
-      timezone <- RIO.fromDisjunction[DateTimeZone](DateTimeZoneUtil.forID(c.timezone).leftMap(\&/.This.apply))
+      _        <- RIO.putStrLn("Created configuration: " + configuration)
+      repo     <- Repository.fromUri(path, configuration)
+      timezone <- RIO.fromDisjunction[DateTimeZone](DateTimeZoneUtil.forID(timezone).leftMap(\&/.This.apply))
       _        <- Repositories.create(repo, RepositoryConfig(MetadataVersion.latestVersion, timezone))
     } yield Nil)
-  })
+  )))
 }

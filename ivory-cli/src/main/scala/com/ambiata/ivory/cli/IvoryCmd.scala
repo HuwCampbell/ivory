@@ -14,21 +14,6 @@ import pirate._, Pirate._
 
 import scalaz._, Scalaz._
 
-/**
- * Parse command line arguments and run a program with the IvoryRunner
- */
-case class IvoryCmd[A](command: Command[A], runner: IvoryRunner[A]) {
-
-  def init(ivoryConf: IvoryConfiguration): Command[RIO[Unit]] =
-    command.copy(parse = command.parse.map(a =>
-      for {
-        r <- IvoryRead.createIO
-        l <- runner.run(ivoryConf)(a).run.run(r)
-        _ <- l.traverse(RIO.putStrLn(_)).void
-      } yield ()
-    ))
-}
-
 object IvoryCmd {
 
   def diagnostic(repository: Repository): RIO[Unit] =
@@ -49,32 +34,23 @@ object IvoryCmd {
          |================================================================================
          |""".stripMargin))
 
-  def cmd[A](command: Command[A], runner: IvoryRunner[A]): IvoryCmd[A] =
-    IvoryCmd(command, runner)
+  def repository: Parse[IvoryConfiguration => IvoryT[RIO, Repository]] =
+    repositoryBypassVersionCheck
+      .map(c => c.andThen(rio => IvoryT.fromRIO(rio).flatMap(repo => checkVersion.toIvoryT(repo).as(repo))))
 
-  def withRepo[A](command: Command[A],
-                  runner: Repository => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[(A, Option[String])] =
-    withRepoBypassVersionCheck(command, repo => config => c =>
-      checkVersion.toIvoryT(repo) >> runner(repo)(config)(c))
-
-  /** Should _only_ be called by upgrade - everything else related to a repository should call [[withRepo]] */
-  def withRepoBypassVersionCheck[A](command: Command[A],
-                                    runner: Repository => IvoryConfiguration => A => IvoryT[RIO, List[String]]): IvoryCmd[(A, Option[String])] = {
-
-    val commandRepo = command.copy(parse = command.parse tuple
-        flag[String](both('r', "repository"), description(
-           "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"))
-        .map(some).default(sys.env.get("IVORY_REPOSITORY"))
-    )
-    new IvoryCmd(commandRepo, IvoryRunner(config => c =>
+  /** Should _only_ be called by upgrade - everything else related to a repository should call [[repository]] */
+  def repositoryBypassVersionCheck: Parse[IvoryConfiguration => RIO[Repository]] = {
+    flag[String](both('r', "repository"), description(
+       "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"))
+    .map(some).default(sys.env.get("IVORY_REPOSITORY"))
+    .map(repoPathO => config =>
       for {
-        repoPath        <- IvoryT.fromRIO { RIO.fromOption[String](c._2,
-          "-r|--repository was missing or environment variable IVORY_REPOSITORY not set") }
-        repo            <- IvoryT.fromRIO { Repository.fromUri(repoPath, config) }
-        _               <- IvoryT.fromRIO { diagnostic(repo) }
-        result          <- runner(repo)(config)(c._1)
-      } yield result
-    ))
+        repoPath <- RIO.fromOption[String](repoPathO,
+          "-r|--repository was missing or environment variable IVORY_REPOSITORY not set")
+        repo     <- Repository.fromUri(repoPath, config)
+        _        <- diagnostic(repo)
+      } yield repo
+    )
   }
 
   def flags: Parse[RIO[IvoryFlags]] =
@@ -116,11 +92,8 @@ object IvoryCmd {
   } yield ()
 }
 
-/**
- * Represents the run of an Ivory program, with all the necessary configuration
- */
-case class IvoryRunner[A](run: IvoryConfiguration => A => IvoryT[RIO, List[String]])
+case class IvoryRunner(run: IvoryConfiguration => IvoryT[RIO, List[String]])
 
 trait IvoryApp {
-  val cmd: IvoryCmd[_]
+  val cmd: Command[IvoryRunner]
 }

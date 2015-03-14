@@ -12,27 +12,28 @@ import pirate._, Pirate._
 import scalaz._, Scalaz._
 
 object dumpFacts extends IvoryApp {
-  case class CliArguments(entities: List[String], attributes: List[String], factsets: List[FactsetId],
-                          snapshots: List[SnapshotId], output: Option[String])
 
-  val parser = Command(
+  val cmd = Command(
       "debug-dump-facts"
     , Some("""
       |Dump facts related to the specified entity as text:
       |  ENTITY|NAMESPACE|ATTRIBUTE|VALUE|DATETIME|SOURCE
       |""".stripMargin)
-    , CliArguments |*| (
-      flag[String](both('e', "entity"), description("Default is all entities.")).many
-    , flag[String](both('a', "attribute"), description("Default is all attributes.")).many
-    , flag[FactsetId](both('f', "factset"), empty).many
-    , flag[SnapshotId](both('s', "snapshot"), empty).many
-    , flag[String](both('o', "output"), empty).option
-  ))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repository => conf => c => IvoryT.fromRIO { for {
-    output <- c.output.traverse(o => IvoryLocation.fromUri(o, conf))
-    request = DumpFactsRequest(c.factsets, c.snapshots, c.entities, c.attributes)
+    , ( flag[String](both('e', "entity"), description("Default is all entities.")).many
+    |@| flag[String](both('a', "attribute"), description("Default is all attributes.")).many
+    |@| flag[FactsetId](both('f', "factset"), empty).many
+    |@| flag[SnapshotId](both('s', "snapshot"), empty).many
+    |@| flag[String](both('o', "output"), empty).option
+    |@| IvoryCmd.repository
+
+      )((entities, attributes, factsets, snapshots, output, loadRepo) =>
+      IvoryRunner(conf => loadRepo(conf).flatMap(repository => IvoryT.fromRIO(for {
+
+    output <- output.traverse(o => IvoryLocation.fromUri(o, conf))
+    request = DumpFactsRequest(factsets, snapshots, entities, attributes)
     ret    <- output.cata(out => Ivory.dumpFactsToFile(repository, request, out), Ivory.dumpFactsToStdout(repository, request))
     _      <- RIO.fromDisjunctionString(ret)
-  } yield Nil } })
+    } yield Nil
+  )))))
 }

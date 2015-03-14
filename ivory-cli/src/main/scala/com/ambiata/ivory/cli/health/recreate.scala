@@ -6,17 +6,19 @@ import com.ambiata.ivory.storage.repository._
 
 import pirate._, Pirate._
 
+import scalaz._, Scalaz._
+
 object recreate extends IvoryApp {
-  case class CliArguments(factsets: List[FactsetId])
 
-  val parser = Command(
+  val cmd = Command(
     "health-recreate"
-  ,  Some("Recreate factsets using the latest format/compression/block size.")
-  , CliArguments |*|
-    flag[FactsetId](both('f', "factset"), empty).some
-  )
+  , Some("Recreate factsets using the latest format/compression/block size.")
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repo => conf => c =>
-    RecreateFactset.recreateFactsets(repo, c.factsets).map(re => List(re.successString))
-  })
+  , ( flag[FactsetId](both('f', "factset"), empty).some
+  |@| IvoryCmd.repository
+
+    )((factsets, loadRepo) => IvoryRunner(conf => loadRepo(conf).flatMap(repo =>
+
+    RecreateFactset.recreateFactsets(repo, factsets).map(re => List(re.successString))
+  ))))
 }

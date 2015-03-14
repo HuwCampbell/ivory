@@ -16,9 +16,7 @@ import scalaz._, Scalaz._
 
 object renameFacts extends IvoryApp {
 
-  case class CliArguments(mapping: List[(String, String)], batch: Option[String], reducerSize: Option[Long])
-
-  val parser = Command(
+  val cmd = Command(
       "rename"
     , Some("""
       |Rename a set of fact features (most likely due to legacy).
@@ -26,18 +24,20 @@ object renameFacts extends IvoryApp {
       |
       |WARNING: This operation is likely to take a while, depending on the size of the repository.
       | """.stripMargin)
-    , CliArguments |*| (
-      flag[Assign[String, String]](both('m', "mapping"), description(s"<FROM-NAMESPACE>:<FROM-FEATURE>=<TARGET-NAMESPACE>:<TO-FEATURE>")).map(_.tuple).many
-    , flag[String](both('b', "batch"), description(s"An optional batch file containing lines of 'from-namespace:from-feature|to-namespace:to-feature'")).option
-    , flag[Long](both('s', "reducer-size"), description("Max size (in bytes) of a reducer used to copy Factsets")).option
-  ))
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, { repo => conf => c => IvoryT.fromRIO { for {
-    batch   <- c.batch.cata(parseBatchFile(_, conf), RIO.ok[RenameMapping](RenameMapping(Nil)))
-    mapping <- RIO.fromDisjunction[RenameMapping](createMapping(c.mapping).leftMap(\&/.This.apply))
+    , ( flag[Assign[String, String]](both('m', "mapping"), description(s"<FROM-NAMESPACE>:<FROM-FEATURE>=<TARGET-NAMESPACE>:<TO-FEATURE>")).map(_.tuple).many
+    |@| flag[String](both('b', "batch"), description(s"An optional batch file containing lines of 'from-namespace:from-feature|to-namespace:to-feature'")).option
+    |@| flag[Long](both('s', "reducer-size"), description("Max size (in bytes) of a reducer used to copy Factsets")).option
+    |@| IvoryCmd.repository
+
+      )((mapping, batch, reducerSize, loadRepo) => IvoryRunner(conf => loadRepo(conf).flatMap(repo => IvoryT.fromRIO { for {
+
+    batch   <- batch.cata(parseBatchFile(_, conf), RIO.ok[RenameMapping](RenameMapping(Nil)))
+    mapping <- RIO.fromDisjunction[RenameMapping](createMapping(mapping).leftMap(\&/.This.apply))
     r       <- RepositoryRead.fromRepository(repo)
-    stats   <- Rename.rename(RenameMapping(batch.mapping ++ mapping.mapping), c.reducerSize.map(_.bytes).getOrElse(1.gb)).run(r)
-  } yield List(s"Successfully renamed ${stats._3.facts} facts to new factset ${stats._1.render}") } })
+    stats   <- Rename.rename(RenameMapping(batch.mapping ++ mapping.mapping), reducerSize.map(_.bytes).getOrElse(1.gb)).run(r)
+  } yield List(s"Successfully renamed ${stats._3.facts} facts to new factset ${stats._1.render}") }
+  ))))
 
   def createMapping(mapping: List[(String, String)]): String \/ RenameMapping =
     mapping.traverseU { case (f, t) => FeatureId.parse(f) tuple FeatureId.parse(t) }.map(RenameMapping.apply)

@@ -7,21 +7,21 @@ import com.ambiata.ivory.storage.control._
 
 import pirate._, Pirate._
 
+import scalaz._, Scalaz._
+
 object catDictionary extends IvoryApp {
 
-  case class CliArguments(name: Option[String])
-
-  val parser = Command(
+  val cmd = Command(
     "cat-dictionary"
   , Some("""
     |Print dictionary as text to standard out, delimited by '|'.
     |""".stripMargin)
-  , CliArguments |*|
-    flag[String](both('n', "name"), description("For displaying the contents of an older dictionary")).option
-  )
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, repo => conf => {
-    case CliArguments(nameOpt) =>
+  , ( flag[String](both('n', "name"), description("For displaying the contents of an older dictionary")).option
+  |@| IvoryCmd.repository
+
+    )((nameOpt, loadRepo) => IvoryRunner(conf => loadRepo(conf).flatMap(repo => {
+
       val store = DictionaryThriftStorage(repo)
       IvoryT.fromRIO { for {
         dictionary <- nameOpt.flatMap(Identifier.parse) match {
@@ -31,5 +31,5 @@ object catDictionary extends IvoryApp {
       } yield List(
         DictionaryTextStorageV2.delimitedString(dictionary)
       ) }
-  })
+  }))))
 }

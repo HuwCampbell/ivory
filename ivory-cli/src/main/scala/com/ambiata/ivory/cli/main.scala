@@ -1,6 +1,7 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core.IvoryConfiguration
+import com.ambiata.ivory.storage.control.IvoryRead
 import com.ambiata.ivory.storage.repository.Codec
 import com.ambiata.mundane.control._
 import com.ambiata.poacher.mr.Args
@@ -37,18 +38,19 @@ object main {
   def main(args: Array[String]): Unit = {
     val ivoryConf = createIvoryConfiguration(args.toList)
     val cmd = Command("ivory", None,
-      commands.map(c => subcommand(c.cmd.init(ivoryConf)) <* helperX).foldLeft1(_ ||| _)
+      commands.map(c => subcommand(c.cmd) <* helperX).foldLeft1(_ ||| _)
       <* helper
       <* version(BuildInfo.version)
     )
     // End of the universe
-    Runners.runOrFail[RIO[Unit]](ivoryConf.arguments, cmd, _.unsafeIO.map({
-      case Ok(_) =>
-        ()
-      case Error(e) =>
-        sys.error(Result.asString(e))
-        sys.exit(1)
-    })).unsafePerformIO
+    Runners.runOrFail(ivoryConf.arguments, cmd).flatMap(ir =>
+      IvoryRead.createIO.flatMap(r => ir.run(ivoryConf).run(r)).unsafeIO.map({
+        case Ok(l) =>
+          l.foreach(println)
+        case Error(e) =>
+          Console.err.println(Result.asString(e))
+          sys.exit(1)
+      })).unsafePerformIO
   }
 
   def createIvoryConfiguration(args: List[String]): IvoryConfiguration = {
