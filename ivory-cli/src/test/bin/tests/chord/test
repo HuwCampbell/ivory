@@ -1,0 +1,20 @@
+#!/bin/sh -eux
+
+DIR=$(dirname $0)
+. "${DIR}/../../setup.sh"
+
+$IVORY create-repository -z "Australia/Sydney" "${REPOSITORY}"
+$IVORY import-dictionary -p "${INPUT}/dictionary.psv"
+$IVORY ingest -i "sparse:delimited:psv|halibut=${INPUT}/facts"
+
+# Test that --no-snapshot does what it says it does
+# It's not prettiest way to assert this requirement, but it's better than nothing
+$IVORY chord --entities "${INPUT}/chord.psv" -o "sparse:delimited:psv=${TARGET}/chord1.psv" --no-snapshot
+[ $(ls ${REPOSITORY}/snapshots | wc -l) = 0 ]
+
+$IVORY chord --entities "${INPUT}/chord.psv" -o "sparse:delimited:psv=${TARGET}/chord2.psv"
+[ $(ls ${REPOSITORY}/snapshots | wc -l) = 1 ]
+
+cat ${TARGET}/chord1.psv/part-* | sort > "${TARGET}/chord1-all.psv"
+cat ${TARGET}/chord2.psv/part-* | sort > "${TARGET}/chord2-all.psv"
+diff_test "${TARGET}/chord1-all.psv" "${TARGET}/chord2-all.psv"

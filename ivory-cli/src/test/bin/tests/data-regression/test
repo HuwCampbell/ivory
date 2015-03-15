@@ -32,6 +32,11 @@ $V3 snapshot
 
 ### LATEST ###
 
+# Both of these should _not_ require and update and should exit cleanly
+
+$IVORY --version
+$IVORY --help
+
 if $IVORY cat-dictionary; then echo "Do not pass go - upgrade was not required"; exit 1; fi
 
 $IVORY update

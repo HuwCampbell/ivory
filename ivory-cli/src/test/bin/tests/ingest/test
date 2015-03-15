@@ -20,4 +20,4 @@ $IVORY debug-dump-facts -r "${REPOSITORY}" -f 00000001 | sort > "${TARGET}/halib
 diff_test "${DIR}/expected/halibut-facts.psv" "${TARGET}/halibut-facts.psv"
 
 ### Ingest with an invalid namespace - should fail
-$IVORY ingest -i "sparse:delimited:psv|invalid=${INPUT}/facts-2" | grep "Unknown namespaces"
+if $IVORY ingest -i "sparse:delimited:psv|invalid=${INPUT}/facts-2"; then echo "Unknown namespace wasn't a failure"; exit 1; fi

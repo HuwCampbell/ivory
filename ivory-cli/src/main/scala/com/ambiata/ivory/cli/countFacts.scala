@@ -1,23 +1,26 @@
 package com.ambiata.ivory.cli
 
-import org.apache.hadoop.fs.Path
 import com.ambiata.ivory.api.IvoryRetire
 import com.ambiata.ivory.storage.control._
-import scalaz.effect.IO
+
+import org.apache.hadoop.fs.Path
+
+import pirate._, Pirate._
+
+import scalaz._, Scalaz._
 
 object countFacts extends IvoryApp {
-  case class CliArguments(path: String)
 
-  val parser = new scopt.OptionParser[CliArguments]("count-facts") {
-    head("""
-           | Count the number of facts in a snapshot
-           |""".stripMargin)
+  val cmd = Command(
+    "count-facts"
+  , Some("""
+    | Count the number of facts in a snapshot
+    |""".stripMargin)
 
-    help("help") text "shows this usage text"
-    arg[String]("INPUT_PATH") action { (x, c) => c.copy(path = x) } required() text "Input path to snapshot"
-  }
+  , argument[String](metavar("INPUT_PATH") |+| description("Input path to snapshot"))
 
-  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(""), IvoryRunner { configuration => c =>
-    IvoryT.fromRIO { IvoryRetire.countFacts(new Path(c.path, "*")).run(configuration.scoobiConfiguration).map(count => List(count.toString)) }
-  })
+    .map(path => IvoryRunner(configuration =>
+
+    IvoryT.fromRIO { IvoryRetire.countFacts(new Path(path, "*")).run(configuration.scoobiConfiguration).map(count => List(count.toString)) }
+  )))
 }

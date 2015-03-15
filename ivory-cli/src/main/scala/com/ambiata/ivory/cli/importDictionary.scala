@@ -1,34 +1,34 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.core._
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.storage.control._
 import com.ambiata.ivory.operation.ingestion._, DictionaryImporter._
-import scalaz._
+
+import pirate._, Pirate._
+
+import scalaz._, Scalaz._
 
 object importDictionary extends IvoryApp {
 
-  case class CliArguments(path: String, update: Boolean, force: Boolean)
+  val cmd = Command(
+    "import-dictionary"
+  , Some("""
+    |Import dictionary into ivory.
+    |
+    |This app will parse the given dictionary and if valid, import it into the given repository.
+    |""".stripMargin)
 
-  val parser = new scopt.OptionParser[CliArguments]("import-dictionary"){
-    head("""
-|Import dictionary into ivory.
-|
-|This app will parse the given dictionary and if valid, import it into the given repository.
-|""".stripMargin)
+  , ( flag[String](both('p', "path"), description(s"Hdfs path to either a single dictionary file or directory of files to import."))
+  |@| switch(both('u', "update"), description("Update the existing dictionary with extra values."))
+  |@| switch(both('f', "force"), description("Ignore any import warnings."))
+  |@| IvoryCmd.repository
 
-    help("help") text "shows this usage text"
+  )((path, update, force, loadRepo) => IvoryRunner(configuration => loadRepo(configuration).flatMap(repository =>
 
-    opt[String]('p', "path") action { (x, c) => c.copy(path = x) } required() text s"Hdfs path to either a single dictionary file or directory of files to import."
-    opt[Unit]('u', "update") action { (x, c) => c.copy(update = true) } optional() text s"Update the existing dictionary with extra values."
-    opt[Unit]('f', "force")  action { (x, c) => c.copy(force = true) } optional() text s"Ignore any import warnings."
-  }
-
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments("", update = false, force = false), { repository => configuration => flags => c =>
-      IvoryT.fromRIO { for {
-        source <- IvoryLocation.fromUri(c.path, configuration)
-        opts    = ImportOpts(if (c.update) Update else Override, c.force)
+      IvoryT.fromRIO(for {
+        source <- IvoryLocation.fromUri(path, configuration)
+        opts    = ImportOpts(if (update) Update else Override, force)
         result <- DictionaryImporter.importFromPath(repository, source, opts)
         _      <- result._1 match {
           case Success(_) =>
@@ -39,6 +39,6 @@ object importDictionary extends IvoryApp {
 
         }
         _       <- RIO.fromOption[DictionaryId](result._2, "Invalid dictionary")
-      } yield List(s"Successfully imported dictionary ${c.path} into ${repository.root.show}") }
-  })
+      } yield List(s"Successfully imported dictionary ${path} into ${repository.root.show}"))
+  ))))
 }

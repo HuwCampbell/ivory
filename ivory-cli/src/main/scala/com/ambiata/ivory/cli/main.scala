@@ -1,11 +1,21 @@
 package com.ambiata.ivory.cli
 
+import com.ambiata.ivory.core.IvoryConfiguration
+import com.ambiata.ivory.storage.control.IvoryRead
+import com.ambiata.ivory.storage.repository.Codec
 import com.ambiata.mundane.control._
+import com.ambiata.poacher.mr.Args
+import com.ambiata.saws.core.Clients
+
+import com.nicta.scoobi.Scoobi._
+
+import pirate._, Pirate._
+
 import scalaz._, Scalaz._
 
 object main {
 
-  val commands: List[IvoryApp] = List(
+  val commands: NonEmptyList[IvoryApp] = NonEmptyList(
     admin.renameFacts,
     catDictionary,
     catErrors,
@@ -26,33 +36,45 @@ object main {
   )
 
   def main(args: Array[String]): Unit = {
-    handleVersionAndExit(args)
-    val program: Option[RIO[Option[Unit]]] = for {
-      (progName, argsRest) <- args.headOption.map(_ -> args.tail)
-      command <- commands.find(_.cmd.parser.programName == progName)
-    } yield command.cmd.run(argsRest)
+    val ivoryConf = createIvoryConfiguration(args.toList)
+    val cmd = Command("ivory", None,
+      commands.map(c => subcommand(c.cmd) <* helperX).foldLeft1(_ ||| _)
+      <* helper
+      <* version(BuildInfo.version)
+    )
     // End of the universe
-    program.sequence.flatMap(o => o.flatten.fold(usage())(_ => RIO.unit)).unsafePerformIO match {
-      case Ok(_) =>
-        ()
-      case Error(e) =>
-        sys.error(Result.asString(e))
-    }
+    Runners.runOrFail(ivoryConf.arguments, cmd).flatMap(ir =>
+      IvoryRead.createIO.flatMap(r => ir.run(ivoryConf).run(r)).unsafeIO.map({
+        case Ok(l) =>
+          l.foreach(println)
+        case Error(e) =>
+          Console.err.println(Result.asString(e))
+          sys.exit(1)
+      })).unsafePerformIO
   }
 
-  def usage(): RIO[Unit] = RIO.safe {
-    val cmdNames = commands.map(_.cmd.parser.programName).mkString("|")
-    println(s"Ivory ${BuildInfo.version}")
-    println(s"Usage: {$cmdNames}")
-    sys.exit(1)
+  def createIvoryConfiguration(args: List[String]): IvoryConfiguration = {
+    val configuration = Args.configuration(removeScoobiArguments(args))
+    IvoryConfiguration(
+      arguments        = configuration._2,
+      s3Client         = Clients.s3,
+      hdfs             = () => configuration._1,
+      scoobi           = () => createScoobiConfiguration(args),
+      compressionCodec = () => Codec())
   }
 
-  // We could also mutate the scopt OptionParser, but this is a little more obvious
-  def handleVersionAndExit(args: Array[String]): Unit =
-    args match {
-      case Array("--version") =>
-        println(s"Ivory ${BuildInfo.version}")
-        sys.exit(0)
-      case _ =>
-    }
+  /** ugly, but... */
+  def createScoobiConfiguration(args: List[String]): ScoobiConfiguration = {
+    var sc: ScoobiConfiguration = null
+    new ScoobiApp {
+      def run = sc = configuration
+    }.main(args.toArray)
+    sc
+  }
+
+  /** remove scoobi arguments if they are passed as: user1 user2 scoobi verbose.all.cluster user3 user4 */
+  def removeScoobiArguments(args: List[String]): List[String] = {
+    val (before, after) = args.span(_.toLowerCase != "scoobi")
+    before ++ after.drop(2)
+  }
 }

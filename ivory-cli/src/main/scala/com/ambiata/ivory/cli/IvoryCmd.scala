@@ -1,74 +1,21 @@
 package com.ambiata.ivory.cli
 
-import java.util.UUID
-
+import com.ambiata.ivory.cli.PirateReaders._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.control._
-import com.ambiata.ivory.storage.repository.Codec
 import com.ambiata.ivory.storage.metadata.Metadata
-import com.ambiata.ivory.cli.ScoptReaders._
 import com.ambiata.mundane.control._
-import com.ambiata.saws.core.Clients
-import com.nicta.scoobi.Scoobi._
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.util.GenericOptionsParser
+
+import java.util.UUID
+
 import org.apache.hadoop.fs.Path
 
-import scalaz.effect.IO
+import pirate._, Pirate._
+
 import scalaz._, Scalaz._
 
-/**
- * Parse command line arguments and run a program with the IvoryRunner
- */
-case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryRunner[A]) {
-  def run(args: Array[String]): RIO[Option[Unit]] = {
-    val repositoryConfiguration = createIvoryConfiguration(args)
-    parseAndRun(repositoryConfiguration.arguments, runner.run(repositoryConfiguration))
-  }
-
-  private def createIvoryConfiguration(args: Array[String]): IvoryConfiguration =
-    IvoryConfiguration(
-      arguments        = parseHadoopArguments(args)._2.toList,
-      s3Client         = Clients.s3,
-      hdfs             = () => parseHadoopArguments(args)._1,
-      scoobi           = () => createScoobiConfiguration(args),
-      compressionCodec = () => Codec())
-
-  /**
-   * parse args for hadoop arguments and set them on a fresh Configuration object
-   * @return (the new configuration, the arguments without and Hadoop or Scoobi options)
-   */
-  private def parseHadoopArguments(args: Array[String]): (Configuration, Array[String]) = {
-    val configuration = new Configuration
-    val parser = new GenericOptionsParser(configuration, removeScoobiArguments(args))
-    (configuration, parser.getRemainingArgs)
-  }
-
-  /** ugly, but... */
-  private def createScoobiConfiguration(args: Array[String]) = {
-    var sc: ScoobiConfiguration = null
-    new ScoobiApp {
-      def run = sc = configuration
-    }.main(args)
-    sc
-  }
-
-  /** remove scoobi arguments if they are passed as: user1 user2 scoobi verbose.all.cluster user3 user4 */
-  private def removeScoobiArguments(args: Array[String]): Array[String] = {
-    val (before, after) = args.span(_.toLowerCase != "scoobi")
-    before ++ after.drop(2)
-  }
-
-  private def parseAndRun(args: Seq[String], result: A => IvoryT[RIO, List[String]]): RIO[Option[Unit]] = {
-    parser.parse(args, initial).traverseU(a => for {
-        r <- IvoryRead.createIO
-        x <- result(a).run.run(r)
-      } yield x).liftExceptions.onError(e => {
-        println(s"Failed! - ${Result.asString(e)}"); sys.exit(1) }).flatMap(l => l.traverse(_.traverse(RIO.putStrLn(_)).void))
-  }
-}
-
 object IvoryCmd {
+
   def diagnostic(repository: Repository, flags: IvoryFlags): RIO[Unit] =
     RIO.safe(System.err.println(
       s"""================================================================================
@@ -88,53 +35,41 @@ object IvoryCmd {
          |================================================================================
          |""".stripMargin))
 
-  def withRepo[A](parser: scopt.OptionParser[A], initial: A,
-                  runner: Repository => IvoryConfiguration => IvoryFlags => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
-    withRepoBypassVersionCheck(parser, initial, repo => config => flags => c =>
-      checkVersion.toIvoryT(repo) >> runner(repo)(config)(flags)(c))
-  }
+  def repository: Parse[IvoryConfiguration => IvoryT[RIO, Repository]] =
+    repositoryWithFlags.map(_.andThen(_.map(_._1)))
 
-  /** Should _only_ be called by upgrade - everything else related to a repository should call [[withRepo]] */
-  def withRepoBypassVersionCheck[A](parser: scopt.OptionParser[A], initial: A,
-                                    runner: Repository => IvoryConfiguration => IvoryFlags => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
-    // Oh god this is an ugly/evil hack - the world will be a better place when we upgrade to Pirate
-    // Composition, it's a thing scopt, look it up
-    var repoArg: Option[String] = None
-    var strategy: Option[StrategyFlag] = None
-    parser.opt[String]('r', "repository") action { (x, c) => repoArg = Some(x); c} text
-      "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"
-    parser.opt[StrategyFlag]("plan-strategy") action { (x, c) => strategy = Some(x); c} optional() text
+  def repositoryWithFlags: Parse[IvoryConfiguration => IvoryT[RIO, (Repository, IvoryFlags)]] =
+    repositoryBypassVersionCheck
+      .map(c => c.andThen(rio => IvoryT.fromRIO(rio).flatMap(repo => checkVersion.toIvoryT(repo._1).as(repo))))
+
+  /** Should _only_ be called by upgrade - everything else related to a repository should call [[repository]] */
+  def repositoryBypassVersionCheck: Parse[IvoryConfiguration => RIO[(Repository, IvoryFlags)]] = {
+    ( flag[String](both('r', "repository"), description(
+       "Path to an ivory repository, defaults to environment variable IVORY_REPOSITORY if set"))
+      .map(some).default(sys.env.get("IVORY_REPOSITORY"))
+  |@| flag[StrategyFlag](long("plan-strategy"), description(
       "Run with the specified plan strategy, one of: pessimistic - minimal IO, best answer, higher memory; " +
-      "conservative - higher IO, best answer, lower memory; optimistic - higher IO, good answer, quicker."
-    new IvoryCmd[A](parser, initial, IvoryRunner(config => c =>
+        "conservative - higher IO, best answer, lower memory; optimistic - higher IO, good answer, quicker.")).option
+      .map(_.cata(IvoryFlags.apply, IvoryFlags.default))
+    )((repoPathO, flags) => config =>
       for {
-        repoPath        <- IvoryT.fromRIO { RIO.fromOption[String](repoArg.orElse(sys.env.get("IVORY_REPOSITORY")),
-          "-r|--repository was missing or environment variable IVORY_REPOSITORY not set") }
-        flags           =  strategy.cata(IvoryFlags.apply, IvoryFlags.default)
-        repo            <- IvoryT.fromRIO { Repository.fromUri(repoPath, config) }
-        _               <- IvoryT.fromRIO { diagnostic(repo, flags) }
-        result          <- runner(repo)(config)(flags)(c)
-      } yield result
-    ))
-  }
-
-  def withCluster[A](parser: scopt.OptionParser[A], initial: A,
-                     runner: Repository => Cluster  => IvoryConfiguration => IvoryFlags => A => IvoryT[RIO, List[String]]): IvoryCmd[A] = {
-    var syncParallelismArg: Option[Int] = None
-    var shadowRepoArg: Option[String] = None
-    parser.opt[String]("shadow-repository") action { (x, c) => shadowRepoArg = Some(x); c} optional() text
-      "Path to a shadow repository, defaults to environment variable SHADOW_REPOSITORY if set"
-    parser.opt[Int]("sync-parallelism") action { (x, c) => syncParallelismArg = Some(x); c} optional() text
-      "Number of parallel nodes to run operations with, defaults to 20"
-    withRepo(parser, initial, repo => config => flags => c =>
-      for {
-        shadowPath      <- IvoryT.fromRIO[String] { RIO.ok(shadowRepoArg.orElse(sys.env.get("SHADOW_REPOSITORY")).getOrElse(s"/tmp/ivory-shadow-${UUID.randomUUID()}")) }
-        syncParallelism <- IvoryT.fromRIO { RIO.ok[Int](syncParallelismArg.getOrElse(20)) }
-        cluster         =  Cluster.fromIvoryConfiguration(new Path(shadowPath), config, syncParallelism)
-        result          <- runner(repo)(cluster)(config)(flags)(c)
-      } yield result
+        repoPath <- RIO.fromOption[String](repoPathO,
+          "-r|--repository was missing or environment variable IVORY_REPOSITORY not set")
+        repo     <- Repository.fromUri(repoPath, config)
+        _        <- diagnostic(repo, flags)
+      } yield (repo, flags)
     )
   }
+
+  def cluster: Parse[IvoryConfiguration => Cluster] =
+    (   flag[String](long("shadow-repository"), description(
+        "Path to a shadow repository, defaults to environment variable SHADOW_REPOSITORY if set"))
+        .default(sys.env.getOrElse("SHADOW_REPOSITORY", s"/tmp/ivory-shadow-${UUID.randomUUID()}"))
+    |@| flag[Int](long("sync-parallelism"), description("Number of parallel nodes to run operations with, defaults to 20"))
+        .default(20)
+    )((shadowPath, syncParallelism) =>
+      config => Cluster.fromIvoryConfiguration(new Path(shadowPath), config, syncParallelism)
+    )
 
   def checkVersion: RepositoryTIO[Unit] = for {
     c <- Metadata.configuration
@@ -157,12 +92,8 @@ object IvoryCmd {
   } yield ()
 }
 
-/**
- * Represents the run of an Ivory program, with all the necessary configuration
- */
-case class IvoryRunner[A](run: IvoryConfiguration => A => IvoryT[RIO, List[String]])
+case class IvoryRunner(run: IvoryConfiguration => IvoryT[RIO, List[String]])
 
 trait IvoryApp {
-  // It's important this is a val, not a def, to ensure we don't mutate scopt twice accidentally
-  val cmd: IvoryCmd[_]
+  val cmd: Command[IvoryRunner]
 }

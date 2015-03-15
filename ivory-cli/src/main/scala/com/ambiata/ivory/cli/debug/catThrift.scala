@@ -3,36 +3,32 @@ package com.ambiata.ivory.cli.debug
 import com.ambiata.ivory.cli._
 import com.ambiata.ivory.operation.debug._
 import com.ambiata.ivory.storage.control._
-import com.ambiata.mundane.control.RIO
+import com.ambiata.mundane.control._
 
-import scalaz.effect.IO
+import pirate._, Pirate._
+
+import scalaz._, Scalaz._
 
 object catThrift extends IvoryApp {
 
-  case class CliArguments(entities: List[String], format: String, input: String, output: String)
+  val cmd = Command(
+      "cat-thrift"
+    , Some("""
+      |Prints the contents of Ivory thrift ingest/extract files
+      |""".stripMargin)
 
-  val parser = new scopt.OptionParser[CliArguments]("cat-thrift") {
-    head("""
-           |Prints the contents of Ivory thrift ingest/extract files
-           |""".stripMargin)
+    , ( flag[String](both('e', "entity"), description("Filter entities to display. Default is all entities.")).many
+    |@| flag[String](both('f', "format"), description(s"""
+        |The type of thrift format.
+        |Supported formats are [${CatThriftFormat.formats.keys.mkString(", ")}].
+        |""".stripMargin))
+    |@| flag[String](both('o', "output"), empty)
+    |@| argument[String](metavar("INPUT_PATH") |+| description("Glob path to thrift sequence files or parent dir"))
 
-    help("help") text "shows this usage text"
-    opt[String]('e', "entity") unbounded() optional() text "Filter entities to display. Default is all entities." action {
-      (x, c) => c.copy(entities = x :: c.entities)
-    }
-    opt[String]('o', "output") required() action {
-      (x, c) => c.copy(output = x)
-    }
-    opt[String]('f', "format") required() text s"""The type of thrift format. Supported formats are [${CatThriftFormat.formats.keys.mkString(", ")}].""" action {
-      (x, c) => c.copy(format = x)
-    }
-    arg[String]("INPUT_PATH") required() text "Glob path to thrift sequence files or parent dir" action {
-      (x, c) => c.copy(input = x)
-    }
-  }
+      )((entities, format, output, input) => IvoryRunner(conf => IvoryT.fromRIO(for {
 
-  val cmd =  new IvoryCmd[CliArguments](parser, CliArguments(Nil, "not-set", "not-set", "not-set"), IvoryRunner { conf => c => IvoryT.fromRIO { for {
-    format <- RIO.fromOption[CatThriftFormat](CatThriftFormat.parseFormat(c.format), s"Unknown thrift format '${c.format}'")
-    _      <- CatThrift.run(conf.configuration, c.entities, c.input, format, c.output, conf.codec)
-  } yield Nil } })
+    format <- RIO.fromOption[CatThriftFormat](CatThriftFormat.parseFormat(format), s"Unknown thrift format '${format}'")
+    _      <- CatThrift.run(conf.configuration, entities, input, format, output, conf.codec)
+    } yield Nil
+  ))))
 }

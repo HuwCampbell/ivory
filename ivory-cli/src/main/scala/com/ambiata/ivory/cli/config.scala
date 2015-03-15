@@ -2,24 +2,22 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.storage.metadata._
 
+import pirate.{Metadata => _, _}
+
 object config extends IvoryApp {
 
-  case class CliArguments()
+  val cmd = Command(
+    "config"
+  , Some("""
+    |Manipulate Ivory configuration values.
+    |
+    |Currently this is limited to printing the configuration only.
+    |""".stripMargin)
 
-  val parser = new scopt.OptionParser[CliArguments]("config") {
-    head("""
-           |Manipulate Ivory configuration values.
-           |
-           |Currently this is limited to printing the configuration only.
-           |""".stripMargin)
-
-    help("help") text "shows this usage text"
-  }
-
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(), repo => flags => conf => {
-    case CliArguments() =>
-      (for {
-        config <- Metadata.configuration
-      } yield List(RepositoryConfigTextStorage.toJson(config))).toIvoryT(repo)
-  })
+  , IvoryCmd.repository.map(loadRepo => IvoryRunner(config =>
+      for {
+        repo <- loadRepo(config)
+        config <- Metadata.configuration.toIvoryT(repo)
+      } yield List(RepositoryConfigTextStorage.toJson(config))
+  )))
 }

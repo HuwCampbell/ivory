@@ -1,25 +1,24 @@
 package com.ambiata.ivory.cli.health
 
-import com.ambiata.ivory.cli._, ScoptReaders._
+import com.ambiata.ivory.cli._, PirateReaders._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.repository._
 
-import scalaz._, effect.IO
+import pirate._, Pirate._
+
+import scalaz._, Scalaz._
 
 object recreate extends IvoryApp {
-  case class CliArguments(factsets: List[FactsetId])
 
-  val parser = new scopt.OptionParser[CliArguments]("health-recreate") {
-    head("""Recreate factsets using the latest format/compression/block size.""")
+  val cmd = Command(
+    "health-recreate"
+  , Some("Recreate factsets using the latest format/compression/block size.")
 
-    help("help") text "shows this usage text"
+  , ( flag[FactsetId](both('f', "factset"), empty).some
+  |@| IvoryCmd.repository
 
-    opt[FactsetId]('f', "factset") unbounded() optional() action {
-      (x, c) => c.copy(factsets = x :: c.factsets)
-    }
-  }
+    )((factsets, loadRepo) => IvoryRunner(conf => loadRepo(conf).flatMap(repo =>
 
-  val cmd = IvoryCmd.withRepo[CliArguments](parser, CliArguments(factsets = Nil), { repo => conf => flags => c =>
-    RecreateFactset.recreateFactsets(repo, c.factsets).map(re => List(re.successString))
-  })
+    RecreateFactset.recreateFactsets(repo, factsets).map(re => List(re.successString))
+  ))))
 }
