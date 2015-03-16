@@ -38,8 +38,8 @@ object main {
   def main(args: Array[String]): Unit = {
     val ivoryConf = createIvoryConfiguration(args.toList)
     val cmd = Command("ivory", None,
-      commands.map(c => subcommand(c.cmd) <* helperX).foldLeft1(_ ||| _)
-      <* helper
+      commands.map(c => subcommand(c.cmd.copy(parse = c.cmd.parse <* helper)) <* helperX).foldLeft1(_ ||| _)
+      <* helperX
       <* version(BuildInfo.version)
     )
     // End of the universe
