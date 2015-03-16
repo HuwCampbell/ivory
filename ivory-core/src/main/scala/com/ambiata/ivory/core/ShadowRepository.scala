@@ -24,8 +24,7 @@ object ShadowRepository {
     ShadowRepository(
         path
       , IvoryConfiguration(
-          List()
-          , conf.client
+            conf.client
           , () => conf.hdfs
           , () => ScoobiConfiguration(conf.hdfs)
           , () => None)

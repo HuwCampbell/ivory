@@ -41,8 +41,7 @@ object Cluster {
 
   def ivoryConfiguration(cluster: Cluster): IvoryConfiguration =
     new IvoryConfiguration(
-      List()
-      , cluster.s3Client
+        cluster.s3Client
       , () => cluster.hdfsConfiguration
       , () => ScoobiConfiguration(cluster.hdfsConfiguration)
       , () => cluster.codec

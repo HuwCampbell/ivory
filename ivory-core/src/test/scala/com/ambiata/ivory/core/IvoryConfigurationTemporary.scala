@@ -13,7 +13,6 @@ case class IvoryConfigurationTemporary(dir: String) {
   def conf: RIO[IvoryConfiguration] = for {
     d <- ConfigurationTemporary(dir).conf
     c = new IvoryConfiguration(
-      arguments = List(),
       s3Client = Clients.s3,
       hdfs = () => d,
       scoobi = () => ScoobiConfiguration(d),
