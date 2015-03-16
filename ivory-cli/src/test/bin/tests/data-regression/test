@@ -58,7 +58,7 @@ diff_test "${DIR}/expected/dictionary.psv" "${TARGET}/dictionary.psv"
 
 ### INGEST ###
 
-$IVORY ingest -i "sparse:delimited:psv=${INPUT}/facts"
+$IVORY ingest -Ddfs.block.size=16777216 -i "sparse:delimited:psv=${INPUT}/facts"
 
 ### SNAPSHOT ###
 

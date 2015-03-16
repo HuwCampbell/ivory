@@ -4,10 +4,10 @@ import com.ambiata.ivory.core.IvoryConfiguration
 import com.ambiata.ivory.storage.control.IvoryRead
 import com.ambiata.ivory.storage.repository.Codec
 import com.ambiata.mundane.control._
-import com.ambiata.poacher.mr.Args
 import com.ambiata.saws.core.Clients
 
-import com.nicta.scoobi.Scoobi._
+import com.nicta.scoobi.impl.ScoobiConfigurationImpl
+import org.apache.hadoop.conf.Configuration
 
 import pirate._, Pirate._
 
@@ -36,15 +36,14 @@ object main {
   )
 
   def main(args: Array[String]): Unit = {
-    val ivoryConf = createIvoryConfiguration(args.toList)
     val cmd = Command("ivory", None,
-      commands.map(c => subcommand(c.cmd.copy(parse = c.cmd.parse <* helper))).foldLeft1(_ ||| _)
+      commands.map(c => subcommand(c.cmd.copy(parse = c.cmd.parse <* helper tuple configuration))).foldLeft1(_ ||| _)
       <* helperX
       <* version(BuildInfo.version)
     )
     // End of the universe
-    Runners.runOrFail(ivoryConf.arguments, cmd).flatMap(ir =>
-      IvoryRead.createIO.flatMap(r => ir.run(ivoryConf).run(r)).unsafeIO.map({
+    Runners.runOrFail(args.toList, cmd).flatMap(ir =>
+      IvoryRead.createIO.flatMap(r => ir._1.run(ir._2).run(r)).unsafeIO.map({
         case Ok(l) =>
           l.foreach(println)
         case Error(e) =>
@@ -53,21 +52,18 @@ object main {
       })).unsafePerformIO
   }
 
-  def createIvoryConfiguration(args: List[String]): IvoryConfiguration = {
-    val configuration = Args.configuration(args)
+  def configuration: Parse[IvoryConfiguration] =
+    flag[read.Assign[String, String]](short('D'), hidden)
+      .many
+      .map(_.map(_.tuple).toMap).map(createIvoryConfiguration)
+
+  def createIvoryConfiguration(args: Map[String, String]): IvoryConfiguration = {
+    val configuration = new Configuration
+    args.foreach(a => configuration.set(a._1, a._2))
     IvoryConfiguration(
       s3Client         = Clients.s3,
-      hdfs             = () => configuration._1,
-      scoobi           = () => createScoobiConfiguration(args),
+      hdfs             = () => configuration,
+      scoobi           = () => new ScoobiConfigurationImpl(configuration),
       compressionCodec = () => Codec())
-  }
-
-  /** ugly, but... */
-  def createScoobiConfiguration(args: List[String]): ScoobiConfiguration = {
-    var sc: ScoobiConfiguration = null
-    new ScoobiApp {
-      def run = sc = configuration
-    }.main(args.toArray)
-    sc
   }
 }
