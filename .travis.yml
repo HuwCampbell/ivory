@@ -1,3 +1,5 @@
+# Use container-based infrastructure
+sudo: false
 language: scala
 scala:
    - 2.11.2
@@ -5,6 +7,10 @@ jdk:
   - oraclejdk7
 env:
   - NO_FORK=true NO_MR=true
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt/boot/
 before_script:
  - "echo JAVA_HOME $JAVA_HOME"
  - "echo 'which java' `which java`"
@@ -12,3 +18,9 @@ before_script:
  - "export JAVA_OPTS='-Dfile.encoding=UTF8 -XX:MaxPermSize=512m -Xms512m -Xmx2g -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC'"
  - "echo JVM_OPTS $JVM_OPTS"
  - "export JVM_OPTS='-Dfile.encoding=UTF8 -XX:MaxPermSize=512m -Xms512m -Xmx2g -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC'"
+ 
+script:
+  - sbt ++$TRAVIS_SCALA_VERSION test
+  # avoid unnecessary cache updates
+  - find $HOME/.sbt -name "*.lock" | xargs rm
+  - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
