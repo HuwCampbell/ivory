@@ -54,7 +54,7 @@ object main {
   }
 
   def createIvoryConfiguration(args: List[String]): IvoryConfiguration = {
-    val configuration = Args.configuration(removeScoobiArguments(args))
+    val configuration = Args.configuration(args)
     IvoryConfiguration(
       arguments        = configuration._2,
       s3Client         = Clients.s3,
@@ -70,11 +70,5 @@ object main {
       def run = sc = configuration
     }.main(args.toArray)
     sc
-  }
-
-  /** remove scoobi arguments if they are passed as: user1 user2 scoobi verbose.all.cluster user3 user4 */
-  def removeScoobiArguments(args: List[String]): List[String] = {
-    val (before, after) = args.span(_.toLowerCase != "scoobi")
-    before ++ after.drop(2)
   }
 }
