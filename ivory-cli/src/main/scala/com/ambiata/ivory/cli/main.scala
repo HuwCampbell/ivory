@@ -38,7 +38,7 @@ object main {
   def main(args: Array[String]): Unit = {
     val ivoryConf = createIvoryConfiguration(args.toList)
     val cmd = Command("ivory", None,
-      commands.map(c => subcommand(c.cmd.copy(parse = c.cmd.parse <* helper)) <* helperX).foldLeft1(_ ||| _)
+      commands.map(c => subcommand(c.cmd.copy(parse = c.cmd.parse <* helper))).foldLeft1(_ ||| _)
       <* helperX
       <* version(BuildInfo.version)
     )
