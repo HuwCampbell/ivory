@@ -7,7 +7,6 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.io.compress.CompressionCodec
 
 case class IvoryConfiguration(
-    arguments: List[String],
     s3Client: AmazonS3Client,
     hdfs: () => Configuration,
     scoobi: () => ScoobiConfiguration,
@@ -21,7 +20,6 @@ case class IvoryConfiguration(
 object IvoryConfiguration {
   def fromConfiguration(configuration: Configuration): IvoryConfiguration =
     new IvoryConfiguration(
-      arguments = List(),
       s3Client = Clients.s3,
       hdfs = () => configuration,
       scoobi = () => ScoobiConfiguration(configuration),
@@ -29,7 +27,6 @@ object IvoryConfiguration {
 
   def fromScoobiConfiguration(sc: ScoobiConfiguration): IvoryConfiguration =
     new IvoryConfiguration(
-      arguments = List(),
       s3Client = Clients.s3,
       hdfs = () => sc.configuration,
       scoobi = () => sc,

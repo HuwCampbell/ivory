@@ -56,7 +56,6 @@ object main {
   def createIvoryConfiguration(args: List[String]): IvoryConfiguration = {
     val configuration = Args.configuration(args)
     IvoryConfiguration(
-      arguments        = configuration._2,
       s3Client         = Clients.s3,
       hdfs             = () => configuration._1,
       scoobi           = () => createScoobiConfiguration(args),
