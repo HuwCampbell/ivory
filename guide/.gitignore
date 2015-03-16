@@ -1,0 +1,10 @@
+*bak
+dist
+*~
+**/*~
+#*
+**/#*
+_site
+.cabal-sandbox
+cabal.sandbox.config
+_cache

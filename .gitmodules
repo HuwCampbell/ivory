@@ -1,0 +1,3 @@
+[submodule "guide/trough"]
+	path = guide/trough
+	url = git@github.com:ambiata/trough.git
