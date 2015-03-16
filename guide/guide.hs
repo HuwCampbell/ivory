@@ -5,11 +5,11 @@ import           System.FilePath
 
 main :: IO ()
 main = hakyll $ do
-  match "trough/images/**" $ do
+  match "images/*" $ do
     route   idRoute
     compile copyFileCompiler
 
-  match "trough/css/**" $ do
+  match "css/*" $ do
     route   idRoute
     compile copyFileCompiler
 
