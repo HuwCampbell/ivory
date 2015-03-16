@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -eu
 
 DIR=$(dirname $0)/..
 
@@ -9,4 +9,7 @@ make build
 ./dist/build/guide/guide rebuild
 
 VERSION=$(date '+%Y%m%d%H%M%S')-$(git log --pretty=format:%h -n 1)
-aws s3 --region=ap-southeast-2 cp --recursive _site/ s3://ambiata-dist/ivory-guide/${VERSION}/
+aws s3 --region=ap-southeast-2 cp --recursive _site/ s3://ambiata-oss/com.ambiata/ivory-guide/${VERSION}/
+
+# Publish a copy to 'latest' as well for convenience
+aws s3 --region=ap-southeast-2 sync --delete _site/ s3://ambiata-oss/com.ambiata/ivory-guide/latest/
