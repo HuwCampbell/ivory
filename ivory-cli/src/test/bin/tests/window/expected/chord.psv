@@ -55,6 +55,9 @@ ID00000000:2014-04-03|halibut|cherry_pie|[0.0,0.0]
 ID00000000:2014-06-03|halibut|cherries|4
 ID00000000:2014-06-03|halibut|cherry_ripe|[5,4]
 ID00000000:2014-06-03|halibut|cherry_pie|[13.0,2.0]
+ID00000001:2014-05-03|halibut|cherries|11
+ID00000001:2014-05-03|halibut|cherry_ripe|[0,1]
+ID00000001:2014-05-03|halibut|cherry_pie|[0.0,11.0]
 ID00000000:2014-04-03|halibut|mean|0.042026960275581504
 ID00000000:2014-04-03|halibut|std_dev|0.0
 ID00000000:2014-04-03|halibut|gradient|0.0

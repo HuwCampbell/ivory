@@ -1,8 +1,7 @@
 package com.ambiata.ivory.operation.extraction.reduction
 
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.core.{Fact, Value, Crash, TimeDivision, WeekEndWeekDay, TimeOfDay}
-import org.joda.time.DateTimeZone
+import com.ambiata.ivory.core.{Fact, Value, Crash, TimeDivision, WeekEndWeekDay, TimeOfDay, DateTimeUtil}
 
 import scala.collection.JavaConverters._
 
@@ -13,18 +12,16 @@ class TimePartitionReducer(d: TimeDivision, f: () => Reduction) extends Reductio
     case TimeOfDay      => Array.fill(4)(f())
   } 
 
-  val datetimezone = DateTimeZone.forID("Australia/Sydney")
-
   def clear(): Unit = {
     reducers.foreach(_.clear())
   }
 
   def update(fact: Fact): Unit = {
-    val t = fact.datetime.joda(datetimezone)
     d match {
-      case WeekEndWeekDay => if (t.getDayOfWeek() < 6) reducers(0).update(fact) else reducers(1).update(fact)
+      // Magic +2 ahead is because 1600-03-01 was a Wednesday, but also day 0, so to bring it up to Monday is 0, Sunday is 6, we add 2.
+      case WeekEndWeekDay => if ((DateTimeUtil.toDays(fact.datetime.date) + 2) % 7 < 5) reducers(0).update(fact) else reducers(1).update(fact)
       case TimeOfDay      => {
-        val hour = t.getHourOfDay
+        val hour = fact.datetime.time.hours
         if (hour < 6)        reducers(0).update(fact)
         else if (hour < 12)  reducers(1).update(fact)
         else if (hour < 18)  reducers(2).update(fact)
