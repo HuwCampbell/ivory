@@ -27,7 +27,7 @@ Escaping
   Escape and parsing should be symmetric                     $escapeAndSplit
 """
 
-  def escapeAndSplit = prop {(s: List[String], c: Char) => s != List("") ==> {
+  def escapeAndSplit = prop {(s: List[String], c: Char) => (s != List("") && c != TextEscaping.escapeChar) ==> {
     TextEscaping.split(c, TextEscaping.mkString(c, s)) ==== s
   }}
 }
