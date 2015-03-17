@@ -47,6 +47,7 @@ object Reduction {
     case Interval(Gradient)           => Some(new IntervalReducer(dates.dates, new GradientReducer(dates.dates), ReductionValueDouble))
     case Interval(_)                  => None
     case Inverse(x)                   => fromExpression(x, encoding, dates).map(new InverseReducer(_))
+    case TimePartition(p, x)          => Some(new TimePartitionReducer(p, () => fromExpression(x, encoding, dates).get))
     case DaysSinceLatest              => Some(new DaysSinceLatestReducer(dates.dates))
     case MeanInDays                   => Some(new DateReduction(dates.dates, new MeanInDaysReducer, ReductionValueDouble))
     case MeanInWeeks                  => Some(new DateReduction(dates.dates, new MeanInWeeksReducer, ReductionValueDouble))

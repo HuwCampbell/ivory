@@ -1,4 +1,7 @@
 halibut:swiss_cheese|encoding=double|tombstone=T|mode=set
+halibut:cherries|encoding=int|tombstone=T|mode=set
+halibut:cherry_pie|source=halibut:cherries|expression=time_partition,weekday_weekend,mean|window=3 months
+halibut:cherry_ripe|source=halibut:cherries|expression=time_partition,weekday_weekend,count|window=3 months
 halibut:cooldown|source=halibut:swiss_cheese|window=1 month|expression=count
 halibut:latte|source=halibut:swiss_cheese|window=2 months|expression=count
 halibut:days_since_latest|source=halibut:swiss_cheese|window=2 months|expression=days_since_latest
@@ -27,6 +30,7 @@ expression:latest_two|source=expression:string|window=2 months|expression=latest
 filter:age|encoding=int|mode=set
 filter:adult|source=filter:age|expression=count|window=2 months|filter=or,(and,18),19,(and,(>=,20),(<,25))|tombstone=T
 halibut_state:swiss_cheese|encoding=double|tombstone=T|mode=state
+halibut:cherries|encoding=int|tombstone=T|mode=state
 halibut_state:cooldown|source=halibut_state:swiss_cheese|window=1 month|expression=count
 halibut_state:latte|source=halibut_state:swiss_cheese|window=2 months|expression=count
 halibut_state:days_since_latest|source=halibut_state:swiss_cheese|window=2 months|expression=days_since_latest

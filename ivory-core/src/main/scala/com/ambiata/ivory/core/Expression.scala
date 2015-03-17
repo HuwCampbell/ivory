@@ -30,8 +30,9 @@ object Expression {
     }
     (exp match {
       case Count                        => List("count")
-      case Interval(other)              => List("interval") ++ asSubString(other)
-      case Inverse(other)               => List("inverse") ++ asString(other).pure[List]
+      case Interval(other)              => "interval"  :: asSubString(other)
+      case Inverse(other)               => "inverse"   :: asString(other).pure[List]
+      case TimePartition(div, other)    => "time_partition" :: TimePartition.fromDivision(div) :: asString(other).pure[List]
       case DaysSinceLatest              => List("days_since_latest")
       case DaysSinceEarliest            => List("days_since_earliest")
       case MeanInDays                   => List("mean_in_days")
@@ -102,6 +103,10 @@ object Expression {
         case \/-(e)                  => Inverse(e).right
         case -\/(m)                  => s"Error parsing inverse expression '$exp' internal with message '$m'".left
       }
+      case "time_partition" :: division :: others => for {
+        a <- parse(others.mkString(","))
+        b <- TimePartition.toDivision(division)
+      } yield TimePartition(b, a)
       case "latestN" :: num :: tail => parseInt(num).map(n => parseSub(LatestN(n), tail))
       case _ => s"Unrecognised expression '$exp'".left
     }}
@@ -150,6 +155,11 @@ object Expression {
       }
       case Inverse(other)                =>
         if (Encoding.isNumeric(expressionEncoding(other, encoding))) ok else "Non numeric encoding for inverse".left
+      case TimePartition(_, other)                =>
+        expressionEncoding(other, encoding) match {
+                                              case sub: SubEncoding  => ok
+                                              case _  : ListEncoding => "list on TimePartition".left
+                                            }
       case SumBy(key, field)             => encoding match {
         case StructEncoding(values) => for {
            k <- values.get(key).map(_.encoding).toRightDisjunction(s"Struct field not found '$key'")
@@ -229,6 +239,11 @@ object Expression {
       case Count                        => LongEncoding
       case Interval(sexp)               => getExpressionEncoding(sexp, LongEncoding)
       case Inverse(sexp)                => DoubleEncoding
+      case TimePartition(_, sexp)       => expressionEncoding(sexp, source) match {
+                                            case sub: SubEncoding  => ListEncoding(sub)
+                                            // Nesting is forbidden, this is just to make the match exhaustive
+                                            case _  : ListEncoding => source
+                                          }
       case DaysSinceLatest              => IntEncoding
       case DaysSinceEarliest            => IntEncoding
       case MeanInDays                   => DoubleEncoding
@@ -277,6 +292,24 @@ case class BasicExpression(exp: SubExpression) extends Expression
 case class StructExpression(field: String, exp: SubExpression) extends Expression
 case class Interval(exp: SubExpression) extends Expression
 case class Inverse(exp: Expression) extends Expression
+
+/** NOT FOR PRODUCTION!!! A hack for some data science which was promised. NOT FOR PRODUCTION!!! */
+case class   TimePartition(division: TimeDivision, exp: Expression) extends Expression
+sealed trait TimeDivision
+case object  WeekEndWeekDay extends TimeDivision
+case object  TimeOfDay      extends TimeDivision
+
+case object TimePartition {
+  def toDivision(div: String): String \/ TimeDivision = div match {
+    case "weekday_weekend" => WeekEndWeekDay.right
+    case "time_of_day"     => TimeOfDay.right
+    case _                 => "Unsupported time devision".left
+  }
+  def fromDivision(div: TimeDivision): String = div match {
+    case WeekEndWeekDay => "weekday_weekend"
+    case TimeOfDay      => "time_of_day"
+  }
+}
 
 /** Represents an expression that can be done on values, which may be a specific field of a struct */
 trait SubExpression

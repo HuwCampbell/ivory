@@ -69,6 +69,9 @@ ID00000002|filter_state|age|21
 ID00000002|filter_state|adult|2
 ID00000003|filter_state|age|25
 ID00000003|filter_state|adult|0
+ID00000000|halibut|cherries|4
+ID00000000|halibut|cherry_ripe|[5,4]
+ID00000000|halibut|cherry_pie|[13.0,2.0]
 ID00000000|halibut|mean|0.9210451973872679
 ID00000000|halibut|std_dev|0.0649531814019123
 ID00000000|halibut|gradient|0.004190527832423387
