@@ -2,6 +2,9 @@
 
 DIR=$(dirname $0)/..
 
+export LC_COLLATE=en_US.UTF-8
+export LANG=en_US.UTF-8
+
 cd ${DIR}/guide
 
 make build
