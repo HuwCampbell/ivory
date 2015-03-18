@@ -18,10 +18,13 @@ class TimePartitionReducer(d: TimeDivision, f: () => Reduction) extends Reductio
 
   def update(fact: Fact): Unit = {
     d match {
-      // Magic +2 ahead is because 1600-03-01 was a Wednesday, but also day 0, so to bring it up to Monday is 0, Sunday is 6, we add 2.
-      case WeekEndWeekDay => if ((DateTimeUtil.toDays(fact.datetime.date) + 2) % 7 < 5) reducers(0).update(fact) else reducers(1).update(fact)
+      case WeekEndWeekDay =>
+        // Server time is UTC, but the time we care about is AEST (+10). So a fact which is at 2pm UTC, would be midnight the next day. 
+        val offSetDayFromUTC = if (fact.datetime.time.hours > 13) 1 else 0
+        // Magic +2 ahead is because 1600-03-01 was a Wednesday, but also day 0, so to bring it up to Monday is 0, Sunday is 6, we add 2.
+        if ((DateTimeUtil.toDays(fact.datetime.date) + offSetDayFromUTC + 2) % 7 < 5) reducers(0).update(fact) else reducers(1).update(fact)
       case TimeOfDay      => {
-        val hour = fact.datetime.time.hours
+        val hour = (fact.datetime.time.hours + 10) % 24
         if (hour < 6)        reducers(0).update(fact)
         else if (hour < 12)  reducers(1).update(fact)
         else if (hour < 18)  reducers(2).update(fact)
