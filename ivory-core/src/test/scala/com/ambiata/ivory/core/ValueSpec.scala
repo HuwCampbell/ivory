@@ -14,6 +14,7 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
   Can make any value unique                              $unique
   Can make any value unique                              $order
   Can make any value unique                              $orderPrimitive
+  Json handling is symmetric                             $jsonSymmetric
 """
 
   def valid = prop((e: EncodingAndValue) =>
@@ -41,6 +42,10 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
 
   def orderPrimitive =
     ScalazProperties.order.laws[PrimitiveValue](Value.orderPrimitive, Arbitraries.PrimitiveValueArbitrary)
+
+  def jsonSymmetric = prop((e: EncodingAndValue) =>
+    Value.json.decodeJson(e.enc, Value.json.toJson(e.value).nospaces).toEither ==== Right(e.value)
+  )
 
   // A small subset of  encoded values are valid for different optional/empty Structs/Lists
   private def isCompatible(e1: EncodingAndValue, e2: Encoding): Boolean =

@@ -1,4 +1,4 @@
-a|halibut|mandatory|(s:foo,i:12345,b:true,l:1234567898765432,d:3.14159265359)|2012-03-22T00:00:00|Snapshot[00000000]
-a|halibut|optional|(l:1234567898765432,i:12345)|2012-03-22T00:00:00|Snapshot[00000000]
-z|halibut|mandatory|(s:bar,i:67890,b:false,l:987654321,d:6.28318530718)|2012-03-22T00:00:00|Snapshot[00000000]
-z|halibut|optional|(d:6.28318530718,s:bar,b:false)|2012-03-22T00:00:00|Snapshot[00000000]
+a|halibut|mandatory|{"s":"foo","i":12345,"b":true,"l":1234567898765432,"d":3.14159265359}|2012-03-22T00:00:00|Snapshot[00000000]
+a|halibut|optional|{"l":1234567898765432,"i":12345}|2012-03-22T00:00:00|Snapshot[00000000]
+z|halibut|mandatory|{"s":"bar","i":67890,"b":false,"l":987654321,"d":6.28318530718}|2012-03-22T00:00:00|Snapshot[00000000]
+z|halibut|optional|{"d":6.28318530718,"s":"bar","b":false}|2012-03-22T00:00:00|Snapshot[00000000]

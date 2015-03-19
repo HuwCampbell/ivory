@@ -16,9 +16,8 @@ object EavtParsers {
       case other                   => other
     }
 
-  /** WARNING: This isn't symmetrical yet - we don't handle lists/structs on ingest (yet) */
   def toEavt(fact: Fact, tombstone: String): List[String] =
-    List(fact.entity, fact.feature, Value.toStringWithStruct(fact.value, tombstone), fact.datetime.localIso8601)
+    List(fact.entity, fact.feature, Value.json.toStringWithStruct(fact.value, tombstone), fact.datetime.localIso8601)
 
   def toEavtDelimited(fact: Fact, tombstone: String, delim: Char): String =
     toEavt(fact, tombstone).mkString(delim.toString)
@@ -47,9 +46,9 @@ object EavtParsers {
 
   def valueFromString(meta: ConcreteDefinition, raw: String): Validation[String, Value] =
     if (meta.tombstoneValue.contains(raw)) TombstoneValue.success[String]
-    else  meta.encoding.fold(
+    else meta.encoding.fold(
       p => Value.parsePrimitive(p, raw),
-      _ => "Struct encoding not supported".failure,
-      _ => "List encoding not supported".failure
+      _ => Value.json.decodeJson(meta.encoding, raw).validation,
+      _ => Value.json.decodeJson(meta.encoding, raw).validation
   )
 }

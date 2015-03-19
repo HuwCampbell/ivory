@@ -52,7 +52,7 @@ object SquashDump {
         // reduction elsewhere so dump returns the correct results
         val value = r.save
         emitFact.getFact.setValue(value)
-        val s = if (value != null) Value.toStringWithStruct(emitFact.value, missing) else missing
+        val s = if (value != null) Value.json.toStringWithStruct(emitFact.value, missing) else missing
         write(fact, s)
       }
 
@@ -67,7 +67,7 @@ object SquashDump {
         // Output the time first so it's easier to eyeball the original and reduced values
         buffer.append(fact.datetime.localIso8601)
         buffer.append(delim)
-        TextEscaping.escapeAppend(delim, Value.toStringWithStruct(fact.value, missing), buffer)
+        TextEscaping.escapeAppend(delim, Value.json.toStringWithStruct(fact.value, missing), buffer)
         buffer.append(delim)
         TextEscaping.escapeAppend(delim, value, buffer)
         emitter(buffer.toString())

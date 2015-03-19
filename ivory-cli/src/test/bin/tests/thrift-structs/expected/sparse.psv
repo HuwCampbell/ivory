@@ -1,4 +1,4 @@
-a|halibut:mandatory|(s:foo,i:12345,b:true,l:1234567898765432,d:3.14159265359)
-a|halibut:optional|(i:12345,l:1234567898765432)
-z|halibut:mandatory|(s:bar,i:67890,b:false,l:987654321,d:6.28318530718)
-z|halibut:optional|(b:false,s:bar,d:6.28318530718)
+a|halibut:mandatory|{"s":"foo","i":12345,"b":true,"l":1234567898765432,"d":3.14159265359}
+a|halibut:optional|{"i":12345,"l":1234567898765432}
+z|halibut:mandatory|{"s":"bar","i":67890,"b":false,"l":987654321,"d":6.28318530718}
+z|halibut:optional|{"b":false,"s":"bar","d":6.28318530718}

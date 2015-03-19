@@ -33,8 +33,9 @@ object IngestJob {
     val job = Job.getInstance(conf)
     val ctx = FactsetJob.configureJob("ivory-ingest", job, dictionary, reducerLookups, target, codec)
 
+//    inputs.foreach(_._1.fold((_, _, format) => format.fold(Crash.), ()))
     inputs.foreach { case (format, _, _, paths) =>
-      val mc = format.fold({ case (_, escaping) => escaping match {
+      val mc = format.fold({ case (_, escaping, _) => escaping match {
         case TextEscaping.Delimited => classOf[TextDelimitedIngestMapper]
         case TextEscaping.Escaped   => classOf[TextEscapedIngestMapper]
       }}, classOf[ThriftIngestMapper])
@@ -56,7 +57,7 @@ object IngestJob {
       case (_, ns, root, _) => ns.map(n => FileSystem.get(conf).getFileStatus(root).getPath.toString -> n.name)
     }.toMap))
     job.getConfiguration.set(Keys.Delims, MapString.render(inputs.flatMap {
-      case (format, ns, root, _) => format.fold({ case (delim, _) => Some(root -> delim.character) },  None)
+      case (format, ns, root, _) => format.fold({ case (delim, _, _) => Some(root -> delim.character) },  None)
     }.map(x => FileSystem.get(conf).getFileStatus(x._1).getPath.toString -> x._2.toString).toMap))
 
     // run job

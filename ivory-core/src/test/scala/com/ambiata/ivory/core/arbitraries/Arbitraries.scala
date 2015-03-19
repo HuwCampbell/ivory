@@ -167,6 +167,9 @@ trait Arbitraries {
   implicit def TextEncodingArbitrary: Arbitrary[TextEscaping] =
     Arbitrary(GenFileFormat.encoding)
 
+  implicit def TextFormatArbitrary: Arbitrary[TextFormat] =
+    Arbitrary(GenFileFormat.textFormat)
+
   implicit def TimeArbitrary: Arbitrary[Time] =
     Arbitrary(GenDate.time)
 

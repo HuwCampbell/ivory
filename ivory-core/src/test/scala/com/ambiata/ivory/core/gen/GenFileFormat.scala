@@ -14,14 +14,17 @@ object GenFileFormat {
   def form: Gen[Form] =
     Gen.oneOf(Form.Dense, Form.Sparse)
 
-  def format: Gen[FileFormat] = for {
+  def format: Gen[FileFormat] = Gen.oneOf(for {
     d <- delimiter
     e <- encoding
-    o <- Gen.oneOf(FileFormat.Text(d, e), FileFormat.Thrift)
-  } yield o
+    f <- textFormat
+  } yield FileFormat.Text(d, e, f), Gen.const(FileFormat.Thrift))
 
   def output: Gen[OutputFormat] = for {
     o <- form
     f <- format
   } yield OutputFormat(o, f)
+
+  def textFormat: Gen[TextFormat] =
+    Gen.oneOf(TextFormat.Deprecated, TextFormat.Json)
 }

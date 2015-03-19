@@ -37,28 +37,28 @@ Eavt Parse Formats
     if (l.isEmpty || l.size == 4) true ==== true else EavtParsers.splitLine(c, l.mkString(c.toString)) ==== l
   }
 
-  def date = prop((fz: PrimitiveSparseEntities) =>
+  def date = prop((fz: SparseEntities) =>
     factDateSpec(fz, DateTimeZone.getDefault, fz.fact.date.hyphenated) must_== Success(fz.fact.withTime(Time(0)))
   )
 
-  def legacy = prop((fz: PrimitiveSparseEntities) =>
+  def legacy = prop((fz: SparseEntities) =>
     factDateSpec(fz, DateTimeZone.getDefault, fz.fact.date.hyphenated + " " + fz.fact.time.hhmmss) must_== Success(fz.fact)
   )
 
-  def standard = prop((fz: PrimitiveSparseEntities) =>
+  def standard = prop((fz: SparseEntities) =>
     factDateSpec(fz, fz.zone, fz.fact.datetime.iso8601(fz.zone)) must_== Success(fz.fact)
   )
 
-  def zones = prop((fz: PrimitiveSparseEntities) =>
+  def zones = prop((fz: SparseEntities) =>
     factDateSpec(fz, fz.zone, fz.fact.date.hyphenated + " " + fz.fact.time.hhmmss) must_== Success(fz.fact)
   )
 
-  def factDateSpec[A](fz: PrimitiveSparseEntities, z: DateTimeZone, dt: String): Validation[String, Fact] = {
+  def factDateSpec[A](fz: SparseEntities, z: DateTimeZone, dt: String): Validation[String, Fact] = {
     import fz._
     EavtParsers.fact(Dictionary(List(meta.toDefinition(fact.featureId))), fact.namespace, z, z).run(List(
         fact.entity
       , fact.feature
-      , Value.toString(fact.value, meta.tombstoneValue.headOption).getOrElse("")
+      , Value.json.toStringWithStruct(fact.value, meta.tombstoneValue.headOption.getOrElse(""))
       , dt
     ))
   }
@@ -79,7 +79,7 @@ Eavt Parse Formats
       , feature.namespace
       , zone
       , zone
-      ).run(List(entity.value, feature.name, Value.toString(value, None).getOrElse("?"), date.hyphenated)).toOption must beNone})
+      ).run(List(entity.value, feature.name, Value.text.toString(value, None).getOrElse("?"), date.hyphenated)).toOption must beNone})
 
   def structFail = {
     val dict = Dictionary(List(Definition.concrete(FeatureId(Namespace("ns"), "a"), StructEncoding(Map()).toEncoding, Mode.State, None, "", Nil)))
@@ -90,7 +90,7 @@ Eavt Parse Formats
     Gen.oneOf(Double.NaN, Double.NegativeInfinity, Double.PositiveInfinity).map(DoubleValue)
 
   def genBadValue(good: ConcreteDefinition, bad: ConcreteDefinition): Gen[Value] =
-    genValue(bad).filter(Value.toString(_, None).exists(s => !validString(s, good.encoding) && !good.tombstoneValue.contains(s)))
+    genValue(bad).filter(Value.text.toString(_, None).exists(s => !validString(s, good.encoding) && !good.tombstoneValue.contains(s)))
 
   case class BadValue(meta: ConcreteDefinition, value: String)
 

@@ -30,7 +30,7 @@ object GroupByEntityOutputJob {
     _ <- Hdfs.mustNotExistWithMessage(output, s"Output path '${output.toString}' already exists")
     job = Job.getInstance(conf)
     name = format match {
-      case DenseText(_, _, _) => "dense-text"
+      case DenseText(_, _, _, _) => "dense-text"
       case DenseThrift => "dense-thrift"
       case SparseThrift  => "sparse-thrift"
     }
@@ -61,7 +61,7 @@ object GroupByEntityOutputJob {
     // output
     val tmpout = new Path(ctx.output, "dense")
     format match {
-      case DenseText(delim, missing, escaped) =>
+      case DenseText(delim, missing, escaped, format) =>
         job.setReducerClass(classOf[DenseReducerText])
         job.setOutputFormatClass(classOf[TextOutputFormat[_, _]])
 
@@ -69,6 +69,7 @@ object GroupByEntityOutputJob {
         job.getConfiguration.set(Keys.Missing, missing)
         job.getConfiguration.set(Keys.Delimiter, delim.character.toString)
         TextEscaper.toConfiguration(job.getConfiguration, escaped)
+        TextFormatter.toConfiguration(job.getConfiguration, format)
       case DenseThrift =>
         job.setReducerClass(classOf[DenseReducerThriftList])
         job.setOutputValueClass(classOf[BytesWritable])
@@ -101,7 +102,7 @@ object GroupByEntityOutputJob {
   }, true)
   _ <- {
     val missing = format match {
-      case DenseText(_, missing2, _) => Some(missing2)
+      case DenseText(_, missing2, _, _) => Some(missing2)
       case DenseThrift => None
       case SparseThrift => None
     }
@@ -247,12 +248,14 @@ class DenseReducerText extends DenseReducer[Text] {
   var delimiter = '?'
 
   var escapeAppend: TextEscaper.Append = null
+  var format: Value => String = null
 
   override def setup(context: Reducer[BytesWritable, BytesWritable, NullWritable, Text]#Context): Unit = {
     super.setup(context)
     missing = context.getConfiguration.get(GroupByEntityOutputJob.Keys.Missing)
     delimiter = context.getConfiguration.get(GroupByEntityOutputJob.Keys.Delimiter).charAt(0)
     escapeAppend = TextEscaper.fromConfiguration(context.getConfiguration, delimiter)
+    format = TextFormatter.fromConfiguration(context.getConfiguration, missing)
   }
 
   val out = new DenseFactOutput[Text] {
@@ -278,7 +281,7 @@ class DenseReducerText extends DenseReducer[Text] {
     def outputValue(featureId: String, fact: Fact): Unit = {
       buffer.append(delimiter)
       // Values can now be structs due to expressions
-      escapeAppend(buffer, Value.toStringWithStruct(fact.value, missing))
+      escapeAppend(buffer, format(fact.value))
       ()
     }
 

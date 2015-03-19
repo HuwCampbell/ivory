@@ -15,7 +15,7 @@ Combinators
 
 """
 
-  def string = prop { (f: FileFormat, ns: Option[Namespace], path: String) =>
+  def string = prop ((f: FileFormat, ns: Option[Namespace], path: String) => f.fold((_, _, j) => j.fold(false, true), true) ==> {
     InputFormat.fromString(InputFormat.render(f, ns, path)) ==== (f, ns, path).right
-  }
+  })
 }

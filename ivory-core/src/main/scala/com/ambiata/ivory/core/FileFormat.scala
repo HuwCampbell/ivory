@@ -7,45 +7,47 @@ sealed trait FileFormat {
   import FileFormat._
 
   def fold[X](
-    text: (Delimiter, TextEscaping) => X
+    text: (Delimiter, TextEscaping, TextFormat) => X
   , thrift: => X
   ): X = this match {
-    case Text(delimiter, encoding) =>
-      text(delimiter, encoding)
+    case Text(delimiter, encoding, format) =>
+      text(delimiter, encoding, format)
     case Thrift =>
       thrift
   }
 
   def isText: Boolean =
-    fold((_, _) => true, false)
+    fold((_, _, _) => true, false)
 
   def isThrift: Boolean =
-    fold((_, _) => false, true)
+    fold((_, _, _) => false, true)
 
   def render: String =
     fold(
-      (delimiter, escaping) => s"${escaping.render}:${delimiter.render}"
+      (delimiter, escaping, format) => s"${escaping.render}:${delimiter.render}:${format.render}"
       , "thrift"
     )
 
 }
 
 object FileFormat {
-  case class Text(delimiter: Delimiter, escaping: TextEscaping) extends FileFormat
+  case class Text(delimiter: Delimiter, escaping: TextEscaping, format: TextFormat) extends FileFormat
   case object Thrift extends FileFormat
 
-  def text(delimiter: Delimiter, escaping: TextEscaping): FileFormat =
-    Text(delimiter, escaping)
+  def text(delimiter: Delimiter, escaping: TextEscaping, format: TextFormat): FileFormat =
+    Text(delimiter, escaping, format)
 
   def thrift: FileFormat =
     Thrift
 
   def fromString(s: String): Option[FileFormat] =
     s.split(":").toList match {
+      case TextEscaping(escaping) :: Delimiter(delimiter) :: TextFormat(format) :: Nil =>
+        Text(delimiter, escaping, format).some
       case TextEscaping(escaping) :: Delimiter(delimiter) :: Nil =>
-        Text(delimiter, escaping).some
+        Text(delimiter, escaping, TextFormat.Json).some
       case Delimiter(delimiter) :: Nil =>
-        Text(delimiter, TextEscaping.Delimited).some
+        Text(delimiter, TextEscaping.Delimited, TextFormat.Json).some
       case "thrift" :: Nil =>
         Thrift.some
       case _ =>

@@ -21,7 +21,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat
  */
 object SparseOutputJob {
   def run(conf: Configuration, dictionary: Dictionary, input: Path, output: Path, missing: String,
-          delimiter: Delimiter, escaping: TextEscaping, codec: Option[CompressionCodec]): RIO[Unit] = (for {
+          delimiter: Delimiter, escaping: TextEscaping, format: TextFormat, codec: Option[CompressionCodec]): RIO[Unit] = (for {
     _ <- Hdfs.mustNotExistWithMessage(output, s"Output path '${output.toString}' already exists")
     job = Job.getInstance(conf)
     ctx = MrContextIvory.newContext("ivory-sparse", job)
@@ -57,6 +57,7 @@ object SparseOutputJob {
     job.getConfiguration.set(Keys.Missing, missing)
     job.getConfiguration.set(Keys.Delimiter, delimiter.character.toString)
     TextEscaper.toConfiguration(job.getConfiguration, escaping)
+    TextFormatter.toConfiguration(job.getConfiguration, format)
 
     // run job
     if (!job.waitForCompletion(true))
@@ -106,11 +107,13 @@ class SparseOutputMapper extends Mapper[NullWritable, BytesWritable, NullWritabl
   val buffer = new StringBuilder(4096)
 
   var escapeAppend: TextEscaper.Append = null
+  var format: Value => String = null
 
   override def setup(context: Mapper[NullWritable, BytesWritable, NullWritable, Text]#Context): Unit = {
     missing = context.getConfiguration.get(SparseOutputJob.Keys.Missing)
     delimiter = context.getConfiguration.get(SparseOutputJob.Keys.Delimiter).charAt(0)
     escapeAppend = TextEscaper.fromConfiguration(context.getConfiguration, delimiter)
+    format = TextFormatter.fromConfiguration(context.getConfiguration, missing)
   }
 
   /** Read and pass through, extracting entity and feature id for sort phase. */
@@ -124,7 +127,7 @@ class SparseOutputMapper extends Mapper[NullWritable, BytesWritable, NullWritabl
     buffer.append(delimiter)
     buffer.append(fact.feature)
     buffer.append(delimiter)
-    escapeAppend(buffer, Value.toStringWithStruct(fact.value, missing))
+    escapeAppend(buffer, format(fact.value))
 
     vout.set(buffer.toString())
     context.write(kout, vout)

@@ -24,10 +24,11 @@ object Extraction {
           GroupByEntityOutput.createWithDictionary(repository, input, s, dictionary, GroupByEntityFormat.SparseThrift)
         case OutputFormat(Form.Dense, FileFormat.Thrift) =>
           GroupByEntityOutput.createWithDictionary(repository, input, s, dictionary, GroupByEntityFormat.DenseThrift)
-        case OutputFormat(Form.Sparse, FileFormat.Text(delimiter, escaping)) =>
-          SparseOutput.extractWithDictionary(repository, input, s, dictionary, delimiter, formats.missingValue, escaping)
-        case OutputFormat(Form.Dense, FileFormat.Text(delimiter, escaping)) =>
-          GroupByEntityOutput.createWithDictionary(repository, input, s, dictionary, GroupByEntityFormat.DenseText(delimiter, formats.missingValue, escaping))
+        case OutputFormat(Form.Sparse, FileFormat.Text(delimiter, escaping, format)) =>
+          SparseOutput.extractWithDictionary(repository, input, s, dictionary, delimiter, formats.missingValue, escaping, format)
+        case OutputFormat(Form.Dense, FileFormat.Text(delimiter, escaping, format)) =>
+          GroupByEntityOutput.createWithDictionary(repository, input, s, dictionary,
+            GroupByEntityFormat.DenseText(delimiter, formats.missingValue, escaping, format))
       }
       _ <- metadata(input, s, cluster.io)
       _ <- SyncExtract.outputDataset(s, cluster, output)

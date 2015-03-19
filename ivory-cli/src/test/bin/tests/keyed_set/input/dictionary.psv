@@ -1,0 +1,2 @@
+keyed_set:stuff|encoding=(a:int,b:boolean,c:string*)|mode=keyed_set,a,b|tombstone=T
+keyed_set:things|source=keyed_set:stuff|window=1 year|expression=count_unique,c

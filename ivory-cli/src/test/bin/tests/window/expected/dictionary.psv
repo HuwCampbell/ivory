@@ -52,3 +52,5 @@
 51|halibut_state|std_dev|double|||NA
 52|halibut_state|sum|double|||NA
 53|halibut_state|swiss_cheese|double|||NA
+54|mackerel|mackerel|(common_name:string,size:double)|||NA
+55|mackerel|size_by_common_name|()|||NA

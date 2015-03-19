@@ -245,4 +245,92 @@ object Value {
       case (DateValue(_), _) => Ordering.LT
       case (_, DateValue(_)) => Ordering.GT
     }
+
+  object text {
+
+    def toString(v: Value, tombstoneValue: Option[String]): Option[String] = v match {
+      case TombstoneValue    => tombstoneValue
+      case p: PrimitiveValue => Some(Value.toStringPrimitive(p))
+      // Currently we're ignoring lists/structs in all text format (for now)
+      case _: ListValue      => None
+      case StructValue(_)    => None
+    }
+
+    def toStringOr(v: Value, tombstoneValue: String): Option[String] =
+      toString(v, Some(tombstoneValue))
+
+    /** This is _not_ for general consumption - should only be use for testing or diffing */
+    def toStringWithStruct(v: Value, tombstone: String): String = v match {
+      case TombstoneValue      => tombstone
+      case p: PrimitiveValue   => Value.toStringPrimitive(p)
+      case ListValue(values)   => "[" + values.map(toStringWithStruct(_, tombstone)).mkString(",") + "]"
+      case StructValue(values) =>
+        "(" + values.map { case (k, p) => k + ":" + Value.toStringPrimitive(p)}.mkString(",") + ")"
+    }
+  }
+
+  object json {
+
+    import argonaut._, Argonaut._
+
+    def toStringWithStruct(v: Value, tombstone: String): String = v match {
+      case TombstoneValue      => tombstone
+      case p: PrimitiveValue   => Value.toStringPrimitive(p)
+      case l: ListValue        => toJson(l).nospaces
+      case s: StructValue      => toJson(s).nospaces
+    }
+
+    def toJson(v: Value): Json = v match {
+      case TombstoneValue   => jNull
+      case BooleanValue(b)  => jBool(b)
+      case IntValue(i)      => jNumberOrNull(i)
+      case LongValue(l)     => jNumberOrNull(l)
+      case DoubleValue(d)   => jNumberOrNull(d)
+      case DateValue(r)     => jString(r.hyphenated)
+      case StringValue(s)   => jString(s)
+      case StructValue(xs)  => jObject(xs.foldLeft(JsonObject.empty){ case(jo, (key, value)) => jo.+:(key -> toJson(value)) })
+      case ListValue(ls)    => jArray(ls.map(toJson))
+    }
+
+    def decodeJson(encoding: Encoding, raw: String): String \/ Value =
+      raw.decodeOption[Json].toRightDisjunction(s"Value '$raw' is not valid JSON").flatMap { json: Json =>
+        if (json.isNull)
+          TombstoneValue.right
+        else
+          encoding.fold(
+            p => parseJsonPrimitive(p, json),
+            s => parseJsonStruct(s, json),
+            l => parseJsonList(l, json)
+          )
+      }
+
+    def parseJsonStruct(encoding: StructEncoding, json: Json): String \/ StructValue = for {
+      jm <- json.obj.map(_.toMap).toRightDisjunction(s"Value '$json' is not an object")
+      ps <- encoding.values.toList.traverseU { case (key, StructEncodedValue(enc, optional)) =>
+        if (optional) {
+          jm.get(key).traverseU(x => parseJsonPrimitive(enc, x).map(v => key -> v))
+        } else {
+          jm.get(key).toRightDisjunction(s"Mandatory field '$key' not found in '$json'")
+            .flatMap(x => parseJsonPrimitive(enc, x).map(v => (key -> v).some))
+        }
+      }.map(_.flatten)
+    } yield StructValue(ps.toMap)
+
+    def parseJsonList(encoding: ListEncoding, json: Json): String \/ ListValue = for {
+      jl <- json.array.toRightDisjunction(s"Value '$json' is not an array")
+      ls <- encoding.encoding.fold(
+        pe => jl.traverseU(v => parseJsonPrimitive(pe, v)),
+        se => jl.traverseU(v => parseJsonStruct(se, v))
+      )
+    } yield ListValue(ls)
+
+    def parseJsonPrimitive(encoding: PrimitiveEncoding, json: Json): String \/ PrimitiveValue = encoding match {
+      case BooleanEncoding   => json.bool.toRightDisjunction(s"Value '$json' is not a boolean").map(v => BooleanValue(v))
+      case IntEncoding       => json.number.flatMap(_.toInt).toRightDisjunction(s"Value '$json' is not an integer").map(v => IntValue(v))
+      case LongEncoding      => json.number.flatMap(_.toLong).toRightDisjunction(s"Value '$json' is not a long").map(v => LongValue(v))
+      case DoubleEncoding    => json.number.map(_.toDouble).toRightDisjunction(s"Value '$json' is not a double").map(v => DoubleValue(v))
+      case DateEncoding      => json.string.flatMap(Dates.date).toRightDisjunction(s"Value '$json' is not a date").map(v => DateValue(v))
+      case StringEncoding    => json.string.toRightDisjunction(s"Value '$json' is not a string").map(v => StringValue(v))
+    }
+  }
 }
