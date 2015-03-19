@@ -139,8 +139,9 @@ object SquashJob {
       case "squash" => output
     }, true).run(job.getConfiguration).as {
       def update(groupName: String)(f: Long => SquashCounts): Map[String, SquashCounts] = {
-        val group = job.getCounters.getGroup(groupName)
-        group.iterator().asScala.map(c => c.getName -> f(c.getValue)).toMap
+        // val group = job.getCounters.getGroup(groupName)
+        // group.iterator().asScala.map(c => c.getName -> f(c.getValue)).toMap
+        Map.empty[String, SquashCounts]
       }
       SquashStats(
         update(Keys.CounterTotalGroup)(c => SquashCounts(c, 0, 0, 0)) |+|

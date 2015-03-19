@@ -85,9 +85,7 @@ object SnapshotJob {
       now <- RIO.fromIO(DateTime.now)
     } yield {
       val featureIdToName = featureIdLookup.ids.asScala.mapValues(_.toString).map(_.swap)
-      SnapshotStats(IvoryVersion.get, now, job.getCounters.getGroup(Keys.CounterFeatureGroup).iterator().asScala.flatMap {
-        c => featureIdToName.get(c.getName).flatMap(FeatureId.parse(_).toOption).map(_ -> c.getValue)
-      }.toMap)
+      SnapshotStats(IvoryVersion.get, now, Map.empty)
     }
   }
 
