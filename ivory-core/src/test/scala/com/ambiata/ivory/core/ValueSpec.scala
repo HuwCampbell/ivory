@@ -15,6 +15,7 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
   Can make any value unique                              $order
   Can make any value unique                              $orderPrimitive
   Json handling is symmetric                             $jsonSymmetric
+  Json struct parsing fails if there's an unknown field  $jsonUnknown
 """
 
   def valid = prop((e: EncodingAndValue) =>
@@ -46,6 +47,12 @@ class ValueSpec extends Specification with ScalaCheck { def is = s2"""
   def jsonSymmetric = prop((e: EncodingAndValue) =>
     Value.json.decodeJson(e.enc, Value.json.toJson(e.value).nospaces).toEither ==== Right(e.value)
   )
+
+  def jsonUnknown = {
+    val encoding = EncodingStruct(StructEncoding(Map("a" -> StructEncodedValue(IntEncoding, false))))
+    val json = """{"a":1,"b":2}"""
+    Value.json.decodeJson(encoding, json).toEither must beLeft
+  }
 
   // A small subset of  encoded values are valid for different optional/empty Structs/Lists
   private def isCompatible(e1: EncodingAndValue, e2: Encoding): Boolean =

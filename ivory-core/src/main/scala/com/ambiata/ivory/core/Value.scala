@@ -314,6 +314,10 @@ object Value {
             .flatMap(x => parseJsonPrimitive(enc, x).map(v => (key -> v).some))
         }
       }.map(_.flatten)
+      _  <- if (jm.size == ps.length) \/-(()) else {
+          val leftOverKeys = (jm.keys.toSet -- ps.map(_._1).toSet)
+          -\/(s"Unsupported fields: '${leftOverKeys.mkString("' '")}' in '${json}'")
+        }
     } yield StructValue(ps.toMap)
 
     def parseJsonList(encoding: ListEncoding, json: Json): String \/ ListValue = for {
