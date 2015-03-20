@@ -149,6 +149,8 @@ ID00000001:2014-05-03|halibut_state|days_since_earliest|31
 ID00000001:2014-05-03|halibut_state|days_since_latest|1
 ID00000001:2014-05-03|halibut_state|latte|2
 ID00000001:2014-05-03|halibut_state|cooldown|2
+ID00000000:2014-04-03|mackerel|unique_catches|[]
+ID00000000:2014-06-03|mackerel|unique_catches|["Blue mackerel","Short mackerel","Wahoo"]
 ID00000000:2014-04-03|mackerel|mackerel|{"common_name":"Wahoo","size":170.0}
 ID00000000:2014-04-03|mackerel|size_by_common_name|[{"common_name":"Wahoo","size":170.0}]
 ID00000000:2014-06-03|mackerel|mackerel|{"common_name":"Blue mackerel","size":43.2}

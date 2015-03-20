@@ -29,6 +29,9 @@ object MetadataVersion {
   /** Introduced keyed_set mode */
   case object V4 extends MetadataVersion
 
+  /** Introduced union reducer */
+  case object V5 extends MetadataVersion
+
   implicit def MetadataVersionEqual: Equal[MetadataVersion] =
     Equal.equalA[MetadataVersion]
 
@@ -39,6 +42,7 @@ object MetadataVersion {
       case V2 => "v2"
       case V3 => "v3"
       case V4 => "v4"
+      case V5 => "v5"
       case Unknown(x) => x
     }, {
       case "v0" => V0
@@ -46,9 +50,10 @@ object MetadataVersion {
       case "v2" => V2
       case "v3" => V3
       case "v4" => V4
+      case "v5" => V5
       case x => Unknown(x)
     })
 
-  def previousVersions = List(V0, V1, V2, V3)
-  def latestVersion = V4
+  def previousVersions = List(V0, V1, V2, V3, V4)
+  def latestVersion = V5
 }

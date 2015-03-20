@@ -30,6 +30,7 @@ object Expression {
     }
     (exp match {
       case Count                        => List("count")
+      case Union                        => List("union")
       case Interval(other)              => List("interval") ++ asSubString(other)
       case Inverse(other)               => List("inverse") ++ asString(other).pure[List]
       case DaysSinceLatest              => List("days_since_latest")
@@ -61,6 +62,7 @@ object Expression {
     val args = exp.split(",", -1).toList
     PartialFunction.condOpt(args) {
       case "count" :: Nil                   => Count
+      case "union" :: Nil                   => Union
       case "mean_in_days" :: Nil            => MeanInDays
       case "mean_in_weeks" :: Nil           => MeanInWeeks
       case "days_since_latest" :: Nil       => DaysSinceLatest
@@ -134,6 +136,10 @@ object Expression {
     }
     (exp match {
       case Count                         => ok
+      case Union                         => encoding match {
+        case EncodingList(ListEncoding(SubPrim(StringEncoding) | SubPrim(IntEncoding) | SubPrim(DateEncoding))) => ok
+        case _ => "Unsupported format for Union expression".left
+      }
       case DaysSinceLatest               => ok
       case DaysSinceEarliest             => ok
       case MeanInDays                    => ok
@@ -244,6 +250,7 @@ object Expression {
     expression match {
       // A short term hack for supporting feature gen based on known functions
       case Count                        => LongEncoding.toEncoding
+      case Union                        => source
       case LatestBy(_)                  => StructEncoding(Map()).toEncoding
       case Interval(sexp)               => getExpressionEncoding(sexp, LongEncoding.toEncoding)
       case Inverse(sexp)                => DoubleEncoding.toEncoding
@@ -275,6 +282,7 @@ object Expression {
 
 // Expressions that can only be done on the top-level
 case object Count extends Expression
+case object Union extends Expression
 case object DaysSinceLatest extends Expression
 case object DaysSinceEarliest extends Expression
 case object MeanInDays extends Expression

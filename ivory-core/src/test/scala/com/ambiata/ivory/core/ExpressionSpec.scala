@@ -10,6 +10,7 @@ class ExpressionSpec extends Specification with ScalaCheck { def is = s2"""
   Can fail on parsing with bad expression input            $parseFail
   Will validate any correct expression + encoding          $validation
   Can fail on validation with invalid encoding             $validationFail
+  Union expressions are accepted when valid                $unionValid
 """
 
   def parse = prop((d: DefinitionWithQuery) =>
@@ -39,6 +40,9 @@ class ExpressionSpec extends Specification with ScalaCheck { def is = s2"""
     SumBy("k", "v")                    -> StructEncoding(Map("k" -> mandatory(IntEncoding), "v" -> mandatory(IntEncoding))).toEncoding,
     SumBy("k", "v")                    -> StructEncoding(Map("k" -> mandatory(StringEncoding), "v" -> mandatory(BooleanEncoding))).toEncoding,
     CountBySecondary("k", "v")         -> StringEncoding.toEncoding,
-    CountBySecondary("k", "v")         -> StructEncoding(Map("k" -> mandatory(StringEncoding))).toEncoding
+    CountBySecondary("k", "v")         -> StructEncoding(Map("k" -> mandatory(StringEncoding))).toEncoding,
+    Union                              -> StringEncoding.toEncoding
   ).map((Expression.validate _).tupled).map(_.toEither must beLeft))
+
+  def unionValid = Expression.validate(Union, EncodingList(ListEncoding(SubPrim(DateEncoding)))).toEither must beRight
 }

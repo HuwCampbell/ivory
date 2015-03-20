@@ -76,8 +76,11 @@ case class ReductionValueStruct[K, V](TO: ReductionValueToPrim[V]) extends Reduc
     value.setStructSparse(new ThriftFactStructSparse(d.map.asScala.map { case (k, v) => k.toString -> TO.toPrim(v)}.asJava))
 }
 
-case class ReductionValueList[A](TO: ReductionValueToPrim[A]) extends ReductionValueTo[List[A]] {
+case class ReductionValueList[A](TO: ReductionValueToPrim[A] with ReductionValueFromPrim[A]) extends ReductionValueFrom[List[A]] with ReductionValueTo[List[A]] {
   import scala.collection.JavaConverters._
+  def from(v: ThriftFactValue): List[A] =
+    v.getLst.getL.asScala.map { l => TO.fromPrim(l.getP) }.toList
+
   def to(d: List[A], value: ThriftFactValue) =
     value.setLst(new ThriftFactList(d.map { case a => ThriftFactListValue.p(TO.toPrim(a))}.asJava))
 }

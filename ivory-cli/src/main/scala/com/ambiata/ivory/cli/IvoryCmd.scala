@@ -79,14 +79,14 @@ object IvoryCmd {
                                 |does not know about, or understand the version of the specified
                                 |repository [${x}]. Perhaps someone has run `ivory update` on the
                                 |repository.""".stripMargin)
-      case MetadataVersion.V0 | MetadataVersion.V1 | MetadataVersion.V2 | MetadataVersion.V3 =>
+      case MetadataVersion.V0 | MetadataVersion.V1 | MetadataVersion.V2 | MetadataVersion.V3 | MetadataVersion.V4=>
         RIO.failIO[Unit](s"""The version of the ivory repository you are trying to access has
                                 |meta-data in a form which is too old to be read, you need to run
                                 |run `ivory update` in order for this version of ivory to proceed.
                                 |
                                 |WARNING: If you run `ivory update` older ivory installs will no
                                 |longer be able to access the repository.""".stripMargin)
-      case MetadataVersion.V4 =>
+      case MetadataVersion.V5 =>
         RIO.unit
     } }
   } yield ()
