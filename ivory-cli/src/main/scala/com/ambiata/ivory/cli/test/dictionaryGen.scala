@@ -65,12 +65,13 @@ object dictionaryGen {
         expressionSub(StringEncoding).map(StructExpression("string", _)) ++
         expressionSub(IntEncoding).map(StructExpression("int", _)) ++
         List(LatestBy("keyed_set"), SumBy("string", "int"), CountBySecondary("string", "string")),
-      _ => Nil
+      l => List(Union)
     ) ++ List(
       Count, DaysSinceLatest, DaysSinceEarliest, MeanInDays, MeanInWeeks, MaximumInDays, MaximumInWeeks, MinimumInDays,
       MinimumInWeeks, CountDays, QuantileInDays(2, 10), QuantileInWeeks(2, 10), Interval(Min), Inverse(Count)
     )).map({
       case Count => Count
+      case Union => Union
       case DaysSinceLatest => DaysSinceLatest
       case DaysSinceEarliest => DaysSinceEarliest
       case MeanInDays => MeanInDays

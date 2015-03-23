@@ -40,6 +40,11 @@ object Reduction {
 
   def fromExpression(exp: Expression, encoding: Encoding, dates: DateOffsetsLazy): Option[Reduction] = exp match {
     case Count                        => Some(new CountReducer())
+    case Union                        => condOpt(encoding) {
+      case EncodingList(ListEncoding(SubPrim(StringEncoding))) => new ReductionFoldWrapper(new UnionReducer[String], new ReductionValueList[String](ReductionValueString), new ReductionValueList[String](ReductionValueString))
+      case EncodingList(ListEncoding(SubPrim(IntEncoding)))    => new ReductionFoldWrapper(new UnionReducer[Int], new ReductionValueList[Int](ReductionValueInt), new ReductionValueList[Int](ReductionValueInt))
+      case EncodingList(ListEncoding(SubPrim(DateEncoding)))   => new ReductionFoldWrapper(new UnionReducer[Int], new ReductionValueList(ReductionValueDate), new ReductionValueList[Int](ReductionValueDate))
+    }
     case Interval(Min)                => Some(new IntervalReducer(dates.dates, new MinReducer, ReductionValueLong))
     case Interval(Max)                => Some(new IntervalReducer(dates.dates, new MaxReducer, ReductionValueLong))
     case Interval(Mean)               => Some(new IntervalReducer(dates.dates, new MeanReducer, ReductionValueDouble))

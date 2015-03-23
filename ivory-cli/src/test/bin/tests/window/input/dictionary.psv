@@ -17,6 +17,8 @@ halibut:std_dev|source=halibut:swiss_cheese|window=2 months|expression=std_dev
 halibut:mean|source=halibut:swiss_cheese|window=2 months|expression=mean
 mackerel:mackerel|encoding=(common_name:string,size:double)|tombstone=T
 mackerel:size_by_common_name|window=2 months|expression=latest_by,common_name|source=mackerel:mackerel
+mackerel:days_catch|encoding=[string]|tombstone=T|mode=set
+mackerel:unique_catches|window=2 months|expression=union|source=mackerel:days_catch
 expression:string|encoding=string|tombstone=T|mode=set
 expression:num_flips|source=expression:string|window=2 months|expression=num_flips
 expression:inverse_num_flips|source=expression:string|window=2 months|expression=inverse,num_flips

@@ -1,10 +1,16 @@
 ID00000000|mackerel|{"common_name":"Wahoo","size":170.0}|2014-04-02
 ID00000000|mackerel|{"common_name":"Wahoo","size":250.0}|2014-05-02
+ID00000000|days_catch|["Blue mackerel","Short mackerel"]|2014-05-02
 ID00000000|mackerel|{"common_name":"Blue mackerel","size":43.2}|2014-06-02
+ID00000000|days_catch|["Blue mackerel","Wahoo"]|2014-06-02
 ID00000001|mackerel|{"common_name":"Wahoo","size":43.2}|2014-04-02
 ID00000001|mackerel|{"common_name":"Short mackerel","size":34.5}|2014-05-02
 ID00000001|mackerel|{"common_name":"Wahoo","size":43.2}|2014-06-02
+ID00000001|days_catch|["Blue mackerel"]|2014-06-01
+ID00000001|days_catch|["Blue mackerel"]|2014-06-02
 ID00000002|mackerel|{"common_name":"Atlantic mackerel","size":66}|2014-01-01
 ID00000002|mackerel|{"common_name":"Atlantic mackerel","size":66}|2014-01-02
+ID00000002|days_catch|["Atlantic mackerel"]|2014-06-02
+ID00000002|days_catch|["Wahoo"]|2014-06-02
 ID00000003|mackerel|{"common_name":"Atlantic mackerel","size":66}|2014-05-02
 ID00000003|mackerel|T|2014-06-02

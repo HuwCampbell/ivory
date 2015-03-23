@@ -6,6 +6,7 @@ ID00000000|halibut_state|swiss_cheese|0.042026960275581504|2014-04-02T00:00:00|S
 ID00000000|halibut_state|swiss_cheese|0.8560920159853558|2014-05-02T00:00:00|Snapshot[00000000]
 ID00000000|halibut|swiss_cheese|0.042026960275581504|2014-04-02T00:00:00|Snapshot[00000000]
 ID00000000|halibut|swiss_cheese|0.8560920159853558|2014-05-02T00:00:00|Snapshot[00000000]
+ID00000000|mackerel|days_catch|["Blue mackerel","Short mackerel"]|2014-05-02T00:00:00|Snapshot[00000000]
 ID00000000|mackerel|mackerel|{"common_name":"Wahoo","size":170.0}|2014-04-02T00:00:00|Snapshot[00000000]
 ID00000000|mackerel|mackerel|{"common_name":"Wahoo","size":250.0}|2014-05-02T00:00:00|Snapshot[00000000]
 ID00000001|expression_state|string|c|2014-05-02T00:00:00|Snapshot[00000000]
